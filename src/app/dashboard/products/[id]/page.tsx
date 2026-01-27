@@ -1,0 +1,327 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+import ImageUpload from '@/components/ui/ImageUpload'
+
+interface Variant {
+  id: string
+  size: string
+  color: string
+  price: string
+  stock: string
+  sku: string
+  isNew?: boolean
+}
+
+export default function EditProductPage() {
+  const router = useRouter()
+  const params = useParams()
+  const productId = params.id as string
+  const supabase = createClient()
+
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+  const [storeId, setStoreId] = useState('')
+
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('')
+  const [subcategory, setSubcategory] = useState('')
+  const [basePrice, setBasePrice] = useState('')
+  const [sku, setSku] = useState('')
+  const [images, setImages] = useState<string[]>([])
+  const [status, setStatus] = useState<'active' | 'draft'>('draft')
+  const [hasVariants, setHasVariants] = useState(false)
+  const [variants, setVariants] = useState<Variant[]>([])
+
+  const categories = [
+    { value: 'clothing', label: 'Хувцас', subcategories: ['Цамц', 'Өмд', 'Даашинз', 'Пальто', 'Куртка'] },
+    { value: 'shoes', label: 'Гутал', subcategories: ['Пүмп', 'Туфли', 'Кроссовок', 'Гуталтай'] },
+    { value: 'bags', label: 'Цүнх', subcategories: ['Гар цүнх', 'Нуруун цүнх', 'Бэлтгэн цүнх'] },
+    { value: 'accessories', label: 'Гоёл чимэглэл', subcategories: ['Бүс', 'Малгай', 'Ороолт', 'Бээлий'] },
+  ]
+
+  const selectedCategoryData = categories.find(c => c.value === category)
+
+  useEffect(() => {
+    const loadProduct = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: store } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single()
+
+      if (store) setStoreId(store.id)
+
+      const { data: product } = await supabase
+        .from('products')
+        .select('*, product_variants(*)')
+        .eq('id', productId)
+        .single()
+
+      if (product) {
+        setName(product.name || '')
+        setDescription(product.description || '')
+        setCategory(product.category || '')
+        setSubcategory(product.subcategory || '')
+        setBasePrice(String(product.base_price || ''))
+        setSku(product.sku || '')
+        setImages((product.images || []) as string[])
+        setStatus((product.status || 'draft') as 'active' | 'draft')
+        setHasVariants(product.has_variants || false)
+
+        if (product.product_variants?.length > 0) {
+          setVariants(product.product_variants.map((v: Record<string, unknown>) => ({
+            id: v.id as string,
+            size: (v.size as string) || '',
+            color: (v.color as string) || '',
+            price: String(v.price || ''),
+            stock: String(v.stock_quantity || ''),
+            sku: (v.sku as string) || '',
+          })))
+        }
+      }
+      setLoading(false)
+    }
+    loadProduct()
+  }, [productId])
+
+  const addVariant = () => {
+    setVariants([...variants, { id: `new-${Date.now()}`, size: '', color: '', price: '', stock: '', sku: '', isNew: true }])
+  }
+
+  const removeVariant = (id: string) => {
+    setVariants(variants.filter(v => v.id !== id))
+  }
+
+  const updateVariant = (id: string, field: keyof Variant, value: string) => {
+    setVariants(variants.map(v => v.id === id ? { ...v, [field]: value } : v))
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+
+    try {
+      const { error: productError } = await supabase
+        .from('products')
+        .update({
+          name,
+          description,
+          category,
+          subcategory,
+          base_price: parseFloat(basePrice) || 0,
+          sku: sku || null,
+          images,
+          status,
+          has_variants: hasVariants,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', productId)
+
+      if (productError) throw productError
+
+      // Handle variants
+      for (const variant of variants) {
+        if (variant.isNew || variant.id.startsWith('new-')) {
+          await supabase.from('product_variants').insert({
+            product_id: productId,
+            size: variant.size || null,
+            color: variant.color || null,
+            price: parseFloat(variant.price) || parseFloat(basePrice) || 0,
+            stock_quantity: parseInt(variant.stock) || 0,
+            sku: variant.sku || null,
+          })
+        } else {
+          await supabase.from('product_variants').update({
+            size: variant.size || null,
+            color: variant.color || null,
+            price: parseFloat(variant.price) || parseFloat(basePrice) || 0,
+            stock_quantity: parseInt(variant.stock) || 0,
+            sku: variant.sku || null,
+          }).eq('id', variant.id)
+        }
+      }
+
+      router.push('/dashboard/products')
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Алдаа гарлаа')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Энэ бүтээгдэхүүнийг устгах уу?')) return
+
+    setDeleting(true)
+    try {
+      await supabase.from('product_variants').delete().eq('product_id', productId)
+      await supabase.from('products').delete().eq('id', productId)
+      router.push('/dashboard/products')
+      router.refresh()
+    } catch (err) {
+      setError('Устгахад алдаа гарлаа')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><span className="text-white">Уншиж байна...</span></div>
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/products" className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">←</Link>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Бүтээгдэхүүн засах</h1>
+            <p className="text-slate-400 mt-1">{name}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl"
+        >
+          {deleting ? 'Устгаж байна...' : '🗑️ Устгах'}
+        </button>
+      </div>
+
+      {error && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">{error}</div>}
+
+      <form onSubmit={handleSave}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Basic Info */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Үндсэн мэдээлэл</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Нэр *</label>
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Тайлбар</label>
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500 resize-none" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Ангилал</label>
+                    <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory('') }} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500">
+                      <option value="">Сонгох</option>
+                      {categories.map((cat) => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Дэд ангилал</label>
+                    <select value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500" disabled={!category}>
+                      <option value="">Сонгох</option>
+                      {selectedCategoryData?.subcategories.map((sub) => <option key={sub} value={sub}>{sub}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Үнэ & Нөөц</h2>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Үнэ (₮) *</label>
+                    <input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">SKU</label>
+                    <input type="text" value={sku} onChange={(e) => setSku(e.target.value)} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500" />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-700">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={hasVariants} onChange={(e) => setHasVariants(e.target.checked)} className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-500" />
+                    <span className="text-white">Хэмжээ/Өнгөөр ялгаатай</span>
+                  </label>
+                </div>
+
+                {hasVariants && (
+                  <div className="space-y-3 pt-4">
+                    {variants.map((variant, index) => (
+                      <div key={variant.id} className="p-4 bg-slate-700/30 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-300">Хувилбар {index + 1}</span>
+                          <button type="button" onClick={() => removeVariant(variant.id)} className="text-slate-400 hover:text-red-400">🗑️</button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <input type="text" value={variant.size} onChange={(e) => updateVariant(variant.id, 'size', e.target.value)} placeholder="Хэмжээ" className="px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500" />
+                          <input type="text" value={variant.color} onChange={(e) => updateVariant(variant.id, 'color', e.target.value)} placeholder="Өнгө" className="px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500" />
+                          <input type="number" value={variant.price} onChange={(e) => updateVariant(variant.id, 'price', e.target.value)} placeholder="Үнэ" className="px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500" />
+                          <input type="number" value={variant.stock} onChange={(e) => updateVariant(variant.id, 'stock', e.target.value)} placeholder="Нөөц" className="px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500" />
+                        </div>
+                      </div>
+                    ))}
+                    <button type="button" onClick={addVariant} className="w-full py-3 border-2 border-dashed border-slate-600 hover:border-slate-500 rounded-xl text-slate-400 hover:text-white flex items-center justify-center gap-2">
+                      ➕ Хувилбар нэмэх
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Images */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Зураг</h2>
+              <ImageUpload images={images} onChange={setImages} maxImages={5} storeId={storeId} />
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Төлөв</h2>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-xl cursor-pointer hover:bg-slate-700/50">
+                  <input type="radio" name="status" checked={status === 'draft'} onChange={() => setStatus('draft')} className="w-4 h-4 text-blue-500" />
+                  <div>
+                    <span className="text-white">Ноорог</span>
+                    <p className="text-xs text-slate-400">Chatbot-д харагдахгүй</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-xl cursor-pointer hover:bg-slate-700/50">
+                  <input type="radio" name="status" checked={status === 'active'} onChange={() => setStatus('active')} className="w-4 h-4 text-blue-500" />
+                  <div>
+                    <span className="text-white">Идэвхтэй</span>
+                    <p className="text-xs text-slate-400">Chatbot-оор борлуулна</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button type="submit" disabled={saving} className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium rounded-xl disabled:opacity-50">
+                {saving ? 'Хадгалж байна...' : '💾 Хадгалах'}
+              </button>
+              <Link href="/dashboard/products" className="block w-full py-3 text-center bg-slate-700 hover:bg-slate-600 text-white rounded-xl">
+                Цуцлах
+              </Link>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  )
+}

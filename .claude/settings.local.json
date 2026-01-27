@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(echo:*)",
+      "Bash(npx next lint)",
+      "Bash(npx next lint:*)",
+      "Bash(npx --yes next lint)",
+      "Bash(npm install:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(brew upgrade:*)",
+      "Bash(npx vitest run)",
+      "Bash(npx next build:*)",
+      "Bash(npm ls:*)",
+      "Bash(code --list-extensions:*)",
+      "Bash(mdfind:*)",
+      "Bash(export PATH=\"$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin\")",
+      "Bash(code --install-extension:*)",
+      "Bash(code:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm run build:*)",
+      "Bash(supabase:*)",
+      "Bash(docker:*)",
+      "Bash(brew install:*)",
+      "Bash(supabase start:*)"
+    ]
+  }
+}

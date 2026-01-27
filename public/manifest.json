@@ -1,0 +1,8 @@
+{
+  "name": "Temuulel",
+  "short_name": "Temuulel",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6"
+}

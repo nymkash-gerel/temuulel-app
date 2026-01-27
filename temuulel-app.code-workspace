@@ -1,0 +1,31 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"node_modules": true,
+			".next": true
+		},
+		"search.exclude": {
+			"node_modules": true,
+			".next": true,
+			"package-lock.json": true
+		},
+		"files.watcherExclude": {
+			"**/node_modules/**": true,
+			"**/.next/**": true,
+			"**/.git/objects/**": true,
+			"**/.git/subtree-cache/**": true
+		},
+		"typescript.tsserver.maxTsServerMemory": 3072,
+		"typescript.tsserver.experimental.enableProjectDiagnostics": false,
+		"typescript.disableAutomaticTypeAcquisition": true,
+		"editor.restoreViewState": true,
+		"workbench.session.restore": true,
+		"window.restoreWindows": "all",
+		"editor.minimap.enabled": false
+	}
+}
