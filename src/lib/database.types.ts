@@ -92,6 +92,12 @@ export interface Database {
           logo_url: string | null
           website: string | null
           facebook_page_id: string | null
+          facebook_page_access_token: string | null
+          facebook_page_name: string | null
+          facebook_connected_at: string | null
+          instagram_business_account_id: string | null
+          instagram_page_name: string | null
+          instagram_connected_at: string | null
           ai_auto_reply: boolean
           chatbot_settings: Json
           product_settings: Json
@@ -117,6 +123,12 @@ export interface Database {
           logo_url?: string | null
           website?: string | null
           facebook_page_id?: string | null
+          facebook_page_access_token?: string | null
+          facebook_page_name?: string | null
+          facebook_connected_at?: string | null
+          instagram_business_account_id?: string | null
+          instagram_page_name?: string | null
+          instagram_connected_at?: string | null
           ai_auto_reply?: boolean
           chatbot_settings?: Json
           product_settings?: Json
@@ -142,6 +154,12 @@ export interface Database {
           logo_url?: string | null
           website?: string | null
           facebook_page_id?: string | null
+          facebook_page_access_token?: string | null
+          facebook_page_name?: string | null
+          facebook_connected_at?: string | null
+          instagram_business_account_id?: string | null
+          instagram_page_name?: string | null
+          instagram_connected_at?: string | null
           ai_auto_reply?: boolean
           chatbot_settings?: Json
           product_settings?: Json
@@ -265,6 +283,11 @@ export interface Database {
           status: string
           has_variants: boolean
           sales_script: string | null
+          search_aliases: string[]
+          product_faqs: Json
+          facebook_post_id: string | null
+          instagram_post_id: string | null
+          ai_context: string | null
           created_at: string
           updated_at: string
         }
@@ -281,6 +304,11 @@ export interface Database {
           status?: string
           has_variants?: boolean
           sales_script?: string | null
+          search_aliases?: string[]
+          product_faqs?: Json
+          facebook_post_id?: string | null
+          instagram_post_id?: string | null
+          ai_context?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -297,6 +325,11 @@ export interface Database {
           status?: string
           has_variants?: boolean
           sales_script?: string | null
+          search_aliases?: string[]
+          product_faqs?: Json
+          facebook_post_id?: string | null
+          instagram_post_id?: string | null
+          ai_context?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -533,6 +566,11 @@ export interface Database {
           status: string
           channel: string
           unread_count: number
+          escalation_score: number
+          escalation_level: string
+          escalated_at: string | null
+          assigned_to: string | null
+          metadata: Record<string, unknown>
           created_at: string
           updated_at: string
         }
@@ -543,6 +581,11 @@ export interface Database {
           status?: string
           channel?: string
           unread_count?: number
+          escalation_score?: number
+          escalation_level?: string
+          escalated_at?: string | null
+          assigned_to?: string | null
+          metadata?: Record<string, unknown>
           created_at?: string
           updated_at?: string
         }
@@ -553,6 +596,11 @@ export interface Database {
           status?: string
           channel?: string
           unread_count?: number
+          escalation_score?: number
+          escalation_level?: string
+          escalated_at?: string | null
+          assigned_to?: string | null
+          metadata?: Record<string, unknown>
           created_at?: string
           updated_at?: string
         }
@@ -747,6 +795,528 @@ export interface Database {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_auto_rules: {
+        Row: {
+          id: string
+          store_id: string
+          name: string
+          enabled: boolean
+          priority: number
+          trigger_type: 'keyword' | 'any' | 'first_comment' | 'contains_question'
+          keywords: string[] | null
+          match_mode: 'any' | 'all'
+          reply_comment: boolean
+          reply_dm: boolean
+          comment_template: string | null
+          dm_template: string | null
+          delay_seconds: number
+          platforms: string[]
+          post_filter: Json | null
+          matches_count: number
+          replies_sent: number
+          last_triggered_at: string | null
+          created_at: string
+          updated_at: string
+          use_ai: boolean
+          ai_context: string | null
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          name: string
+          enabled?: boolean
+          priority?: number
+          trigger_type?: 'keyword' | 'any' | 'first_comment' | 'contains_question'
+          keywords?: string[] | null
+          match_mode?: 'any' | 'all'
+          reply_comment?: boolean
+          reply_dm?: boolean
+          comment_template?: string | null
+          dm_template?: string | null
+          delay_seconds?: number
+          platforms?: string[]
+          post_filter?: Json | null
+          matches_count?: number
+          replies_sent?: number
+          last_triggered_at?: string | null
+          created_at?: string
+          updated_at?: string
+          use_ai?: boolean
+          ai_context?: string | null
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          name?: string
+          enabled?: boolean
+          priority?: number
+          trigger_type?: 'keyword' | 'any' | 'first_comment' | 'contains_question'
+          keywords?: string[] | null
+          match_mode?: 'any' | 'all'
+          reply_comment?: boolean
+          reply_dm?: boolean
+          comment_template?: string | null
+          dm_template?: string | null
+          delay_seconds?: number
+          platforms?: string[]
+          post_filter?: Json | null
+          matches_count?: number
+          replies_sent?: number
+          last_triggered_at?: string | null
+          created_at?: string
+          updated_at?: string
+          use_ai?: boolean
+          ai_context?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_auto_rules_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_reply_logs: {
+        Row: {
+          id: string
+          store_id: string
+          rule_id: string | null
+          comment_id: string
+          post_id: string
+          platform: 'facebook' | 'instagram'
+          commenter_id: string
+          commenter_name: string | null
+          comment_text: string | null
+          reply_type: 'comment' | 'dm' | 'both'
+          reply_comment_id: string | null
+          reply_dm_sent: boolean
+          status: 'success' | 'failed' | 'skipped'
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          rule_id?: string | null
+          comment_id: string
+          post_id: string
+          platform: 'facebook' | 'instagram'
+          commenter_id: string
+          commenter_name?: string | null
+          comment_text?: string | null
+          reply_type: 'comment' | 'dm' | 'both'
+          reply_comment_id?: string | null
+          reply_dm_sent?: boolean
+          status?: 'success' | 'failed' | 'skipped'
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          rule_id?: string | null
+          comment_id?: string
+          post_id?: string
+          platform?: 'facebook' | 'instagram'
+          commenter_id?: string
+          commenter_name?: string | null
+          comment_text?: string | null
+          reply_type?: 'comment' | 'dm' | 'both'
+          reply_comment_id?: string | null
+          reply_dm_sent?: boolean
+          status?: 'success' | 'failed' | 'skipped'
+          error_message?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_reply_logs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_reply_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "comment_auto_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      // ============================================
+      // SERVICES & APPOINTMENTS (Beauty Salon, Spa)
+      // ============================================
+      services: {
+        Row: {
+          id: string
+          store_id: string
+          name: string
+          description: string | null
+          category: string | null
+          duration_minutes: number
+          base_price: number
+          images: Json
+          status: 'active' | 'draft' | 'archived'
+          ai_context: string | null
+          facebook_post_id: string | null
+          instagram_post_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          name: string
+          description?: string | null
+          category?: string | null
+          duration_minutes?: number
+          base_price?: number
+          images?: Json
+          status?: 'active' | 'draft' | 'archived'
+          ai_context?: string | null
+          facebook_post_id?: string | null
+          instagram_post_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          name?: string
+          description?: string | null
+          category?: string | null
+          duration_minutes?: number
+          base_price?: number
+          images?: Json
+          status?: 'active' | 'draft' | 'archived'
+          ai_context?: string | null
+          facebook_post_id?: string | null
+          instagram_post_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_variations: {
+        Row: {
+          id: string
+          service_id: string
+          name: string
+          description: string | null
+          price: number
+          duration_minutes: number | null
+          is_addon: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          service_id: string
+          name: string
+          description?: string | null
+          price?: number
+          duration_minutes?: number | null
+          is_addon?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          service_id?: string
+          name?: string
+          description?: string | null
+          price?: number
+          duration_minutes?: number | null
+          is_addon?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_variations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff: {
+        Row: {
+          id: string
+          store_id: string
+          user_id: string | null
+          name: string
+          phone: string | null
+          email: string | null
+          avatar_url: string | null
+          specialties: string[] | null
+          working_hours: Json
+          status: 'active' | 'inactive'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          user_id?: string | null
+          name: string
+          phone?: string | null
+          email?: string | null
+          avatar_url?: string | null
+          specialties?: string[] | null
+          working_hours?: Json
+          status?: 'active' | 'inactive'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          user_id?: string | null
+          name?: string
+          phone?: string | null
+          email?: string | null
+          avatar_url?: string | null
+          specialties?: string[] | null
+          working_hours?: Json
+          status?: 'active' | 'inactive'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointments: {
+        Row: {
+          id: string
+          store_id: string
+          customer_id: string | null
+          staff_id: string | null
+          service_id: string | null
+          variation_id: string | null
+          scheduled_at: string
+          duration_minutes: number
+          status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
+          total_amount: number
+          payment_status: 'paid' | 'pending' | 'refunded' | 'partial'
+          payment_method: 'qpay' | 'bank' | 'cash' | 'card' | null
+          customer_name: string | null
+          customer_phone: string | null
+          notes: string | null
+          internal_notes: string | null
+          source: 'manual' | 'chat' | 'messenger' | 'instagram' | 'website'
+          conversation_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          customer_id?: string | null
+          staff_id?: string | null
+          service_id?: string | null
+          variation_id?: string | null
+          scheduled_at: string
+          duration_minutes?: number
+          status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
+          total_amount?: number
+          payment_status?: 'paid' | 'pending' | 'refunded' | 'partial'
+          payment_method?: 'qpay' | 'bank' | 'cash' | 'card' | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          notes?: string | null
+          internal_notes?: string | null
+          source?: 'manual' | 'chat' | 'messenger' | 'instagram' | 'website'
+          conversation_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          customer_id?: string | null
+          staff_id?: string | null
+          service_id?: string | null
+          variation_id?: string | null
+          scheduled_at?: string
+          duration_minutes?: number
+          status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
+          total_amount?: number
+          payment_status?: 'paid' | 'pending' | 'refunded' | 'partial'
+          payment_method?: 'qpay' | 'bank' | 'cash' | 'card' | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          notes?: string | null
+          internal_notes?: string | null
+          source?: 'manual' | 'chat' | 'messenger' | 'instagram' | 'website'
+          conversation_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointment_addons: {
+        Row: {
+          id: string
+          appointment_id: string
+          service_id: string | null
+          variation_id: string | null
+          price: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          appointment_id: string
+          service_id?: string | null
+          variation_id?: string | null
+          price?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          appointment_id?: string
+          service_id?: string | null
+          variation_id?: string | null
+          price?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_addons_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_hours: {
+        Row: {
+          id: string
+          store_id: string
+          day_of_week: number
+          open_time: string | null
+          close_time: string | null
+          is_closed: boolean
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          day_of_week: number
+          open_time?: string | null
+          close_time?: string | null
+          is_closed?: boolean
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          day_of_week?: number
+          open_time?: string | null
+          close_time?: string | null
+          is_closed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_hours_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_closures: {
+        Row: {
+          id: string
+          store_id: string
+          date: string
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          date: string
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          date?: string
+          reason?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_closures_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]

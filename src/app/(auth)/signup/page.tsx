@@ -447,24 +447,100 @@ export default function SignupPage() {
 
               {/* Business Type */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Бизнесийн чиглэл *
+                <label className="block text-sm font-medium text-slate-300 mb-3">
+                  Бизнесийн төрөл *
                 </label>
-                <select
-                  value={businessType}
-                  onChange={(e) => setBusinessType(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  required
-                >
-                  <option value="">Сонгоно уу</option>
-                  <option value="clothing">Хувцас</option>
-                  <option value="fashion_deel">Загварын дээл</option>
-                  <option value="shoes">Гутал</option>
-                  <option value="accessories">Дагалдах хэрэгсэл</option>
-                  <option value="beauty">Гоо сайхан</option>
-                  <option value="electronics">Электроник</option>
-                  <option value="other">Бусад</option>
-                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* E-commerce / Online Store */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('ecommerce')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'ecommerce'
+                        ? 'border-blue-500 bg-blue-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">🛍️</div>
+                    <div className="text-white font-medium text-sm">Онлайн дэлгүүр</div>
+                    <div className="text-xs text-slate-400 mt-1">Хувцас, гутал, бараа</div>
+                  </button>
+
+                  {/* Beauty Salon / Spa */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('beauty_salon')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'beauty_salon'
+                        ? 'border-pink-500 bg-pink-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">💅</div>
+                    <div className="text-white font-medium text-sm">Гоо сайхан / Spa</div>
+                    <div className="text-xs text-slate-400 mt-1">Үсчин, маникюр, массаж</div>
+                  </button>
+
+                  {/* Restaurant / Cafe */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('restaurant')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'restaurant'
+                        ? 'border-orange-500 bg-orange-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">🍽️</div>
+                    <div className="text-white font-medium text-sm">Ресторан / Кафе</div>
+                    <div className="text-xs text-slate-400 mt-1">Хоол, ундаа захиалга</div>
+                  </button>
+
+                  {/* Fitness / Gym */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('fitness')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'fitness'
+                        ? 'border-green-500 bg-green-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">💪</div>
+                    <div className="text-white font-medium text-sm">Фитнесс / Gym</div>
+                    <div className="text-xs text-slate-400 mt-1">Эрүүл мэнд, дасгал</div>
+                  </button>
+
+                  {/* Education / Courses */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('education')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'education'
+                        ? 'border-purple-500 bg-purple-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">📚</div>
+                    <div className="text-white font-medium text-sm">Сургалт / Курс</div>
+                    <div className="text-xs text-slate-400 mt-1">Хичээл, сургалт</div>
+                  </button>
+
+                  {/* Other Services */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('services')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'services'
+                        ? 'border-cyan-500 bg-cyan-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">🔧</div>
+                    <div className="text-white font-medium text-sm">Бусад үйлчилгээ</div>
+                    <div className="text-xs text-slate-400 mt-1">Засвар, цэвэрлэгээ</div>
+                  </button>
+                </div>
               </div>
 
               {/* Terms */}
