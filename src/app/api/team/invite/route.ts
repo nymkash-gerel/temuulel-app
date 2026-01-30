@@ -28,6 +28,15 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.trim())) {
+    return NextResponse.json(
+      { error: 'Invalid email format' },
+      { status: 400 }
+    )
+  }
+
   // Verify requester owns a store
   const { data: store } = await supabase
     .from('stores')

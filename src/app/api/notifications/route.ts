@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Store not found' }, { status: 404 })
   }
 
-  const limit = parseInt(request.nextUrl.searchParams.get('limit') || '20')
+  const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '20') || 20, 1), 100)
 
   const { data: notifications, error } = await supabase
     .from('notifications')

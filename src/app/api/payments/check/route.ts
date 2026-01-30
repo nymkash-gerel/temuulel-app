@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { checkQPayPayment, isQPayConfigured } from '@/lib/qpay'
 import { dispatchNotification } from '@/lib/notifications'
@@ -139,7 +140,25 @@ export async function POST(request: NextRequest) {
  * Manually update payment status (for bank transfer and cash payments)
  */
 export async function PATCH(request: NextRequest) {
-  const supabase = getSupabase()
+  // Authenticate the user
+  const authClient = await createAuthClient()
+  const { data: { user } } = await authClient.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Verify user owns a store
+  const { data: store } = await authClient
+    .from('stores')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (!store) {
+    return NextResponse.json({ error: 'Store not found' }, { status: 403 })
+  }
+
   const body = await request.json()
   const { order_id, payment_status } = body
 
@@ -156,6 +175,19 @@ export async function PATCH(request: NextRequest) {
       { error: `Invalid payment_status. Must be one of: ${validStatuses.join(', ')}` },
       { status: 400 }
     )
+  }
+
+  // Verify the order belongs to the user's store
+  const supabase = getSupabase()
+  const { data: existingOrder } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('id', order_id)
+    .eq('store_id', store.id)
+    .single()
+
+  if (!existingOrder) {
+    return NextResponse.json({ error: 'Order not found' }, { status: 404 })
   }
 
   const { data: order, error } = await supabase
