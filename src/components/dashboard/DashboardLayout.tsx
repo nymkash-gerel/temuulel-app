@@ -51,7 +51,7 @@ const serviceNavItems = [
 ]
 
 // Business types that use service-based dashboard
-const serviceBasedTypes = ['beauty_salon', 'fitness', 'education', 'services']
+const serviceBasedTypes = ['beauty_salon', 'fitness', 'education', 'services', 'hospital', 'dental_clinic']
 
 export default function DashboardLayout({
   children,

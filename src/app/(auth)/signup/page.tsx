@@ -186,6 +186,13 @@ export default function SignupPage() {
         })
       }
 
+      // Apply industry template (non-blocking)
+      fetch('/api/templates/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template_id: businessType }),
+      }).catch(() => {})
+
       router.push('/dashboard?welcome=true')
       router.refresh()
     } catch (err) {
@@ -524,6 +531,66 @@ export default function SignupPage() {
                     <div className="text-2xl mb-2">📚</div>
                     <div className="text-white font-medium text-sm">Сургалт / Курс</div>
                     <div className="text-xs text-slate-400 mt-1">Хичээл, сургалт</div>
+                  </button>
+
+                  {/* Hospital / Clinic */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('hospital')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'hospital'
+                        ? 'border-cyan-500 bg-cyan-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">🏥</div>
+                    <div className="text-white font-medium text-sm">Эмнэлэг / Клиник</div>
+                    <div className="text-xs text-slate-400 mt-1">Үзлэг, оношилгоо</div>
+                  </button>
+
+                  {/* Coffee Shop */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('coffee_shop')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'coffee_shop'
+                        ? 'border-amber-700 bg-amber-700/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">☕</div>
+                    <div className="text-white font-medium text-sm">Кофе шоп</div>
+                    <div className="text-xs text-slate-400 mt-1">Кофе, ундаа, амттан</div>
+                  </button>
+
+                  {/* Dental Clinic */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('dental_clinic')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'dental_clinic'
+                        ? 'border-teal-500 bg-teal-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">🦷</div>
+                    <div className="text-white font-medium text-sm">Шүдний эмнэлэг</div>
+                    <div className="text-xs text-slate-400 mt-1">Шүдний эмчилгээ</div>
+                  </button>
+
+                  {/* Real Estate */}
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('real_estate')}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      businessType === 'real_estate'
+                        ? 'border-emerald-500 bg-emerald-500/10'
+                        : 'border-slate-600 hover:border-slate-500 bg-slate-700/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">🏠</div>
+                    <div className="text-white font-medium text-sm">Үл хөдлөх</div>
+                    <div className="text-xs text-slate-400 mt-1">Орон сууц, газар</div>
                   </button>
 
                   {/* Other Services */}

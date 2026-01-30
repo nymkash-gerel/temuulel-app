@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     .single()
 
   const storeId = store?.id ?? ''
-  const serviceBasedTypes = ['beauty_salon', 'fitness', 'education', 'services']
+  const serviceBasedTypes = ['beauty_salon', 'fitness', 'education', 'services', 'hospital', 'dental_clinic']
   const isServiceBased = serviceBasedTypes.includes(store?.business_type || '')
 
   // Get counts based on business type
