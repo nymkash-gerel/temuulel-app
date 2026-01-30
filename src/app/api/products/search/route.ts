@@ -54,8 +54,16 @@ export async function GET(request: NextRequest) {
     // If user searched for a category term, filter by category
     dbQuery = dbQuery.eq('category', mappedCategory)
   } else if (query) {
-    // Otherwise search in name and description
-    dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+    // Search in name, description, and AI-generated search aliases
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+    const conditions = words
+      .flatMap((w) => [
+        `name.ilike.%${w}%`,
+        `description.ilike.%${w}%`,
+        `search_aliases.cs.{${w}}`,
+      ])
+      .join(',')
+    dbQuery = dbQuery.or(conditions)
   }
 
   if (category) {

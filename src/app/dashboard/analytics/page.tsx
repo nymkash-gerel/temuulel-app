@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -91,6 +91,11 @@ export default function AnalyticsPage() {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([])
   const [messagesUsed, setMessagesUsed] = useState(0)
   const [messagesLimit, setMessagesLimit] = useState(500)
+
+  // AI Insights
+  const [insights, setInsights] = useState<string[] | null>(null)
+  const [insightTone, setInsightTone] = useState<'positive' | 'neutral' | 'warning'>('neutral')
+  const [insightLoading, setInsightLoading] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -260,6 +265,100 @@ export default function AnalyticsPage() {
     return { total, aiResponses, customerMsgs, responseRate }
   }, [messages])
 
+  // Fetch AI insights
+  const pendingOrders = useMemo(() => orders.filter(o => o.status === 'pending').length, [orders])
+  const cancelledOrders = useMemo(() => orders.filter(o => o.status === 'cancelled').length, [orders])
+
+  const fetchInsights = useCallback(async () => {
+    const validOrders = orders.filter(o => o.status !== 'cancelled')
+    const revenue = validOrders.reduce((s, o) => s + Number(o.total_amount), 0)
+    const count = validOrders.length
+    // Skip if no meaningful data
+    if (revenue === 0 && count === 0 && messages.length === 0) {
+      setInsights(null)
+      return
+    }
+
+    const cacheKey = `insights_${period}`
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        setInsights(parsed.insights)
+        setInsightTone(parsed.tone)
+        return
+      } catch { /* ignore bad cache */ }
+    }
+
+    setInsightLoading(true)
+    try {
+      const avg = count > 0 ? Math.round(revenue / count) : 0
+      const customerMsgs = messages.filter(m => m.is_from_customer).length
+      const aiResponses = messages.filter(m => m.is_ai_response).length
+      const responseRate = customerMsgs > 0 ? Math.round((aiResponses / customerMsgs) * 100) : 0
+
+      // Compute revenue change inline (allOrders may not be in dependency list)
+      const days = getPeriodDays(period)
+      const prevStart = new Date(getDaysAgo(days * 2))
+      const prevEnd = new Date(getDaysAgo(days))
+      const prevRevenue = allOrders
+        .filter(o => {
+          const d = new Date(o.created_at)
+          return d >= prevStart && d < prevEnd && o.status !== 'cancelled'
+        })
+        .reduce((s, o) => s + Number(o.total_amount), 0)
+      const revChange = prevRevenue > 0
+        ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100)
+        : revenue > 0 ? 100 : 0
+
+      const res = await fetch('/api/analytics/insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          period,
+          revenue,
+          revenueChange: revChange,
+          orderCount: count,
+          avgOrderValue: avg,
+          newCustomers: newCustomerCount,
+          totalCustomers: customerCount,
+          topProducts: topProducts.map(p => ({
+            name: p.name,
+            quantity: p.total_sold,
+            revenue: p.revenue,
+          })),
+          aiResponseRate: responseRate,
+          totalMessages: messages.length,
+          pendingOrders,
+          cancelledOrders,
+        }),
+      })
+
+      if (!res.ok) { setInsights(null); return }
+
+      const data = await res.json()
+      if (data.insights) {
+        setInsights(data.insights)
+        setInsightTone(data.tone || 'neutral')
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          insights: data.insights,
+          tone: data.tone || 'neutral',
+        }))
+      } else {
+        setInsights(null)
+      }
+    } catch {
+      setInsights(null)
+    } finally {
+      setInsightLoading(false)
+    }
+  }, [orders, allOrders, messages, period, topProducts, newCustomerCount, customerCount, pendingOrders, cancelledOrders])
+
+  useEffect(() => {
+    if (!storeId || loading) return
+    fetchInsights()
+  }, [storeId, loading, fetchInsights])
+
   // Computed stats
   const totalRevenue = orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total_amount), 0)
   const orderCount = orders.filter(o => o.status !== 'cancelled').length
@@ -311,6 +410,40 @@ export default function AnalyticsPage() {
           </select>
         </div>
       </div>
+
+      {/* AI Insights Card */}
+      {(insightLoading || insights) && (
+        <div className={`mb-8 rounded-2xl p-6 border ${
+          insightTone === 'positive'
+            ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20'
+            : insightTone === 'warning'
+            ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20'
+            : 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/20'
+        }`}>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-2xl">
+              {insightTone === 'positive' ? '✨' : insightTone === 'warning' ? '⚠️' : '💡'}
+            </span>
+            <h3 className="text-lg font-semibold text-white">AI Дүгнэлт</h3>
+          </div>
+          {insightLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-4 bg-slate-700/50 rounded-lg animate-pulse" style={{ width: `${85 - i * 10}%` }} />
+              ))}
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {insights!.map((line, i) => (
+                <li key={i} className="flex items-start gap-2 text-slate-200 text-sm">
+                  <span className="text-slate-400 mt-0.5">•</span>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

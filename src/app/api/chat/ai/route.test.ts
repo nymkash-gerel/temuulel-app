@@ -33,7 +33,8 @@ describe('classifyIntent', () => {
 
   it('classifies order status inquiry', () => {
     expect(classifyIntent('Захиалга хаана байна')).toBe('order_status')
-    expect(classifyIntent('Хүргэлт хэзээ ирэх вэ')).toBe('order_status')
+    // "Хүргэлт хэзээ ирэх вэ" = "When will delivery arrive" → shipping (delivery-focused)
+    expect(classifyIntent('Хүргэлт хэзээ ирэх вэ')).toBe('shipping')
   })
 
   it('classifies thanks', () => {
@@ -124,6 +125,7 @@ describe('generateResponse', () => {
       base_price: 35000,
       images: [],
       sales_script: 'Хамгийн борлуулалттай!',
+      product_faqs: null,
     },
   ]
 
@@ -165,7 +167,7 @@ describe('generateResponse', () => {
 
   it('generates product search with no results', () => {
     const resp = generateResponse('product_search', [], [], 'Store')
-    expect(resp).toContain('байхгүй')
+    expect(resp).toContain('олдсонгүй')
   })
 
   it('generates order status with tracking', () => {

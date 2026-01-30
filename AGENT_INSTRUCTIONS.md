@@ -33,7 +33,10 @@ Customer sends message (Messenger/Web) → AI classifies intent → Auto-replies
 │  /api/payments/*     → QPay create/callback/check     │
 │  /api/notifications  → GET unread, PATCH mark read    │
 │  /api/products/search→ Product search (Mongolian)     │
+│  /api/orders         → POST create order + shipping   │
 │  /api/orders/search  → Order lookup                   │
+│  /api/orders/status  → PATCH update order status      │
+│  /api/cron/daily-report → Daily sales report email    │
 │  /api/auth/*         → OAuth callback, signout        │
 └──────────────────────┬───────────────────────────────┘
                        │
@@ -110,11 +113,17 @@ dispatchNotification(storeId, event, data)
   │   ├── new_message→ "Шинэ мессеж: {customer}"
   │   └── low_stock  → "Нөөц дуусаж байна: {product}"
   │
-  ├── 2. IN-APP (always saved to notifications table)
-  │   └── NotificationBell.tsx via Supabase Realtime subscription
+  ├── 2. PUSH (if user.notification_settings.push_{event} === true)
+  │   └── Web Push via VAPID keys → browser notification
   │
-  └── 3. WEBHOOK (if store.webhook_url configured + event enabled)
-      └── HMAC-SHA256 signed POST to external system
+  ├── 3. IN-APP (always saved to notifications table)
+  │   └── NotificationBell.tsx via Supabase Realtime subscription
+  │       + notification sound if sound_enabled === true
+  │
+  └── 4. WEBHOOK (if store.webhook_url configured + event enabled)
+      └── Upstash QStash → /api/webhook/deliver → store's webhook_url
+      └── HMAC-SHA256 signed, 3 retries with exponential backoff
+      └── Falls back to direct delivery when QStash not configured
 ```
 
 **Trigger points:**
@@ -125,6 +134,9 @@ dispatchNotification(storeId, event, data)
 | `/api/chat/route.ts` | `new_message` | Customer sends message via widget |
 | `/api/webhook/messenger/route.ts` | `new_message` | Messenger message received |
 | `/api/webhook/messenger/route.ts` | `new_customer` | First-time Messenger contact |
+| `/api/orders/route.ts` | `new_order` | Order created via POST /api/orders |
+| `/api/orders/status/route.ts` | `order_status` | Order status changes |
+| `src/lib/stock.ts` | `low_stock` | Variant stock falls below threshold |
 
 ---
 
@@ -145,7 +157,8 @@ dispatchNotification(storeId, event, data)
 - Mongolian keyword-based intent classification (product_search, order_status, greeting, thanks, complaint, size_info, payment, shipping)
 - Template responses with dynamic product/order data
 - Auto-reply toggle per store (`ai_auto_reply`)
-- Handoff keyword matching for escalation to human agents
+- Handoff keyword matching for immediate escalation to human agents
+- **Smart escalation** — cumulative scoring engine (`src/lib/escalation.ts`) that detects complaint, frustration, return/exchange, payment disputes, repeated messages, and AI-fail-to-resolve signals. Auto-escalates to human agent when score crosses threshold (default 60). Dashboard shows priority badges and "Хүлээж авах" (Take over) button.
 - Rich Messenger responses: product cards, quick replies
 
 ### Security & Rate Limiting
@@ -168,10 +181,12 @@ dispatchNotification(storeId, event, data)
 ```
 src/lib/chat-ai.ts            — Shared AI: intent keywords, classifyIntent(), searchProducts(),
                                  searchOrders(), generateResponse(), matchesHandoffKeywords()
+src/lib/escalation.ts         — Smart escalation: scoring engine, processEscalation(),
+                                 signal detection (complaint, frustration, repeat, AI-fail)
 src/lib/rate-limit.ts         — In-memory sliding window rate limiter + getClientIp()
 src/lib/notifications.ts      — Central notification dispatcher (email + in-app + webhook)
 src/lib/email.ts              — Resend email wrapper + templates
-src/lib/webhook.ts            — HMAC-SHA256 signed outgoing webhooks
+src/lib/webhook.ts            — QStash-backed outgoing webhooks (HMAC-SHA256 signed, 3 retries)
 src/lib/messenger.ts          — Facebook Graph API helpers (send, verify, cards)
 src/lib/qpay.ts               — QPay token cache + invoice/payment API
 src/lib/database.types.ts     — Auto-generated Supabase TypeScript types (733 lines)
@@ -185,12 +200,16 @@ chat/route.ts                 — Message save/retrieve + rate limiting + input 
 chat/ai/route.ts              — AI intent classification + reply (uses chat-ai.ts)
 chat/widget/route.ts          — Widget AI endpoint (uses chat-ai.ts) + handoff
 webhook/messenger/route.ts    — Facebook webhook (mandatory signature verification)
+webhook/deliver/route.ts      — QStash callback target for reliable webhook delivery
 payments/create/route.ts      — QPay/bank/cash invoice creation
 payments/check/route.ts       — Payment status check + rate limiting
 payments/callback/route.ts    — QPay async payment callback
 products/search/route.ts      — Product search + rate limiting + query cap
+orders/route.ts               — POST create order + shipping calculation
 orders/search/route.ts        — Order lookup
+orders/status/route.ts        — PATCH update order status + notifications
 notifications/route.ts        — GET unread, PATCH mark read
+cron/daily-report/route.ts    — Vercel Cron: daily sales report email
 auth/callback/route.ts        — Supabase OAuth callback
 auth/signout/route.ts         — Sign out + redirect
 ```
@@ -225,6 +244,19 @@ MESSENGER_VERIFY_TOKEN=
 RESEND_API_KEY=
 NOTIFICATION_FROM_EMAIL=noreply@yourdomain.com
 
+# Web Push Notifications (VAPID)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:support@yourdomain.com
+
+# Cron Job Security
+CRON_SECRET=
+
+# Upstash QStash (reliable webhook delivery)
+QSTASH_TOKEN=
+QSTASH_CURRENT_SIGNING_KEY=
+QSTASH_NEXT_SIGNING_KEY=
+
 # QPay Payment Gateway
 QPAY_BASE_URL=https://merchant.qpay.mn/v2
 QPAY_USERNAME=
@@ -243,8 +275,12 @@ QPAY_INVOICE_CODE=
 | `payments/payments.test.ts` | 18 | QPay callback, payment status, invoice creation |
 | `lib/messenger.test.ts` | 14 | Signature verify, send text/cards/quick replies |
 | `lib/qpay.test.ts` | 8 | Token caching, invoice creation, payment check |
-| `lib/webhook.test.ts` | 6 | HMAC signing, event filtering, payload structure |
-| **Total** | **97** | **All pass** |
+| `lib/webhook.test.ts` | 10 | QStash delivery, direct fallback, HMAC signing, event filtering |
+| `lib/stock.test.ts` | 9 | Stock decrement, low-stock notification threshold |
+| `lib/notifications.test.ts` | 15 | Notification dispatcher, email/push/webhook triggering, escalation event |
+| `lib/escalation.test.ts` | 31 | Scoring engine, signal detection, level mapping, repeated message, AI-fail-to-resolve |
+| `orders/route.test.ts` | 14 | Order creation, shipping calculation, validation |
+| **Total** | **170** | **All pass** |
 
 ---
 
@@ -253,26 +289,13 @@ QPAY_INVOICE_CODE=
 ### High Priority
 - [ ] **Instagram DM integration** — UI placeholder exists at `/dashboard/settings/integrations`, needs webhook receiver + message sender (similar to Messenger)
 - [ ] **WhatsApp Business integration** — Same pattern as Instagram, using WhatsApp Cloud API
-- [ ] **Low stock notification trigger** — Add `dispatchNotification(storeId, 'low_stock', ...)` when variant `stock_quantity` drops below threshold (on order creation or stock update)
-- [ ] **Daily report email** — Scheduled job to send daily sales summary (notification settings toggle exists but no implementation)
-
-### Medium Priority
-- [x] **Supabase Realtime for notifications** — Replaced 30s polling with Supabase realtime subscription on `notifications` table
-- [ ] **Push notifications** — Web Push API integration (settings toggles exist: `push_new_order`, `push_new_message`, `push_low_stock`)
-- [ ] **Analytics dashboard** — `/dashboard/analytics` page exists but has no charts/data
-- [ ] **Team member management** — `/dashboard/settings/team` UI exists, invite/remove flow needed
-- [ ] **Shipping zone configuration** — `/dashboard/settings/shipping` UI exists, rate calculation needed
 
 ### Low Priority
-- [ ] **Order status change notifications** — Dispatch `order_status` event when order moves through pending → confirmed → processing → shipped → delivered
-- [ ] **Notification sound** — Settings toggle exists (`sound_enabled`), needs audio playback in NotificationBell
 - [ ] **Email templates** — Move inline HTML to proper React Email templates
 - [ ] **Bulk product import validation** — `/dashboard/products/import` exists, needs better error handling
 
 ### Technical Debt
 - [ ] **Remove legacy chat_sessions/chat_messages** — Backward compat tables, can be dropped once all clients use conversations/messages
-- [ ] **Add notification tests** — Unit tests for `dispatchNotification()`, email templates, and `/api/notifications` route
-- [ ] **Webhook retry logic** — Currently fire-and-forget, should queue failed deliveries
 - [ ] **Production error tracking** — Add Sentry or similar for production error monitoring
 - [ ] **Redis-backed rate limiting** — Replace in-memory rate limiter with Upstash Redis for multi-instance deployments
 
@@ -283,3 +306,15 @@ QPAY_INVOICE_CODE=
 - [x] **DRY AI logic** — Extracted shared intent classification, search, and response generation into `src/lib/chat-ai.ts`
 - [x] **Type safety improvements** — Added `typeof` null checks on AI response data in webhook handler
 - [x] **Supabase Realtime for notifications** — Replaced 30s polling in NotificationBell with Supabase Realtime subscription (migration: `002_notifications_realtime.sql`)
+- [x] **Order creation API** — `POST /api/orders` with shipping zone calculation, free shipping thresholds, rate limiting, and `new_order` notification dispatch
+- [x] **Notification sound** — `NotificationBell.tsx` plays `/notification.wav` on new realtime INSERT when `sound_enabled` is true
+- [x] **Daily report email** — Vercel Cron job at `/api/cron/daily-report` sends daily sales summary (orders, revenue, customers, messages, top products) via Resend
+- [x] **Push notifications** — Web Push via VAPID keys, service worker (`/public/sw.js`), `sendPushToUser()` wired into `dispatchNotification()` for all events
+- [x] **Low stock notification trigger** — `decrementStockAndNotify()` in `src/lib/stock.ts` dispatches `low_stock` when variant stock falls below threshold
+- [x] **Order status change notifications** — `dispatchNotification(storeId, 'order_status', ...)` called in `PATCH /api/orders/status` on status transitions
+- [x] **Shipping zone integration** — `POST /api/orders` calculates shipping from store's `shipping_settings` zones + free shipping threshold
+- [x] **Analytics dashboard** — Full analytics page with revenue charts, order metrics, AI stats, top products, subscription usage
+- [x] **Team member management** — Invite/remove flow with role-based access (owner/admin/staff)
+- [x] **Notification tests** — 11 tests in `notifications.test.ts`, 14 tests in `orders/route.test.ts` (131 total)
+- [x] **Webhook retry logic (QStash)** — Replaced fire-and-forget webhooks with Upstash QStash for reliable delivery (3 retries, exponential backoff). Falls back to direct delivery when QStash not configured.
+- [x] **Smart escalation system** — Cumulative scoring engine (`src/lib/escalation.ts`) with 7 signal types (complaint, frustration, return/exchange, payment dispute, repeated message, AI-fail-to-resolve, long unresolved thread). Auto-escalates conversations when score crosses threshold (default 60). Dashboard shows priority badges (critical/high/medium), "Шилжсэн" filter tab, and "Хүлээж авах" (Take over) button. 31 tests in `escalation.test.ts`. Migration: `003_escalation.sql`.

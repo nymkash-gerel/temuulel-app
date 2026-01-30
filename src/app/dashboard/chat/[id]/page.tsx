@@ -19,6 +19,10 @@ interface Conversation {
   status: string
   channel: string
   updated_at: string
+  escalation_score: number
+  escalation_level: string
+  escalated_at: string | null
+  assigned_to: string | null
   customers: {
     id: string
     name: string | null
@@ -29,6 +33,12 @@ interface Conversation {
   } | null
 }
 
+const ESC_LEVEL_LABELS: Record<string, { bg: string; text: string; label: string }> = {
+  critical: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Маш яаралтай' },
+  high: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Яаралтай' },
+  medium: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Дунд' },
+}
+
 const QUICK_REPLIES = [
   'Сайн байна уу! Танд юугаар туслах вэ?',
   'Баярлалаа, захиалга баталгаажлаа.',
@@ -36,6 +46,52 @@ const QUICK_REPLIES = [
   'Хүргэлт 1-3 хоногт хийгдэнэ.',
   'Та утасны дугаараа үлдээнэ үү?',
 ]
+
+function SentimentTagsBlock({ metadata }: { metadata: Record<string, unknown> }) {
+  const sentiment = metadata.sentiment as string | undefined
+  const tags = Array.isArray(metadata.tags) ? metadata.tags as string[] : []
+  if (!sentiment && tags.length === 0) return null
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      {sentiment && (
+        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+          sentiment === 'positive'
+            ? 'bg-emerald-500/20 text-emerald-400'
+            : sentiment === 'negative'
+              ? 'bg-red-500/20 text-red-400'
+              : 'bg-slate-600/30 text-slate-400'
+        }`}>
+          {sentiment === 'positive' ? 'Эерэг' : sentiment === 'negative' ? 'Сөрөг' : 'Төвийг'}
+        </span>
+      )}
+      {tags.map((tag: string, i: number) => (
+        <span key={i} className="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-500/15 text-blue-400 border border-blue-500/20">
+          #{tag}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function ComplaintSummaryBlock({ data }: { data: Record<string, unknown> }) {
+  const cs = data as { summary?: string; main_issues?: string[]; action_hint?: string }
+  return (
+    <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs">
+      <p className="text-red-300 font-medium mb-1">Гомдлын товчлол:</p>
+      {cs.summary && <p className="text-red-200">{cs.summary}</p>}
+      {cs.main_issues && cs.main_issues.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {cs.main_issues.map((issue: string, i: number) => (
+            <span key={i} className="px-1.5 py-0.5 bg-red-500/20 rounded text-red-300">{issue}</span>
+          ))}
+        </div>
+      )}
+      {cs.action_hint && (
+        <p className="mt-1 text-amber-300">Зөвлөгөө: {cs.action_hint}</p>
+      )}
+    </div>
+  )
+}
 
 export default function ChatConversationPage() {
   const params = useParams()
@@ -101,10 +157,10 @@ export default function ChatConversationPage() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // Real-time subscription for new messages
+  // Real-time subscription for new messages + conversation metadata
   useEffect(() => {
     const channel = supabase
-      .channel(`messages:${conversationId}`)
+      .channel(`chat:${conversationId}`)
       .on(
         'postgres_changes',
         {
@@ -119,6 +175,29 @@ export default function ChatConversationPage() {
             if (prev.some((m) => m.id === newMsg.id)) return prev
             return [...prev, newMsg]
           })
+          // Reset unread since agent has the conversation open
+          if (newMsg.is_from_customer) {
+            supabase
+              .from('conversations')
+              .update({ unread_count: 0 })
+              .eq('id', conversationId)
+              .then()
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+          filter: `id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Conversation
+          setConversation((prev) =>
+            prev ? { ...prev, status: updated.status, escalation_level: updated.escalation_level, escalation_score: updated.escalation_score, escalated_at: updated.escalated_at, assigned_to: updated.assigned_to } : prev
+          )
         }
       )
       .subscribe()
@@ -279,6 +358,11 @@ export default function ChatConversationPage() {
                     | {conversation.customers.phone}
                   </span>
                 )}
+                {ESC_LEVEL_LABELS[conversation.escalation_level] && (
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESC_LEVEL_LABELS[conversation.escalation_level].bg} ${ESC_LEVEL_LABELS[conversation.escalation_level].text}`}>
+                    {ESC_LEVEL_LABELS[conversation.escalation_level].label}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -346,6 +430,14 @@ export default function ChatConversationPage() {
                     </div>
                   )}
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {/* Complaint summary from AI (shown on escalation messages) */}
+                  {(msg.metadata?.type === 'escalation' && msg.metadata?.complaint_summary != null) ? (
+                    <ComplaintSummaryBlock data={msg.metadata.complaint_summary as Record<string, unknown>} />
+                  ) : null}
+                  {/* Sentiment & tags (customer messages only) */}
+                  {msg.is_from_customer && msg.metadata && (
+                    <SentimentTagsBlock metadata={msg.metadata as Record<string, unknown>} />
+                  )}
                   <p className={`text-xs mt-1.5 ${
                     msg.is_from_customer ? 'text-slate-500' :
                     msg.is_ai_response ? 'text-amber-500/70' : 'text-blue-200/70'
@@ -501,6 +593,15 @@ export default function ChatConversationPage() {
                 {messages.filter((m) => m.is_ai_response).length}
               </span>
             </div>
+            {conversation.escalation_level !== 'low' && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400">Шилжилт</span>
+                <span className={ESC_LEVEL_LABELS[conversation.escalation_level]?.text || 'text-slate-400'}>
+                  {ESC_LEVEL_LABELS[conversation.escalation_level]?.label || conversation.escalation_level}
+                  {' '}({conversation.escalation_score})
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -508,6 +609,27 @@ export default function ChatConversationPage() {
             <h5 className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-3">
               Үйлдэл
             </h5>
+            {(conversation.escalation_level === 'high' || conversation.escalation_level === 'critical') && !conversation.assigned_to && (
+              <button
+                onClick={async () => {
+                  await supabase
+                    .from('conversations')
+                    .update({
+                      assigned_to: (await supabase.auth.getUser()).data.user?.id,
+                      status: 'active',
+                      escalation_score: 0,
+                      escalation_level: 'low',
+                    })
+                    .eq('id', conversationId)
+                  setConversation((prev) =>
+                    prev ? { ...prev, status: 'active', escalation_score: 0, escalation_level: 'low', assigned_to: 'self' } : prev
+                  )
+                }}
+                className="w-full py-2 text-sm text-white bg-orange-500/80 hover:bg-orange-500 border border-orange-500/50 rounded-lg transition-all font-medium"
+              >
+                Хүлээж авах
+              </button>
+            )}
             <button
               onClick={async () => {
                 await supabase
@@ -520,7 +642,7 @@ export default function ChatConversationPage() {
               }}
               className="w-full py-2 text-sm text-slate-300 hover:text-white bg-slate-700/50 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all"
             >
-              {conversation.status === 'closed' ? '🔓 Дахин нээх' : '🔒 Чат хаах'}
+              {conversation.status === 'closed' ? 'Дахин нээх' : 'Чат хаах'}
             </button>
             {conversation.customers?.id && (
               <Link

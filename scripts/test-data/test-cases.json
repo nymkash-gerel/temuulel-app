@@ -1,0 +1,252 @@
+[
+  {
+    "category": "other_detailed",
+    "question": "Дотортой шилэн тирко",
+    "actual_response": "1ш Хавар намрын нимгэн хар \n1ш Өвлийн зузаантай хар"
+  },
+  {
+    "category": "other_detailed",
+    "question": "Ene har abii",
+    "actual_response": "ymar size we"
+  },
+  {
+    "category": "other_detailed",
+    "question": "Хл улаан өнгө",
+    "actual_response": "Xl gj bhguu"
+  },
+  {
+    "category": "other_detailed",
+    "question": "Маргааш өглөө ирэх үү",
+    "actual_response": "Xl gj bhguu"
+  },
+  {
+    "category": "other_detailed",
+    "question": "Oimsniix ni zurag xarx gsy?",
+    "actual_response": "Dugraa uldgre"
+  },
+  {
+    "category": "delivery",
+    "question": "Хүргэлт",
+    "actual_response": "24 цагтаа багтан хаягийн дагуу очих болно. Утсаа нээлттэй байлгаарай. Утас холбогдохгүйгээс хүргэлтүүд хүргэгдэж чадахгүй байдгийг анхаарна уу."
+  },
+  {
+    "category": "delivery",
+    "question": "Xurgelt xzee irx we",
+    "actual_response": "Хүргэлт Өдөр бүр гарж байна. Хаяг утсыг дагуу 24 цагтаа очих болно."
+  },
+  {
+    "category": "delivery",
+    "question": "Xurgelt",
+    "actual_response": "Хүргэлт Өдөр бүр гарж байна. Хаяг утсыг дагуу 24 цагтаа очих болно."
+  },
+  {
+    "category": "delivery",
+    "question": "Хаяг",
+    "actual_response": "Манайх нүүсэн тул зөвхөн хүргэлтээр бараа гарж байна."
+  },
+  {
+    "category": "delivery",
+    "question": "Энэ хаягаар",
+    "actual_response": "Та хаяг утсаа үлдээгээд хүргүүлээд аваарай. Хүргэлт дугаарын хязгаарлалтаас хамааран 24-48 цагтаа багтан очно."
+  },
+  {
+    "category": "size",
+    "question": "65 kg taarah",
+    "actual_response": "har tsagaan ongo baigaa"
+  },
+  {
+    "category": "size",
+    "question": "Хэмжээ",
+    "actual_response": "Та хаяг утсаа үлдээгээд үнэгүй хүргүүлээд аваарай. Хүргэлт 24 цагтаа очно."
+  },
+  {
+    "category": "size",
+    "question": "Eregteii tursink xl zaxialyy",
+    "actual_response": "Dugraa uldgre"
+  },
+  {
+    "category": "size",
+    "question": "170 sm 55 kg",
+    "actual_response": "Та хаяг утсаа үлдээгээд хүргүүлээд аваарай. Хүргэлт дугаарын хязгаарлалтаас хамааран 24-48 цагтаа багтан очно."
+  },
+  {
+    "category": "size",
+    "question": "57kg",
+    "actual_response": null
+  },
+  {
+    "category": "other_short",
+    "question": "80042699",
+    "actual_response": "Hyg?"
+  },
+  {
+    "category": "other_short",
+    "question": "95172686",
+    "actual_response": "Таны захиалгыг хүлээж авлаа. Баярлалаа хүргэлт дугаарын хязгаарлалтаас хамааран 24-48 цагтаан багтан очно. Манай хүргэлтийн жолооч тань руу залгана та утсаа нээлттэй байлгаарай. Хэрвээ маргаашдаа хүргэлтээр авж амжаагүй бол та бидэнд мэдэгдээрэй. Дараа өдрийнх хүргэлтэнд дахиад гаргаад өгнөө. ( УТСАА НЭЭЛТТЭЙ БАЙЛГААРАЙ)"
+  },
+  {
+    "category": "other_short",
+    "question": "S 66см",
+    "actual_response": "Та хаяг утсаа үлдээгээд хүргүүлээд аваарай. Хүргэлт дугаарын хязгаарлалтаас хамааран 24-48 цагтаа багтан очно."
+  },
+  {
+    "category": "other_short",
+    "question": "50--60",
+    "actual_response": "Та хаяг утсаа үлдээгээд хүргүүлээд аваарай. Хүргэлт дугаарын хязгаарлалтаас хамааран 24-48 цагтаа багтан очно."
+  },
+  {
+    "category": "other_short",
+    "question": "94929590",
+    "actual_response": "Сайзаа үлдээгээрэй."
+  },
+  {
+    "category": "greeting",
+    "question": "Bzd 8r xoroo shine amgalan xotxon 519 bair 2 orts 9 dawxar 146toot",
+    "actual_response": "Dugraa uldgre"
+  },
+  {
+    "category": "greeting",
+    "question": "Taarh bhgui bh shig bn",
+    "actual_response": null
+  },
+  {
+    "category": "greeting",
+    "question": "Bi margaash huduu yvah ymaa. Ugluu ert bgaa gazar ni ochood awchihay teghuu",
+    "actual_response": "Blkue"
+  },
+  {
+    "category": "greeting",
+    "question": "Hurgeltiin company ochij awj bgaa gazar ni ochood awchihayldaa",
+    "actual_response": null
+  },
+  {
+    "category": "greeting",
+    "question": "Har ungunuus ni M L zahialii",
+    "actual_response": null
+  },
+  {
+    "category": "availability",
+    "question": "Bnu",
+    "actual_response": "Хүргэлт Өдөр бүр гарж байна. Хаяг утсыг дагуу 24 цагтаа очих болно."
+  },
+  {
+    "category": "availability",
+    "question": "Дараа авах боломж байгаа юу",
+    "actual_response": "Bolno"
+  },
+  {
+    "category": "availability",
+    "question": "sn bnu",
+    "actual_response": "Л. Аюүки replied to an ad."
+  },
+  {
+    "category": "availability",
+    "question": "har ongo bgaa yu",
+    "actual_response": "Л. Аюүки replied to an ad."
+  },
+  {
+    "category": "availability",
+    "question": "Ene plaj bgaa yu",
+    "actual_response": "Та хаяг утсаа үлдээгээд хүргүүлээд аваарай. Хүргэлт дугаарын хязгаарлалтаас хамааран 24-48 цагтаа багтан очно."
+  },
+  {
+    "category": "price",
+    "question": "Une",
+    "actual_response": "Hurglt n ord 40k"
+  },
+  {
+    "category": "price",
+    "question": "Umd in hed ve",
+    "actual_response": "35k"
+  },
+  {
+    "category": "price",
+    "question": "1iig awbal 1 unegui bna te",
+    "actual_response": "Time"
+  },
+  {
+    "category": "price",
+    "question": "Hvrgelt unegui gee bzde",
+    "actual_response": "Uneguee"
+  },
+  {
+    "category": "price",
+    "question": "1iig awuul 1 unegui yum bn tiimvv",
+    "actual_response": "Time"
+  },
+  {
+    "category": "order",
+    "question": "Авий харийг",
+    "actual_response": "⁉️Хүн бүрийн биеийн онцлог өндөр жингийн харьцаа өөр өөр тул бэлхүүсний тойрогийн хэмжээг чухалчлан сонголтоо хийхийг зөвлөж байна.\nҮнэ 35.000 Хүргэлт Үнэгүй\nТа хаяг утсаа үлдээгээд захиалгаа баталгаажуулаарай.\n❤️200% сайжруулсан суналттай материал\n❤️Хэлбэрээ алдаж сунаж муухай болохгүй\n❤️3 өөр хэсгээс бүрдсэн тул өөрийн биедээ тааруулан эвтэйхэн зүүдэг\n❤️Уян нумтай тул хөдөлгөөнд саад болохгүй\n❤️Фитнесс, Спиннинг, Аеробик бүгдэд тохиромжтой\n❤️Нуруу дэмжиж, Бөөр хамгаална\n❤️Төрсөн эхчүүдийн гэдэсний сайн баригч болж өгнө\n❤️Зүүнгүүт 10-15смээр бэлхүүсийг нарийсна\n❤️Тогтмол хэрэглэвэл Сард 5-10смээр бэлхүүс нарийсна\n❤️Угаалгын машинаар л угаахад болно(Угаалтаар хэлбэрээ алдахгүй)"
+  },
+  {
+    "category": "order",
+    "question": "Awi",
+    "actual_response": "Та хаяг утсаа үлдээгээд хүргүүлээд аваарай. Хүргэлт дугаарын хязгаарлалтаас хамааран 24-48 цагтаа багтан очно."
+  },
+  {
+    "category": "order",
+    "question": "1odor hunnu moll British surguli der awi",
+    "actual_response": null
+  },
+  {
+    "category": "order",
+    "question": "Tegwel batonik awi",
+    "actual_response": "Ain"
+  },
+  {
+    "category": "order",
+    "question": "Ботаник эцэгс дээр авий тэгвэл",
+    "actual_response": "Enig oilgogu blhr grgaague"
+  },
+  {
+    "category": "product_search",
+    "question": "Би бараагаа авсан цамц 2хл ирчээд өмд бас 2хл гэсэн яагаад 3хл сайз явуулсын бэ",
+    "actual_response": "Za asugd ugy"
+  },
+  {
+    "category": "product_search",
+    "question": "Загварууд",
+    "actual_response": "Бензэн, Гуятай, Гуягүй"
+  },
+  {
+    "category": "product_search",
+    "question": "гуятай загварын өнгө харьяаа",
+    "actual_response": "Zuvhun har ungu bga"
+  },
+  {
+    "category": "product_search",
+    "question": "Баянхошуу  шинэ  эцэс  эгүүшин  худалдааны   төв  гэр  ахуйн  барааны  лангуу  96674688",
+    "actual_response": "Таны захиалгыг хүлээж авлаа. Баярлалаа хүргэлт дугаарын хязгаарлалтаас хамааран 24-48 цагтаан багтан очно. Манай хүргэлтийн жолооч тань руу залгана та утсаа нээлттэй байлгаарай. Хэрвээ маргаашдаа хүргэлтээр авж амжаагүй бол та бидэнд мэдэгдээрэй. Дараа өдрийнх хүргэлтэнд дахиад гаргаад өгнөө. ( УТСАА НЭЭЛТТЭЙ БАЙЛГААРАЙ)"
+  },
+  {
+    "category": "product_search",
+    "question": "Энэ загвараас s",
+    "actual_response": "Ene gj ali zgvr ve"
+  },
+  {
+    "category": "thanks",
+    "question": "Өө заза тгл очиж үзий дээ баярлалаа",
+    "actual_response": "zaa"
+  },
+  {
+    "category": "thanks",
+    "question": "Аан за баярлалаа амжилт",
+    "actual_response": null
+  },
+  {
+    "category": "thanks",
+    "question": "Баярлалаа маш их таалагдлаа улаан байгаамюу",
+    "actual_response": "Ulan bga"
+  },
+  {
+    "category": "thanks",
+    "question": "заа ойлголоо баярлалаа",
+    "actual_response": null
+  },
+  {
+    "category": "thanks",
+    "question": "Ойлголоо баярлалаа",
+    "actual_response": null
+  }
+]

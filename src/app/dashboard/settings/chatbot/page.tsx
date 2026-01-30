@@ -10,12 +10,14 @@ export default function ChatbotSettingsPage() {
   const supabase = createClient()
 
   const [storeId, setStoreId] = useState<string | null>(null)
+  const [storeName, setStoreName] = useState('Дэлгүүр')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
   // Settings
   const [aiAutoReply, setAiAutoReply] = useState(true)
+  const [accentColor, setAccentColor] = useState('#3b82f6')
   const [welcomeMessage, setWelcomeMessage] = useState(
     'Сайн байна уу! 😊 Манай дэлгүүрт тавтай морил. Танд юугаар туслах вэ?'
   )
@@ -36,6 +38,7 @@ export default function ChatbotSettingsPage() {
   const [maxProductResults, setMaxProductResults] = useState(5)
   const [autoHandoff, setAutoHandoff] = useState(true)
   const [handoffKeywords, setHandoffKeywords] = useState('менежер, хүн, оператор, гомдол')
+  const [returnPolicy, setReturnPolicy] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -44,12 +47,13 @@ export default function ChatbotSettingsPage() {
 
       const { data: store } = await supabase
         .from('stores')
-        .select('id, ai_auto_reply, chatbot_settings')
+        .select('id, name, ai_auto_reply, chatbot_settings')
         .eq('owner_id', user.id)
         .single()
 
       if (store) {
         setStoreId(store.id)
+        if (store.name) setStoreName(store.name)
         setAiAutoReply(store.ai_auto_reply ?? true)
         const settings = (store.chatbot_settings || {}) as Record<string, unknown>
         if (settings.welcome_message) setWelcomeMessage(settings.welcome_message as string)
@@ -61,6 +65,8 @@ export default function ChatbotSettingsPage() {
         if (settings.max_product_results) setMaxProductResults(settings.max_product_results as number)
         if (settings.auto_handoff !== undefined) setAutoHandoff(settings.auto_handoff as boolean)
         if (settings.handoff_keywords) setHandoffKeywords(settings.handoff_keywords as string)
+        if (settings.accent_color) setAccentColor(settings.accent_color as string)
+        if (settings.return_policy) setReturnPolicy(settings.return_policy as string)
       }
       setLoading(false)
     }
@@ -86,6 +92,8 @@ export default function ChatbotSettingsPage() {
           max_product_results: maxProductResults,
           auto_handoff: autoHandoff,
           handoff_keywords: handoffKeywords,
+          accent_color: accentColor,
+          return_policy: returnPolicy || undefined,
         },
       })
       .eq('id', storeId)
@@ -114,7 +122,7 @@ export default function ChatbotSettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link href="/dashboard/settings" className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all">
@@ -126,7 +134,9 @@ export default function ChatbotSettingsPage() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="flex gap-8">
+      {/* Left: Settings form */}
+      <div className="flex-1 max-w-2xl space-y-6">
         {/* AI Auto Reply Toggle */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
           <div className="flex items-center justify-between">
@@ -190,6 +200,34 @@ export default function ChatbotSettingsPage() {
               <option value="english">English</option>
               <option value="both">Хоёулаа</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-slate-400 mb-1.5">Виджетийн өнгө</label>
+            <div className="flex gap-3">
+              {[
+                { value: '#3b82f6', label: 'Цэнхэр' },
+                { value: '#06b6d4', label: 'Циан' },
+                { value: '#10b981', label: 'Ногоон' },
+                { value: '#8b5cf6', label: 'Нил' },
+                { value: '#f59e0b', label: 'Шар' },
+                { value: '#ef4444', label: 'Улаан' },
+                { value: '#ec4899', label: 'Ягаан' },
+              ].map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setAccentColor(c.value)}
+                  className={`w-8 h-8 rounded-full border-2 transition-all ${
+                    accentColor === c.value
+                      ? 'border-white scale-110 shadow-lg'
+                      : 'border-transparent hover:border-slate-400'
+                  }`}
+                  style={{ backgroundColor: c.value }}
+                  title={c.label}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -335,6 +373,26 @@ export default function ChatbotSettingsPage() {
           )}
         </div>
 
+        {/* Return/Exchange Policy */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4">
+          <div>
+            <h3 className="text-white font-medium">Буцаалт/Солилтын бодлого</h3>
+            <p className="text-slate-400 text-sm mt-1">
+              Хэрэглэгч буцаалт/солилтын тухай асуухад AI энэ бодлогоор хариулна
+            </p>
+          </div>
+          <textarea
+            value={returnPolicy}
+            onChange={(e) => setReturnPolicy(e.target.value)}
+            rows={4}
+            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 resize-none transition-all"
+            placeholder="Жишээ: Бараа хүлээн авснаас хойш 14 хоногийн дотор буцаах боломжтой. Шошго хадгалагдсан, хэрэглээгүй байх шаардлагатай. Буцаалтын хураамж 5,000₮."
+          />
+          <p className="text-xs text-slate-500">
+            Хоосон орхивол AI &quot;менежерээс лавлана уу&quot; гэж хариулна
+          </p>
+        </div>
+
         {/* Save */}
         <div className="flex items-center gap-4">
           <button
@@ -347,6 +405,93 @@ export default function ChatbotSettingsPage() {
           {saved && (
             <span className="text-emerald-400 text-sm">Амжилттай хадгаллаа</span>
           )}
+        </div>
+      </div>
+
+      {/* Right: Widget Preview */}
+      <div className="hidden lg:block w-[420px] shrink-0">
+        <div className="sticky top-6">
+          <p className="text-sm text-slate-400 mb-3 font-medium">Урьдчилан харах</p>
+          <div className="origin-top-left scale-[0.9]">
+            <WidgetPreview
+              storeName={storeName}
+              welcomeMessage={welcomeMessage}
+              accentColor={accentColor}
+            />
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Widget Preview (static visual replica — no API calls)
+// ---------------------------------------------------------------------------
+
+function WidgetPreview({
+  storeName,
+  welcomeMessage,
+  accentColor,
+}: {
+  storeName: string
+  welcomeMessage: string
+  accentColor: string
+}) {
+  const mockMessages: { from: 'ai' | 'customer'; text: string }[] = [
+    { from: 'ai', text: welcomeMessage },
+    { from: 'customer', text: 'Энэ гутал хэдэн төгрөг вэ?' },
+    { from: 'ai', text: 'Энэ гутлын үнэ 89,000₮ байна. Захиалга өгөх үү?' },
+  ]
+
+  return (
+    <div className="w-[384px] rounded-2xl overflow-hidden shadow-2xl border border-slate-700 bg-slate-900 flex flex-col" style={{ height: '480px' }}>
+      {/* Header */}
+      <div
+        className="px-4 py-3 flex items-center gap-3"
+        style={{ backgroundColor: accentColor }}
+      >
+        <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">
+          {storeName.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-medium text-sm truncate">{storeName}</p>
+          <p className="text-white/70 text-xs">Онлайн</p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-900/80">
+        {mockMessages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex ${msg.from === 'customer' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                msg.from === 'customer'
+                  ? 'text-white rounded-br-md'
+                  : 'bg-slate-800 text-slate-200 rounded-bl-md'
+              }`}
+              style={msg.from === 'customer' ? { backgroundColor: accentColor } : undefined}
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Input (non-interactive) */}
+      <div className="p-3 border-t border-slate-700/50 bg-slate-900">
+        <div className="flex items-center gap-2 bg-slate-800 rounded-xl px-4 py-2.5">
+          <span className="text-slate-500 text-sm flex-1">Мессеж бичих...</span>
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
+            style={{ backgroundColor: accentColor }}
+          >
+            ↑
+          </div>
         </div>
       </div>
     </div>

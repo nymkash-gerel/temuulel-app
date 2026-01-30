@@ -11,6 +11,10 @@ interface Conversation {
   channel: string
   updated_at: string
   unread_count: number
+  escalation_score: number
+  escalation_level: string
+  escalated_at: string | null
+  assigned_to: string | null
   customers: {
     name: string | null
     messenger_id: string | null
@@ -21,10 +25,17 @@ interface Conversation {
     is_from_customer: boolean
     is_ai_response: boolean
     created_at: string
+    metadata: Record<string, unknown> | null
   }[]
 }
 
-type FilterType = 'all' | 'unanswered' | 'ai'
+type FilterType = 'all' | 'unanswered' | 'ai' | 'escalated' | 'positive' | 'negative'
+
+const LEVEL_BADGE: Record<string, { bg: string; text: string; label: string }> = {
+  critical: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Маш яаралтай' },
+  high: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Яаралтай' },
+  medium: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Дунд' },
+}
 
 export default function ChatPage() {
   const router = useRouter()
@@ -61,13 +72,13 @@ export default function ChatPage() {
           .select(`
             *,
             customers(name, messenger_id, instagram_id),
-            messages(content, is_from_customer, is_ai_response, created_at)
+            messages(content, is_from_customer, is_ai_response, created_at, metadata)
           `)
           .eq('store_id', store.id)
           .order('updated_at', { ascending: false })
           .limit(50)
 
-        setConversations(convs || [])
+        setConversations((convs || []) as Conversation[])
       }
 
       setLoading(false)
@@ -122,13 +133,13 @@ export default function ChatPage() {
       .select(`
         *,
         customers(name, messenger_id, instagram_id),
-        messages(content, is_from_customer, is_ai_response, created_at)
+        messages(content, is_from_customer, is_ai_response, created_at, metadata)
       `)
       .eq('store_id', storeId)
       .order('updated_at', { ascending: false })
       .limit(50)
 
-    if (convs) setConversations(convs)
+    if (convs) setConversations(convs as Conversation[])
   }
 
   // Filter and search conversations
@@ -158,7 +169,26 @@ export default function ChatPage() {
         const msgs = conv.messages || []
         return msgs.some((m) => m.is_ai_response)
       })
+    } else if (filter === 'escalated') {
+      result = result.filter((conv) =>
+        conv.escalation_level === 'high' || conv.escalation_level === 'critical'
+      )
+    } else if (filter === 'positive' || filter === 'negative') {
+      result = result.filter((conv) => {
+        const msgs = conv.messages || []
+        const lastCustomer = [...msgs].reverse().find(m => m.is_from_customer)
+        return lastCustomer?.metadata?.sentiment === filter
+      })
     }
+
+    // Sort escalated conversations to top
+    result.sort((a, b) => {
+      const levelOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }
+      const aOrder = levelOrder[a.escalation_level] ?? 3
+      const bOrder = levelOrder[b.escalation_level] ?? 3
+      if (aOrder !== bOrder) return aOrder - bOrder
+      return 0 // Keep existing time-based order for same level
+    })
 
     return result
   }, [conversations, searchQuery, filter])
@@ -238,6 +268,22 @@ export default function ChatPage() {
                 (c.messages || []).some((m) => m.is_ai_response)
               ).length,
             },
+            {
+              key: 'escalated' as FilterType,
+              label: 'Шилжсэн',
+              count: conversations.filter((c) =>
+                c.escalation_level === 'high' || c.escalation_level === 'critical'
+              ).length,
+            },
+            {
+              key: 'negative' as FilterType,
+              label: 'Сөрөг',
+              count: conversations.filter((c) => {
+                const msgs = c.messages || []
+                const last = [...msgs].reverse().find(m => m.is_from_customer)
+                return last?.metadata?.sentiment === 'negative'
+              }).length,
+            },
           ]).map((f) => (
             <button
               key={f.key}
@@ -266,7 +312,7 @@ export default function ChatPage() {
             filteredConversations.map((conv) => {
               const lastMessage = getLastMessage(conv)
               const channel = getChannelIndicator(conv.customers)
-              const isUnanswered = lastMessage?.is_from_customer
+              const hasUnread = conv.unread_count > 0
 
               return (
                 <Link
@@ -280,20 +326,24 @@ export default function ChatPage() {
                         {conv.customers?.name?.charAt(0)?.toUpperCase() || '?'}
                       </span>
                     </div>
-                    {isUnanswered && (
-                      <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-800" />
+                    {conv.unread_count > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-slate-800 flex items-center justify-center">
+                        <span className="text-[10px] text-white font-bold leading-none">
+                          {conv.unread_count > 9 ? '9+' : conv.unread_count}
+                        </span>
+                      </span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className={`font-medium truncate ${isUnanswered ? 'text-white' : 'text-slate-300'}`}>
+                      <p className={`font-medium truncate ${hasUnread ? 'text-white' : 'text-slate-300'}`}>
                         {conv.customers?.name || 'Нэргүй'}
                       </p>
                       <span className="text-xs text-slate-500 flex-shrink-0 ml-2">
                         {formatTime(conv.updated_at)}
                       </span>
                     </div>
-                    <p className={`text-sm truncate mt-0.5 ${isUnanswered ? 'text-slate-300 font-medium' : 'text-slate-400'}`}>
+                    <p className={`text-sm truncate mt-0.5 ${hasUnread ? 'text-slate-300 font-medium' : 'text-slate-400'}`}>
                       {lastMessage?.is_ai_response && '🤖 '}
                       {!lastMessage?.is_from_customer && !lastMessage?.is_ai_response && 'Та: '}
                       {lastMessage?.content || 'Мессеж байхгүй'}
@@ -304,6 +354,11 @@ export default function ChatPage() {
                       {lastMessage?.is_ai_response && (
                         <span className="text-xs text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
                           AI
+                        </span>
+                      )}
+                      {LEVEL_BADGE[conv.escalation_level] && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${LEVEL_BADGE[conv.escalation_level].bg} ${LEVEL_BADGE[conv.escalation_level].text}`}>
+                          {LEVEL_BADGE[conv.escalation_level].label}
                         </span>
                       )}
                     </div>
@@ -373,6 +428,14 @@ export default function ChatPage() {
                   ).length}
                 </p>
                 <p className="text-xs text-slate-400">AI хариулсан</p>
+              </div>
+              <div className="px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-xl">
+                <p className="text-lg font-bold text-orange-400">
+                  {conversations.filter((c) =>
+                    c.escalation_level === 'high' || c.escalation_level === 'critical'
+                  ).length}
+                </p>
+                <p className="text-xs text-slate-400">Шилжсэн</p>
               </div>
             </div>
           )}

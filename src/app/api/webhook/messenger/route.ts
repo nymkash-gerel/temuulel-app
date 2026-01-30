@@ -9,6 +9,10 @@ import {
   markSeen,
 } from '@/lib/messenger'
 import { dispatchNotification } from '@/lib/notifications'
+import { processEscalation } from '@/lib/escalation'
+import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
+import { handleFeedChange, FeedChangeValue } from '@/lib/comment-auto-reply'
+import type { ChatbotSettings } from '@/lib/chat-ai'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -53,17 +57,35 @@ export async function POST(request: NextRequest) {
 
 async function handleWebhookEvents(body: Record<string, unknown>) {
   const supabase = getSupabase()
-  const pageToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN
 
-  if (body.object !== 'page') {
+  // Meta sends both Messenger and Instagram DMs with object='page' or 'instagram'
+  if (body.object !== 'page' && body.object !== 'instagram') {
     return NextResponse.json({ status: 'ignored' })
   }
 
-  const entries = body.entry as Array<{ id: string; messaging: Array<Record<string, unknown>> }> | undefined
+  const isInstagram = body.object === 'instagram'
+  const entries = body.entry as Array<{
+    id: string
+    messaging?: Array<Record<string, unknown>>
+    changes?: Array<{ field: string; value: Record<string, unknown> }>
+  }> | undefined
 
   for (const entry of entries || []) {
-    const pageId = entry.id
+    const entryId = entry.id
 
+    // Handle feed events (comments) - Comment Auto-Reply feature
+    for (const change of entry.changes || []) {
+      if (change.field === 'feed') {
+        const platform = isInstagram ? 'instagram' : 'facebook'
+        try {
+          await handleFeedChange(entryId, change.value as unknown as FeedChangeValue, platform)
+        } catch (err) {
+          console.error('[Webhook] Feed change error:', err)
+        }
+      }
+    }
+
+    // Handle messaging events (DMs)
     for (const event of entry.messaging || []) {
       const senderId = (event.sender as Record<string, string>)?.id
       const message = event.message as Record<string, unknown> | undefined
@@ -73,14 +95,30 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
       if (!senderId || !messageText) continue
       if (messageText.length > 2000) continue
 
-      // Find the store connected to this page
-      const { data: store } = await supabase
+      // Determine channel: try Messenger first (facebook_page_id), then Instagram
+      let channel: 'messenger' | 'instagram' = 'messenger'
+
+      let { data: store } = await supabase
         .from('stores')
-        .select('id, name, ai_auto_reply, chatbot_settings')
-        .eq('facebook_page_id', pageId)
+        .select('id, name, ai_auto_reply, chatbot_settings, facebook_page_access_token')
+        .eq('facebook_page_id', entryId)
         .single()
 
-      if (!store) continue
+      if (!store) {
+        // Try Instagram: entry.id is the Instagram Business Account ID
+        const { data: igStore } = await supabase
+          .from('stores')
+          .select('id, name, ai_auto_reply, chatbot_settings, facebook_page_access_token')
+          .eq('instagram_business_account_id', entryId)
+          .single()
+
+        if (!igStore) continue
+        store = igStore
+        channel = 'instagram'
+      }
+
+      // Per-store token with fallback to global env for backward compatibility
+      const pageToken = store.facebook_page_access_token || process.env.FACEBOOK_PAGE_ACCESS_TOKEN
 
       // Mark message as seen
       if (pageToken) {
@@ -88,15 +126,17 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
       }
 
       // Find or create customer
+      const customerIdField = channel === 'instagram' ? 'instagram_id' : 'messenger_id'
+
       let { data: customer } = await supabase
         .from('customers')
         .select('id, name')
-        .eq('messenger_id', senderId)
+        .eq(customerIdField, senderId)
         .eq('store_id', store.id)
         .single()
 
       if (!customer) {
-        let customerName = 'Messenger хэрэглэгч'
+        let customerName = channel === 'instagram' ? 'Instagram хэрэглэгч' : 'Messenger хэрэглэгч'
         if (pageToken) {
           try {
             const profileRes = await fetch(
@@ -116,8 +156,8 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
           .insert({
             store_id: store.id,
             name: customerName,
-            messenger_id: senderId,
-            channel: 'messenger',
+            [customerIdField]: senderId,
+            channel,
           })
           .select('id, name')
           .single()
@@ -129,7 +169,7 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
           dispatchNotification(store.id, 'new_customer', {
             customer_id: customer.id,
             name: customerName,
-            channel: 'messenger',
+            channel,
           })
         }
       }
@@ -153,7 +193,7 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
           .insert({
             store_id: store.id,
             customer_id: customer.id,
-            channel: 'messenger',
+            channel,
             status: 'active',
           })
           .select('id')
@@ -165,13 +205,29 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
       if (!conversation) continue
 
       // Save customer message
-      await supabase.from('messages').insert({
+      const { data: savedMsg } = await supabase.from('messages').insert({
         conversation_id: conversation.id,
         content: messageText,
         is_from_customer: true,
         is_ai_response: false,
         metadata: quickReplyPayload ? { quick_reply: quickReplyPayload } : {},
-      })
+      }).select('id').single()
+
+      // Tag message with sentiment + topic tags (fire-and-forget)
+      if (savedMsg?.id) {
+        void (async () => {
+          try {
+            const result = await analyzeMessage(messageText) ?? analyzeMessageKeyword(messageText)
+            const { data: existing } = await supabase.from('messages').select('metadata').eq('id', savedMsg.id).single()
+            const meta = (existing?.metadata ?? {}) as Record<string, unknown>
+            await supabase.from('messages').update({
+              metadata: { ...meta, sentiment: result.sentiment, tags: result.tags, tagged_at: new Date().toISOString() },
+            }).eq('id', savedMsg.id)
+          } catch (e) {
+            console.error('[message-tagger] Failed:', e)
+          }
+        })()
+      }
 
       // Update conversation timestamp and increment unread
       const { error: rpcError } = await supabase.rpc('increment_unread', { conv_id: conversation.id })
@@ -193,8 +249,21 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
         customer_id: customer.id,
         customer_name: customer.name,
         message: messageText,
-        channel: 'messenger',
+        channel,
       })
+
+      // Smart escalation check
+      const chatbotSettings = (store.chatbot_settings || {}) as ChatbotSettings
+      const esc = await processEscalation(
+        supabase, conversation.id, messageText, store.id, chatbotSettings
+      )
+      if (esc.escalated) {
+        // Send escalation message to customer via Messenger
+        if (pageToken && esc.escalationMessage) {
+          await sendTextMessage(senderId, esc.escalationMessage, pageToken)
+        }
+        continue // Skip AI auto-reply for this escalated message
+      }
 
       // AI auto-reply
       if (store.ai_auto_reply && pageToken) {

@@ -1,11 +1,18 @@
 /**
- * Outgoing webhook delivery
+ * Outgoing webhook delivery via Upstash QStash
  *
- * Sends event notifications to external systems (n8n, Zapier, etc.)
- * with HMAC-SHA256 signatures for verification.
+ * Sends event notifications to external systems with HMAC-SHA256 signatures.
+ * QStash provides automatic retries (3 attempts with exponential backoff),
+ * delivery guarantees, and dead-letter handling.
+ *
+ * Flow:
+ *   dispatchWebhook() → QStash queue → /api/webhook/deliver → store's webhook_url
+ *
+ * Falls back to direct delivery when QSTASH_TOKEN is not configured.
  */
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import { Client as QStashClient } from '@upstash/qstash'
 
 export type WebhookEvent =
   | 'new_order'
@@ -14,23 +21,32 @@ export type WebhookEvent =
   | 'new_customer'
   | 'low_stock'
 
-interface WebhookPayload {
+export interface WebhookPayload {
   event: WebhookEvent
   timestamp: string
   store_id: string
   data: Record<string, unknown>
 }
 
-function signPayload(payload: string, secret: string): string {
+export function signPayload(payload: string, secret: string): string {
   return crypto
     .createHmac('sha256', secret)
     .update(payload)
     .digest('hex')
 }
 
+function getQStashClient(): QStashClient | null {
+  const token = process.env.QSTASH_TOKEN
+  if (!token) return null
+  return new QStashClient({ token })
+}
+
 /**
  * Dispatch a webhook event to the store's configured webhook URL.
- * Non-blocking — errors are logged, not thrown.
+ *
+ * When QStash is configured, the event is published to QStash which
+ * delivers it to /api/webhook/deliver with automatic retries.
+ * When QStash is not configured, falls back to direct fire-and-forget delivery.
  */
 export async function dispatchWebhook(
   storeId: string,
@@ -62,19 +78,67 @@ export async function dispatchWebhook(
     data,
   }
 
+  // Try QStash first for reliable delivery
+  const qstash = getQStashClient()
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+
+  if (qstash && appUrl) {
+    return publishViaQStash(qstash, appUrl, storeId, payload)
+  }
+
+  // Fallback: direct delivery (fire-and-forget, no retries)
+  return deliverDirectly(store.webhook_url, store.webhook_secret, payload)
+}
+
+/**
+ * Publish webhook via QStash for reliable delivery with retries.
+ * QStash will POST to /api/webhook/deliver with the payload.
+ */
+async function publishViaQStash(
+  qstash: QStashClient,
+  appUrl: string,
+  storeId: string,
+  payload: WebhookPayload
+): Promise<boolean> {
+  try {
+    await qstash.publishJSON({
+      url: `${appUrl}/api/webhook/deliver`,
+      body: {
+        store_id: storeId,
+        payload,
+      },
+      retries: 3,
+    })
+    return true
+  } catch (err) {
+    console.error(`QStash publish failed for store ${storeId}:`, err)
+    // Fall back to direct delivery
+    return false
+  }
+}
+
+/**
+ * Direct webhook delivery (fallback when QStash is not available).
+ * Fire-and-forget — errors are logged, not thrown.
+ */
+export async function deliverDirectly(
+  webhookUrl: string,
+  webhookSecret: string | null,
+  payload: WebhookPayload
+): Promise<boolean> {
   const body = JSON.stringify(payload)
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-Webhook-Event': event,
+    'X-Webhook-Event': payload.event,
     'X-Webhook-Timestamp': payload.timestamp,
   }
 
-  if (store.webhook_secret) {
-    headers['X-Webhook-Signature'] = signPayload(body, store.webhook_secret)
+  if (webhookSecret) {
+    headers['X-Webhook-Signature'] = signPayload(body, webhookSecret)
   }
 
   try {
-    const res = await fetch(store.webhook_url, {
+    const res = await fetch(webhookUrl, {
       method: 'POST',
       headers,
       body,
@@ -82,13 +146,13 @@ export async function dispatchWebhook(
     })
 
     if (!res.ok) {
-      console.error(`Webhook delivery failed for store ${storeId}: ${res.status}`)
+      console.error(`Webhook delivery failed for store ${payload.store_id}: ${res.status}`)
       return false
     }
 
     return true
   } catch (err) {
-    console.error(`Webhook delivery error for store ${storeId}:`, err)
+    console.error(`Webhook delivery error for store ${payload.store_id}:`, err)
     return false
   }
 }

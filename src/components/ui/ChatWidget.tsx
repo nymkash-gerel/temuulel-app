@@ -14,28 +14,84 @@ interface ChatWidgetProps {
   storeId: string
   storeName: string
   accentColor?: string
+  welcomeMessage?: string
+  /** Always render as a compact panel (never full-screen on mobile) */
+  compact?: boolean
 }
 
 export default function ChatWidget({
   storeId,
   storeName,
   accentColor = '#3b82f6',
+  welcomeMessage,
+  compact = false,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const widgetRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  // Generate or retrieve a visitor ID
-  const getVisitorId = useCallback(() => {
-    let visitorId = localStorage.getItem('temuulel_visitor_id')
-    if (!visitorId) {
-      visitorId = `web_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-      localStorage.setItem('temuulel_visitor_id', visitorId)
+  // Notify parent frame of open/close for iframe resize
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.parent !== window) {
+      window.parent.postMessage({ type: 'temuulel-widget', isOpen }, '*')
     }
-    return visitorId
+  }, [isOpen])
+
+  // Close on ESC key + prevent background page scroll when widget is open
+  useEffect(() => {
+    if (!isOpen) return
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setIsOpen(false)
+    }
+
+    const savedScrollY = window.scrollY
+
+    // CSS scroll lock with !important (defined in globals.css)
+    document.documentElement.classList.add('scroll-lock')
+
+    // Snap back any programmatic / focus-driven scroll immediately
+    function guardScroll() {
+      if (window.scrollY !== savedScrollY) {
+        window.scrollTo(0, savedScrollY)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('scroll', guardScroll)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('scroll', guardScroll)
+      document.documentElement.classList.remove('scroll-lock')
+      window.scrollTo(0, savedScrollY)
+    }
+  }, [isOpen])
+
+  // Generate or retrieve a visitor ID (with Safari ITP fallback)
+  const getVisitorId = useCallback(() => {
+    const key = 'temuulel_visitor_id'
+    try {
+      let visitorId = localStorage.getItem(key)
+      if (!visitorId) {
+        visitorId = `web_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+        localStorage.setItem(key, visitorId)
+      }
+      return visitorId
+    } catch {
+      // Safari ITP blocks third-party localStorage in iframes
+      let visitorId = sessionStorage.getItem(key)
+      if (!visitorId) {
+        visitorId = `web_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+        sessionStorage.setItem(key, visitorId)
+      }
+      return visitorId
+    }
   }, [])
 
   // Load existing session and messages
@@ -75,7 +131,13 @@ export default function ChatWidget({
   }, [isOpen, storeId, getVisitorId])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = messagesContainerRef.current
+    if (el) {
+      // Use requestAnimationFrame to ensure DOM has painted before scrolling
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight
+      })
+    }
   }, [messages])
 
   async function sendMessage() {
@@ -84,6 +146,9 @@ export default function ChatWidget({
     const content = input.trim()
     setInput('')
     setSending(true)
+    // Keep focus on input so user can continue typing.
+    // Calling blur() here would dismiss the mobile keyboard and cause the
+    // browser to scroll the page as the viewport height changes.
 
     // Add customer message optimistically
     const customerMsg: Message = {
@@ -183,7 +248,8 @@ export default function ChatWidget({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 z-50"
+          aria-label="Чат нээх"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 z-50"
           style={{ backgroundColor: accentColor }}
         >
           <svg
@@ -195,10 +261,11 @@ export default function ChatWidget({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-hidden="true"
           >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          {messages.length === 0 && (
+          {welcomeMessage && messages.length === 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center">
               1
             </span>
@@ -208,7 +275,11 @@ export default function ChatWidget({
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[32rem] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50 border border-gray-200">
+        <div ref={widgetRef} className={`fixed z-50 flex flex-col overflow-hidden shadow-2xl ${
+          compact
+            ? 'bottom-20 right-4 w-80 h-[28rem] rounded-2xl border border-gray-200 bg-white'
+            : 'inset-0 sm:inset-auto sm:bottom-6 sm:right-6 w-full h-full sm:w-96 sm:h-[32rem] bg-white sm:rounded-2xl sm:border border-gray-200'
+        }`}>
           {/* Header */}
           <div
             className="px-4 py-3 flex items-center justify-between"
@@ -225,9 +296,10 @@ export default function ChatWidget({
             </div>
             <button
               onClick={() => setIsOpen(false)}
+              aria-label="Чат хаах"
               className="text-white/70 hover:text-white transition-colors"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -235,17 +307,25 @@ export default function ChatWidget({
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3 bg-gray-50">
             {messages.length === 0 && (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl">👋</span>
+              welcomeMessage ? (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] rounded-2xl px-3.5 py-2.5 bg-white text-gray-800 border border-gray-200 rounded-bl-md shadow-sm">
+                    <p className="text-sm whitespace-pre-wrap">{welcomeMessage}</p>
+                  </div>
                 </div>
-                <p className="text-gray-600 text-sm font-medium">Сайн байна уу!</p>
-                <p className="text-gray-400 text-xs mt-1">
-                  Танд юугаар туслах вэ? Бүтээгдэхүүн, захиалга, хүргэлтийн талаар асууна уу.
-                </p>
-              </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-2xl">👋</span>
+                  </div>
+                  <p className="text-gray-600 text-sm font-medium">Сайн байна уу!</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Танд юугаар туслах вэ? Бүтээгдэхүүн, захиалга, хүргэлтийн талаар асууна уу.
+                  </p>
+                </div>
+              )
             )}
 
             {messages.map((msg) => (
@@ -283,13 +363,13 @@ export default function ChatWidget({
               </div>
             )}
 
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
           <div className="p-3 bg-white border-t border-gray-200">
             <div className="flex items-center gap-2">
               <input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -298,11 +378,15 @@ export default function ChatWidget({
                     sendMessage()
                   }
                 }}
+                onFocus={(e) => {
+                  // Prevent browser from scrolling the page to bring the input into view
+                  e.target.scrollIntoView = () => {}
+                }}
                 placeholder="Мессеж бичих..."
                 className="flex-1 px-3.5 py-2.5 bg-gray-100 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                disabled={sending}
               />
               <button
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={sendMessage}
                 disabled={!input.trim() || sending}
                 className="p-2.5 rounded-xl text-white transition-all disabled:opacity-50"

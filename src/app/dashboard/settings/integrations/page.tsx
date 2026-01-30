@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRoleGuard } from '@/lib/hooks/useRoleGuard'
@@ -10,34 +10,82 @@ interface StoreData {
   id: string
   name: string
   facebook_page_id: string | null
+  facebook_page_name: string | null
+  facebook_connected_at: string | null
+  instagram_business_account_id: string | null
+  instagram_page_name: string | null
+  instagram_connected_at: string | null
   api_key: string | null
 }
 
 export default function IntegrationsPage() {
   const { allowed, loading: roleLoading } = useRoleGuard(['owner', 'admin'])
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)
   const [store, setStore] = useState<StoreData | null>(null)
   const [showApiKey, setShowApiKey] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
-  const [disconnecting, setDisconnecting] = useState(false)
+  const [disconnecting, setDisconnecting] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState(false)
+  const [fbMessage, setFbMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Show OAuth result from URL params (Messenger & Instagram)
+  useEffect(() => {
+    const errorMap: Record<string, string> = {
+      no_pages: 'Facebook хуудас олдсонгүй. Page-д Admin эрхтэй байгаа эсэхийг шалгана уу.',
+      no_instagram: 'Instagram Business аккаунт олдсонгүй. Facebook Page-д Instagram Business аккаунт холбогдсон эсэхийг шалгана уу.',
+      exchange_failed: 'Холбогдоход алдаа гарлаа. Дахин оролдоно уу.',
+      store_not_found: 'Дэлгүүр олдсонгүй.',
+      invalid_state: 'Алдаатай хүсэлт. Дахин оролдоно уу.',
+      missing_params: 'Алдаатай хариу ирлээ. Дахин оролдоно уу.',
+    }
+
+    if (searchParams.get('fb_success')) {
+      setFbMessage({ type: 'success', text: 'Facebook Messenger амжилттай холбогдлоо!' })
+    } else if (searchParams.get('ig_success')) {
+      setFbMessage({ type: 'success', text: 'Instagram DM амжилттай холбогдлоо!' })
+    } else if (searchParams.get('fb_error')) {
+      const errorCode = searchParams.get('fb_error') || ''
+      setFbMessage({ type: 'error', text: errorMap[errorCode] || decodeURIComponent(errorCode) })
+    } else if (searchParams.get('ig_error')) {
+      const errorCode = searchParams.get('ig_error') || ''
+      setFbMessage({ type: 'error', text: errorMap[errorCode] || decodeURIComponent(errorCode) })
+    } else {
+      return // No params to clear
+    }
+    window.history.replaceState({}, '', '/dashboard/settings/integrations')
+  }, [searchParams])
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('stores')
-        .select('id, name, facebook_page_id, api_key')
+        .select('*')
         .eq('owner_id', user.id)
         .single()
 
+      if (error) {
+        console.error('Store load error:', error)
+      }
+
       if (data) {
-        setStore(data as StoreData)
+        setStore({
+          id: data.id,
+          name: data.name,
+          facebook_page_id: data.facebook_page_id ?? null,
+          facebook_page_name: data.facebook_page_name ?? null,
+          facebook_connected_at: data.facebook_connected_at ?? null,
+          instagram_business_account_id: data.instagram_business_account_id ?? null,
+          instagram_page_name: data.instagram_page_name ?? null,
+          instagram_connected_at: data.instagram_connected_at ?? null,
+          api_key: data.api_key ?? null,
+        })
       }
       setLoading(false)
     }
@@ -47,23 +95,70 @@ export default function IntegrationsPage() {
   async function handleDisconnectMessenger() {
     if (!store) return
     if (!confirm('Messenger холболтыг салгах уу?')) return
-    setDisconnecting(true)
+    setDisconnecting('messenger')
 
     const { error } = await supabase
       .from('stores')
-      .update({ facebook_page_id: null })
+      .update({
+        facebook_page_id: null,
+        facebook_page_access_token: null,
+        facebook_page_name: null,
+        facebook_connected_at: null,
+      })
       .eq('id', store.id)
 
     if (!error) {
-      setStore({ ...store, facebook_page_id: null })
+      setStore({
+        ...store,
+        facebook_page_id: null,
+        facebook_page_name: null,
+        facebook_connected_at: null,
+      })
     }
-    setDisconnecting(false)
+    setDisconnecting(null)
+  }
+
+  async function handleDisconnectInstagram() {
+    if (!store) return
+    if (!confirm('Instagram холболтыг салгах уу?')) return
+    setDisconnecting('instagram')
+
+    const { error } = await supabase
+      .from('stores')
+      .update({
+        instagram_business_account_id: null,
+        instagram_page_name: null,
+        instagram_connected_at: null,
+      })
+      .eq('id', store.id)
+
+    if (!error) {
+      setStore({
+        ...store,
+        instagram_business_account_id: null,
+        instagram_page_name: null,
+        instagram_connected_at: null,
+      })
+    }
+    setDisconnecting(null)
   }
 
   function handleConnectMessenger() {
-    // Facebook OAuth flow would be initiated here
-    // For now, show info about the connection process
-    alert('Facebook OAuth холболт удахгүй нэмэгдэнэ. Одоохондоо Facebook Developer Console-с Page ID-г гараар оруулна уу.')
+    if (!store) {
+      console.error('Store not loaded')
+      alert('Дэлгүүрийн мэдээлэл ачаалагдаагүй байна. Хуудсыг дахин ачаална уу.')
+      return
+    }
+    window.location.href = `/api/auth/facebook?store_id=${store.id}`
+  }
+
+  function handleConnectInstagram() {
+    if (!store) {
+      console.error('Store not loaded')
+      alert('Дэлгүүрийн мэдээлэл ачаалагдаагүй байна. Хуудсыг дахин ачаална уу.')
+      return
+    }
+    window.location.href = `/api/auth/facebook?store_id=${store.id}&channel=instagram`
   }
 
   async function handleCopy(text: string, label: string) {
@@ -123,10 +218,16 @@ export default function IntegrationsPage() {
       id: 'instagram',
       name: 'Instagram DM',
       icon: '📷',
-      description: 'Instagram Business Account-тай холбох',
+      description: 'Instagram Business Account-тай холбож автомат хариулагч ажиллуулах',
       color: 'pink',
-      connected: false,
-      comingSoon: true,
+      connected: !!store?.instagram_business_account_id,
+      steps: [
+        'Facebook Page-д Instagram Business холбосон байх',
+        'Instagram холбох товч дарах',
+        'Facebook-руу нэвтрэх',
+        'Instagram аккаунт сонгох',
+        'Зөвшөөрөл өгөх',
+      ],
     },
     {
       id: 'whatsapp',
@@ -148,6 +249,7 @@ export default function IntegrationsPage() {
   }
 
   const webhookUrl = `https://api.temuulel.mn/webhook/${store?.id || 'YOUR_STORE_ID'}`
+  const embedSnippet = `<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://app.temuulel.mn'}/widget.js" data-store-id="${store?.id || 'YOUR_STORE_ID'}"></script>`
 
   return (
     <div>
@@ -164,6 +266,27 @@ export default function IntegrationsPage() {
           <p className="text-slate-400 mt-1">Messenger, Instagram, WhatsApp холбох</p>
         </div>
       </div>
+
+      {/* Facebook OAuth result banner */}
+      {fbMessage && (
+        <div className={`mb-6 p-4 rounded-xl flex items-center justify-between ${
+          fbMessage.type === 'success'
+            ? 'bg-green-500/20 border border-green-500/30'
+            : 'bg-red-500/20 border border-red-500/30'
+        }`}>
+          <p className={`text-sm ${
+            fbMessage.type === 'success' ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {fbMessage.type === 'success' ? '✓ ' : '✕ '}{fbMessage.text}
+          </p>
+          <button
+            onClick={() => setFbMessage(null)}
+            className="text-slate-500 hover:text-slate-300 ml-4"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Integrations */}
       <div className="space-y-6">
@@ -204,11 +327,19 @@ export default function IntegrationsPage() {
               </div>
               {!integration.comingSoon && (
                 <button
-                  onClick={integration.connected ? undefined : handleConnectMessenger}
+                  onClick={
+                    integration.connected
+                      ? undefined
+                      : integration.id === 'instagram'
+                        ? handleConnectInstagram
+                        : handleConnectMessenger
+                  }
                   className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
                     integration.connected
                       ? 'bg-slate-700 hover:bg-slate-600 text-white'
-                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white'
+                      : integration.id === 'instagram'
+                        ? 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white'
+                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white'
                   }`}
                 >
                   {integration.connected ? 'Тохиргоо' : 'Холбох'}
@@ -233,13 +364,20 @@ export default function IntegrationsPage() {
               </div>
             )}
 
-            {/* Connected Info */}
-            {integration.connected && (
+            {/* Connected Info — Messenger */}
+            {integration.connected && integration.id === 'messenger' && (
               <div className="mt-6 pt-6 border-t border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400">Холбогдсон Page:</p>
-                    <p className="text-white font-medium mt-1">{store?.name || 'Page Name'}</p>
+                    <p className="text-white font-medium mt-1">
+                      {store?.facebook_page_name || store?.name || 'Page Name'}
+                    </p>
+                    {store?.facebook_connected_at && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Холбогдсон: {new Date(store.facebook_connected_at).toLocaleDateString('mn-MN')}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-slate-400">Page ID:</p>
@@ -255,16 +393,85 @@ export default function IntegrationsPage() {
                   </button>
                   <button
                     onClick={handleDisconnectMessenger}
-                    disabled={disconnecting}
+                    disabled={disconnecting === 'messenger'}
                     className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all text-sm disabled:opacity-50"
                   >
-                    {disconnecting ? 'Салгаж байна...' : 'Салгах'}
+                    {disconnecting === 'messenger' ? 'Салгаж байна...' : 'Салгах'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Connected Info — Instagram */}
+            {integration.connected && integration.id === 'instagram' && (
+              <div className="mt-6 pt-6 border-t border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-400">Холбогдсон аккаунт:</p>
+                    <p className="text-white font-medium mt-1">
+                      {store?.instagram_page_name || 'Instagram Account'}
+                    </p>
+                    {store?.instagram_connected_at && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Холбогдсон: {new Date(store.instagram_connected_at).toLocaleDateString('mn-MN')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-slate-400">Account ID:</p>
+                    <p className="text-white mt-1 font-mono text-sm">{store?.instagram_business_account_id}</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-3">
+                  <button
+                    onClick={handleConnectInstagram}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all text-sm"
+                  >
+                    Дахин холбох
+                  </button>
+                  <button
+                    onClick={handleDisconnectInstagram}
+                    disabled={disconnecting === 'instagram'}
+                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all text-sm disabled:opacity-50"
+                  >
+                    {disconnecting === 'instagram' ? 'Салгаж байна...' : 'Салгах'}
                   </button>
                 </div>
               </div>
             )}
           </div>
         ))}
+      </div>
+
+      {/* Web Chat Widget Embed */}
+      <div className="mt-8 bg-slate-800/50 border border-green-500/30 rounded-2xl p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center">
+            <span className="text-3xl">💻</span>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-white">Вэб чат виджет</h3>
+              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded-full">
+                Бэлэн
+              </span>
+            </div>
+            <p className="text-slate-400 mt-1">
+              {'Өөрийн вэбсайтад чат виджет нэмэх. Доорх кодыг вэбсайтынхаа <body> таг дотор хуулна уу.'}
+            </p>
+            <div className="mt-4">
+              <code className="block px-4 py-3 bg-slate-900 rounded-lg text-slate-300 text-sm font-mono overflow-x-auto whitespace-pre">
+                {embedSnippet}
+              </code>
+              <button
+                onClick={() => handleCopy(embedSnippet, 'embed')}
+                className="mt-3 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg transition-all text-sm font-medium"
+              >
+                {copied === 'embed' ? '✓ Хуулсан' : '📋 Код хуулах'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Webhook Info */}

@@ -56,6 +56,14 @@ export default async function SettingsPage() {
           badgeColor: 'yellow',
         },
         {
+          href: '/dashboard/settings/comment-auto-reply',
+          icon: '🔄',
+          title: 'Comment Auto-Reply',
+          description: 'Сэтгэгдэлд автомат хариулах',
+          badge: 'Шинэ',
+          badgeColor: 'blue',
+        },
+        {
           href: '/dashboard/settings/webhook',
           icon: '🔗',
           title: 'Webhook & API',

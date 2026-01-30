@@ -9,10 +9,17 @@ import { sendOrderEmail, sendMessageEmail, sendLowStockEmail } from './email'
 import { dispatchWebhook, type WebhookEvent } from './webhook'
 import { sendPushToUser } from './push'
 
-export type NotificationEvent = 'new_order' | 'new_message' | 'new_customer' | 'low_stock' | 'order_status'
+export type NotificationEvent = 'new_order' | 'new_message' | 'new_customer' | 'low_stock' | 'order_status' | 'escalation'
 
 interface NotificationData {
   [key: string]: unknown
+}
+
+const ESCALATION_LABELS: Record<string, string> = {
+  low: 'Бага',
+  medium: 'Дунд',
+  high: 'Яаралтай',
+  critical: 'Маш яаралтай',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -66,6 +73,11 @@ function buildNotificationContent(event: NotificationEvent, data: NotificationDa
       return {
         title: `Захиалга #${data.order_number || ''} статус өөрчлөгдлөө`,
         body: `${statusLabel(data.previous_status as string)} → ${statusLabel(data.new_status as string)}`,
+      }
+    case 'escalation':
+      return {
+        title: 'Яаралтай чат шилжсэн',
+        body: `Түвшин: ${ESCALATION_LABELS[(data.level as string) || ''] || data.level}. Шалтгаан: ${data.signals || ''}`,
       }
   }
 }
@@ -149,6 +161,7 @@ export async function dispatchNotification(
       new_customer: '/dashboard/customers',
       low_stock: '/dashboard/products',
       order_status: '/dashboard/orders',
+      escalation: '/dashboard/chat',
     }
     try {
       await sendPushToUser(store.owner_id, {

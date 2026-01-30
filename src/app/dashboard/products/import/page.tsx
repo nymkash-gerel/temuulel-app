@@ -17,6 +17,8 @@ interface ProductRow {
   size?: string
   color?: string
   image?: string
+  facebook_post_id?: string
+  instagram_post_id?: string
 }
 
 export default function ImportProductsPage() {
@@ -72,6 +74,8 @@ export default function ImportProductsPage() {
           size: row.size || row.хэмжээ || '',
           color: row.color || row.өнгө || '',
           image: row.image || row.зураг || row.image_url || '',
+          facebook_post_id: row.facebook_post_id || row['facebook post id'] || '',
+          instagram_post_id: row.instagram_post_id || row['instagram post id'] || '',
         })
       }
     }
@@ -96,6 +100,8 @@ export default function ImportProductsPage() {
       size: String(row['size'] || row['хэмжээ'] || ''),
       color: String(row['color'] || row['өнгө'] || ''),
       image: String(row['image'] || row['зураг'] || row['image_url'] || ''),
+      facebook_post_id: String(row['facebook_post_id'] || row['facebook post id'] || ''),
+      instagram_post_id: String(row['instagram_post_id'] || row['instagram post id'] || ''),
     })).filter(p => p.name)
   }
 
@@ -141,6 +147,7 @@ export default function ImportProductsPage() {
 
     let successCount = 0
     let errorCount = 0
+    const newProductIds: string[] = []
 
     for (const product of products) {
       try {
@@ -157,6 +164,8 @@ export default function ImportProductsPage() {
             images: product.image ? [product.image] : [],
             status: 'draft',
             has_variants: !!(product.size || product.color),
+            facebook_post_id: product.facebook_post_id || null,
+            instagram_post_id: product.instagram_post_id || null,
           })
           .select()
           .single()
@@ -175,10 +184,20 @@ export default function ImportProductsPage() {
           sku: product.sku || null,
         })
 
+        newProductIds.push(newProduct.id)
         successCount++
       } catch {
         errorCount++
       }
+    }
+
+    // Fire-and-forget AI enrichment for all imported products
+    if (newProductIds.length > 0) {
+      fetch('/api/products/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_ids: newProductIds }),
+      }).catch(() => {})
     }
 
     setLoading(false)
@@ -192,10 +211,10 @@ export default function ImportProductsPage() {
     }
   }
 
-  const sampleCSV = `name,description,category,price,stock,size,color
-Эмэгтэй цамц,Зуны цамц,clothing,25000,10,M,Цагаан
-Эрэгтэй өмд,Хөнгөн өмд,clothing,45000,5,L,Хар
-Гар цүнх,Арьсан цүнх,bags,89000,3,,Бор`
+  const sampleCSV = `name,description,category,price,stock,size,color,facebook_post_id,instagram_post_id
+Эмэгтэй цамц,Зуны цамц,clothing,25000,10,M,Цагаан,123456789_987654321,17895695668004550
+Эрэгтэй өмд,Хөнгөн өмд,clothing,45000,5,L,Хар,,
+Гар цүнх,Арьсан цүнх,bags,89000,3,,Бор,,`
 
   return (
     <div>
@@ -257,6 +276,8 @@ export default function ImportProductsPage() {
             <li><code className="bg-slate-700 px-2 py-0.5 rounded">description</code> - Тайлбар</li>
             <li><code className="bg-slate-700 px-2 py-0.5 rounded">size</code> - Хэмжээ</li>
             <li><code className="bg-slate-700 px-2 py-0.5 rounded">color</code> - Өнгө</li>
+            <li><code className="bg-slate-700 px-2 py-0.5 rounded">facebook_post_id</code> - Facebook Post ID</li>
+            <li><code className="bg-slate-700 px-2 py-0.5 rounded">instagram_post_id</code> - Instagram Post ID</li>
           </ul>
 
           <p className="text-slate-400 text-sm mb-2">Жишээ:</p>

@@ -18,12 +18,18 @@ vi.mock('./email', () => ({
   sendLowStockEmail: vi.fn().mockResolvedValue(true),
 }))
 
+// Mock push
+vi.mock('./push', () => ({
+  sendPushToUser: vi.fn().mockResolvedValue(undefined),
+}))
+
 // Mock webhook
 vi.mock('./webhook', () => ({
   dispatchWebhook: vi.fn().mockResolvedValue(true),
 }))
 
 import { sendOrderEmail, sendMessageEmail, sendLowStockEmail } from './email'
+import { sendPushToUser } from './push'
 import { dispatchWebhook } from './webhook'
 
 describe('dispatchNotification', () => {
@@ -179,6 +185,85 @@ describe('dispatchNotification', () => {
     expect(sendOrderEmail).not.toHaveBeenCalled()
   })
 
+  it('sends push notification when push_new_order is enabled', async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'stores') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({ data: { owner_id: 'owner_1' } }),
+            })),
+          })),
+        }
+      }
+      if (table === 'users') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  email: 'owner@test.com',
+                  notification_settings: {
+                    email_new_order: false,
+                    push_new_order: true,
+                  },
+                },
+              }),
+            })),
+          })),
+        }
+      }
+      if (table === 'notifications') {
+        return { insert: vi.fn().mockResolvedValue({ error: null }) }
+      }
+      return {}
+    })
+
+    const { dispatchNotification } = await import('./notifications')
+
+    await dispatchNotification('store_1', 'new_order', {
+      order_number: 'ORD-PUSH',
+      total_amount: 25000,
+    })
+
+    expect(sendPushToUser).toHaveBeenCalledWith('owner_1', {
+      title: expect.stringContaining('ORD-PUSH'),
+      body: expect.any(String),
+      url: '/dashboard/orders',
+      tag: 'temuulel-new_order',
+    })
+  })
+
+  it('skips push when push setting is disabled', async () => {
+    const { dispatchNotification } = await import('./notifications')
+
+    await dispatchNotification('store_1', 'new_order', {
+      order_number: 'ORD-NOPUSH',
+      total_amount: 10000,
+    })
+
+    // Default mock has no push_* settings → push is disabled
+    expect(sendPushToUser).not.toHaveBeenCalled()
+  })
+
+  it('dispatches order_status notification', async () => {
+    const { dispatchNotification } = await import('./notifications')
+
+    await dispatchNotification('store_1', 'order_status', {
+      order_id: 'ord_1',
+      order_number: 'ORD-STATUS',
+      previous_status: 'pending',
+      new_status: 'confirmed',
+    })
+
+    // Should save in-app notification (webhook dispatch)
+    expect(dispatchWebhook).toHaveBeenCalledWith(
+      'store_1',
+      'order_status',
+      expect.objectContaining({ order_number: 'ORD-STATUS' })
+    )
+  })
+
   it('skips everything when store not found', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'stores') {
@@ -245,6 +330,18 @@ describe('buildNotificationContent', () => {
     expect(content.body).toContain('messenger')
   })
 
+  it('builds order_status content correctly', () => {
+    const content = buildContent('order_status', {
+      order_number: 'ORD-200',
+      previous_status: 'pending',
+      new_status: 'shipped',
+    })
+
+    expect(content.title).toContain('ORD-200')
+    expect(content.body).toContain('Хүлээгдэж буй')
+    expect(content.body).toContain('Илгээсэн')
+  })
+
   it('handles missing data gracefully', () => {
     const content = buildContent('new_order', {})
     expect(content.title).toContain('Шинэ захиалга')
@@ -256,8 +353,17 @@ describe('buildNotificationContent', () => {
  * Helper to test buildNotificationContent logic directly
  * (mirrors the private function in notifications.ts)
  */
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Хүлээгдэж буй',
+  confirmed: 'Баталгаажсан',
+  processing: 'Бэлтгэж буй',
+  shipped: 'Илгээсэн',
+  delivered: 'Хүргэсэн',
+  cancelled: 'Цуцлагдсан',
+}
+
 function buildContent(
-  event: 'new_order' | 'new_message' | 'new_customer' | 'low_stock',
+  event: 'new_order' | 'new_message' | 'new_customer' | 'low_stock' | 'order_status',
   data: Record<string, unknown>
 ) {
   switch (event) {
@@ -282,6 +388,11 @@ function buildContent(
       return {
         title: `Нөөц дуусаж байна: ${data.product_name || ''}`,
         body: `Үлдэгдэл: ${data.remaining ?? 0} ширхэг`,
+      }
+    case 'order_status':
+      return {
+        title: `Захиалга #${data.order_number || ''} статус өөрчлөгдлөө`,
+        body: `${STATUS_LABELS[data.previous_status as string] || data.previous_status} → ${STATUS_LABELS[data.new_status as string] || data.new_status}`,
       }
   }
 }

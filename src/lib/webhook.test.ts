@@ -1,5 +1,5 @@
 /**
- * Tests for outgoing webhook delivery
+ * Tests for outgoing webhook delivery (QStash + direct fallback)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import crypto from 'crypto'
@@ -14,7 +14,6 @@ describe('Webhook payload signing', () => {
       .update(payload)
       .digest('hex')
 
-    // Verify the signing logic matches
     const actual = crypto
       .createHmac('sha256', secret)
       .update(payload)
@@ -43,6 +42,96 @@ describe('dispatchWebhook', () => {
 
     const { dispatchWebhook } = await import('@/lib/webhook')
     const result = await dispatchWebhook('store_1', 'new_order', { order_id: '123' })
+    expect(result).toBe(false)
+  })
+})
+
+describe('deliverDirectly', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    vi.resetModules()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('delivers payload with correct headers and signature', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { deliverDirectly } = await import('@/lib/webhook')
+    const payload = {
+      event: 'new_order' as const,
+      timestamp: '2026-01-28T00:00:00.000Z',
+      store_id: 'store_1',
+      data: { order_id: 'ord_1' },
+    }
+
+    const result = await deliverDirectly('https://hooks.example.com/webhook', 'my_secret', payload)
+
+    expect(result).toBe(true)
+    expect(mockFetch).toHaveBeenCalledOnce()
+
+    const [url, opts] = mockFetch.mock.calls[0]
+    expect(url).toBe('https://hooks.example.com/webhook')
+    expect(opts.method).toBe('POST')
+
+    const headers = opts.headers as Record<string, string>
+    expect(headers['Content-Type']).toBe('application/json')
+    expect(headers['X-Webhook-Event']).toBe('new_order')
+    expect(headers['X-Webhook-Timestamp']).toBe('2026-01-28T00:00:00.000Z')
+    expect(headers['X-Webhook-Signature']).toHaveLength(64)
+  })
+
+  it('delivers without signature when no secret', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { deliverDirectly } = await import('@/lib/webhook')
+    const payload = {
+      event: 'new_message' as const,
+      timestamp: '2026-01-28T00:00:00.000Z',
+      store_id: 'store_1',
+      data: { message: 'hello' },
+    }
+
+    const result = await deliverDirectly('https://hooks.example.com/webhook', null, payload)
+
+    expect(result).toBe(true)
+    const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>
+    expect(headers['X-Webhook-Signature']).toBeUndefined()
+  })
+
+  it('returns false on HTTP error', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { deliverDirectly } = await import('@/lib/webhook')
+    const payload = {
+      event: 'low_stock' as const,
+      timestamp: '2026-01-28T00:00:00.000Z',
+      store_id: 'store_1',
+      data: {},
+    }
+
+    const result = await deliverDirectly('https://hooks.example.com/webhook', null, payload)
+    expect(result).toBe(false)
+  })
+
+  it('returns false on network error', async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'))
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { deliverDirectly } = await import('@/lib/webhook')
+    const payload = {
+      event: 'new_customer' as const,
+      timestamp: '2026-01-28T00:00:00.000Z',
+      store_id: 'store_1',
+      data: {},
+    }
+
+    const result = await deliverDirectly('https://hooks.example.com/webhook', null, payload)
     expect(result).toBe(false)
   })
 })

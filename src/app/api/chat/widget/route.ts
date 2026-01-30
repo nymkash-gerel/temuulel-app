@@ -1,13 +1,26 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  classifyIntent,
+  classifyIntentWithConfidence,
   searchProducts,
+  generateAIResponse,
   generateResponse,
+  formatPrice,
   matchesHandoffKeywords,
+  fetchRecentMessages,
   ChatbotSettings,
+  LOW_CONFIDENCE_THRESHOLD,
 } from '@/lib/chat-ai'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import {
+  readState,
+  writeState,
+  emptyState,
+  resolveFollowUp,
+  updateState,
+  StoredProduct,
+} from '@/lib/conversation-state'
+import { isOpenAIConfigured } from '@/lib/ai/openai-client'
 
 const RATE_LIMIT = { limit: 20, windowSeconds: 60 }
 
@@ -55,6 +68,27 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  // Check if conversation was already escalated (score is evaluated in /api/chat POST)
+  if (conversation_id) {
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('status, escalation_level')
+      .eq('id', conversation_id)
+      .single()
+
+    if (conv?.status === 'escalated') {
+      const escalationMessage =
+        chatbotSettings.escalation_message ||
+        'Таны хүсэлтийг бид хүлээн авлаа. Манай менежер тантай удахгүй холбогдоно. Түр хүлээнэ үү!'
+      return NextResponse.json({
+        response: escalationMessage,
+        intent: 'escalated',
+        handoff: true,
+        escalation_level: conv.escalation_level,
+      })
+    }
+  }
+
   // If AI auto-reply is disabled, don't generate a response
   if (!aiAutoReply) {
     return NextResponse.json({
@@ -64,23 +98,198 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const intent = classifyIntent(customer_message)
+  // --- Conversation Memory ---
+  const state = conversation_id
+    ? await readState(supabase, conversation_id)
+    : emptyState()
 
-  // Search products if needed
+  // Check for follow-ups (keyword tier — free, deterministic)
+  const followUp = resolveFollowUp(customer_message, state)
+
+  let intent: string
   let products: Awaited<ReturnType<typeof searchProducts>> = []
+  let response: string
 
-  if (intent === 'product_search' || intent === 'general') {
-    products = await searchProducts(
-      supabase,
-      customer_message,
-      store_id,
-      chatbotSettings.max_products
+  if (followUp) {
+    // Handle follow-up without re-classifying intent
+    switch (followUp.type) {
+      case 'number_reference':
+      case 'select_single': {
+        const p = followUp.product!
+        intent = 'product_detail'
+        // Fetch full product details for the selected product
+        const { data: selectedProducts } = await supabase
+          .from('products')
+          .select('id, name, description, category, base_price, images, sales_script, product_faqs')
+          .eq('id', p.id)
+        products = (selectedProducts || []) as Awaited<ReturnType<typeof searchProducts>>
+        // Fetch history for LLM tier
+        const selectHistory = conversation_id && isOpenAIConfigured()
+          ? await fetchRecentMessages(supabase, conversation_id)
+          : undefined
+        response = await generateAIResponse(
+          intent, products, [], storeName, customer_message, chatbotSettings, selectHistory
+        )
+        break
+      }
+      case 'price_question': {
+        intent = 'price_info'
+        const priceList = followUp.products!
+          .map((p, i) => `${i + 1}. ${p.name} — ${formatPrice(p.base_price)}`)
+          .join('\n')
+        response = `Үнийн мэдээлэл:\n\n${priceList}`
+        break
+      }
+      case 'size_question': {
+        intent = 'size_info'
+        // Fetch full product details for the stored products
+        const storedIds = followUp.products!.map((p) => p.id)
+        const { data: fullProducts } = await supabase
+          .from('products')
+          .select('id, name, description, category, base_price, images, sales_script, product_faqs')
+          .in('id', storedIds)
+        products = (fullProducts || []) as Awaited<ReturnType<typeof searchProducts>>
+        // Check if the customer provided body measurements (height, weight, pregnancy months, etc.)
+        // In that case, the FAQ chart alone isn't enough — LLM should recommend a specific size.
+        const hasBodyMeasurements = /\d+\s*(кг|kg|см|cm|сартай|сар\b|sartai|sar\b)/i.test(customer_message)
+        // Try FAQ answer first (avoids LLM call) — but only for generic "what sizes?" questions
+        const sizeFaqs = hasBodyMeasurements ? [] : products
+          .map((p) => p.product_faqs?.size_fit ? `**${p.name}**: ${p.product_faqs.size_fit}` : null)
+          .filter(Boolean)
+        if (sizeFaqs.length > 0) {
+          response = sizeFaqs.join('\n\n')
+        } else {
+          const sizeHistory = conversation_id && isOpenAIConfigured()
+            ? await fetchRecentMessages(supabase, conversation_id)
+            : undefined
+          response = await generateAIResponse(
+            intent, products, [], storeName, customer_message, chatbotSettings, sizeHistory
+          )
+        }
+        break
+      }
+      case 'contextual_question': {
+        // Map topic to intent for response generation
+        const topicIntentMap: Record<string, string> = {
+          delivery: 'delivery_info',
+          order: 'order_info',
+          payment: 'payment_info',
+          material: 'product_detail',
+          warranty: 'warranty_info',
+          stock: 'stock_info',
+          detail: 'product_detail',
+        }
+        intent = topicIntentMap[followUp.contextTopic!] || 'general'
+        // Map context topic to FAQ key
+        const faqKeyMap: Record<string, string> = {
+          material: 'material',
+          warranty: 'warranty',
+          delivery: 'delivery',
+          detail: 'care',
+        }
+        // Fetch full product details for the stored products
+        const ctxIds = followUp.products!.map((p) => p.id)
+        const { data: ctxProducts } = await supabase
+          .from('products')
+          .select('id, name, description, category, base_price, images, sales_script, product_faqs')
+          .in('id', ctxIds)
+        products = (ctxProducts || []) as Awaited<ReturnType<typeof searchProducts>>
+        // Try FAQ answer first (avoids LLM call)
+        const faqKey = faqKeyMap[followUp.contextTopic!]
+        const ctxFaqs = faqKey
+          ? products
+              .map((p) => p.product_faqs?.[faqKey] ? `**${p.name}**: ${p.product_faqs[faqKey]}` : null)
+              .filter(Boolean)
+          : []
+        if (ctxFaqs.length > 0) {
+          response = ctxFaqs.join('\n\n')
+        } else {
+          const ctxHistory = conversation_id && isOpenAIConfigured()
+            ? await fetchRecentMessages(supabase, conversation_id)
+            : undefined
+          response = await generateAIResponse(
+            intent, products, [], storeName, customer_message, chatbotSettings, ctxHistory
+          )
+        }
+        break
+      }
+      case 'query_refinement': {
+        intent = 'product_search'
+        products = await searchProducts(
+          supabase,
+          followUp.refinedQuery!,
+          store_id,
+          chatbotSettings.max_products
+        )
+        // Fetch history for LLM tier
+        const refHistory = conversation_id && isOpenAIConfigured()
+          ? await fetchRecentMessages(supabase, conversation_id)
+          : undefined
+        response = await generateAIResponse(
+          intent, products, [], storeName, followUp.refinedQuery!, chatbotSettings, refHistory
+        )
+        break
+      }
+      case 'prefer_llm': {
+        // Classify normally but force LLM context
+        const { intent: llmIntent } = classifyIntentWithConfidence(customer_message)
+        intent = llmIntent
+
+        if (intent === 'product_search' || intent === 'general') {
+          products = await searchProducts(
+            supabase, customer_message, store_id, chatbotSettings.max_products
+          )
+        }
+
+        // Always fetch history — that's the whole point of prefer_llm
+        const llmHistory = conversation_id && isOpenAIConfigured()
+          ? await fetchRecentMessages(supabase, conversation_id)
+          : undefined
+        response = await generateAIResponse(
+          intent, products, [], storeName, customer_message, chatbotSettings, llmHistory
+        )
+        break
+      }
+      default:
+        intent = 'general'
+        response = generateResponse(intent, products, [], storeName, chatbotSettings)
+    }
+  } else {
+    // Normal classification path
+    const { intent: rawIntent, confidence } = classifyIntentWithConfidence(customer_message)
+    intent = (confidence < LOW_CONFIDENCE_THRESHOLD && rawIntent === 'general')
+      ? 'low_confidence'
+      : rawIntent
+
+    if (intent === 'product_search' || intent === 'general' || intent === 'low_confidence' || intent === 'size_info') {
+      products = await searchProducts(
+        supabase,
+        customer_message,
+        store_id,
+        chatbotSettings.max_products
+      )
+
+      // If no products found, fetch suggested products as fallback
+      if (products.length === 0) {
+        products = await searchProducts(supabase, '', store_id, chatbotSettings.max_products)
+        if (products.length > 0) {
+          // Override intent so response template shows "suggested" framing
+          intent = 'product_suggestions'
+        }
+      }
+    }
+
+    // Fetch history for LLM tier (only if OpenAI configured + conversation exists)
+    const history = conversation_id && isOpenAIConfigured()
+      ? await fetchRecentMessages(supabase, conversation_id)
+      : undefined
+
+    response = await generateAIResponse(
+      intent, products, [], storeName, customer_message, chatbotSettings, history
     )
   }
 
-  const response = generateResponse(intent, products, [], storeName, chatbotSettings)
-
-  // If we have a conversation_id, save the AI response directly
+  // If we have a conversation_id, save response + update state
   if (conversation_id) {
     await supabase
       .from('messages')
@@ -92,8 +301,23 @@ export async function POST(request: NextRequest) {
         metadata: {
           intent,
           products_found: products.length,
+          follow_up: followUp?.type ?? null,
         },
       })
+
+    // Update conversation state
+    const storedProducts: StoredProduct[] = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      base_price: p.base_price,
+    }))
+    const nextState = updateState(
+      state,
+      intent,
+      storedProducts,
+      customer_message
+    )
+    await writeState(supabase, conversation_id, nextState)
 
     await supabase
       .from('conversations')

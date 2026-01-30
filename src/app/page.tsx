@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import DemoSection from '@/components/landing/DemoSection'
 
 export default function LandingPage() {
   return (
@@ -97,6 +98,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Demo */}
+      <DemoSection />
 
       {/* Pricing */}
       <section className="py-20 px-4 bg-slate-800/30" id="pricing">

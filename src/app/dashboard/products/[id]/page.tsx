@@ -38,6 +38,11 @@ export default function EditProductPage() {
   const [status, setStatus] = useState<'active' | 'draft'>('draft')
   const [hasVariants, setHasVariants] = useState(false)
   const [variants, setVariants] = useState<Variant[]>([])
+  const [fitNote, setFitNote] = useState('')
+  const [existingFaqs, setExistingFaqs] = useState<Record<string, string>>({})
+  const [facebookPostId, setFacebookPostId] = useState('')
+  const [instagramPostId, setInstagramPostId] = useState('')
+  const [aiContext, setAiContext] = useState('')
 
   const categories = [
     { value: 'clothing', label: 'Хувцас', subcategories: ['Цамц', 'Өмд', 'Даашинз', 'Пальто', 'Куртка'] },
@@ -78,6 +83,16 @@ export default function EditProductPage() {
         setStatus((product.status || 'draft') as 'active' | 'draft')
         setHasVariants(product.has_variants || false)
 
+        // Load fit note from product_faqs
+        const faqs = (product.product_faqs || {}) as Record<string, string>
+        setExistingFaqs(faqs)
+        setFitNote(faqs.size_fit || '')
+
+        // Load social post IDs
+        setFacebookPostId(product.facebook_post_id || '')
+        setInstagramPostId(product.instagram_post_id || '')
+        setAiContext(product.ai_context || '')
+
         if (product.product_variants?.length > 0) {
           setVariants(product.product_variants.map((v: Record<string, unknown>) => ({
             id: v.id as string,
@@ -112,6 +127,14 @@ export default function EditProductPage() {
     setError('')
 
     try {
+      // Merge fit note into existing product_faqs (preserve AI-generated fields)
+      const updatedFaqs = { ...existingFaqs }
+      if (fitNote.trim()) {
+        updatedFaqs.size_fit = fitNote.trim()
+      } else {
+        delete updatedFaqs.size_fit
+      }
+
       const { error: productError } = await supabase
         .from('products')
         .update({
@@ -124,6 +147,10 @@ export default function EditProductPage() {
           images,
           status,
           has_variants: hasVariants,
+          product_faqs: updatedFaqs,
+          facebook_post_id: facebookPostId || null,
+          instagram_post_id: instagramPostId || null,
+          ai_context: aiContext || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', productId)
@@ -151,6 +178,13 @@ export default function EditProductPage() {
           }).eq('id', variant.id)
         }
       }
+
+      // Fire-and-forget AI enrichment (search aliases + FAQs)
+      fetch('/api/products/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_ids: [productId] }),
+      }).catch(() => {})
 
       router.push('/dashboard/products')
       router.refresh()
@@ -280,6 +314,78 @@ export default function EditProductPage() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Fit Note */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-2">Хэмжээний зөвлөмж</h2>
+              <p className="text-slate-400 text-sm mb-4">
+                Chatbot энэ мэдээллийг ашиглан хэрэглэгчид тохирох размер зөвлөнө.
+              </p>
+              <textarea
+                value={fitNote}
+                onChange={(e) => setFitNote(e.target.value)}
+                placeholder="Жишээ: Энэ загвар жижгэвтэр тул 1 размер том авахыг зөвлөнө. 160см, 55кг хүнд M хэмжээ тохиромжтой."
+                rows={3}
+                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all resize-none"
+              />
+            </div>
+
+            {/* Social Media Post IDs */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-2">Сошиал медиа холбоос</h2>
+              <p className="text-slate-400 text-sm mb-4">
+                Энэ бүтээгдэхүүнийг сурталчилсан пост руу холбоно. Comment Auto-Reply энэ мэдээллийг ашиглан зөв бүтээгдэхүүний мэдээлэл өгнө.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="text-blue-400">📘</span> Facebook Post ID
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={facebookPostId}
+                    onChange={(e) => setFacebookPostId(e.target.value)}
+                    placeholder="123456789012345_987654321098765"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Facebook постын URL-аас олно (жишээ: /posts/123456789)</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="text-pink-400">📸</span> Instagram Post ID
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={instagramPostId}
+                    onChange={(e) => setInstagramPostId(e.target.value)}
+                    placeholder="17895695668004550"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Instagram постын media ID</p>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Context */}
+            <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <span>🤖</span> AI хариултын заавар
+              </h2>
+              <p className="text-slate-400 text-sm mb-4">
+                Comment Auto-Reply AI энэ бүтээгдэхүүний талаар хариулахдаа энэ зааврыг дагана.
+              </p>
+              <textarea
+                value={aiContext}
+                onChange={(e) => setAiContext(e.target.value)}
+                placeholder="Жишээ: Энэ бүтээгдэхүүн хязгаарлагдмал тоотой тул яаравчлахыг зөвлө. Үнийн хямдрал байхгүй. Хүргэлт 2-3 хоногт хийгдэнэ."
+                rows={3}
+                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-all resize-none"
+              />
             </div>
 
             {/* Images */}

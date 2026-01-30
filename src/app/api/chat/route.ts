@@ -2,9 +2,42 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { dispatchNotification } from '@/lib/notifications'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { processEscalation } from '@/lib/escalation'
+import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
+import type { ChatbotSettings } from '@/lib/chat-ai'
 
 const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
 const MAX_CONTENT_LENGTH = 2000
+
+/** Fire-and-forget: tag a customer message with sentiment + topic tags. */
+async function tagMessage(
+  supabase: ReturnType<typeof getSupabase>,
+  messageId: string,
+  text: string
+) {
+  try {
+    const result = await analyzeMessage(text) ?? analyzeMessageKeyword(text)
+    const { data: existing } = await supabase
+      .from('messages')
+      .select('metadata')
+      .eq('id', messageId)
+      .single()
+    const meta = (existing?.metadata ?? {}) as Record<string, unknown>
+    await supabase
+      .from('messages')
+      .update({
+        metadata: {
+          ...meta,
+          sentiment: result.sentiment,
+          tags: result.tags,
+          tagged_at: new Date().toISOString(),
+        },
+      })
+      .eq('id', messageId)
+  } catch (e) {
+    console.error('[message-tagger] Failed:', e)
+  }
+}
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -194,6 +227,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: msgError.message }, { status: 500 })
     }
 
+    // Tag customer message with sentiment + topic tags (fire-and-forget)
+    if (isFromCustomer && message?.id) {
+      void tagMessage(supabase, message.id, content)
+    }
+
     // Update conversation timestamp and unread count
     if (isFromCustomer) {
       // Try RPC first, fall back to direct update
@@ -225,6 +263,18 @@ export async function POST(request: NextRequest) {
         message: content,
         channel: channel,
       })
+
+      // Smart escalation — evaluate and update score
+      const { data: storeData } = await supabase
+        .from('stores')
+        .select('chatbot_settings')
+        .eq('id', effectiveStoreId)
+        .single()
+
+      const chatbotSettings = (storeData?.chatbot_settings || {}) as ChatbotSettings
+      await processEscalation(
+        supabase, conversationId, content, effectiveStoreId, chatbotSettings
+      )
     }
 
     return NextResponse.json({

@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Scroll lock — applied via JS when chat widget is open */
+html.scroll-lock,
+html.scroll-lock body {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
