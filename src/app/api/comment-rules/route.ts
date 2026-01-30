@@ -68,6 +68,8 @@ export async function POST(request: NextRequest) {
     dm_template = '',
     delay_seconds = 0,
     platforms = ['facebook', 'instagram'],
+    use_ai = false,
+    ai_context = '',
   } = body
 
   if (!name) {
@@ -102,6 +104,8 @@ export async function POST(request: NextRequest) {
       dm_template: dm_template || null,
       delay_seconds,
       platforms,
+      use_ai,
+      ai_context: ai_context || null,
     })
     .select()
     .single()

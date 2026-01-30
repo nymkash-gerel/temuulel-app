@@ -82,7 +82,7 @@ export async function PATCH(
   const allowedFields = [
     'name', 'enabled', 'priority', 'trigger_type', 'keywords',
     'match_mode', 'reply_comment', 'reply_dm', 'comment_template',
-    'dm_template', 'delay_seconds', 'platforms'
+    'dm_template', 'delay_seconds', 'platforms', 'use_ai', 'ai_context'
   ]
 
   for (const field of allowedFields) {
