@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = (searchParams.get('query') || '').slice(0, 200)
   const category = searchParams.get('category')
-  const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50)
+  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '10') || 10, 1), 50)
+  const offset = Math.max(parseInt(searchParams.get('offset') || '0') || 0, 0)
   const storeId = searchParams.get('store_id')
 
   const supabase = await createClient()
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   let dbQuery = supabase
     .from('products')
-    .select('id, name, description, category, base_price, images, sales_script')
+    .select('id, name, description, category, base_price, images, sales_script', { count: 'exact' })
     .eq('status', 'active')
 
   if (storeId) {
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
     dbQuery = dbQuery.eq('category', category)
   }
 
-  const { data: products, error } = await dbQuery.limit(limit)
+  const { data: products, error, count } = await dbQuery.range(offset, offset + limit - 1)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -86,5 +87,5 @@ export async function GET(request: NextRequest) {
     sales_script: p.sales_script
   }))
 
-  return NextResponse.json({ data: formatted, count: formatted.length })
+  return NextResponse.json({ data: formatted, count: count ?? formatted.length, limit, offset })
 }

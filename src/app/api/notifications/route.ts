@@ -26,21 +26,22 @@ export async function GET(request: NextRequest) {
   }
 
   const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '20') || 20, 1), 100)
+  const offset = Math.max(parseInt(request.nextUrl.searchParams.get('offset') || '0') || 0, 0)
 
-  const { data: notifications, error } = await supabase
+  const { data: notifications, error, count: totalCount } = await supabase
     .from('notifications')
-    .select('id, type, title, body, data, is_read, created_at')
+    .select('id, type, title, body, data, is_read, created_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('is_read', { ascending: true })
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .range(offset, offset + limit - 1)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   // Also get unread count
-  const { count } = await supabase
+  const { count: unreadCount } = await supabase
     .from('notifications')
     .select('id', { count: 'exact', head: true })
     .eq('store_id', store.id)
@@ -49,7 +50,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     store_id: store.id,
     notifications: notifications || [],
-    unread_count: count || 0,
+    total_count: totalCount ?? 0,
+    unread_count: unreadCount || 0,
+    limit,
+    offset,
   })
 }
 

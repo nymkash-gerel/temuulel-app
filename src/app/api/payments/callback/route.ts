@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { checkQPayPayment, isQPayConfigured } from '@/lib/qpay'
 import { dispatchNotification } from '@/lib/notifications'
 import { decrementStockAndNotify } from '@/lib/stock'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+
+const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -18,6 +21,11 @@ function getSupabase() {
  * Verifies the payment and updates the order status.
  */
 export async function GET(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = getSupabase()
   const orderId = request.nextUrl.searchParams.get('order_id')
 
