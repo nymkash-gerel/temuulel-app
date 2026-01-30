@@ -140,6 +140,11 @@ export async function POST(request: NextRequest) {
  * Manually update payment status (for bank transfer and cash payments)
  */
 export async function PATCH(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   // Authenticate the user
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()

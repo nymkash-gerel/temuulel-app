@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
     .eq('store_id', store.id)
     .single()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const planLimits = (sub?.subscription_plans as any)?.limits || {}
+  const planData = sub?.subscription_plans as { limits?: Record<string, unknown> } | null
+  const planLimits = (planData?.limits ?? {}) as Record<string, unknown>
   const teamLimit = typeof planLimits.team_members === 'number' ? planLimits.team_members : 1
 
   const { count } = await supabase

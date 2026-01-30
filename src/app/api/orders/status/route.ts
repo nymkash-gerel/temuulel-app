@@ -13,6 +13,24 @@ const VALID_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delive
  */
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient()
+
+  // Authenticate the user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Verify user owns a store
+  const { data: store } = await supabase
+    .from('stores')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (!store) {
+    return NextResponse.json({ error: 'Store not found' }, { status: 403 })
+  }
+
   const body = await request.json()
   const { order_id, status, tracking_number } = body
 
@@ -30,11 +48,12 @@ export async function PATCH(request: NextRequest) {
     )
   }
 
-  // Fetch order to get current status and store_id
+  // Fetch order and verify it belongs to the user's store
   const { data: order } = await supabase
     .from('orders')
     .select('id, store_id, status, order_number')
     .eq('id', order_id)
+    .eq('store_id', store.id)
     .single()
 
   if (!order) {

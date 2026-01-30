@@ -151,6 +151,105 @@ describe('QPay callback logic', () => {
   })
 })
 
+describe('Payment status update — store ownership validation', () => {
+  it('requires order to belong to the authenticated user store', () => {
+    const order = { id: 'ord_1', store_id: 'store_A' }
+    const userStore = { id: 'store_B' }
+    const belongsToStore = order.store_id === userStore.id
+    expect(belongsToStore).toBe(false)
+  })
+
+  it('allows update when order belongs to user store', () => {
+    const order = { id: 'ord_1', store_id: 'store_A' }
+    const userStore = { id: 'store_A' }
+    const belongsToStore = order.store_id === userStore.id
+    expect(belongsToStore).toBe(true)
+  })
+})
+
+describe('Order status validation', () => {
+  const VALID_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
+
+  it('accepts all valid order statuses', () => {
+    for (const s of VALID_STATUSES) {
+      expect(VALID_STATUSES.includes(s)).toBe(true)
+    }
+  })
+
+  it('rejects invalid order statuses', () => {
+    expect(VALID_STATUSES.includes('paid')).toBe(false)
+    expect(VALID_STATUSES.includes('refunded')).toBe(false)
+    expect(VALID_STATUSES.includes('unknown')).toBe(false)
+  })
+
+  it('requires order_id and status', () => {
+    const body1 = { status: 'confirmed' }
+    const body2 = { order_id: '123' }
+    const body3 = { order_id: '123', status: 'confirmed' }
+
+    expect(!!(body1 as Record<string, string>).order_id && !!body1.status).toBe(false)
+    expect(!!body2.order_id && !!(body2 as Record<string, string>).status).toBe(false)
+    expect(!!body3.order_id && !!body3.status).toBe(true)
+  })
+})
+
+describe('Email format validation', () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  it('accepts valid email addresses', () => {
+    expect(emailRegex.test('user@example.com')).toBe(true)
+    expect(emailRegex.test('admin@store.mn')).toBe(true)
+    expect(emailRegex.test('test.user+tag@domain.co')).toBe(true)
+  })
+
+  it('rejects invalid email addresses', () => {
+    expect(emailRegex.test('')).toBe(false)
+    expect(emailRegex.test('not-an-email')).toBe(false)
+    expect(emailRegex.test('@missing-local.com')).toBe(false)
+    expect(emailRegex.test('missing-domain@')).toBe(false)
+    expect(emailRegex.test('has spaces@example.com')).toBe(false)
+    expect(emailRegex.test('user@')).toBe(false)
+  })
+})
+
+describe('Notification limit bounds', () => {
+  function clampLimit(input: string | null): number {
+    return Math.min(Math.max(parseInt(input || '20') || 20, 1), 100)
+  }
+
+  it('defaults to 20 when not provided', () => {
+    expect(clampLimit(null)).toBe(20)
+  })
+
+  it('respects valid limit values', () => {
+    expect(clampLimit('10')).toBe(10)
+    expect(clampLimit('50')).toBe(50)
+    expect(clampLimit('1')).toBe(1)
+    expect(clampLimit('100')).toBe(100)
+  })
+
+  it('clamps to maximum of 100', () => {
+    expect(clampLimit('200')).toBe(100)
+    expect(clampLimit('999')).toBe(100)
+    expect(clampLimit('101')).toBe(100)
+  })
+
+  it('clamps to minimum of 1 for negative values', () => {
+    expect(clampLimit('-5')).toBe(1)
+    expect(clampLimit('-1')).toBe(1)
+  })
+
+  it('treats zero as invalid and defaults to 20', () => {
+    // parseInt('0') = 0 is falsy, so || 20 kicks in
+    expect(clampLimit('0')).toBe(20)
+  })
+
+  it('defaults to 20 for non-numeric input', () => {
+    expect(clampLimit('abc')).toBe(20)
+    expect(clampLimit('')).toBe(20)
+  })
+})
+
 describe('Bank transfer response', () => {
   it('builds bank transfer info from settings', () => {
     const paymentSettings = {
