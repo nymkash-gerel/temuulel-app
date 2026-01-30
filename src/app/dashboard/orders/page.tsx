@@ -159,7 +159,7 @@ export default function OrdersPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Захиалга</h1>
           <p className="text-slate-400 mt-1">
@@ -260,47 +260,47 @@ export default function OrdersPage() {
 
       {/* Orders Table */}
       {filteredOrders.length > 0 ? (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden">
-          <table className="w-full">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-x-auto">
+          <table className="w-full min-w-[750px]">
             <thead>
               <tr className="border-b border-slate-700">
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Захиалга</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Харилцагч</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Бүтээгдэхүүн</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Нийт дүн</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Төлөв</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Огноо</th>
-                <th className="text-right py-4 px-6 text-sm font-medium text-slate-400">Үйлдэл</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Захиалга</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Харилцагч</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Бүтээгдэхүүн</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Нийт дүн</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Төлөв</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Огноо</th>
+                <th className="text-right py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Үйлдэл</th>
               </tr>
             </thead>
             <tbody>
               {filteredOrders.map((order) => (
                 <tr key={order.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-all">
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-3 md:py-4 md:px-6">
                     <span className="text-white font-medium">#{order.order_number}</span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-3 md:py-4 md:px-6">
                     <div>
                       <p className="text-white">{order.customers?.name || 'N/A'}</p>
                       <p className="text-slate-400 text-sm">{order.customers?.phone || ''}</p>
                     </div>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-3 md:py-4 md:px-6">
                     <span className="text-slate-300">
                       {order.order_items?.length || 0} бүтээгдэхүүн
                     </span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-3 md:py-4 md:px-6">
                     <span className="text-white font-medium">
                       {Number(order.total_amount).toLocaleString()}₮
                     </span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-3 md:py-4 md:px-6">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                       {getStatusLabel(order.status)}
                     </span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-3 md:py-4 md:px-6">
                     <span className="text-slate-400 text-sm">
                       {new Date(order.created_at).toLocaleDateString('mn-MN')}
                     </span>

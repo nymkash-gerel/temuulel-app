@@ -156,7 +156,7 @@ export default function CustomersPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Харилцагч</h1>
           <p className="text-slate-400 mt-1">
@@ -247,17 +247,17 @@ export default function CustomersPage() {
 
       {/* Customers Table */}
       {filteredCustomers.length > 0 ? (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden">
-          <table className="w-full">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-x-auto">
+          <table className="w-full min-w-[800px]">
             <thead>
               <tr className="border-b border-slate-700">
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Харилцагч</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Холбоо барих</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Суваг</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Захиалга</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Нийт зарцуулсан</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Бүртгүүлсэн</th>
-                <th className="text-right py-4 px-6 text-sm font-medium text-slate-400">Үйлдэл</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Харилцагч</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Холбоо барих</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Суваг</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Захиалга</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Нийт зарцуулсан</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Бүртгүүлсэн</th>
+                <th className="text-right py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Үйлдэл</th>
               </tr>
             </thead>
             <tbody>
@@ -265,7 +265,7 @@ export default function CustomersPage() {
                 const stats = getCustomerStats(customer)
                 return (
                   <tr key={customer.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-all">
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
                           <span className="text-white font-medium">
@@ -275,25 +275,25 @@ export default function CustomersPage() {
                         <span className="text-white font-medium">{customer.name || 'Нэргүй'}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <div>
                         {customer.phone && <p className="text-white">{customer.phone}</p>}
                         {customer.email && <p className="text-slate-400 text-sm">{customer.email}</p>}
                         {!customer.phone && !customer.email && <p className="text-slate-500">-</p>}
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getChannelStyle(customer)}`}>
                         {getChannelIcon(customer)} {getChannel(customer)}
                       </span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className="text-white">{stats.orderCount}</span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className="text-white font-medium">{stats.totalSpent.toLocaleString()}₮</span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className="text-slate-400 text-sm">
                         {new Date(customer.created_at).toLocaleDateString('mn-MN')}
                       </span>

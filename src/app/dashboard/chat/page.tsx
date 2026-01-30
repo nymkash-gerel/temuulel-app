@@ -47,6 +47,7 @@ export default function ChatPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [storeId, setStoreId] = useState<string | null>(null)
   const [hasMessenger, setHasMessenger] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(true)
 
   // Load store and conversations
   useEffect(() => {
@@ -232,9 +233,17 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex">
+    <div className="h-[calc(100vh-8rem)] flex relative">
+      {/* Mobile toggle button */}
+      <button
+        onClick={() => setShowSidebar(!showSidebar)}
+        className="lg:hidden absolute top-2 left-2 z-10 p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition-all"
+      >
+        {showSidebar ? '✕' : '☰'}
+      </button>
+
       {/* Conversations List */}
-      <div className="w-80 bg-slate-800/30 border-r border-slate-700 flex flex-col">
+      <div className={`${showSidebar ? 'flex' : 'hidden'} lg:flex w-full lg:w-80 absolute lg:relative inset-0 lg:inset-auto z-[5] bg-slate-800/30 lg:bg-slate-800/30 border-r border-slate-700 flex-col`}>
         {/* Search */}
         <div className="p-4 border-b border-slate-700">
           <div className="relative">
@@ -250,7 +259,7 @@ export default function ChatPage() {
         </div>
 
         {/* Filters */}
-        <div className="p-3 border-b border-slate-700 flex items-center gap-2">
+        <div className="p-3 border-b border-slate-700 flex items-center gap-2 overflow-x-auto">
           {([
             { key: 'all' as FilterType, label: 'Бүгд', count: conversations.length },
             {
@@ -395,7 +404,7 @@ export default function ChatPage() {
       </div>
 
       {/* Chat Area - Empty State */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-slate-800/20">
+      <div className={`flex-1 ${showSidebar ? 'hidden lg:flex' : 'flex'} flex-col items-center justify-center bg-slate-800/20`}>
         <div className="text-center">
           <div className="w-20 h-20 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-6">
             <span className="text-4xl">💬</span>
@@ -407,7 +416,7 @@ export default function ChatPage() {
 
           {/* Stats */}
           {conversations.length > 0 && (
-            <div className="flex items-center gap-4 mt-6 justify-center">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 max-w-md lg:max-w-none mx-auto">
               <div className="px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-xl">
                 <p className="text-lg font-bold text-white">{conversations.length}</p>
                 <p className="text-xs text-slate-400">Нийт чат</p>

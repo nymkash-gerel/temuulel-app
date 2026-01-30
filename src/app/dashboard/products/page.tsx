@@ -38,7 +38,7 @@ export default async function ProductsPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Бүтээгдэхүүн</h1>
           <p className="text-slate-400 mt-1">
@@ -48,14 +48,15 @@ export default async function ProductsPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/products/import"
-            className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2"
+            className="px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm sm:text-base"
           >
             <span>📥</span>
-            <span>Олноор оруулах</span>
+            <span className="hidden sm:inline">Олноор оруулах</span>
+            <span className="sm:hidden">Оруулах</span>
           </Link>
           <Link
             href="/dashboard/products/new"
-            className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all flex items-center gap-2"
+            className="px-3 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm sm:text-base"
           >
             <span>➕</span>
             <span>Нэмэх</span>
@@ -96,16 +97,16 @@ export default async function ProductsPage() {
 
       {/* Products Grid/Table */}
       {products && products.length > 0 ? (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden">
-          <table className="w-full">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-x-auto">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-slate-700">
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Бүтээгдэхүүн</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Ангилал</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Үнэ</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Нөөц</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-slate-400">Төлөв</th>
-                <th className="text-right py-4 px-6 text-sm font-medium text-slate-400">Үйлдэл</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Бүтээгдэхүүн</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Ангилал</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Үнэ</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Нөөц</th>
+                <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Төлөв</th>
+                <th className="text-right py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Үйлдэл</th>
               </tr>
             </thead>
             <tbody>
@@ -117,35 +118,35 @@ export default async function ProductsPage() {
 
                 return (
                   <tr key={product.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-all">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                           {(product.images as string[])?.[0] ? (
                             <img src={(product.images as string[])[0]} alt={product.name} className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-2xl">📦</span>
                           )}
                         </div>
-                        <div>
-                          <p className="text-white font-medium">{product.name}</p>
+                        <div className="min-w-0">
+                          <p className="text-white font-medium truncate">{product.name}</p>
                           <p className="text-slate-400 text-sm">SKU: {product.sku || 'N/A'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className="px-3 py-1 bg-slate-700 rounded-full text-sm text-slate-300">
                         {product.category || 'Ангилалгүй'}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-white">
+                    <td className="py-3 px-3 md:py-4 md:px-6 text-white">
                       {Number(minPrice).toLocaleString()}₮
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className={`${totalStock > 10 ? 'text-green-400' : totalStock > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
                         {totalStock} ширхэг
                       </span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         product.status === 'active'
                           ? 'bg-green-500/20 text-green-400'
@@ -156,7 +157,7 @@ export default async function ProductsPage() {
                         {product.status === 'active' ? 'Идэвхтэй' : product.status === 'draft' ? 'Ноорог' : 'Архив'}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-right">
+                    <td className="py-3 px-3 md:py-4 md:px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/dashboard/products/${product.id}`}
