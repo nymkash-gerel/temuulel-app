@@ -419,3 +419,39 @@ describe('generateResponse — return_exchange', () => {
     expect(response).toContain('менежерээс лавлана уу')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Edge cases: previously misclassified return_exchange messages
+// ---------------------------------------------------------------------------
+
+describe('classifyIntent — return_exchange edge cases', () => {
+  it('detects "Солих боломж байгаа юу?" as return_exchange', () => {
+    // Previously misclassified as product_search due to "юу" and "байгаа" keywords
+    expect(classifyIntent('Солих боломж байгаа юу?')).toBe('return_exchange')
+  })
+
+  it('detects "Буцаалтын хураамж хэд вэ?" as return_exchange', () => {
+    // Previously misclassified as product_search due to "хэд" keyword
+    // Fixed by adding "буцаалтын" (suffixed) and "хураамж" to return_exchange
+    expect(classifyIntent('Буцаалтын хураамж хэд вэ?')).toBe('return_exchange')
+  })
+
+  it('detects "Солилтын нөхцөл юу вэ?" as return_exchange', () => {
+    // Previously misclassified due to "юу" in product_search
+    // Fixed by adding "солилтын" (suffixed) to return_exchange
+    expect(classifyIntent('Солилтын нөхцөл юу вэ?')).toBe('return_exchange')
+  })
+
+  it('detects "Хэмжээ тохирохгүй, солиулж болох уу?" as return_exchange', () => {
+    // Previously misclassified as size_info due to "хэмжээ" + "размер" boost
+    // Fixed by adding "солиулж" to return_exchange, giving enough score to win
+    expect(classifyIntent('Хэмжээ тохирохгүй, солиулж болох уу?')).toBe('return_exchange')
+  })
+
+  it('detects "I want to exchange this item" as return_exchange', () => {
+    // "exchange" keyword wins for return_exchange over product_search "item"
+    // Note: "exchange for a different size" ties with size_info due to compound-prefix
+    // scoring on "size chart"/"size guide" — the contextual AI handles that case
+    expect(classifyIntent('I want to exchange this item')).toBe('return_exchange')
+  })
+})

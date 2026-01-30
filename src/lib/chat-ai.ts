@@ -111,8 +111,8 @@ export function neutralizeVowels(text: string): string {
 const INTENT_KEYWORDS: Record<string, string[]> = {
   product_search: [
     // Core
-    'бүтээгдэхүүн', 'бараа', 'юу', 'ямар', 'хувцас', 'гутал', 'цүнх',
-    'пүүз', 'аксессуар', 'хайх', 'байна уу', 'байгаа', 'харуулна уу',
+    'бүтээгдэхүүн', 'бараа', 'ямар', 'хувцас', 'гутал', 'цүнх',
+    'пүүз', 'аксессуар', 'хайх', 'харуулна уу',
     'үнэ', 'үнэтэй', 'хямд', 'шинэ', 'сонирхож', 'авмаар', 'худалдаж',
     'зарна', 'зарах', 'категори', 'төрөл',
     // Product category names (common search terms)
@@ -137,7 +137,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'пууз', 'пүүзээ',
     'аксесуар', 'аксесор',
     'унэ', 'унэтэй', 'үнээ',
-    'хямдхан', 'хямдралтай', 'хямдрал', 'хямдарсан',
+    'хямдхан', 'хямдралтай', 'хямдрал', 'хямдарсан', 'үнэгүй',
     'шинэхэн', 'шинээр',
     'авах', 'авъя', 'авья', 'авмааар',
     'хайж', 'хайна', 'хайлт',
@@ -147,12 +147,13 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'сонирхож', 'сонирхоод', 'сонирхох', 'сонирхи', 'сонирх',
     // Purchase intent (from real FB conversations)
     'авий', 'авии', 'ави', 'авья',
+    'авбал', 'авлаа', 'авсан',
     'захиалъя', 'захиалья', 'захиалах', 'захиалая',
     // Availability check (very common in FB Messenger)
     // Note: "бну"/"бнуу" omitted here to avoid conflict with greeting "сн бну"
     // Standalone "бну" falls through to general → still triggers product search in widget
     'байгаа юу', 'бий юу', 'бга юу', 'бгаа юу',
-    'байна уу', 'байгаа',
+    'байна уу',
     // Short forms from Latin typing
     'бга ю', 'бгаа', 'бга', 'бий', 'плаж',
     // Price inquiry (common in product search context)
@@ -176,6 +177,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хүлээсэн', 'хүлээлгэ',
     'шалгах', 'шалгана', 'шалгамаар',
     'хэзээ ирэх',
+    // Time-based arrival phrases (order tracking, not generic shipping)
+    'маргааш ирэх', 'өглөө ирэх', 'өнөөдөр ирэх', 'орой ирэх',
   ],
   greeting: [
     // Core
@@ -231,6 +234,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Core — return/exchange policy questions (moved from complaint)
     'буцаах', 'буцаалт', 'солих', 'солилт', 'солиулах',
     'буцаан', 'буцааж', 'буцаагдах',
+    // Suffixed forms (Mongolian genitive/accusative — prevents prefix-only 0.5 scoring)
+    'буцаалтын', 'солилтын', 'солиулж', 'буцаагдсан',
+    // Return-specific nouns
+    'хураамж',
     // Policy-specific phrases
     'буцаах бодлого', 'буцаах нөхцөл', 'буцаалтын нөхцөл',
     'солих боломж', 'буцаах боломж',
@@ -239,6 +246,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'return', 'return policy', 'exchange', 'refund',
     'can i return', 'exchange policy', 'swap',
+    'want to exchange', 'want to return',
     // Informal/aliases
     'буцааж болох', 'солиулж болох', 'буцаалт хийх',
     'буцааж өгөх', 'солиулж өгөх',
@@ -306,6 +314,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'аймаг', 'сум', 'дүүрэг', 'хороо', 'орон нутаг',
     'хан уул', 'баянгол', 'сүхбаатар', 'чингэлтэй', 'баянзүрх',
     'сонгинохайрхан', 'налайх', 'багануур',
+    // Address structure (customer providing delivery address)
+    'байр', 'баир', 'давхар', 'тоот', 'орц', 'хотхон', 'хороолол',
   ],
 }
 
@@ -321,14 +331,13 @@ const NORMALIZED_INTENT_KEYWORDS: Record<string, string[]> = Object.fromEntries(
 const MIN_PREFIX_LEN = 4
 
 /**
- * Check if any word in the message starts with the keyword prefix.
- * Catches truncated/partial words like "захиал" matching "захиалга".
- * Only triggers for keywords >= MIN_PREFIX_LEN to avoid false positives.
+ * Find a message word that prefix-matches the keyword.
+ * Returns the matching word or null. Used for dedup tracking.
  */
-function prefixMatch(normalizedMsg: string, keyword: string): boolean {
-  if (keyword.length < MIN_PREFIX_LEN) return false
+function prefixMatchWord(normalizedMsg: string, keyword: string): string | null {
+  if (keyword.length < MIN_PREFIX_LEN) return null
   const words = normalizedMsg.split(' ')
-  return words.some((w) => w.startsWith(keyword) || keyword.startsWith(w) && w.length >= MIN_PREFIX_LEN)
+  return words.find((w) => w.startsWith(keyword) || keyword.startsWith(w) && w.length >= MIN_PREFIX_LEN) ?? null
 }
 
 export interface IntentResult {
@@ -360,14 +369,23 @@ export function classifyIntentWithConfidence(message: string): IntentResult {
 
   for (const [intent, keywords] of Object.entries(NORMALIZED_INTENT_KEYWORDS)) {
     let score = 0
+    // Track message words that contributed to a full match.
+    // Prevents prefix inflation: e.g. "размер" fully matching should not
+    // also accumulate +0.5 prefix scores from "размераа", "размерийн".
+    const fullyMatchedWords = new Set<string>()
     for (const kw of keywords) {
       // Word-boundary match: keyword must be surrounded by spaces
       if (padded.includes(` ${kw} `)) {
         score += 1 // Full match
+        kw.split(' ').forEach((w) => fullyMatchedWords.add(w))
       } else if (neutralPadded.includes(` ${neutralizeVowels(kw)} `)) {
         score += 1 // Vowel-neutral match (Latin-typed Mongolian)
-      } else if (prefixMatch(normalized, kw)) {
-        score += 0.5 // Partial/prefix match — half weight
+        neutralizeVowels(kw).split(' ').forEach((w) => fullyMatchedWords.add(w))
+      } else {
+        const matchingWord = prefixMatchWord(normalized, kw)
+        if (matchingWord && !fullyMatchedWords.has(matchingWord)) {
+          score += 0.5 // Partial/prefix match — half weight (deduped)
+        }
       }
     }
 
