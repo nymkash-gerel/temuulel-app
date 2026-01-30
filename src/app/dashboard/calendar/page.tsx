@@ -11,14 +11,14 @@ interface Appointment {
   service_id: string | null
   scheduled_at: string
   duration_minutes: number
-  status: string
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
   total_amount: number
   customer_name: string | null
   customer_phone: string | null
   notes: string | null
   services?: { name: string } | null
   staff?: { name: string } | null
-  customers?: { name: string; phone: string } | null
+  customers?: { name: string | null; phone: string | null } | null
 }
 
 interface Staff {
@@ -270,7 +270,7 @@ export default function CalendarPage() {
     }
   }
 
-  const updateAppointmentStatus = async (id: string, status: string) => {
+  const updateAppointmentStatus = async (id: string, status: Appointment['status']) => {
     const { error } = await supabase
       .from('appointments')
       .update({ status })
