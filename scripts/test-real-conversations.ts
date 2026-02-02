@@ -7,9 +7,8 @@
  * Usage:  npx tsx scripts/test-real-conversations.ts
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { classifyIntent } from '@/lib/ai/intent-classifier'
 import {
+  classifyIntentWithConfidence,
   normalizeText,
   extractSearchTerms,
   generateResponse,
@@ -129,6 +128,7 @@ function runTests(): TestResult[] {
   for (const tc of testCases) {
     const normalized = normalizeText(tc.question)
     const searchTerms = extractSearchTerms(tc.question)
+    const { intent, confidence } = classifyIntentWithConfidence(tc.question)
     const templateResponse = generateResponse(intent, [], [], 'GOOD TRADE', mockSettings)
 
     results.push({
