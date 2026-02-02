@@ -89,6 +89,7 @@ export default function NewConsultationPage() {
       if (staffRes.data) setStaff(staffRes.data)
     }
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {

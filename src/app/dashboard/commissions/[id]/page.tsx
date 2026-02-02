@@ -40,15 +40,6 @@ function formatPrice(amount: number | null) {
   return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
 }
 
-function formatDate(date: string | null) {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('mn-MN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
 function formatDateTime(date: string | null) {
   if (!date) return '-'
   return new Date(date).toLocaleString('mn-MN', {

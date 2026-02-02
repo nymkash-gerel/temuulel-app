@@ -64,12 +64,14 @@ export default function CalendarPage() {
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (storeId) {
       loadAppointments()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId, currentDate, viewMode])
 
   const loadData = async () => {

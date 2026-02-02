@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface DamageReportDetail {
@@ -65,7 +65,6 @@ function formatDateTime(date: string | null) {
 }
 
 export default function DamageReportDetailPage() {
-  const router = useRouter()
   const params = useParams()
   const id = params.id as string
 
@@ -374,6 +373,7 @@ export default function DamageReportDetailPage() {
                 rel="noopener noreferrer"
                 className="aspect-square rounded-lg overflow-hidden border border-slate-700 hover:border-blue-500 transition-colors"
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo}
                   alt={`Гэмтлийн зураг ${index + 1}`}

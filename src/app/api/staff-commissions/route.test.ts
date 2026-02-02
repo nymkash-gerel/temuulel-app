@@ -363,7 +363,8 @@ describe('POST /api/staff-commissions', () => {
   })
 
   it('returns 400 when commission_amount is missing', async () => {
-    const { commission_amount, ...rest } = validBody
+    const { commission_amount: _, ...rest } = validBody
+    void _
     const res = await POST(makeRequest('http://localhost/api/staff-commissions', rest) as never)
     expect(res.status).toBe(400)
   })

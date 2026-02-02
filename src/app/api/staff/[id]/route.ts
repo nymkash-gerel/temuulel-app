@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import type { Json } from '@/lib/database.types'
 import { validateBody, updateStaffSchema } from '@/lib/validations'
 
 /**
