@@ -179,13 +179,15 @@ describe('POST /api/commissions', () => {
   })
 
   it('returns 400 for missing staff_id', async () => {
-    const { staff_id, ...rest } = validBody
+    const { staff_id: _, ...rest } = validBody
+    void _
     const res = await POST(makePostRequest(rest) as never)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for missing sale_amount', async () => {
-    const { sale_amount, ...rest } = validBody
+    const { sale_amount: _, ...rest } = validBody
+    void _
     const res = await POST(makePostRequest(rest) as never)
     expect(res.status).toBe(400)
   })

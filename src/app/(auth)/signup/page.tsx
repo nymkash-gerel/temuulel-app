@@ -20,7 +20,6 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   // Step 2: Verification
-  const [_setEmailCode, _setPhoneCode] = [() => {}, () => {}]
   const [emailVerified, setEmailVerified] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState(false)
 
@@ -60,7 +59,7 @@ export default function SignupPage() {
 
     try {
       // Sign up with Supabase
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -82,7 +81,7 @@ export default function SignupPage() {
 
       // Move to verification step
       setStep(2)
-    } catch (_err) {
+    } catch {
       setError('Алдаа гарлаа. Дахин оролдоно уу.')
     } finally {
       setLoading(false)
@@ -194,7 +193,7 @@ export default function SignupPage() {
 
       router.push('/dashboard?welcome=true')
       router.refresh()
-    } catch (_err) {
+    } catch {
       setError('Алдаа гарлаа. Дахин оролдоно уу.')
     } finally {
       setLoading(false)

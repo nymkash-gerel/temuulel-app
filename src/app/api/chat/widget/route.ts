@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   const { data: body, error: validationError } = await validateBody(request, chatWidgetSchema)
   if (validationError) return validationError
-  const { store_id, customer_message, sender_id, conversation_id } = body
+  const { store_id, customer_message, conversation_id } = body
 
   // Get store with chatbot settings
   const { data: store } = await supabase

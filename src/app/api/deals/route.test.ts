@@ -33,19 +33,6 @@ vi.mock('@/lib/supabase/server', () => ({
 import { GET, POST } from './route'
 import { rateLimit } from '@/lib/rate-limit'
 
-function chainable(finalValue: unknown): Record<string, unknown> {
-  const self: Record<string, unknown> = {}
-  const fn = () => self
-  self.select = fn
-  self.eq = fn
-  self.order = fn
-  self.range = vi.fn().mockResolvedValue(finalValue)
-  self.single = vi.fn().mockResolvedValue(finalValue)
-  self.not = fn
-  self.in = fn
-  return self
-}
-
 function makeRequest(url: string, body?: unknown): Request {
   if (body) {
     return new Request(url, {
