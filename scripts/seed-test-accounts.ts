@@ -491,7 +491,7 @@ const TEST_ACCOUNTS: TestAccount[] = [
 
 async function createUser(email: string, password: string): Promise<string> {
   const { data: existing } = await supabase.auth.admin.listUsers()
-  const found = existing?.users?.find((u) => u.email === email)
+  const found = existing?.users?.find((u: any) => u.email === email)
   if (found) {
     console.log(`  ~ User ${email} already exists (${found.id})`)
     await ensurePublicUser(found.id, email)

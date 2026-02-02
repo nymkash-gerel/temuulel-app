@@ -146,7 +146,6 @@ export async function GET(request: NextRequest) {
 
   // Conversations
   const totalConversations = conversationsRes.count ?? 0
-  // @ts-expect-error - channel column exists in conversations
   const conversations = conversationsRes.data ?? []
   const channelBreakdown: Record<string, number> = {}
   for (const c of conversations) {

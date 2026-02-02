@@ -91,7 +91,7 @@ async function main() {
 
     // Check if auth user already exists
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
-    const existingUser = existingUsers?.users?.find(u => u.email === email)
+    const existingUser = existingUsers?.users?.find((u: any) => u.email === email)
 
     let userId: string
 

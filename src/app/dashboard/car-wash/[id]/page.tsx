@@ -96,7 +96,6 @@ export default function CarWashDetailPage() {
       .from('wash_orders')
       .select(`
         id, vehicle_id, customer_id, service_type, status,
-        paid_amount, payment_method, assigned_to, started_at, completed_at,
         notes, created_at, updated_at
       `)
       .eq('id', id)

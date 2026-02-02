@@ -125,7 +125,7 @@ export default function CalendarPage() {
       .order('scheduled_at', { ascending: true })
 
     if (!error && data) {
-      setAppointments(data)
+      setAppointments(data as Appointment[])
     }
   }
 

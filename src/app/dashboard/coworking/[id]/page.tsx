@@ -90,7 +90,7 @@ export default function CoworkingSpaceDetailPage() {
       .from('coworking_spaces')
       .select(`
         id, name, space_type, capacity, hourly_rate, daily_rate, monthly_rate,
-        amenities, floor, is_active, notes, created_at, updated_at
+        amenities, is_active, created_at, updated_at
       `)
       .eq('id', id)
       .eq('store_id', store.id)

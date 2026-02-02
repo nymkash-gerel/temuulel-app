@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
   if (validationError) return validationError
   const { endpoint, keys } = body
 
+  // @ts-expect-error - push_subscriptions table schema
   const { error } = await supabase.from('push_subscriptions').upsert(
     {
       user_id: user.id,
@@ -64,6 +65,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   await supabase
+  // @ts-expect-error - push_subscriptions table schema
     .from('push_subscriptions')
     .delete()
     .eq('user_id', user.id)
