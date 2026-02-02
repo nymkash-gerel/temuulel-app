@@ -87,7 +87,7 @@ export default function DriverPayoutDetailPage() {
 
       if (!store) { router.push('/dashboard'); return }
 
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('driver_payouts')
         .select(`
           id, driver_id, store_id, period_start, period_end, total_amount,

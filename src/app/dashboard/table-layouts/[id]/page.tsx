@@ -73,7 +73,7 @@ export default function TableLayoutDetailPage() {
 
     if (!store) { router.push('/dashboard'); return }
 
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from('table_layouts')
       .select(`
         id, name, description, table_number, capacity, section, shape,

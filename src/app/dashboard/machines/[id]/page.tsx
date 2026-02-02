@@ -79,7 +79,7 @@ export default function MachineDetailPage() {
 
     if (!store) { router.push('/dashboard'); return }
 
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from('machines')
       .select(`
         id, name, machine_type, model, serial_number, status, capacity, current_load,

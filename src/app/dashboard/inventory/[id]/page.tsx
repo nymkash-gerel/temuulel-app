@@ -58,7 +58,7 @@ export default function InventoryLocationDetailPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const { data: store } = await (supabase as any)
+    const { data: store } = await supabase
       .from('stores')
       .select('id')
       .eq('owner_id', user.id)
@@ -66,7 +66,7 @@ export default function InventoryLocationDetailPage() {
 
     if (!store) { router.push('/dashboard'); return }
 
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from('inventory_locations')
       .select(`
         id, name, description, location_type, address, is_active, is_default,

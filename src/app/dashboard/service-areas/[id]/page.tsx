@@ -63,7 +63,7 @@ export default function ServiceAreaDetailPage() {
 
     if (!store) { router.push('/dashboard'); return }
 
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from('service_areas')
       .select(`
         id, name, description, zip_codes, city, radius_km, base_fee, per_km_fee,

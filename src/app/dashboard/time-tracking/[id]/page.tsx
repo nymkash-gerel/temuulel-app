@@ -87,7 +87,7 @@ export default function TimeTrackingDetailPage() {
 
     if (!store) { router.push('/dashboard'); return }
 
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from('time_entries')
       .select(`
         id, case_id, staff_id, description, hours, rate, amount, billable, billed,

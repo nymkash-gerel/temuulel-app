@@ -84,7 +84,7 @@ export default function DailyLogDetailPage() {
 
     if (!store) { router.push('/dashboard'); return }
 
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from('daily_logs')
       .select(`
         id, project_id, log_date, weather, temperature, work_summary, issues,
