@@ -69,7 +69,7 @@ export default function InventoryLocationDetailPage() {
     const { data } = await supabase
       .from('inventory_locations')
       .select(`
-        id, name, location_type, address, is_active, is_default,
+        id, name, location_type, is_active, is_default,
         notes, created_at, updated_at
       `)
       .eq('id', id)

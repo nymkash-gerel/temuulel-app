@@ -96,7 +96,7 @@ export default function PackagePurchaseDetailPage() {
     const { data } = await supabase
       .from('package_purchases')
       .select(`
-        id, package_id, customer_id, purchase_date, expiry_date,
+        id, package_id, customer_id, purchase_date,
         total_sessions, used_sessions, remaining_sessions, amount_paid, status,
         payment_method, notes, created_at, updated_at
       `)

@@ -108,7 +108,7 @@ export default function DeskBookingDetailPage() {
       .from('desk_bookings')
       .select(`
         id, space_id, customer_id, booking_date, start_time, end_time,
-        status, amount, payment_status, notes, created_at, updated_at
+        status, payment_status, notes, created_at, updated_at
       `)
       .eq('id', id)
       .eq('store_id', store.id)
