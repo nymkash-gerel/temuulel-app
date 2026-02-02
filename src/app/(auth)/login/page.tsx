@@ -37,7 +37,7 @@ export default function LoginPage() {
 
       router.push('/dashboard')
       router.refresh()
-    } catch (_err) {
+    } catch (err) {
       setError('Алдаа гарлаа. Дахин оролдоно уу.')
     } finally {
       setLoading(false)
