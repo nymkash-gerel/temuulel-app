@@ -8,12 +8,12 @@ import { createClient } from '@/lib/supabase/client'
 interface InventoryLocationDetail {
   id: string
   name: string
-  description: string | null
+  description?: string | null
+  address?: string | null
   location_type: string | null
-  address: string | null
   is_active: boolean
-  is_default: boolean
-  notes: string | null
+  is_default?: boolean
+  notes?: string | null
   created_at: string
   updated_at: string
 }
@@ -69,8 +69,7 @@ export default function InventoryLocationDetailPage() {
     const { data } = await supabase
       .from('inventory_locations')
       .select(`
-        id, name, location_type, is_active, is_default,
-        notes, created_at, updated_at
+        id, name, location_type, is_active
       `)
       .eq('id', id)
       .eq('store_id', store.id)
@@ -89,12 +88,8 @@ export default function InventoryLocationDetailPage() {
     if (!location) return
     setEditData({
       name: location.name || '',
-      description: location.description || '',
       location_type: location.location_type || '',
-      address: location.address || '',
       is_active: location.is_active,
-      is_default: location.is_default,
-      notes: location.notes || '',
     })
     setIsEditing(true)
   }
@@ -106,12 +101,8 @@ export default function InventoryLocationDetailPage() {
       const changes: Record<string, unknown> = {}
       const original: Record<string, unknown> = {
         name: location.name || '',
-        description: location.description || '',
         location_type: location.location_type || '',
-        address: location.address || '',
         is_active: location.is_active,
-        is_default: location.is_default,
-        notes: location.notes || '',
       }
 
       for (const key of Object.keys(editData)) {

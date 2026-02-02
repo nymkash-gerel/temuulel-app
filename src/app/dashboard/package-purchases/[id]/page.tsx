@@ -109,7 +109,7 @@ export default function PackagePurchaseDetailPage() {
       return
     }
 
-    setPurchase(data as PackagePurchaseDetail)
+    setPurchase(data as unknown as PackagePurchaseDetail)
     setLoading(false)
   }
 

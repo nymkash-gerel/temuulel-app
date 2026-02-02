@@ -84,7 +84,7 @@ export default function EditProductPage() {
         setHasVariants(product.has_variants || false)
 
         // Load fit note from product_faqs
-        const faqs = (product.product_faqs || {}) as Record<string, string>
+        const faqs = ((product as any).product_faqs || {}) as Record<string, string>
         setExistingFaqs(faqs)
         setFitNote(faqs.size_fit || '')
 
