@@ -6,11 +6,16 @@
 -- codebase audit. All CREATE INDEX IF NOT EXISTS to be safe.
 -- ============================================================
 
+-- Enable pg_trgm extension for trigram indexes
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Add search_aliases column to products (used by product search + AI enrichment)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS search_aliases TEXT[] DEFAULT '{}';
+
 -- Orders: payment_status is filtered in payment check routes
 CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status);
 
--- Orders: order_number is UNIQUE (implicitly indexed), but adding
--- a pattern-match index for ILIKE searches in orders/search
+-- Orders: order_number trigram index for ILIKE searches
 CREATE INDEX IF NOT EXISTS idx_orders_order_number_trgm ON orders USING gin (order_number gin_trgm_ops);
 
 -- Products: GIN index for search_aliases array containment queries
