@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const completedStatuses = ['delivered', 'failed', 'cancelled'] as const
   const statuses = statusFilter === 'completed' ? [...completedStatuses] : [...activeStatuses]
 
-  let query = supabase
+  const query = supabase
     .from('deliveries')
     .select('id, delivery_number, status, delivery_address, customer_name, customer_phone, estimated_delivery_time, actual_delivery_time, delivery_fee, notes, failure_reason, proof_photo_url, created_at, updated_at', { count: 'exact' })
     .eq('driver_id', driver.id)
