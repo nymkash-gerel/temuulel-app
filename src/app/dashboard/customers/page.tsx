@@ -164,24 +164,32 @@ export default function CustomersPage() {
             {filteredCustomers.length !== customers.length && ` (${filteredCustomers.length} илэрц)`}
           </p>
         </div>
-        {customers.length > 0 && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleExport('xlsx')}
-              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm"
-            >
-              <span>📥</span>
-              <span>Excel</span>
-            </button>
-            <button
-              onClick={() => handleExport('csv')}
-              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm"
-            >
-              <span>📄</span>
-              <span>CSV</span>
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {customers.length > 0 && (
+            <>
+              <button
+                onClick={() => handleExport('xlsx')}
+                className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm"
+              >
+                <span>📥</span>
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={() => handleExport('csv')}
+                className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm"
+              >
+                <span>📄</span>
+                <span>CSV</span>
+              </button>
+            </>
+          )}
+          <Link
+            href="/dashboard/customers/new"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-medium rounded-xl transition-all text-sm"
+          >
+            <span>+</span> Харилцагч нэмэх
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

@@ -167,24 +167,32 @@ export default function OrdersPage() {
             {filteredOrders.length !== orders.length && ` (${filteredOrders.length} илэрц)`}
           </p>
         </div>
-        {orders.length > 0 && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleExport('xlsx')}
-              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm"
-            >
-              <span>📥</span>
-              <span>Excel</span>
-            </button>
-            <button
-              onClick={() => handleExport('csv')}
-              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm"
-            >
-              <span>📄</span>
-              <span>CSV</span>
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/deliveries"
+            className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all text-sm"
+          >
+            Хүргэлт
+          </Link>
+          {orders.length > 0 && (
+            <>
+              <button
+                onClick={() => handleExport('xlsx')}
+                className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm"
+              >
+                <span>📥</span>
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={() => handleExport('csv')}
+                className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm"
+              >
+                <span>📄</span>
+                <span>CSV</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filters */}

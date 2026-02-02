@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default async function ProductsPage() {
@@ -122,7 +123,7 @@ export default async function ProductsPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                           {(product.images as string[])?.[0] ? (
-                            <img src={(product.images as string[])[0]} alt={product.name} className="w-full h-full object-cover" />
+                            <Image src={(product.images as string[])[0]} alt={product.name} width={48} height={48} className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-2xl">📦</span>
                           )}

@@ -16,9 +16,11 @@ interface Appointment {
   customer_name: string | null
   customer_phone: string | null
   notes: string | null
+  resource_id: string | null
   services?: { name: string } | null
   staff?: { name: string } | null
   customers?: { name: string | null; phone: string | null } | null
+  bookable_resources?: { name: string } | null
 }
 
 interface Staff {
@@ -114,7 +116,8 @@ export default function CalendarPage() {
         *,
         services(name),
         staff(name),
-        customers(name, phone)
+        customers(name, phone),
+        bookable_resources(name)
       `)
       .eq('store_id', storeId)
       .gte('scheduled_at', startDate.toISOString())
@@ -421,6 +424,9 @@ export default function CalendarPage() {
                           <div className="font-medium">{formatTime(apt.scheduled_at)}</div>
                           <div className="truncate">{apt.customer_name || apt.customers?.name}</div>
                           <div className="truncate opacity-75">{apt.services?.name}</div>
+                          {apt.bookable_resources?.name && (
+                            <div className="truncate opacity-60">{apt.bookable_resources.name}</div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -470,6 +476,9 @@ export default function CalendarPage() {
                           </div>
                           <div className="font-medium">{apt.customer_name || apt.customers?.name}</div>
                           <div className="text-sm opacity-90">{apt.services?.name}</div>
+                          {apt.bookable_resources?.name && (
+                            <div className="text-xs opacity-75 mt-1">{apt.bookable_resources.name}</div>
+                          )}
                           {apt.staff?.name && (
                             <div className="text-xs opacity-75 mt-1">{apt.staff.name}</div>
                           )}

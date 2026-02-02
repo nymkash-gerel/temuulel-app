@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/ui/NotificationBell'
 import ChatWidget from '@/components/ui/ChatWidget'
+import { LanguageProvider, useTranslation } from '@/lib/i18n'
+import { resolveFeatures, getNavItems } from '@/lib/features'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -16,6 +18,7 @@ interface DashboardLayoutProps {
     id: string
     name: string
     business_type?: string | null
+    enabled_modules?: Record<string, boolean> | unknown
     chatbot_settings?: unknown
   } | null
   subscription?: {
@@ -27,33 +30,15 @@ interface DashboardLayoutProps {
   } | null
 }
 
-// E-commerce nav items (for: ecommerce, restaurant)
-const ecommerceNavItems = [
-  { href: '/dashboard', icon: '📊', label: 'Тойм' },
-  { href: '/dashboard/products', icon: '📦', label: 'Бүтээгдэхүүн' },
-  { href: '/dashboard/orders', icon: '🛒', label: 'Захиалга' },
-  { href: '/dashboard/customers', icon: '👥', label: 'Харилцагч' },
-  { href: '/dashboard/chat', icon: '💬', label: 'Чат' },
-  { href: '/dashboard/analytics', icon: '📈', label: 'Тайлан' },
-  { href: '/dashboard/settings', icon: '⚙️', label: 'Тохиргоо' },
-]
+export default function DashboardLayout(props: DashboardLayoutProps) {
+  return (
+    <LanguageProvider>
+      <DashboardLayoutInner {...props} />
+    </LanguageProvider>
+  )
+}
 
-// Service-based nav items (for: beauty_salon, fitness, education, services)
-const serviceNavItems = [
-  { href: '/dashboard', icon: '📊', label: 'Тойм' },
-  { href: '/dashboard/calendar', icon: '📅', label: 'Хуанли' },
-  { href: '/dashboard/services', icon: '💅', label: 'Үйлчилгээ' },
-  { href: '/dashboard/staff', icon: '👩‍💼', label: 'Ажилтнууд' },
-  { href: '/dashboard/customers', icon: '👥', label: 'Харилцагч' },
-  { href: '/dashboard/chat', icon: '💬', label: 'Чат' },
-  { href: '/dashboard/analytics', icon: '📈', label: 'Тайлан' },
-  { href: '/dashboard/settings', icon: '⚙️', label: 'Тохиргоо' },
-]
-
-// Business types that use service-based dashboard
-const serviceBasedTypes = ['beauty_salon', 'fitness', 'education', 'services', 'hospital', 'dental_clinic']
-
-export default function DashboardLayout({
+function DashboardLayoutInner({
   children,
   user,
   store,
@@ -62,6 +47,14 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [totalUnread, setTotalUnread] = useState(0)
+  const { locale, setLocale } = useTranslation()
+
+  // Resolve nav items from feature flags
+  const navItems = useMemo(() => {
+    const modules = store?.enabled_modules as Record<string, boolean> | null | undefined
+    const features = resolveFeatures(store?.business_type, modules)
+    return getNavItems(features)
+  }, [store?.business_type, store?.enabled_modules])
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -114,10 +107,21 @@ export default function DashboardLayout({
     return pathname.startsWith(href)
   }
 
+  // Full-screen mode for flow editor (no sidebar/header)
+  const isFlowEditor = /^\/dashboard\/settings\/flows\/[^/]+$/.test(pathname)
+  if (isFlowEditor) {
+    return <div className="min-h-screen bg-slate-900">{children}</div>
+  }
+
   return (
     <div className="min-h-screen bg-slate-900">
+      {/* Skip to main content */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">
+        Үндсэн агуулга руу очих
+      </a>
+
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-800/80 backdrop-blur-xl border-b border-slate-700">
+      <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-slate-800/80 backdrop-blur-xl border-b border-slate-700">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -125,6 +129,8 @@ export default function DashboardLayout({
                 onClick={() => setSidebarOpen(true)}
                 className="lg:hidden p-2 -ml-2 text-slate-400 hover:text-white rounded-lg"
                 aria-label="Цэс нээх"
+                aria-expanded={sidebarOpen}
+                aria-controls="sidebar-nav"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <line x1="3" y1="6" x2="21" y2="6" />
@@ -151,6 +157,13 @@ export default function DashboardLayout({
                   </span>
                 </div>
               )}
+              <button
+                onClick={() => setLocale(locale === 'mn' ? 'en' : 'mn')}
+                className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-all"
+                title={locale === 'mn' ? 'Switch to English' : 'Монгол руу шилжих'}
+              >
+                {locale === 'mn' ? 'EN' : 'MN'}
+              </button>
               <NotificationBell />
               <span className="text-slate-400 text-sm hidden sm:block">{user.email}</span>
               <form action="/api/auth/signout" method="post">
@@ -172,11 +185,15 @@ export default function DashboardLayout({
           <div
             className="fixed inset-0 bg-black/50 z-30 lg:hidden"
             onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
           />
         )}
 
         {/* Sidebar */}
         <aside
+          id="sidebar-nav"
+          role="navigation"
+          aria-label="Үндсэн цэс"
           className={`fixed top-0 lg:top-16 bottom-0 left-0 z-40 w-64 bg-slate-800 lg:bg-slate-800/30 border-r border-slate-700 p-4 overflow-y-auto transform transition-transform duration-200 lg:translate-x-0 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
@@ -197,10 +214,11 @@ export default function DashboardLayout({
           </div>
 
           <nav className="space-y-1">
-            {(serviceBasedTypes.includes(store?.business_type || '') ? serviceNavItems : ecommerceNavItems).map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   isActive(item.href)
                     ? 'text-white bg-slate-700/50'
@@ -249,7 +267,7 @@ export default function DashboardLayout({
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 lg:ml-64 p-4 lg:p-8">
+        <main id="main-content" className="flex-1 lg:ml-64 p-4 lg:p-8">
           {children}
         </main>
       </div>

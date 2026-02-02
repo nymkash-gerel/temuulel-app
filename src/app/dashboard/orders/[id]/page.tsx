@@ -26,6 +26,26 @@ interface OrderItem {
   } | null
 }
 
+interface ReturnInfo {
+  id: string
+  return_number: string
+  return_type: string
+  status: string
+  refund_amount: number | null
+  handled_by: string | null
+  created_at: string
+}
+
+interface DeliveryInfo {
+  id: string
+  delivery_number: string
+  status: string
+  delivery_type: string
+  driver_name: string | null
+  driver_phone: string | null
+  created_at: string
+}
+
 interface Order {
   id: string
   order_number: string
@@ -47,6 +67,7 @@ interface Order {
     messenger_id: string | null
   } | null
   order_items: OrderItem[]
+  return_requests: ReturnInfo[]
 }
 
 const STATUS_FLOW = ['pending', 'confirmed', 'processing', 'shipped', 'delivered']
@@ -76,6 +97,7 @@ export default function OrderDetailPage() {
   const [trackingNumber, setTrackingNumber] = useState('')
   const [notes, setNotes] = useState('')
   const [paymentLoading, setPaymentLoading] = useState(false)
+  const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null)
   const [qrData, setQrData] = useState<{ qr_image?: string; short_url?: string; deeplinks?: { name: string; link: string; logo: string }[] } | null>(null)
   const [bankInfo, setBankInfo] = useState<{ bank_name?: string; bank_account?: string; bank_holder?: string; note?: string } | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
@@ -91,7 +113,8 @@ export default function OrderDetailPage() {
             id, quantity, unit_price, variant_label,
             products(id, name, images),
             product_variants(size, color, products(id, name, images))
-          )
+          ),
+          return_requests(id, return_number, return_type, status, refund_amount, handled_by, created_at)
         `)
         .eq('id', orderId)
         .single()
@@ -104,6 +127,29 @@ export default function OrderDetailPage() {
       setOrder(data)
       setTrackingNumber(data.tracking_number || '')
       setNotes(data.notes || '')
+
+      // Fetch linked delivery if any
+      const { data: del } = await supabase
+        .from('deliveries')
+        .select('id, delivery_number, status, delivery_type, created_at, delivery_drivers(name, phone)')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (del) {
+        const driver = del.delivery_drivers as { name: string; phone: string } | null
+        setDeliveryInfo({
+          id: del.id,
+          delivery_number: del.delivery_number,
+          status: del.status,
+          delivery_type: del.delivery_type,
+          driver_name: driver?.name || null,
+          driver_phone: driver?.phone || null,
+          created_at: del.created_at,
+        })
+      }
+
       setLoading(false)
     }
     load()
@@ -687,6 +733,99 @@ export default function OrderDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Return Requests */}
+          {order.return_requests && order.return_requests.length > 0 && (
+            <div className="bg-slate-800/50 border border-orange-500/30 rounded-2xl p-6">
+              <h3 className="text-white font-medium mb-4">↩️ Буцаалт</h3>
+              <div className="space-y-3">
+                {order.return_requests.map((ret) => (
+                  <div key={ret.id} className="p-3 bg-slate-700/30 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Link href={`/dashboard/returns/${ret.id}`} className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-all">
+                        #{ret.return_number}
+                      </Link>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${
+                        ret.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                        ret.status === 'approved' ? 'bg-blue-500/20 text-blue-400' :
+                        ret.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {ret.status === 'pending' ? 'Хүлээгдэж буй' :
+                         ret.status === 'approved' ? 'Зөвшөөрсөн' :
+                         ret.status === 'completed' ? 'Дууссан' : 'Татгалзсан'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">
+                        {ret.return_type === 'full' ? 'Бүтэн' : 'Хэсэгчилсэн'}
+                      </span>
+                      <span className="text-white">
+                        {ret.refund_amount ? formatPrice(ret.refund_amount) : '-'}
+                      </span>
+                    </div>
+                    {ret.handled_by && (
+                      <p className="text-slate-400 text-xs">Хариуцсан: {ret.handled_by}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Delivery Info */}
+          {deliveryInfo && (
+            <div className="bg-slate-800/50 border border-cyan-500/30 rounded-2xl p-6">
+              <h3 className="text-white font-medium mb-4">🚚 Хүргэлт</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Дугаар</span>
+                  <Link
+                    href={`/dashboard/deliveries/${deliveryInfo.id}`}
+                    className="text-blue-400 hover:text-blue-300 transition-all"
+                  >
+                    #{deliveryInfo.delivery_number}
+                  </Link>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Төлөв</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${
+                    deliveryInfo.status === 'delivered' ? 'bg-green-500/20 text-green-400' :
+                    deliveryInfo.status === 'failed' ? 'bg-red-500/20 text-red-400' :
+                    deliveryInfo.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {deliveryInfo.status === 'pending' ? 'Хүлээгдэж буй' :
+                     deliveryInfo.status === 'assigned' ? 'Оноосон' :
+                     deliveryInfo.status === 'picked_up' ? 'Авсан' :
+                     deliveryInfo.status === 'in_transit' ? 'Зам дээр' :
+                     deliveryInfo.status === 'delivered' ? 'Хүргэсэн' :
+                     deliveryInfo.status === 'failed' ? 'Амжилтгүй' :
+                     deliveryInfo.status === 'delayed' ? 'Хоцорсон' :
+                     deliveryInfo.status === 'cancelled' ? 'Цуцлагдсан' : deliveryInfo.status}
+                  </span>
+                </div>
+                {deliveryInfo.driver_name && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Жолооч</span>
+                    <span className="text-white">{deliveryInfo.driver_name}</span>
+                  </div>
+                )}
+                {deliveryInfo.driver_phone && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Утас</span>
+                    <span className="text-slate-300">{deliveryInfo.driver_phone}</span>
+                  </div>
+                )}
+              </div>
+              <Link
+                href={`/dashboard/deliveries/${deliveryInfo.id}`}
+                className="block w-full mt-4 py-2 text-center text-sm text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/50 rounded-lg transition-all"
+              >
+                Дэлгэрэнгүй
+              </Link>
+            </div>
+          )}
 
           {/* Shipping Address */}
           <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">

@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface StaffMember {
@@ -16,6 +19,7 @@ interface StaffMember {
 
 export default function StaffPage() {
   const supabase = createClient()
+  const router = useRouter()
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -173,12 +177,12 @@ export default function StaffPage() {
           <h1 className="text-2xl font-bold text-white">Ажилтнууд</h1>
           <p className="text-slate-400 mt-1">Нийт {staff.length} ажилтан</p>
         </div>
-        <button
-          onClick={() => openModal()}
+        <Link
+          href="/dashboard/staff/new"
           className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-medium rounded-xl transition-all"
         >
           <span>+</span> Ажилтан нэмэх
-        </button>
+        </Link>
       </div>
 
       {/* Staff List */}
@@ -189,25 +193,26 @@ export default function StaffPage() {
           </div>
           <h3 className="text-lg font-medium text-white mb-2">Ажилтан байхгүй</h3>
           <p className="text-slate-400 mb-6">Эхний ажилтнаа нэмж эхлээрэй.</p>
-          <button
-            onClick={() => openModal()}
+          <Link
+            href="/dashboard/staff/new"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-medium rounded-xl transition-all"
           >
             <span>+</span> Ажилтан нэмэх
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {staff.map((member) => (
             <div
               key={member.id}
-              className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6"
+              onClick={() => router.push(`/dashboard/staff/${member.id}`)}
+              className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 cursor-pointer hover:border-slate-600 transition-all"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center">
                     {member.avatar_url ? (
-                      <img src={member.avatar_url} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                      <Image src={member.avatar_url} alt={member.name} width={48} height={48} className="w-full h-full rounded-full object-cover" />
                     ) : (
                       <span className="text-xl">👤</span>
                     )}

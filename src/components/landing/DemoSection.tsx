@@ -46,12 +46,20 @@ export default function DemoSection() {
           <p className="text-slate-400 text-sm mb-4">
             Таны бизнест тохирсон AI чатбот бэлэн
           </p>
-          <a
-            href="/signup"
-            className="inline-block px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
-          >
-            Үнэгүй эхлэх
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a
+              href="/signup"
+              className="inline-block px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+            >
+              Үнэгүй эхлэх
+            </a>
+            <a
+              href="/demo"
+              className="inline-block px-8 py-3 border border-slate-600 hover:bg-slate-800 text-slate-300 hover:text-white font-medium rounded-xl transition-colors"
+            >
+              Бүх flow туршиж үзэх
+            </a>
+          </div>
         </div>
       </div>
     </section>

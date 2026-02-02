@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
+import SWRProvider from '@/components/providers/SWRProvider'
+import InstallPrompt from '@/components/ui/InstallPrompt'
 
 export default async function Layout({
   children,
@@ -30,12 +32,15 @@ export default async function Layout({
     .single()
 
   return (
-    <DashboardLayout
-      user={{ email: user.email || '' }}
-      store={store}
-      subscription={subscription}
-    >
-      {children}
-    </DashboardLayout>
+    <SWRProvider>
+      <DashboardLayout
+        user={{ email: user.email || '' }}
+        store={store}
+        subscription={subscription}
+      >
+        {children}
+      </DashboardLayout>
+      <InstallPrompt />
+    </SWRProvider>
   )
 }

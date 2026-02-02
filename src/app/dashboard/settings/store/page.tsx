@@ -138,10 +138,20 @@ export default function StoreSettingsPage() {
               className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 transition-all"
             >
               <option value="">Сонгоно уу</option>
+              <option value="ecommerce">Онлайн дэлгүүр</option>
               <option value="clothing">Хувцас</option>
               <option value="electronics">Электроник</option>
               <option value="food">Хүнс</option>
-              <option value="beauty">Гоо сайхан</option>
+              <option value="restaurant">Ресторан</option>
+              <option value="beauty_salon">Гоо сайхны салон</option>
+              <option value="hospital">Эмнэлэг</option>
+              <option value="dental_clinic">Шүдний эмнэлэг</option>
+              <option value="fitness">Фитнесс</option>
+              <option value="education">Боловсрол</option>
+              <option value="coffee_shop">Кофе шоп</option>
+              <option value="real_estate">Үл хөдлөх</option>
+              <option value="camping_guesthouse">Кемпинг / Зочид буудал</option>
+              <option value="services">Үйлчилгээ</option>
               <option value="sports">Спорт</option>
               <option value="home">Гэр ахуй</option>
               <option value="other">Бусад</option>

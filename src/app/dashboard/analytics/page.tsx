@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import * as XLSX from 'xlsx'
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -381,6 +382,29 @@ export default function AnalyticsPage() {
     ? Math.round(((totalRevenue - prevPeriodRevenue) / prevPeriodRevenue) * 100)
     : totalRevenue > 0 ? 100 : 0
 
+  const handleExport = (format: 'xlsx' | 'csv') => {
+    const data = revenueChartData.map(d => ({
+      'Огноо': d.label,
+      'Орлого': d.revenue,
+      'Захиалга тоо': d.orders,
+    }))
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Тайлан')
+    if (format === 'csv') {
+      const csv = XLSX.utils.sheet_to_csv(ws)
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'tailar.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } else {
+      XLSX.writeFile(wb, 'tailar.xlsx')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -398,6 +422,12 @@ export default function AnalyticsPage() {
           <p className="text-slate-400 mt-1">Борлуулалт болон AI ашиглалтын статистик</p>
         </div>
         <div className="flex items-center gap-3">
+          <button onClick={() => handleExport('xlsx')} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm">
+            <span>📥</span><span>Excel</span>
+          </button>
+          <button onClick={() => handleExport('csv')} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm">
+            <span>📄</span><span>CSV</span>
+          </button>
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
