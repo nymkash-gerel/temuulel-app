@@ -33,7 +33,7 @@ function createQueryBuilder(resolveValue: { data: any; error?: any; count?: numb
     {
       get(_, prop) {
         if (prop === 'then') {
-          return (resolve: () => void) => resolve(resolveValue)
+          return (resolve: (arg: any) => void) => resolve(resolveValue)
         }
         if (prop === 'single') {
           return () => Promise.resolve(resolveValue)
