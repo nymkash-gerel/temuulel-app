@@ -107,7 +107,7 @@ export default function DeskBookingDetailPage() {
     const { data } = await supabase
       .from('desk_bookings')
       .select(`
-        id, space_id, customer_id, customer_name, booking_date, start_time, end_time,
+        id, space_id, customer_id, booking_date, start_time, end_time,
         status, amount, payment_status, notes, created_at, updated_at
       `)
       .eq('id', id)

@@ -95,7 +95,7 @@ export default function CarWashDetailPage() {
     const { data } = await supabase
       .from('wash_orders')
       .select(`
-        id, vehicle_id, customer_id, service_type, wash_package, status, price,
+        id, vehicle_id, customer_id, service_type, status, price,
         paid_amount, payment_method, assigned_to, started_at, completed_at,
         notes, created_at, updated_at
       `)

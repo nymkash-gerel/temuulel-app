@@ -89,7 +89,7 @@ export default function CoworkingSpaceDetailPage() {
     const { data } = await supabase
       .from('coworking_spaces')
       .select(`
-        id, name, description, space_type, capacity, hourly_rate, daily_rate, monthly_rate,
+        id, name, space_type, capacity, hourly_rate, daily_rate, monthly_rate,
         amenities, status, floor, is_active, notes, created_at, updated_at
       `)
       .eq('id', id)
