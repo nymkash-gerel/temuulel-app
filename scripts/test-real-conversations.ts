@@ -8,8 +8,6 @@
  */
 
 import {
-  classifyIntent,
-  classifyIntentWithConfidence,
   normalizeText,
   extractSearchTerms,
   generateResponse,
@@ -127,7 +125,6 @@ function runTests(): TestResult[] {
   const results: TestResult[] = []
 
   for (const tc of testCases) {
-    const { intent, confidence } = classifyIntentWithConfidence(tc.question)
     const normalized = normalizeText(tc.question)
     const searchTerms = extractSearchTerms(tc.question)
     const templateResponse = generateResponse(intent, [], [], 'GOOD TRADE', mockSettings)

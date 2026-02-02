@@ -507,7 +507,6 @@ async function ensurePublicUser(userId: string, email: string): Promise<void> {
   console.log(`  ✓ Public user record created`)
 }
 
-async function createStore(userId: string, biz: BusinessDef): Promise<string> {
   // Check if store already exists for this user
   const { data: existing } = await supabase
     .from('stores')
@@ -553,7 +552,6 @@ async function createStore(userId: string, biz: BusinessDef): Promise<string> {
   return data.id
 }
 
-async function seedProducts(storeId: string, products: BusinessDef['products']) {
   if (!products || products.length === 0) return
 
   // Delete existing products for this store

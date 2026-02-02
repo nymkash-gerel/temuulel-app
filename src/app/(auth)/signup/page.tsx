@@ -20,7 +20,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   // Step 2: Verification
-  const [setEmailCode, setPhoneCode] = [() => {}, () => {}]
+  const [_setEmailCode, _setPhoneCode] = [() => {}, () => {}]
   const [emailVerified, setEmailVerified] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState(false)
 
@@ -82,7 +82,7 @@ export default function SignupPage() {
 
       // Move to verification step
       setStep(2)
-    } catch (err) {
+    } catch (_err) {
       setError('Алдаа гарлаа. Дахин оролдоно уу.')
     } finally {
       setLoading(false)
@@ -194,7 +194,7 @@ export default function SignupPage() {
 
       router.push('/dashboard?welcome=true')
       router.refresh()
-    } catch (err) {
+    } catch (_err) {
       setError('Алдаа гарлаа. Дахин оролдоно уу.')
     } finally {
       setLoading(false)
