@@ -507,6 +507,8 @@ async function ensurePublicUser(userId: string, email: string): Promise<void> {
   console.log(`  ✓ Public user record created`)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _createStore(userId: string, biz: BusinessDef): Promise<string> {
   // Check if store already exists for this user
   const { data: existing } = await supabase
     .from('stores')
@@ -552,6 +554,8 @@ async function ensurePublicUser(userId: string, email: string): Promise<void> {
   return data.id
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _seedProducts(storeId: string, products: BusinessDef['products']) {
   if (!products || products.length === 0) return
 
   // Delete existing products for this store
