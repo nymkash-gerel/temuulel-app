@@ -342,19 +342,22 @@ describe('POST /api/staff-commissions', () => {
   })
 
   it('returns 400 when staff_id is missing', async () => {
-    const { staff_id, ...rest } = validBody
+    const { staff_id: _, ...rest } = validBody
+    void _
     const res = await POST(makeRequest('http://localhost/api/staff-commissions', rest) as never)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when sale_amount is missing', async () => {
-    const { sale_amount, ...rest } = validBody
+    const { sale_amount: _, ...rest } = validBody
+    void _
     const res = await POST(makeRequest('http://localhost/api/staff-commissions', rest) as never)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when commission_rate is missing', async () => {
-    const { commission_rate, ...rest } = validBody
+    const { commission_rate: _, ...rest } = validBody
+    void _
     const res = await POST(makeRequest('http://localhost/api/staff-commissions', rest) as never)
     expect(res.status).toBe(400)
   })

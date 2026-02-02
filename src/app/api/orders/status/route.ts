@@ -7,8 +7,6 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { assignDriver, DEFAULT_DELIVERY_SETTINGS } from '@/lib/ai/delivery-assigner'
 import type { DriverCandidate, AssignmentRules } from '@/lib/ai/delivery-assigner'
 
-const VALID_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
-
 /**
  * PATCH /api/orders/status
  *

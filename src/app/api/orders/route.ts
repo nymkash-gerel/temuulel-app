@@ -6,14 +6,6 @@ import { validateBody, createOrderSchema } from '@/lib/validations'
 
 const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
-interface OrderItemInput {
-  product_id?: string | null
-  variant_id?: string | null
-  quantity?: number
-  unit_price: number
-  variant_label?: string | null
-}
-
 interface ShippingZone {
   name: string
   price: number

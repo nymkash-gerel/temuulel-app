@@ -8,8 +8,6 @@ let mockUser: { id: string } | null = null
 let mockStore: { id: string } | null = null
 let mockData: unknown[] = []
 let mockDataCount: number = 0
-let mockInsertedItem: Record<string, unknown> | null = null
-let mockInsertError: { message: string } | null = null
 let mockSelectError: { message: string } | null = null
 
 // Additional state for POST flow
@@ -48,8 +46,6 @@ beforeEach(() => {
   mockStore = { id: 'store-001' }
   mockData = []
   mockDataCount = 0
-  mockInsertedItem = null
-  mockInsertError = null
   mockSelectError = null
   mockExistingOrder = { id: 'order-001', status: 'processing' }
   mockFetchError = null

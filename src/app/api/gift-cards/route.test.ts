@@ -1012,13 +1012,6 @@ describe('POST /api/stock-transfers', () => {
       updated_at: '2026-02-01T00:00:00Z',
     }
 
-    const finalResult = {
-      ...createdTransfer,
-      transfer_items: [
-        { id: 'ti-1', product_id: TEST_PRODUCT_ID, quantity: 5, received_quantity: 0 },
-      ],
-    }
-
     setupMockFromMulti({
       stock_transfers: { data: createdTransfer },
       transfer_items: { data: null, error: null },
