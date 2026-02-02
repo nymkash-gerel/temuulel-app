@@ -78,10 +78,6 @@ export default function ReservationDetailPage() {
   const [reservation, setReservation] = useState<Reservation | null>(null)
   const [updating, setUpdating] = useState(false)
 
-  useEffect(() => {
-    loadReservation()
-  }, [id])
-
   async function loadReservation() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -111,6 +107,11 @@ export default function ReservationDetailPage() {
     setReservation(data as unknown as Reservation)
     setLoading(false)
   }
+
+  useEffect(() => {
+    loadReservation()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   async function updateStatus(newStatus: string) {
     if (!reservation) return
