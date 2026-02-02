@@ -7,6 +7,8 @@
  * Usage:  npx tsx scripts/test-real-conversations.ts
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { classifyIntent } from '@/lib/ai/intent-classifier'
 import {
   normalizeText,
   extractSearchTerms,
