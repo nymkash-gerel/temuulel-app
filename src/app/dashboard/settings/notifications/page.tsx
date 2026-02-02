@@ -38,25 +38,27 @@ export default function NotificationSettingsPage() {
   const [userId, setUserId] = useState('')
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS)
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-      setUserId(user.id)
+  async function load() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
+    setUserId(user.id)
 
-      const { data: profile } = await supabase
-        .from('users')
-        .select('notification_settings')
-        .eq('id', user.id)
-        .single()
+    const { data: profile } = await supabase
+      .from('users')
+      .select('notification_settings')
+      .eq('id', user.id)
+      .single()
 
-      if (profile?.notification_settings) {
-        setSettings({ ...DEFAULT_SETTINGS, ...(profile.notification_settings as Record<string, boolean>) })
-      }
-      setLoading(false)
+    if (profile?.notification_settings) {
+      setSettings({ ...DEFAULT_SETTINGS, ...(profile.notification_settings as Record<string, boolean>) })
     }
+    setLoading(false)
+  }
+
+  useEffect(() => {
     load()
-  }, [supabase, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleSave() {
     if (!userId) return
