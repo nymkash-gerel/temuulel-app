@@ -749,6 +749,13 @@ export async function fetchRecentMessages(
  * 2. Recommendation writer (for product_search with products) — single-turn AI
  * 3. Deterministic template — always works, zero cost
  */
+export interface ActiveVoucherInfo {
+  voucher_code: string
+  compensation_type: string
+  compensation_value: number
+  valid_until: string
+}
+
 export async function generateAIResponse(
   intent: string,
   products: ProductMatch[],
@@ -756,7 +763,8 @@ export async function generateAIResponse(
   storeName: string,
   customerQuery: string,
   settings?: ChatbotSettings,
-  history?: MessageHistoryEntry[]
+  history?: MessageHistoryEntry[],
+  activeVouchers?: ActiveVoucherInfo[]
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history
   if (history && history.length > 0) {
@@ -779,6 +787,7 @@ export async function generateAIResponse(
         })),
         storeName,
         returnPolicy: settings?.return_policy,
+        activeVouchers,
       })
       if (contextResult) return contextResult
     } catch {

@@ -8,8 +8,33 @@ import { createClient } from '@supabase/supabase-js'
 import { sendOrderEmail, sendMessageEmail, sendLowStockEmail } from './email'
 import { dispatchWebhook, type WebhookEvent } from './webhook'
 import { sendPushToUser } from './push'
+import { notifyStaff } from './staff-notify'
 
-export type NotificationEvent = 'new_order' | 'new_message' | 'new_customer' | 'low_stock' | 'order_status' | 'escalation'
+export type NotificationEvent =
+  | 'new_order'
+  | 'new_message'
+  | 'new_customer'
+  | 'low_stock'
+  | 'order_status'
+  | 'escalation'
+  | 'appointment_created'
+  | 'appointment_confirmed'
+  | 'appointment_cancelled'
+  | 'appointment_assigned'
+  | 'return_requested'
+  | 'return_approved'
+  | 'return_rejected'
+  | 'return_completed'
+  | 'compensation_suggested'
+  | 'compensation_approved'
+  | 'compensation_rejected'
+  | 'voucher_redeemed'
+  | 'returning_customer_voucher'
+  | 'delivery_assigned'
+  | 'delivery_picked_up'
+  | 'delivery_completed'
+  | 'delivery_failed'
+  | 'delivery_delayed'
 
 interface NotificationData {
   [key: string]: unknown
@@ -78,6 +103,96 @@ function buildNotificationContent(event: NotificationEvent, data: NotificationDa
       return {
         title: 'Яаралтай чат шилжсэн',
         body: `Түвшин: ${ESCALATION_LABELS[(data.level as string) || ''] || data.level}. Шалтгаан: ${data.signals || ''}`,
+      }
+    case 'appointment_created':
+      return {
+        title: `Шинэ захиалга: ${data.customer_name || ''}`,
+        body: `${data.service_name || ''} — ${data.scheduled_at ? new Date(data.scheduled_at as string).toLocaleDateString('mn-MN') : ''}`,
+      }
+    case 'appointment_confirmed':
+      return {
+        title: `Захиалга баталгаажсан`,
+        body: `${data.customer_name || ''} — ${data.service_name || ''}`,
+      }
+    case 'appointment_cancelled':
+      return {
+        title: `Захиалга цуцлагдсан`,
+        body: `${data.customer_name || ''} — ${data.service_name || ''}`,
+      }
+    case 'appointment_assigned':
+      return {
+        title: `Захиалга оноогдсон: ${data.staff_name || ''}`,
+        body: `${data.customer_name || ''} — ${data.service_name || ''}`,
+      }
+    case 'return_requested':
+      return {
+        title: `Буцаалтын хүсэлт: #${data.return_number || ''}`,
+        body: `Захиалга #${data.order_number || ''} — ${data.return_type === 'full' ? 'Бүтэн буцаалт' : 'Хэсэгчилсэн буцаалт'}`,
+      }
+    case 'return_approved':
+      return {
+        title: `Буцаалт зөвшөөрсөн: #${data.return_number || ''}`,
+        body: `Хариуцсан: ${data.handled_by || ''} — Буцаах дүн: ${data.refund_amount ? new Intl.NumberFormat('mn-MN').format(data.refund_amount as number) + '₮' : ''}`,
+      }
+    case 'return_rejected':
+      return {
+        title: `Буцаалт татгалзсан: #${data.return_number || ''}`,
+        body: `Хариуцсан: ${data.handled_by || ''} — Захиалга #${data.order_number || ''}`,
+      }
+    case 'return_completed':
+      return {
+        title: `Буцаалт дууссан: #${data.return_number || ''}`,
+        body: `Буцаасан дүн: ${data.refund_amount ? new Intl.NumberFormat('mn-MN').format(data.refund_amount as number) + '₮' : ''} — ${data.refund_method || ''}`,
+      }
+    case 'compensation_suggested':
+      return {
+        title: `Нөхөн олговор санал болгов: ${data.voucher_code || ''}`,
+        body: `${data.complaint_category_label || ''} — ${data.compensation_label || ''} зөвшөөрөх үү?`,
+      }
+    case 'compensation_approved':
+      return {
+        title: `Нөхөн олговор зөвшөөрсөн: ${data.voucher_code || ''}`,
+        body: `${data.customer_name || ''} — ${data.compensation_label || ''}`,
+      }
+    case 'compensation_rejected':
+      return {
+        title: `Нөхөн олговор татгалзсан: ${data.voucher_code || ''}`,
+        body: `${data.customer_name || ''} — ${data.admin_notes || ''}`,
+      }
+    case 'voucher_redeemed':
+      return {
+        title: `Хөнгөлөлт ашигласан: ${data.voucher_code || ''}`,
+        body: `${data.customer_name || ''} — ${data.compensation_label || ''}`,
+      }
+    case 'returning_customer_voucher':
+      return {
+        title: `Буцаж ирсэн харилцагч: ${data.customer_name || ''}`,
+        body: `Идэвхтэй хөнгөлөлт: ${data.voucher_code || ''} — ${data.compensation_label || ''}`,
+      }
+    case 'delivery_assigned':
+      return {
+        title: `Хүргэлт оноогдсон: ${data.delivery_number || ''}`,
+        body: `Жолооч: ${data.driver_name || ''} — Захиалга #${data.order_number || ''}${data.delivery_number ? ` | Хянах: /track/${data.delivery_number}` : ''}`,
+      }
+    case 'delivery_picked_up':
+      return {
+        title: `Хүргэлт авсан: ${data.delivery_number || ''}`,
+        body: `Жолооч: ${data.driver_name || ''} захиалгыг авлаа`,
+      }
+    case 'delivery_completed':
+      return {
+        title: `Хүргэлт амжилттай: ${data.delivery_number || ''}`,
+        body: `Захиалга #${data.order_number || ''} амжилттай хүргэгдлээ`,
+      }
+    case 'delivery_failed':
+      return {
+        title: `Хүргэлт амжилтгүй: ${data.delivery_number || ''}`,
+        body: `Шалтгаан: ${data.failure_reason || 'Тодорхойгүй'}`,
+      }
+    case 'delivery_delayed':
+      return {
+        title: `Хүргэлт хоцорч байна: ${data.delivery_number || ''}`,
+        body: `Захиалга #${data.order_number || ''} — ${data.notes || ''}`,
       }
   }
 }
@@ -162,6 +277,15 @@ export async function dispatchNotification(
       low_stock: '/dashboard/products',
       order_status: '/dashboard/orders',
       escalation: '/dashboard/chat',
+      appointment_created: '/dashboard/calendar',
+      appointment_confirmed: '/dashboard/calendar',
+      appointment_cancelled: '/dashboard/calendar',
+      appointment_assigned: '/dashboard/calendar',
+      delivery_assigned: '/dashboard/deliveries',
+      delivery_picked_up: '/dashboard/deliveries',
+      delivery_completed: '/dashboard/deliveries',
+      delivery_failed: '/dashboard/deliveries',
+      delivery_delayed: '/dashboard/deliveries',
     }
     try {
       await sendPushToUser(store.owner_id, {
@@ -172,6 +296,23 @@ export async function dispatchNotification(
       })
     } catch (err) {
       console.error(`Push notification failed for ${event}:`, err)
+    }
+  }
+
+  // 2.7 Notify assigned staff member via Telegram/Messenger (appointment events only)
+  const appointmentEvents = ['appointment_created', 'appointment_confirmed', 'appointment_cancelled', 'appointment_assigned']
+  if (appointmentEvents.includes(event) && data.staff_id) {
+    try {
+      await notifyStaff(data.staff_id as string, {
+        appointmentId: (data.appointment_id as string) || '',
+        customerName: (data.customer_name as string) || '',
+        serviceName: (data.service_name as string) || '',
+        scheduledAt: (data.scheduled_at as string) || '',
+        eventType: event as 'appointment_created' | 'appointment_confirmed' | 'appointment_cancelled' | 'appointment_assigned',
+        resourceName: (data.resource_name as string) || undefined,
+      })
+    } catch (err) {
+      console.error(`Staff notification failed for ${event}:`, err)
     }
   }
 

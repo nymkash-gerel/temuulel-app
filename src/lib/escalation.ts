@@ -257,10 +257,10 @@ export async function processEscalation(
     return { escalated: false, level: 'low' }
   }
 
-  // Fetch conversation's current score
+  // Fetch conversation's current score and customer_id
   const { data: conv } = await supabase
     .from('conversations')
-    .select('escalation_score')
+    .select('escalation_score, customer_id')
     .eq('id', conversationId)
     .single()
 
@@ -337,6 +337,103 @@ export async function processEscalation(
       score: result.newScore,
       signals: result.signals.join(', '),
     })
+
+    // --- AI Compensation: classify complaint and create voucher if policy exists ---
+    if (conv?.customer_id) {
+      try {
+        const { classifyComplaint } = await import('./ai/complaint-classifier')
+        const customerTextsForClassify = recentMessages
+          .filter((m) => m.is_from_customer)
+          .map((m) => m.content)
+        customerTextsForClassify.push(customerMessage)
+        const classification = await classifyComplaint({
+          complaint_text: customerTextsForClassify.join('\n'),
+        })
+
+        if (classification && classification.confidence >= 0.5) {
+          // Look up compensation policy for this store + category
+          const { data: policy } = await supabase
+            .from('compensation_policies')
+            .select('*')
+            .eq('store_id', storeId)
+            .eq('complaint_category', classification.category)
+            .eq('is_active', true)
+            .single()
+
+          if (policy) {
+            const voucherCode = `COMP-${Date.now()}`
+            const validUntil = new Date()
+            validUntil.setDate(validUntil.getDate() + (policy.valid_days || 30))
+
+            const voucherStatus = policy.auto_approve ? 'approved' : 'pending_approval'
+
+            const { data: voucher } = await supabase
+              .from('vouchers')
+              .insert({
+                store_id: storeId,
+                customer_id: conv.customer_id,
+                policy_id: policy.id,
+                voucher_code: voucherCode,
+                compensation_type: policy.compensation_type,
+                compensation_value: policy.compensation_value,
+                max_discount_amount: policy.max_discount_amount,
+                complaint_category: classification.category,
+                complaint_summary: complaintSummary?.summary || classification.suggested_response,
+                conversation_id: conversationId,
+                status: voucherStatus,
+                valid_until: validUntil.toISOString(),
+              })
+              .select('id, voucher_code')
+              .single()
+
+            if (voucher) {
+              // Build compensation label
+              const compLabel =
+                policy.compensation_type === 'percent_discount'
+                  ? `${policy.compensation_value}% хөнгөлөлт`
+                  : policy.compensation_type === 'fixed_discount'
+                    ? `${new Intl.NumberFormat('mn-MN').format(policy.compensation_value)}₮ хөнгөлөлт`
+                    : policy.compensation_type === 'free_shipping'
+                      ? 'Үнэгүй хүргэлт'
+                      : 'Үнэгүй бараа'
+
+              const CATEGORY_LABELS: Record<string, string> = {
+                food_quality: 'Хоолны чанар',
+                wrong_item: 'Буруу бараа',
+                delivery_delay: 'Хүргэлт удсан',
+                service_quality: 'Үйлчилгээний чанар',
+                damaged_item: 'Гэмтэлтэй бараа',
+                pricing_error: 'Үнийн алдаа',
+                staff_behavior: 'Ажилтны зан',
+                other: 'Бусад',
+              }
+
+              // Notify store owner
+              dispatchNotification(storeId, 'compensation_suggested' as Parameters<typeof dispatchNotification>[1], {
+                voucher_id: voucher.id,
+                voucher_code: voucher.voucher_code,
+                compensation_label: compLabel,
+                complaint_category_label: CATEGORY_LABELS[classification.category] || classification.category,
+                auto_approved: policy.auto_approve,
+              })
+
+              // If auto-approved, tell customer about the discount
+              if (policy.auto_approve) {
+                await supabase.from('messages').insert({
+                  conversation_id: conversationId,
+                  content: `Уучлаарай, дараагийн захиалгадаа ${compLabel} авах эрхтэй боллоо. Код: ${voucherCode}`,
+                  is_from_customer: false,
+                  is_ai_response: true,
+                  metadata: { type: 'compensation', voucher_id: voucher.id, voucher_code: voucherCode },
+                })
+              }
+            }
+          }
+        }
+      } catch {
+        // Compensation is optional; proceed without it
+      }
+    }
 
     return { escalated: true, level: result.level, escalationMessage }
   }

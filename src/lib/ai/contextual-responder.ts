@@ -11,6 +11,13 @@ export interface MessageHistoryEntry {
   content: string
 }
 
+export interface ActiveVoucherContext {
+  voucher_code: string
+  compensation_type: string
+  compensation_value: number
+  valid_until: string
+}
+
 export interface ContextualInput {
   history: MessageHistoryEntry[]
   currentMessage: string
@@ -19,6 +26,7 @@ export interface ContextualInput {
   orders: { order_number: string; status: string; total_amount: number }[]
   storeName: string
   returnPolicy?: string
+  activeVouchers?: ActiveVoucherContext[]
 }
 
 function buildSystemPrompt(input: ContextualInput): string {
@@ -63,6 +71,18 @@ function buildSystemPrompt(input: ContextualInput): string {
     prompt += `\n\nБУЦААЛТ/СОЛИЛТЫН БОДЛОГО:\n${input.returnPolicy}\nХэрэглэгч буцаалт, солилт, буцаан олголтын тухай асуувал энэ бодлогоор хариулна.\n`
   } else {
     prompt += `\nБуцаалт/солилтын тухай асуувал "менежерээс лавлана уу" гэж хариулна.\n`
+  }
+
+  if (input.activeVouchers && input.activeVouchers.length > 0) {
+    prompt += '\n\nХӨНГӨЛӨЛТИЙН ЭРХ:\nЭнэ харилцагч дараах хөнгөлөлтийн эрхтэй:\n'
+    input.activeVouchers.forEach((v) => {
+      const label =
+        v.compensation_type === 'percent_discount' ? `${v.compensation_value}% хөнгөлөлт` :
+        v.compensation_type === 'fixed_discount' ? `${v.compensation_value}₮ хөнгөлөлт` :
+        v.compensation_type === 'free_shipping' ? 'Үнэгүй хүргэлт' : 'Үнэгүй бараа'
+      prompt += `• Код: ${v.voucher_code} — ${label} (хүчинтэй: ${new Date(v.valid_until).toLocaleDateString('mn-MN')} хүртэл)\n`
+    })
+    prompt += 'Захиалга хийх үед энэ хөнгөлөлтийн кодыг ашиглахыг сануулж болно.\n'
   }
 
   return prompt

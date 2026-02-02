@@ -83,3 +83,41 @@ export async function decrementStockAndNotify(
     }
   }
 }
+
+/**
+ * Restore stock for all order items with a variant_id when an order is cancelled.
+ * Increments stock_quantity for each variant by the ordered quantity.
+ *
+ * Should only be called when cancelling an order that was previously confirmed
+ * (i.e., stock was already decremented).
+ */
+export async function restoreStockOnCancellation(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  orderId: string
+): Promise<void> {
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('variant_id, quantity')
+    .eq('order_id', orderId)
+    .not('variant_id', 'is', null)
+
+  if (!items || items.length === 0) return
+
+  for (const item of items as { variant_id: string; quantity: number }[]) {
+    const { data: variant } = await supabase
+      .from('product_variants')
+      .select('id, stock_quantity')
+      .eq('id', item.variant_id)
+      .single()
+
+    if (!variant) continue
+
+    const restoredQuantity = variant.stock_quantity + item.quantity
+
+    await supabase
+      .from('product_variants')
+      .update({ stock_quantity: restoredQuantity })
+      .eq('id', item.variant_id)
+  }
+}

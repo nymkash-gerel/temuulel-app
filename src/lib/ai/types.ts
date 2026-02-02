@@ -54,6 +54,27 @@ export interface MessageTagOutput {
   tags: string[]
 }
 
+// ComplaintClassifier
+export interface ComplaintClassificationInput {
+  complaint_text: string
+}
+
+export type ComplaintCategory =
+  | 'food_quality'
+  | 'wrong_item'
+  | 'delivery_delay'
+  | 'service_quality'
+  | 'damaged_item'
+  | 'pricing_error'
+  | 'staff_behavior'
+  | 'other'
+
+export interface ComplaintClassificationOutput {
+  category: ComplaintCategory
+  confidence: number
+  suggested_response: string
+}
+
 // ProductEnricher
 export interface ProductEnrichmentInput {
   name: string
