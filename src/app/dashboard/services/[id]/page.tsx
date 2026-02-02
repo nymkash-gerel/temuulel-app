@@ -73,7 +73,7 @@ export default function EditServicePage() {
       setCategory(service.category || '')
       setBasePrice(String(service.base_price))
       setDurationMinutes(String(service.duration_minutes))
-      setStatus(service.status)
+      setStatus(service.status as any)
       setAiContext(service.ai_context || '')
       setFacebookPostId(service.facebook_post_id || '')
       setInstagramPostId(service.instagram_post_id || '')

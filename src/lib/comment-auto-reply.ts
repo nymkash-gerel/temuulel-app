@@ -141,7 +141,7 @@ export async function handleFeedChange(
   }
 
   // Find matching rule
-  const matchingRule = findMatchingRule(applicableRules, change)
+  const matchingRule = findMatchingRule(applicableRules as any, change)
   if (!matchingRule) {
     console.log('[Comment Auto-Reply] No matching rule found')
     return
