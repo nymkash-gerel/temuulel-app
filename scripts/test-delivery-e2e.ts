@@ -614,7 +614,7 @@ async function testDelayedDelivery(store: StoreInfo, chatHistory: TestCase[]): P
   const delayed = await updateDeliveryStatus(delivery.deliveryId, 'delayed',
     'Замын түгжрэлээс болж хүргэлт хоцорлоо')
   assert(delayed, 'Status updated to "delayed"')
-  let statusOk = await verifyDeliveryStatus(delivery.deliveryId, 'delayed')
+  const statusOk = await verifyDeliveryStatus(delivery.deliveryId, 'delayed')
   assert(statusOk, 'Delivery status verified: "delayed"')
 
   // Notification: delivery_delayed
