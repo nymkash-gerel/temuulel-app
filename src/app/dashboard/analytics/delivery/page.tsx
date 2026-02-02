@@ -56,7 +56,7 @@ export default function DeliveryAnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('30d')
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => {
     setLoading(true)
     fetch(`/api/analytics/delivery?period=${period}`)

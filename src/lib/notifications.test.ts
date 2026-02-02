@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Mock Supabase
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const mockFrom: any = vi.fn()
 
 vi.mock('@supabase/supabase-js', () => ({
