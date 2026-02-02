@@ -47,6 +47,12 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Disable ESLint during `next build` — linting is handled by the dedicated
+  // "Tests & Lint" CI job so running it again in the build step is redundant
+  // and causes false-positive failures from incremental lint caching.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {
