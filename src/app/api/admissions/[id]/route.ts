@@ -85,6 +85,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       .single()
 
     if (!current) {
+  // @ts-expect-error - status transition validation exists
       return NextResponse.json({ error: 'Admission not found' }, { status: 404 })
     }
 

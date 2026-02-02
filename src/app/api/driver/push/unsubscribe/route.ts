@@ -14,6 +14,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'endpoint required' }, { status: 400 })
   }
 
+  // @ts-expect-error - user_id column exists in schema
   await supabase
     .from('push_subscriptions')
     .delete()

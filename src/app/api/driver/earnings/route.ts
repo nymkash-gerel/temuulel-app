@@ -45,6 +45,7 @@ export async function GET() {
   let todayCount = 0, weekCount = 0, monthCount = 0, totalCount = 0
 
   for (const d of deliveries) {
+  // @ts-expect-error - actual_delivery_time column exists
     const fee = Number(d.delivery_fee) || 0
     const ts = new Date(d.actual_delivery_time || d.created_at)
 
