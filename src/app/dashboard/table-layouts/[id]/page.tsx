@@ -59,11 +59,6 @@ export default function TableLayoutDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
   async function load() {
     setLoading(true)
 
@@ -96,6 +91,11 @@ export default function TableLayoutDetailPage() {
     setTable(data as unknown as TableLayoutDetail)
     setLoading(false)
   }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   function startEdit() {
     if (!table) return

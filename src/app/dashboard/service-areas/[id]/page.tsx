@@ -49,11 +49,6 @@ export default function ServiceAreaDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
   async function load() {
     setLoading(true)
 
@@ -86,6 +81,11 @@ export default function ServiceAreaDetailPage() {
     setArea(data as unknown as ServiceAreaDetail)
     setLoading(false)
   }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   function startEdit() {
     if (!area) return

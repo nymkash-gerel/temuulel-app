@@ -73,11 +73,6 @@ export default function TimeTrackingDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
   async function load() {
     setLoading(true)
 
@@ -112,6 +107,11 @@ export default function TimeTrackingDetailPage() {
     setEntry(data as unknown as TimeEntryDetail)
     setLoading(false)
   }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   function startEdit() {
     if (!entry) return
