@@ -1,7 +1,12 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": ".",
+			"name": "temuulel-app"
+		},
+		{
+			"path": "../../temulai-project",
+			"name": "temulai-project"
 		}
 	],
 	"settings": {

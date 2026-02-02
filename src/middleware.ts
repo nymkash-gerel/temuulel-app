@@ -35,26 +35,42 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protected routes
-  if (
-    !user &&
-    request.nextUrl.pathname.startsWith('/dashboard')
-  ) {
+  const pathname = request.nextUrl.pathname
+
+  // Protected dashboard routes
+  if (!user && pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
+  // Protected driver routes (except login/register)
+  const isDriverRoute = pathname.startsWith('/driver')
+  const isDriverAuthRoute = pathname.startsWith('/driver/login') || pathname.startsWith('/driver/register')
+
+  if (!user && isDriverRoute && !isDriverAuthRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/driver/login'
+    return NextResponse.redirect(url)
+  }
+
+  // Redirect authenticated drivers from driver auth pages to driver dashboard
+  if (user && isDriverAuthRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/driver'
+    return NextResponse.redirect(url)
+  }
+
   // Allow password reset and email verify pages regardless of auth state
   const publicAuthPaths = ['/forgot-password', '/reset-password', '/verify']
-  if (publicAuthPaths.some(p => request.nextUrl.pathname.startsWith(p))) {
+  if (publicAuthPaths.some(p => pathname.startsWith(p))) {
     return supabaseResponse
   }
 
   // Redirect logged in users from auth pages to dashboard
   if (
     user &&
-    (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')
+    (pathname === '/login' || pathname === '/signup')
   ) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
@@ -72,8 +88,9 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - embed (embeddable widget — no auth needed)
+     * - track (public delivery tracking — no auth needed)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|embed|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|embed|track|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

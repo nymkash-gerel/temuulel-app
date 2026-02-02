@@ -12,11 +12,34 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://temuulel.com'
+
 export const metadata: Metadata = {
-  title: "Temuulel Commerce - AI-Powered E-commerce Platform",
-  description: "Таны онлайн бизнесийг 24/7 ухаалаг туслахаар автоматжуулна. Хэрэглэгч бүрт хүрч ажиллана.",
+  title: {
+    default: 'Temuulel Commerce - AI-Powered E-commerce Platform',
+    template: '%s | Temuulel Commerce',
+  },
+  description: 'Таны онлайн бизнесийг 24/7 ухаалаг туслахаар автоматжуулна. Хэрэглэгч бүрт хүрч ажиллана.',
+  metadataBase: new URL(siteUrl),
   icons: {
-    icon: "/favicon.ico",
+    icon: '/favicon.ico',
+  },
+  openGraph: {
+    title: 'Temuulel Commerce - AI-Powered E-commerce Platform',
+    description: 'Таны онлайн бизнесийг 24/7 ухаалаг туслахаар автоматжуулна. Хэрэглэгч бүрт хүрч ажиллана.',
+    url: siteUrl,
+    siteName: 'Temuulel Commerce',
+    locale: 'mn_MN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Temuulel Commerce - AI-Powered E-commerce Platform',
+    description: 'Таны онлайн бизнесийг 24/7 ухаалаг туслахаар автоматжуулна.',
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
