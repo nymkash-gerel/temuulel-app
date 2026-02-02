@@ -1,7 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { parsePagination } from '@/lib/validations'
 
 export async function GET(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 60, windowSeconds: 60 })
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = await createClient()
 
   // Authenticate the user
@@ -23,8 +30,7 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams
   const query = (searchParams.get('q') || '').slice(0, 200)
-  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '20') || 20, 1), 100)
-  const offset = Math.max(parseInt(searchParams.get('offset') || '0') || 0, 0)
+  const { limit, offset } = parsePagination(searchParams)
 
   let dbQuery = supabase
     .from('orders')

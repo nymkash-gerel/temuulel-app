@@ -13,6 +13,7 @@ import { processEscalation } from '@/lib/escalation'
 import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
 import { handleFeedChange, FeedChangeValue } from '@/lib/comment-auto-reply'
 import type { ChatbotSettings } from '@/lib/chat-ai'
+import { interceptWithFlow } from '@/lib/flow-middleware'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -177,6 +178,7 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
       if (!customer) continue
 
       // Find or create conversation
+      let isNewConversation = false
       let { data: conversation } = await supabase
         .from('conversations')
         .select('id')
@@ -188,6 +190,7 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
         .single()
 
       if (!conversation) {
+        isNewConversation = true
         const { data: newConv } = await supabase
           .from('conversations')
           .insert({
@@ -267,6 +270,25 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
 
       // AI auto-reply
       if (store.ai_auto_reply && pageToken) {
+        // --- Flow interception (before AI pipeline) ---
+        try {
+          const flowResult = await interceptWithFlow(
+            supabase, conversation.id, store.id, messageText,
+            { is_new_conversation: isNewConversation, quick_reply_payload: quickReplyPayload }
+          )
+          if (flowResult) {
+            if (flowResult.quick_replies && flowResult.quick_replies.length > 0) {
+              await sendQuickReplies(senderId, flowResult.response, flowResult.quick_replies, pageToken)
+            } else if (flowResult.response) {
+              await sendTextMessage(senderId, flowResult.response, pageToken)
+            }
+            continue
+          }
+        } catch (flowErr) {
+          console.error('[Flow] Messenger interception error:', flowErr)
+          // Fall through to normal AI pipeline
+        }
+
         try {
           // Show typing indicator
           await sendTypingIndicator(senderId, true, pageToken)

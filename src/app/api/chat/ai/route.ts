@@ -19,6 +19,7 @@ import {
   StoredProduct,
 } from '@/lib/conversation-state'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
+import { interceptWithFlow } from '@/lib/flow-middleware'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -56,6 +57,20 @@ export async function POST(request: NextRequest) {
   const storeName = conversation.stores?.name || 'Манай дэлгүүр'
   const customerId = conversation.customer_id
   const chatbotSettings = (conversation.stores?.chatbot_settings || {}) as ChatbotSettings
+
+  // --- Flow interception (before AI pipeline) ---
+  try {
+    const flowResult = await interceptWithFlow(
+      supabase, conversation_id, storeId, customer_message,
+      { is_new_conversation: false }
+    )
+    if (flowResult) {
+      return NextResponse.json(flowResult)
+    }
+  } catch (flowErr) {
+    console.error('[Flow] AI route interception error:', flowErr)
+    // Fall through to normal AI pipeline
+  }
 
   // --- Conversation Memory ---
   const state = await readState(supabase, conversation_id)

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { dispatchNotification } from '@/lib/notifications'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, createOrderSchema } from '@/lib/validations'
 
 const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
@@ -67,53 +68,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
 
-  let body: Record<string, unknown>
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  }
+  const { data: body, error: validationError } = await validateBody(request, createOrderSchema)
+  if (validationError) return validationError
 
-  const {
-    store_id,
-    customer_id,
-    items,
-    shipping_zone,
-    shipping_address,
-    notes,
-  } = body as {
-    store_id?: string
-    customer_id?: string | null
-    items?: OrderItemInput[]
-    shipping_zone?: string
-    shipping_address?: string | null
-    notes?: string | null
-  }
-
-  // Validate required fields
-  if (!store_id) {
-    return NextResponse.json({ error: 'store_id required' }, { status: 400 })
-  }
-
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: 'Non-empty items array required' }, { status: 400 })
-  }
-
-  // Validate each item has unit_price
-  for (const item of items) {
-    if (typeof item.unit_price !== 'number' || item.unit_price < 0) {
-      return NextResponse.json(
-        { error: 'Each item must have a valid unit_price (non-negative number)' },
-        { status: 400 }
-      )
-    }
-    if (item.quantity !== undefined && (typeof item.quantity !== 'number' || item.quantity < 1)) {
-      return NextResponse.json(
-        { error: 'Item quantity must be a positive number' },
-        { status: 400 }
-      )
-    }
-  }
+  const { store_id, customer_id, items, shipping_zone, shipping_address, notes } = body
 
   const supabase = getSupabase()
 

@@ -5,9 +5,9 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { processEscalation } from '@/lib/escalation'
 import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
 import type { ChatbotSettings } from '@/lib/chat-ai'
+import { validateBody, chatMessageSchema } from '@/lib/validations'
 
 const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
-const MAX_CONTENT_LENGTH = 2000
 
 /** Fire-and-forget: tag a customer message with sentiment + topic tags. */
 async function tagMessage(
@@ -36,6 +36,78 @@ async function tagMessage(
       .eq('id', messageId)
   } catch (e) {
     console.error('[message-tagger] Failed:', e)
+  }
+}
+
+/** Fire-and-forget: check if customer has active vouchers and notify store owner. */
+async function checkActiveVouchers(
+  supabase: ReturnType<typeof getSupabase>,
+  customerId: string,
+  storeId: string,
+  conversationId: string
+) {
+  try {
+    const { data: vouchers } = await supabase
+      .from('vouchers')
+      .select('id, voucher_code, compensation_type, compensation_value, valid_until')
+      .eq('customer_id', customerId)
+      .eq('store_id', storeId)
+      .eq('status', 'approved')
+      .gt('valid_until', new Date().toISOString())
+      .limit(5)
+
+    if (vouchers && vouchers.length > 0) {
+      // Get customer name for notification
+      const { data: customer } = await supabase
+        .from('customers')
+        .select('name')
+        .eq('id', customerId)
+        .single()
+
+      // Store voucher info in conversation metadata for AI context
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('metadata')
+        .eq('id', conversationId)
+        .single()
+
+      const existingMeta = (conv?.metadata ?? {}) as Record<string, unknown>
+      await supabase
+        .from('conversations')
+        .update({
+          metadata: {
+            ...existingMeta,
+            active_vouchers: vouchers.map(v => ({
+              voucher_code: v.voucher_code,
+              compensation_type: v.compensation_type,
+              compensation_value: v.compensation_value,
+              valid_until: v.valid_until,
+            })),
+          },
+        })
+        .eq('id', conversationId)
+
+      // Notify store owner about each active voucher
+      for (const v of vouchers) {
+        const compLabel =
+          v.compensation_type === 'percent_discount'
+            ? `${v.compensation_value}% хөнгөлөлт`
+            : v.compensation_type === 'fixed_discount'
+              ? `${new Intl.NumberFormat('mn-MN').format(v.compensation_value)}₮ хөнгөлөлт`
+              : v.compensation_type === 'free_shipping'
+                ? 'Үнэгүй хүргэлт'
+                : 'Үнэгүй бараа'
+
+        dispatchNotification(storeId, 'returning_customer_voucher' as Parameters<typeof dispatchNotification>[1], {
+          customer_name: customer?.name || 'Харилцагч',
+          voucher_code: v.voucher_code,
+          compensation_label: compLabel,
+          conversation_id: conversationId,
+        })
+      }
+    }
+  } catch (e) {
+    console.error('[voucher-check] Failed:', e)
   }
 }
 
@@ -180,35 +252,24 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getSupabase()
-  const body = await request.json()
+
+  const { data: body, error: validationError } = await validateBody(request, chatMessageSchema)
+  if (validationError) return validationError
+
   const { sender_id, store_id, role, content, metadata } = body
-
-  if (!sender_id || !role || !content) {
-    return NextResponse.json(
-      { error: 'sender_id, role, and content required' },
-      { status: 400 }
-    )
-  }
-
-  if (typeof content !== 'string' || content.length > MAX_CONTENT_LENGTH) {
-    return NextResponse.json(
-      { error: `content must be a string of at most ${MAX_CONTENT_LENGTH} characters` },
-      { status: 400 }
-    )
-  }
-
-  const effectiveStoreId = store_id || ''
-  if (!effectiveStoreId) {
-    return NextResponse.json({ error: 'store_id required' }, { status: 400 })
-  }
 
   try {
     const channel = sender_id.startsWith('web_') ? 'web' : 'messenger'
-    const { conversationId } = await resolveConversation(
-      supabase, sender_id, effectiveStoreId, channel
+    const { customerId, conversationId } = await resolveConversation(
+      supabase, sender_id, store_id, channel
     )
 
     const isFromCustomer = role === 'user'
+
+    // Check for active vouchers on this customer (fire-and-forget notification)
+    if (isFromCustomer && customerId && store_id) {
+      void checkActiveVouchers(supabase, customerId, store_id, conversationId)
+    }
 
     // Save to messages table (conversations system)
     const { data: message, error: msgError } = await supabase
@@ -256,8 +317,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Dispatch new_message notification for customer messages
-    if (isFromCustomer && effectiveStoreId) {
-      dispatchNotification(effectiveStoreId, 'new_message', {
+    if (isFromCustomer && store_id) {
+      dispatchNotification(store_id, 'new_message', {
         conversation_id: conversationId,
         customer_name: sender_id,
         message: content,
@@ -268,12 +329,12 @@ export async function POST(request: NextRequest) {
       const { data: storeData } = await supabase
         .from('stores')
         .select('chatbot_settings')
-        .eq('id', effectiveStoreId)
+        .eq('id', store_id)
         .single()
 
       const chatbotSettings = (storeData?.chatbot_settings || {}) as ChatbotSettings
       await processEscalation(
-        supabase, conversationId, content, effectiveStoreId, chatbotSettings
+        supabase, conversationId, content, store_id, chatbotSettings
       )
     }
 

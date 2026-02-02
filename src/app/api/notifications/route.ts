@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { parsePagination } from '@/lib/validations'
 
 /**
  * GET /api/notifications
@@ -8,6 +10,11 @@ import { NextRequest, NextResponse } from 'next/server'
  * Returns unread first, then recent read notifications.
  */
 export async function GET(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 60, windowSeconds: 60 })
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -25,8 +32,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Store not found' }, { status: 404 })
   }
 
-  const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '20') || 20, 1), 100)
-  const offset = Math.max(parseInt(request.nextUrl.searchParams.get('offset') || '0') || 0, 0)
+  const { limit, offset } = parsePagination(request.nextUrl.searchParams)
 
   const { data: notifications, error, count: totalCount } = await supabase
     .from('notifications')

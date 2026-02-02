@@ -22,7 +22,13 @@ export async function GET(request: NextRequest) {
   // Verify cron secret (Vercel sets this automatically for cron jobs)
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[cron] CRON_SECRET not configured — rejecting request')
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+    }
+    // In development, allow unauthenticated access for testing
+  } else if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

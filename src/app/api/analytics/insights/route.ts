@@ -1,9 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateInsights } from '@/lib/ai/analytics-insight'
-import type { AnalyticsStats } from '@/lib/ai/types'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, analyticsInsightsSchema } from '@/lib/validations'
+
+const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -11,33 +17,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json() as Partial<AnalyticsStats>
-
-  if (
-    typeof body.revenue !== 'number' ||
-    typeof body.orderCount !== 'number' ||
-    typeof body.period !== 'string'
-  ) {
-    return NextResponse.json(
-      { error: 'Missing required fields: revenue, orderCount, period' },
-      { status: 400 }
-    )
-  }
-
-  const stats: AnalyticsStats = {
-    period: body.period,
-    revenue: body.revenue,
-    revenueChange: body.revenueChange ?? 0,
-    orderCount: body.orderCount,
-    avgOrderValue: body.avgOrderValue ?? 0,
-    newCustomers: body.newCustomers ?? 0,
-    totalCustomers: body.totalCustomers ?? 0,
-    topProducts: body.topProducts ?? [],
-    aiResponseRate: body.aiResponseRate ?? 0,
-    totalMessages: body.totalMessages ?? 0,
-    pendingOrders: body.pendingOrders ?? 0,
-    cancelledOrders: body.cancelledOrders ?? 0,
-  }
+  const { data: stats, error: validationError } = await validateBody(request, analyticsInsightsSchema)
+  if (validationError) return validationError
 
   const result = await generateInsights(stats)
 

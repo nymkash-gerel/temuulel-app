@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 /**
  * DELETE /api/team/remove
@@ -8,6 +9,11 @@ import { NextRequest, NextResponse } from 'next/server'
  * Only the store owner can remove members.
  */
 export async function DELETE(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 10, windowSeconds: 60 })
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = await createClient()
   const {
     data: { user },

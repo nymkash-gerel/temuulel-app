@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTeamInviteEmail } from '@/lib/email'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, teamInviteSchema } from '@/lib/validations'
+
+const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
 /**
  * POST /api/team/invite
@@ -9,6 +13,9 @@ import { sendTeamInviteEmail } from '@/lib/email'
  * Sends an invite email after adding to store_members.
  */
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -18,24 +25,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json()
+  const { data: body, error: validationError } = await validateBody(request, teamInviteSchema)
+  if (validationError) return validationError
   const { email, role } = body
-
-  if (!email || !role || !['admin', 'staff'].includes(role)) {
-    return NextResponse.json(
-      { error: 'email and valid role (admin/staff) required' },
-      { status: 400 }
-    )
-  }
-
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(email.trim())) {
-    return NextResponse.json(
-      { error: 'Invalid email format' },
-      { status: 400 }
-    )
-  }
 
   // Verify requester owns a store
   const { data: store } = await supabase
@@ -75,11 +67,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Look up invited user
-  const trimmedEmail = email.trim()
   const { data: invitedUser } = await supabase
     .from('users')
     .select('id, email')
-    .eq('email', trimmedEmail)
+    .eq('email', email)
     .single()
 
   if (!invitedUser) {
@@ -115,7 +106,7 @@ export async function POST(request: NextRequest) {
 
   // Send invite email (non-blocking)
   sendTeamInviteEmail(
-    trimmedEmail,
+    email,
     store.name,
     role,
     user.email || 'Эзэмшигч'

@@ -1,5 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, pushSubscribeSchema } from '@/lib/validations'
+
+const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
 /**
  * POST /api/push/subscribe
@@ -8,6 +12,9 @@ import { NextRequest, NextResponse } from 'next/server'
  * Upserts on (user_id, endpoint) to handle re-subscriptions.
  */
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -16,12 +23,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json()
+  const { data: body, error: validationError } = await validateBody(request, pushSubscribeSchema)
+  if (validationError) return validationError
   const { endpoint, keys } = body
-
-  if (!endpoint || !keys?.p256dh || !keys?.auth) {
-    return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 })
-  }
 
   const { error } = await supabase.from('push_subscriptions').upsert(
     {

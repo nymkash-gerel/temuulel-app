@@ -1,5 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, createCommentRuleSchema } from '@/lib/validations'
+
+const RATE_LIMIT = { limit: 20, windowSeconds: 60 }
 
 // GET - List all comment auto-reply rules for the user's store
 export async function GET() {
@@ -37,6 +41,9 @@ export async function GET() {
 
 // POST - Create a new comment auto-reply rule
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -55,26 +62,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Store not found' }, { status: 404 })
   }
 
-  const body = await request.json()
+  const { data: body, error: validationError } = await validateBody(request, createCommentRuleSchema)
+  if (validationError) return validationError
+
   const {
     name,
-    enabled = true,
-    trigger_type = 'keyword',
-    keywords = [],
-    match_mode = 'any',
-    reply_comment = true,
-    reply_dm = false,
-    comment_template = '',
-    dm_template = '',
-    delay_seconds = 0,
-    platforms = ['facebook', 'instagram'],
-    use_ai = false,
-    ai_context = '',
+    enabled,
+    trigger_type,
+    keywords,
+    match_mode,
+    reply_comment,
+    reply_dm,
+    comment_template,
+    dm_template,
+    delay_seconds,
+    platforms,
+    use_ai,
+    ai_context,
   } = body
-
-  if (!name) {
-    return NextResponse.json({ error: 'Name is required' }, { status: 400 })
-  }
 
   // Get the highest priority to add at the end
   const { data: existingRules } = await supabase

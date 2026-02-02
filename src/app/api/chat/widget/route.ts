@@ -12,6 +12,7 @@ import {
   LOW_CONFIDENCE_THRESHOLD,
 } from '@/lib/chat-ai'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, chatWidgetSchema } from '@/lib/validations'
 import {
   readState,
   writeState,
@@ -21,6 +22,7 @@ import {
   StoredProduct,
 } from '@/lib/conversation-state'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
+import { interceptWithFlow } from '@/lib/flow-middleware'
 
 const RATE_LIMIT = { limit: 20, windowSeconds: 60 }
 
@@ -38,15 +40,10 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getSupabase()
-  const body = await request.json()
-  const { store_id, customer_message, sender_id, conversation_id } = body
 
-  if (!store_id || !customer_message) {
-    return NextResponse.json(
-      { error: 'store_id and customer_message required' },
-      { status: 400 }
-    )
-  }
+  const { data: body, error: validationError } = await validateBody(request, chatWidgetSchema)
+  if (validationError) return validationError
+  const { store_id, customer_message, sender_id, conversation_id } = body
 
   // Get store with chatbot settings
   const { data: store } = await supabase
@@ -69,10 +66,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if conversation was already escalated (score is evaluated in /api/chat POST)
+  let convMeta: Record<string, unknown> = {}
   if (conversation_id) {
     const { data: conv } = await supabase
       .from('conversations')
-      .select('status, escalation_level')
+      .select('status, escalation_level, metadata')
       .eq('id', conversation_id)
       .single()
 
@@ -87,6 +85,8 @@ export async function POST(request: NextRequest) {
         escalation_level: conv.escalation_level,
       })
     }
+
+    convMeta = (conv?.metadata ?? {}) as Record<string, unknown>
   }
 
   // If AI auto-reply is disabled, don't generate a response
@@ -96,6 +96,25 @@ export async function POST(request: NextRequest) {
       intent: 'disabled',
       ai_disabled: true,
     })
+  }
+
+  // Extract active vouchers from conversation metadata (if any)
+  const activeVouchers = (convMeta.active_vouchers as { voucher_code: string; compensation_type: string; compensation_value: number; valid_until: string }[] | undefined) || undefined
+
+  // --- Flow interception (before AI pipeline) ---
+  if (conversation_id) {
+    try {
+      const flowResult = await interceptWithFlow(
+        supabase, conversation_id, store_id, customer_message,
+        { is_new_conversation: false }
+      )
+      if (flowResult) {
+        return NextResponse.json(flowResult)
+      }
+    } catch (flowErr) {
+      console.error('[Flow] Widget interception error:', flowErr)
+      // Fall through to normal AI pipeline
+    }
   }
 
   // --- Conversation Memory ---
@@ -285,7 +304,7 @@ export async function POST(request: NextRequest) {
       : undefined
 
     response = await generateAIResponse(
-      intent, products, [], storeName, customer_message, chatbotSettings, history
+      intent, products, [], storeName, customer_message, chatbotSettings, history, activeVouchers
     )
   }
 

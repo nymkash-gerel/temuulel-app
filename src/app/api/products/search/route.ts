@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { parsePagination } from '@/lib/validations'
 
 const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
 
@@ -33,8 +34,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const query = (searchParams.get('query') || '').slice(0, 200)
   const category = searchParams.get('category')
-  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '10') || 10, 1), 50)
-  const offset = Math.max(parseInt(searchParams.get('offset') || '0') || 0, 0)
+  const { limit, offset } = parsePagination(searchParams, { defaultLimit: 20, maxLimit: 50 })
   const storeId = searchParams.get('store_id')
 
   const supabase = await createClient()

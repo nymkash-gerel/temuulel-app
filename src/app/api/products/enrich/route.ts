@@ -1,9 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { enrichProduct } from '@/lib/ai/product-enricher'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, productEnrichSchema } from '@/lib/validations'
 import type { ProductEnrichmentInput } from '@/lib/ai/types'
 
+const RATE_LIMIT = { limit: 5, windowSeconds: 60 }
+
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -13,15 +20,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json()
-  const { product_ids } = body as { product_ids: string[] }
-
-  if (!Array.isArray(product_ids) || product_ids.length === 0) {
-    return NextResponse.json({ error: 'product_ids required' }, { status: 400 })
-  }
-
-  // Limit batch size
-  const ids = product_ids.slice(0, 20)
+  const { data: body, error: validationError } = await validateBody(request, productEnrichSchema)
+  if (validationError) return validationError
+  const ids = body.product_ids
 
   // Verify user owns these products (through store ownership)
   const { data: store } = await supabase

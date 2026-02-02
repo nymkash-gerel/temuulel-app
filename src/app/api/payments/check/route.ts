@@ -5,6 +5,7 @@ import { checkQPayPayment, isQPayConfigured } from '@/lib/qpay'
 import { dispatchNotification } from '@/lib/notifications'
 import { decrementStockAndNotify } from '@/lib/stock'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, checkPaymentSchema, updatePaymentStatusSchema } from '@/lib/validations'
 
 const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
@@ -29,12 +30,10 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getSupabase()
-  const body = await request.json()
-  const { order_id } = body
 
-  if (!order_id) {
-    return NextResponse.json({ error: 'order_id required' }, { status: 400 })
-  }
+  const { data: body, error: validationError } = await validateBody(request, checkPaymentSchema)
+  if (validationError) return validationError
+  const { order_id } = body
 
   const { data: order } = await supabase
     .from('orders')
@@ -164,23 +163,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Store not found' }, { status: 403 })
   }
 
-  const body = await request.json()
+  const { data: body, error: validationError } = await validateBody(request, updatePaymentStatusSchema)
+  if (validationError) return validationError
   const { order_id, payment_status } = body
-
-  if (!order_id || !payment_status) {
-    return NextResponse.json(
-      { error: 'order_id and payment_status required' },
-      { status: 400 }
-    )
-  }
-
-  const validStatuses = ['paid', 'pending', 'refunded']
-  if (!validStatuses.includes(payment_status)) {
-    return NextResponse.json(
-      { error: `Invalid payment_status. Must be one of: ${validStatuses.join(', ')}` },
-      { status: 400 }
-    )
-  }
 
   // Verify the order belongs to the user's store
   const supabase = getSupabase()

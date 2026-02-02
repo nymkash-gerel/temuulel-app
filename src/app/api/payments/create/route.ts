@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { createQPayInvoice, isQPayConfigured } from '@/lib/qpay'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateBody, createPaymentSchema } from '@/lib/validations'
+
+const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -18,16 +22,16 @@ function getSupabase() {
  * - Cash: Marks as cash on delivery
  */
 export async function POST(request: NextRequest) {
-  const supabase = getSupabase()
-  const body = await request.json()
-  const { order_id, payment_method } = body
-
-  if (!order_id || !payment_method) {
-    return NextResponse.json(
-      { error: 'order_id and payment_method required' },
-      { status: 400 }
-    )
+  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
+
+  const supabase = getSupabase()
+
+  const { data: body, error: validationError } = await validateBody(request, createPaymentSchema)
+  if (validationError) return validationError
+  const { order_id, payment_method } = body
 
   // Get order with store info
   const { data: order } = await supabase

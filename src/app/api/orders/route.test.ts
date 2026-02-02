@@ -74,7 +74,7 @@ describe('POST /api/orders', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockStore = {
-      id: 'store_1',
+      id: 'a0000000-0000-4000-8000-000000000001',
       shipping_settings: {
         free_shipping_enabled: true,
         free_shipping_minimum: 50000,
@@ -108,14 +108,14 @@ describe('POST /api/orders', () => {
   })
 
   it('returns 400 if items is missing', async () => {
-    const res = await POST(makeRequest({ store_id: 'store_1' }) as never)
+    const res = await POST(makeRequest({ store_id: 'a0000000-0000-4000-8000-000000000001' }) as never)
     const json = await res.json()
     expect(res.status).toBe(400)
     expect(json.error).toMatch(/items/)
   })
 
   it('returns 400 if items is empty array', async () => {
-    const res = await POST(makeRequest({ store_id: 'store_1', items: [] }) as never)
+    const res = await POST(makeRequest({ store_id: 'a0000000-0000-4000-8000-000000000001', items: [] }) as never)
     const json = await res.json()
     expect(res.status).toBe(400)
     expect(json.error).toMatch(/items/)
@@ -123,7 +123,7 @@ describe('POST /api/orders', () => {
 
   it('returns 400 if an item has negative unit_price', async () => {
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: -100 }],
     }) as never)
     const json = await res.json()
@@ -133,7 +133,7 @@ describe('POST /api/orders', () => {
 
   it('returns 400 if an item has zero quantity', async () => {
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 1000, quantity: 0 }],
     }) as never)
     const json = await res.json()
@@ -144,7 +144,7 @@ describe('POST /api/orders', () => {
   it('returns 404 if store not found', async () => {
     mockStore = null
     const res = await POST(makeRequest({
-      store_id: 'nonexistent',
+      store_id: 'a0000000-0000-4000-8000-000000000099',
       items: [{ unit_price: 1000 }],
     }) as never)
     const json = await res.json()
@@ -166,7 +166,7 @@ describe('POST /api/orders', () => {
     }
 
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 15000, quantity: 2 }],
       shipping_zone: 'Улаанбаатар хот (төв)',
     }) as never)
@@ -189,7 +189,7 @@ describe('POST /api/orders', () => {
     }
 
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 30000, quantity: 2 }],
       shipping_zone: 'Улаанбаатар хот (төв)',
     }) as never)
@@ -211,7 +211,7 @@ describe('POST /api/orders', () => {
     }
 
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 10000 }],
       shipping_zone: 'Бусад аймаг',
     }) as never)
@@ -232,7 +232,7 @@ describe('POST /api/orders', () => {
     }
 
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 10000 }],
     }) as never)
     const json = await res.json()
@@ -244,7 +244,7 @@ describe('POST /api/orders', () => {
 
   it('creates order and dispatches notification on success', async () => {
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ product_id: 'p1', unit_price: 25000, quantity: 2 }],
       shipping_zone: 'Улаанбаатар хот (төв)',
     }) as never)
@@ -255,7 +255,7 @@ describe('POST /api/orders', () => {
     expect(json.payment_status).toBe('pending')
 
     expect(dispatchNotification).toHaveBeenCalledTimes(1)
-    expect(dispatchNotification).toHaveBeenCalledWith('store_1', 'new_order', {
+    expect(dispatchNotification).toHaveBeenCalledWith('a0000000-0000-4000-8000-000000000001', 'new_order', {
       order_id: 'order_abc',
       order_number: 'ORD-123',
       total_amount: mockInsertedOrder!.total_amount,
@@ -268,7 +268,7 @@ describe('POST /api/orders', () => {
     mockOrderInsertError = { message: 'DB error' }
 
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 1000 }],
     }) as never)
     const json = await res.json()
@@ -280,7 +280,7 @@ describe('POST /api/orders', () => {
     mockItemsInsertError = { message: 'Items insert error' }
 
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 1000 }],
     }) as never)
     const json = await res.json()
@@ -299,7 +299,7 @@ describe('POST /api/orders', () => {
     })
 
     const res = await POST(makeRequest({
-      store_id: 'store_1',
+      store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 1000 }],
     }) as never)
     const json = await res.json()

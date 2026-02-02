@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { validateBody, updateCommentRuleSchema } from '@/lib/validations'
 
 // GET - Get a single comment auto-reply rule
 export async function GET(
@@ -75,25 +76,12 @@ export async function PATCH(
     return NextResponse.json({ error: 'Rule not found' }, { status: 404 })
   }
 
-  const body = await request.json()
-  const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
-
-  // Only include fields that are provided
-  const allowedFields = [
-    'name', 'enabled', 'priority', 'trigger_type', 'keywords',
-    'match_mode', 'reply_comment', 'reply_dm', 'comment_template',
-    'dm_template', 'delay_seconds', 'platforms', 'use_ai', 'ai_context'
-  ]
-
-  for (const field of allowedFields) {
-    if (body[field] !== undefined) {
-      updateData[field] = body[field]
-    }
-  }
+  const { data: body, error: validationError } = await validateBody(request, updateCommentRuleSchema)
+  if (validationError) return validationError
 
   const { data: rule, error } = await supabase
     .from('comment_auto_rules')
-    .update(updateData)
+    .update({ ...body, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
     .single()
