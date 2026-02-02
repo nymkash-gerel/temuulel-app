@@ -33,7 +33,8 @@ export default function DriverChatPage() {
 
   useEffect(() => {
     fetchMessages()
-  }, [fetchMessages])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Realtime subscription
   useEffect(() => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -30,10 +30,9 @@ export default function IntegrationsPage() {
   const [copied, setCopied] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState(false)
-  const [fbMessage, setFbMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Show OAuth result from URL params (Messenger & Instagram)
-  useEffect(() => {
+  // Derive OAuth result message from URL params (Messenger & Instagram)
+  const fbMessage = useMemo(() => {
     const errorMap: Record<string, string> = {
       no_pages: 'Facebook хуудас олдсонгүй. Page-д Admin эрхтэй байгаа эсэхийг шалгана уу.',
       no_instagram: 'Instagram Business аккаунт олдсонгүй. Facebook Page-д Instagram Business аккаунт холбогдсон эсэхийг шалгана уу.',
@@ -44,20 +43,25 @@ export default function IntegrationsPage() {
     }
 
     if (searchParams.get('fb_success')) {
-      setFbMessage({ type: 'success', text: 'Facebook Messenger амжилттай холбогдлоо!' })
+      return { type: 'success' as const, text: 'Facebook Messenger амжилттай холбогдлоо!' }
     } else if (searchParams.get('ig_success')) {
-      setFbMessage({ type: 'success', text: 'Instagram DM амжилттай холбогдлоо!' })
+      return { type: 'success' as const, text: 'Instagram DM амжилттай холбогдлоо!' }
     } else if (searchParams.get('fb_error')) {
       const errorCode = searchParams.get('fb_error') || ''
-      setFbMessage({ type: 'error', text: errorMap[errorCode] || decodeURIComponent(errorCode) })
+      return { type: 'error' as const, text: errorMap[errorCode] || decodeURIComponent(errorCode) }
     } else if (searchParams.get('ig_error')) {
       const errorCode = searchParams.get('ig_error') || ''
-      setFbMessage({ type: 'error', text: errorMap[errorCode] || decodeURIComponent(errorCode) })
-    } else {
-      return // No params to clear
+      return { type: 'error' as const, text: errorMap[errorCode] || decodeURIComponent(errorCode) }
     }
-    window.history.replaceState({}, '', '/dashboard/settings/integrations')
+    return null
   }, [searchParams])
+
+  // Clear URL params after showing message
+  useEffect(() => {
+    if (fbMessage) {
+      window.history.replaceState({}, '', '/dashboard/settings/integrations')
+    }
+  }, [fbMessage])
 
   useEffect(() => {
     async function load() {

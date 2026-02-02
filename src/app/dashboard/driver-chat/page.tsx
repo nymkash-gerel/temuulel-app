@@ -51,13 +51,15 @@ export default function DriverChatPage() {
 
   useEffect(() => {
     fetchConversations()
-  }, [fetchConversations])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (selectedDriver) {
       fetchMessages(selectedDriver)
     }
-  }, [selectedDriver, fetchMessages])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDriver])
 
   // Realtime subscription
   useEffect(() => {

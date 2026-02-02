@@ -57,11 +57,13 @@ function DashboardLayoutInner({
   }, [store?.business_type, store?.enabled_modules])
 
   // Close sidebar on route change (mobile)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setSidebarOpen(false)
   }, [pathname])
 
   // Subscribe to unread count changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (!store?.id) return
 

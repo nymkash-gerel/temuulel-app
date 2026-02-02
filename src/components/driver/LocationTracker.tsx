@@ -10,6 +10,7 @@ export default function LocationTracker({ driverStatus }: LocationTrackerProps) 
   const [active, setActive] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const shouldTrack = driverStatus === 'on_delivery' || driverStatus === 'active'
     if (!shouldTrack || !('geolocation' in navigator)) {
