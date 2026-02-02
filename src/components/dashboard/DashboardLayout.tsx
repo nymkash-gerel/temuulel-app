@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -48,6 +48,7 @@ function DashboardLayoutInner({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [totalUnread, setTotalUnread] = useState(0)
   const { locale, setLocale } = useTranslation()
+  const prevPathnameRef = useRef(pathname)
 
   // Resolve nav items from feature flags
   const navItems = useMemo(() => {
@@ -58,10 +59,11 @@ function DashboardLayoutInner({
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
-    if (sidebarOpen) {
-      setSidebarOpen(false)
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname
+      queueMicrotask(() => setSidebarOpen(false))
     }
-  }, [pathname, sidebarOpen])
+  }, [pathname])
 
   // Subscribe to unread count changes
    

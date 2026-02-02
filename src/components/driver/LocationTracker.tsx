@@ -10,47 +10,50 @@ export default function LocationTracker({ driverStatus }: LocationTrackerProps) 
   const [active, setActive] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  useEffect(() => {
     const shouldTrack = driverStatus === 'on_delivery' || driverStatus === 'active'
     const canTrack = 'geolocation' in navigator
-    
-    if (!shouldTrack || !canTrack) {
-      if (active) setActive(false)
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-      return
-    }
-      return
-    }
 
-    async function sendLocation() {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 10000,
-            enableHighAccuracy: false,
-          })
-        })
-
-        await fetch('/api/driver/location', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          }),
-        })
-
-        setActive(true)
-      } catch {
+    async function updateTracking() {
+      if (!shouldTrack || !canTrack) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
         setActive(false)
+        return
       }
+
+      async function sendLocation() {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 10000,
+              enableHighAccuracy: false,
+            })
+          })
+
+          await fetch('/api/driver/location', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            }),
+          })
+
+          setActive(true)
+        } catch {
+          setActive(false)
+        }
+      }
+
+      // Send immediately, then every 30s
+      await sendLocation()
+      intervalRef.current = setInterval(sendLocation, 30000)
     }
 
-    // Send immediately, then every 30s
-    sendLocation()
-    intervalRef.current = setInterval(sendLocation, 30000)
+    updateTracking()
 
     return () => {
       if (intervalRef.current) {

@@ -58,22 +58,24 @@ export default function DeliveryAnalyticsPage() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    
-    fetch(`/api/analytics/delivery?period=${period}`)
-      .then(r => r.json())
-      .then(d => {
+
+    async function loadData() {
+      if (!cancelled) setLoading(true)
+
+      try {
+        const r = await fetch(`/api/analytics/delivery?period=${period}`)
+        const d = await r.json()
         if (!cancelled) {
           setData(d)
           setLoading(false)
         }
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setLoading(false)
-      })
-    
+      }
+    }
+
+    loadData()
     return () => { cancelled = true }
-  }, [period])
   }, [period])
 
   const handleExport = (format: 'xlsx' | 'csv') => {
