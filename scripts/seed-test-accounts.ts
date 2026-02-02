@@ -490,6 +490,7 @@ const TEST_ACCOUNTS: TestAccount[] = [
 // ============================================================================
 
 async function createUser(email: string, password: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existing } = await supabase.auth.admin.listUsers()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const found = existing?.users?.find((u: any) => u.email === email)

@@ -90,6 +90,7 @@ async function main() {
     }
 
     // Check if auth user already exists
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existingUser = existingUsers?.users?.find((u: any) => u.email === email)

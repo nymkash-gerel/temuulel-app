@@ -92,7 +92,7 @@ export default function ImageUpload({
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFiles(e.dataTransfer.files)
     }
-  }, [images, maxImages])
+  }, [images, maxImages, handleFiles])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
