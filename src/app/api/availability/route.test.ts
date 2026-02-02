@@ -54,7 +54,7 @@ beforeEach(() => {
     if (table === 'store_hours') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           single: vi.fn().mockResolvedValue({ data: mockStoreHours }),
         })),
       }
@@ -62,7 +62,7 @@ beforeEach(() => {
     if (table === 'store_closures') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           maybeSingle: vi.fn().mockResolvedValue({ data: mockClosure }),
         })),
       }

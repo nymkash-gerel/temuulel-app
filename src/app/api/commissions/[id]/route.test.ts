@@ -73,11 +73,11 @@ beforeEach(() => {
     if (table === 'staff_commissions') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           single: vi.fn().mockResolvedValue({ data: mockCommission, error: null }),
         })),
         update: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           select: vi.fn(() => ({
             single: vi.fn().mockResolvedValue({ data: mockUpdatedCommission, error: mockUpdateError }),
           })),

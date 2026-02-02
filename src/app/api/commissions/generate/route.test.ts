@@ -54,9 +54,9 @@ beforeEach(() => {
     if (table === 'deals') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
-          not: vi.fn(function () { return this }),
-          in: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
+          not: vi.fn(function (this: any) { return this }),
+          in: vi.fn(function (this: any) { return this }),
           then: (resolve: (v: unknown) => void) => resolve({ data: mockClosedDeals, error: null }),
         })),
       }

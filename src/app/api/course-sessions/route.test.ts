@@ -105,7 +105,7 @@ beforeEach(() => {
     if (table === 'programs') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           single: vi.fn().mockResolvedValue({ data: mockProgram }),
         })),
       }

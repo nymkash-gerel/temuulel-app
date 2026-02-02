@@ -104,7 +104,7 @@ beforeEach(() => {
     if (table === 'units') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           single: vi.fn().mockResolvedValue({ data: mockUnit }),
         })),
       }
@@ -112,7 +112,7 @@ beforeEach(() => {
     if (table === 'guests') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           single: vi.fn().mockResolvedValue({ data: mockGuest }),
         })),
       }

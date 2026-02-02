@@ -138,13 +138,13 @@ beforeEach(() => {
           })),
         })),
         update: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           select: vi.fn(() => ({
             single: vi.fn().mockResolvedValue({ data: mockUpdatedItem, error: mockUpdateError }),
           })),
         })),
         delete: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           then: vi.fn((resolve: (v: unknown) => void) =>
             resolve({ error: mockDeleteError }),
           ),
@@ -154,7 +154,7 @@ beforeEach(() => {
     if (table === 'patients') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           single: vi.fn().mockResolvedValue({ data: mockPatient }),
         })),
       }

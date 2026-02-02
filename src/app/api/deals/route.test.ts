@@ -94,8 +94,8 @@ beforeEach(() => {
     if (table === 'deals') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
-          order: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
+          order: vi.fn(function (this: any) { return this }),
           range: vi.fn().mockResolvedValue({ data: mockDeals, count: mockDealsCount, error: null }),
           single: vi.fn().mockResolvedValue({ data: mockInsertedDeal, error: mockInsertError }),
         })),
@@ -109,7 +109,7 @@ beforeEach(() => {
     if (table === 'products') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           single: vi.fn().mockResolvedValue({ data: mockProperty }),
         })),
       }
@@ -117,7 +117,7 @@ beforeEach(() => {
     if (table === 'staff') {
       return {
         select: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           single: vi.fn().mockResolvedValue({ data: mockAgent }),
         })),
       }

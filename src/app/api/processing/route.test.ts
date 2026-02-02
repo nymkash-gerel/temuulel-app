@@ -107,7 +107,7 @@ beforeEach(() => {
           return fetchQuery
         }),
         update: vi.fn(() => ({
-          eq: vi.fn(function () { return this }),
+          eq: vi.fn(function (this: any) { return this }),
           select: vi.fn(() => updateSelectQuery),
         })),
       }
