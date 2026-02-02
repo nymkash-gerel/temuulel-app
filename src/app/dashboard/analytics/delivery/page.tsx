@@ -59,22 +59,18 @@ export default function DeliveryAnalyticsPage() {
   useEffect(() => {
     let cancelled = false
 
-    async function loadData() {
-      if (!cancelled) setLoading(true)
-
-      try {
-        const r = await fetch(`/api/analytics/delivery?period=${period}`)
-        const d = await r.json()
+    fetch(`/api/analytics/delivery?period=${period}`)
+      .then(r => r.json())
+      .then(d => {
         if (!cancelled) {
           setData(d)
           setLoading(false)
         }
-      } catch {
+      })
+      .catch(() => {
         if (!cancelled) setLoading(false)
-      }
-    }
+      })
 
-    loadData()
     return () => { cancelled = true }
   }, [period])
 
