@@ -17,7 +17,7 @@
     "@upstash/qstash": "^2.9.0",
     "@xyflow/react": "^12.10.0",
     "leaflet": "^1.9.4",
-    "next": "16.1.3",
+    "next": "^16.1.6",
     "openai": "^6.16.0",
     "postgres": "^3.4.8",
     "react": "19.2.3",
