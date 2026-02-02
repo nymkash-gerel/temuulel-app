@@ -83,7 +83,7 @@ function configureFrom(handlers: Record<string, any>) {
   })
 }
 
-function makeRequest(url: string, options?: RequestInit): NextRequest {
+function makeRequest(url: string, options?: any): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost'), options)
 }
 

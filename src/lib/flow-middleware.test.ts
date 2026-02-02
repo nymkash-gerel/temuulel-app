@@ -31,7 +31,7 @@ const mockExecuteFlowStep = executeFlowStep as ReturnType<typeof vi.fn>
 const mockStartFlow = startFlow as ReturnType<typeof vi.fn>
 const mockCompleteFlowExecution = completeFlowExecution as ReturnType<typeof vi.fn>
 
-function mockSupabase() {
+function mockSupabase(): any {
   const singleFn = vi.fn()
   const eqFn = vi.fn().mockReturnValue({ single: singleFn })
   const selectFn = vi.fn().mockReturnValue({ eq: eqFn })
@@ -46,7 +46,7 @@ function mockSupabase() {
     }),
     _singleFn: singleFn,
     _eqFn: eqFn,
-  } as unknown as ReturnType<typeof mockSupabase>
+  }
 }
 
 describe('flow-middleware: interceptWithFlow', () => {

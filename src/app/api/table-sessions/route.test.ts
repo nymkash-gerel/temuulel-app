@@ -273,7 +273,7 @@ describe('Table Sessions API', () => {
       setupFromMock({
         stores: storeBuilder,
         table_sessions: () =>
-          createQueryBuilder({ data: null, count: null, error: { message: 'DB failure' } }),
+          createQueryBuilder({ data: null, count: undefined, error: { message: 'DB failure' } }),
       })
 
       const res = await getTableSessions(makeGetRequest('/api/table-sessions'))
@@ -767,7 +767,7 @@ describe('KDS Tickets API', () => {
       setupFromMock({
         stores: storeBuilder,
         kds_tickets: () =>
-          createQueryBuilder({ data: null, count: null, error: { message: 'DB read error' } }),
+          createQueryBuilder({ data: null, count: undefined, error: { message: 'DB read error' } }),
       })
 
       const res = await getKdsTickets(makeGetRequest('/api/kds-tickets'))
