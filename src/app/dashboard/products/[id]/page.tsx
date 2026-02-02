@@ -84,6 +84,7 @@ export default function EditProductPage() {
         setHasVariants(product.has_variants || false)
 
         // Load fit note from product_faqs
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const faqs = ((product as any).product_faqs || {}) as Record<string, string>
         setExistingFaqs(faqs)
         setFitNote(faqs.size_fit || '')

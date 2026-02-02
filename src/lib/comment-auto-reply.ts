@@ -141,6 +141,7 @@ export async function handleFeedChange(
   }
 
   // Find matching rule
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const matchingRule = findMatchingRule(applicableRules as any, change)
   if (!matchingRule) {
     console.log('[Comment Auto-Reply] No matching rule found')

@@ -462,6 +462,7 @@ const BUSINESSES: BusinessDef[] = [
 async function createUser(email: string, password: string): Promise<string> {
   // Check if user already exists
   const { data: existing } = await supabase.auth.admin.listUsers()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const found = existing?.users?.find((u: any) => u.email === email)
   if (found) {
     console.log(`  ⟳ User ${email} already exists (${found.id})`)
@@ -505,7 +506,7 @@ async function ensurePublicUser(userId: string, email: string): Promise<void> {
   console.log(`  ✓ Public user record created`)
 }
 
-async function createStore(userId: string, biz: BusinessDef): Promise<string> {
+
   // Check if store already exists for this user
   const { data: existing } = await supabase
     .from('stores')
@@ -551,7 +552,7 @@ async function createStore(userId: string, biz: BusinessDef): Promise<string> {
   return data.id
 }
 
-async function seedProducts(storeId: string, products: BusinessDef['products']) {
+
   if (!products || products.length === 0) return
 
   // Delete existing products for this store

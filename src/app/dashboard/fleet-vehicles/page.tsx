@@ -80,6 +80,7 @@ export default function FleetVehiclesPage() {
       if (store) {
         setStoreId(store.id)
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const results: any = await Promise.all([
           supabase
             .from('fleet_vehicles')

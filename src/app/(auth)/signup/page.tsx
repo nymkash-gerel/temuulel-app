@@ -20,8 +20,8 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   // Step 2: Verification
-  const [emailCode, setEmailCode] = useState('')
-  const [phoneCode, setPhoneCode] = useState('')
+  // const [emailCode, setEmailCode] = useState('')
+  // const [phoneCode, setPhoneCode] = useState('')
   const [emailVerified, setEmailVerified] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState(false)
 
@@ -83,7 +83,7 @@ export default function SignupPage() {
 
       // Move to verification step
       setStep(2)
-    } catch (err) {
+    } catch (_err) {
       setError('Алдаа гарлаа. Дахин оролдоно уу.')
     } finally {
       setLoading(false)
