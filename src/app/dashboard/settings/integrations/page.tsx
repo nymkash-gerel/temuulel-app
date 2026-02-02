@@ -30,9 +30,12 @@ export default function IntegrationsPage() {
   const [copied, setCopied] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState(false)
+  const [messageDismissed, setMessageDismissed] = useState(false)
 
   // Derive OAuth result message from URL params (Messenger & Instagram)
   const fbMessage = useMemo(() => {
+    if (messageDismissed) return null
+
     const errorMap: Record<string, string> = {
       no_pages: 'Facebook хуудас олдсонгүй. Page-д Admin эрхтэй байгаа эсэхийг шалгана уу.',
       no_instagram: 'Instagram Business аккаунт олдсонгүй. Facebook Page-д Instagram Business аккаунт холбогдсон эсэхийг шалгана уу.',
@@ -54,7 +57,7 @@ export default function IntegrationsPage() {
       return { type: 'error' as const, text: errorMap[errorCode] || decodeURIComponent(errorCode) }
     }
     return null
-  }, [searchParams])
+  }, [searchParams, messageDismissed])
 
   // Clear URL params after showing message
   useEffect(() => {
@@ -284,7 +287,7 @@ export default function IntegrationsPage() {
             {fbMessage.type === 'success' ? '✓ ' : '✕ '}{fbMessage.text}
           </p>
           <button
-            onClick={() => setFbMessage(null)}
+            onClick={() => setMessageDismissed(true)}
             className="text-slate-500 hover:text-slate-300 ml-4"
           >
             ✕
