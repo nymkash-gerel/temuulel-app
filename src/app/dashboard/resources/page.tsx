@@ -56,10 +56,6 @@ export default function ResourcesPage() {
     features: {} as Record<string, boolean>,
   })
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -82,6 +78,11 @@ export default function ResourcesPage() {
     if (data) setResources(data as Resource[])
     setLoading(false)
   }
+
+  useEffect(() => {
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleCreate() {
     if (!form.name.trim()) return

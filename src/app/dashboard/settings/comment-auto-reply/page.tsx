@@ -56,10 +56,6 @@ export default function CommentAutoReplyPage() {
   const [formUseAi, setFormUseAi] = useState(false)
   const [formAiContext, setFormAiContext] = useState('')
 
-  useEffect(() => {
-    loadRules()
-  }, [])
-
   async function loadRules() {
     setLoading(true)
     try {
@@ -73,6 +69,11 @@ export default function CommentAutoReplyPage() {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadRules()
+  }, [])
 
   function resetForm() {
     setFormName('')
