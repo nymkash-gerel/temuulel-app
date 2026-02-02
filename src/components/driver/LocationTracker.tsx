@@ -10,15 +10,17 @@ export default function LocationTracker({ driverStatus }: LocationTrackerProps) 
   const [active, setActive] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-   
-  useEffect(() => {
     const shouldTrack = driverStatus === 'on_delivery' || driverStatus === 'active'
-    if (!shouldTrack || !('geolocation' in navigator)) {
-      setActive(false)
+    const canTrack = 'geolocation' in navigator
+    
+    if (!shouldTrack || !canTrack) {
+      if (active) setActive(false)
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
+      return
+    }
       return
     }
 

@@ -57,10 +57,11 @@ function DashboardLayoutInner({
   }, [store?.business_type, store?.enabled_modules])
 
   // Close sidebar on route change (mobile)
-   
   useEffect(() => {
-    setSidebarOpen(false)
-  }, [pathname])
+    if (sidebarOpen) {
+      setSidebarOpen(false)
+    }
+  }, [pathname, sidebarOpen])
 
   // Subscribe to unread count changes
    
