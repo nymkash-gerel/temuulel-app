@@ -91,6 +91,7 @@ export default function DeliveryMapPage() {
       setLoading(false)
     }
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase])
 
   async function fetchDrivers(sid: string) {

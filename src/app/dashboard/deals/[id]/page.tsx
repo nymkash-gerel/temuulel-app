@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface DealDetail {
@@ -84,7 +84,6 @@ function formatDate(date: string | null) {
 
 export default function DealDetailPage() {
   const { id } = useParams()
-  const router = useRouter()
   const [deal, setDeal] = useState<DealDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)

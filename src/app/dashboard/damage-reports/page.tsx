@@ -51,7 +51,7 @@ export default function DamageReportsPage() {
   const [storeId, setStoreId] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [error, setError] = useState('')
+  const [error] = useState('')
 
   async function loadReports(sid: string) {
     let query = supabase

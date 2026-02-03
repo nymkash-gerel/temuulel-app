@@ -20,7 +20,7 @@ export default function NewEnrollmentPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [storeId, setStoreId] = useState<string | null>(null);
+  const [, setStoreId] = useState<string | null>(null);
   const [studentId, setStudentId] = useState('');
   const [programId, setProgramId] = useState('');
   const [students, setStudents] = useState<Student[]>([]);

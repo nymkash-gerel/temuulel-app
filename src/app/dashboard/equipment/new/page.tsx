@@ -78,6 +78,7 @@ export default function NewProductPage() {
       }
     }
     getStoreId()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const addVariant = () => {

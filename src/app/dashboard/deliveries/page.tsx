@@ -57,7 +57,7 @@ export default function DeliveriesPage() {
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [storeId, setStoreId] = useState('')
+  const [, setStoreId] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [creating, setCreating] = useState(false)
 

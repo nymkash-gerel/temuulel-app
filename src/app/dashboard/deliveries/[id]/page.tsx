@@ -338,6 +338,7 @@ export default function DeliveryDetailPage() {
             {delivery.proof_photo_url && (
               <div className="mt-4 pt-4 border-t border-slate-700">
                 <p className="text-sm text-slate-400 mb-2">Хүргэсэн баталгаа</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={delivery.proof_photo_url}
                   alt="Proof of delivery"
