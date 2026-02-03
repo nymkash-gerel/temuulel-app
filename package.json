@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "gen:types": "supabase gen types --lang=typescript --local 2>/dev/null > src/lib/database.types.ts",
+    "gen:types:check": "supabase gen types --lang=typescript --local 2>/dev/null > /tmp/db-types-check.ts && diff src/lib/database.types.ts /tmp/db-types-check.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.38.0",
@@ -25,12 +29,14 @@
     "react-leaflet": "^5.0.0",
     "recharts": "^3.7.0",
     "resend": "^4.8.0",
+    "sonner": "^2.0.7",
     "swr": "^2.3.8",
     "vercel": "^50.7.0",
     "web-push": "^3.6.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
@@ -41,6 +47,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9",
     "eslint-config-next": "16.1.3",
+    "supabase": "^2.75.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"
