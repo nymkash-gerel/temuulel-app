@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -43,7 +43,7 @@ function formatPrice(amount: number) {
 
 export default function StaffCommissionsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [commissions, setCommissions] = useState<StaffCommission[]>([])
@@ -60,7 +60,7 @@ export default function StaffCommissionsPage() {
   const [updating, setUpdating] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
 
-  async function loadCommissions(sid: string) {
+  const loadCommissions = useCallback(async (sid: string) => {
     let query = supabase
       .from('staff_commissions')
       .select(`
@@ -91,7 +91,7 @@ export default function StaffCommissionsPage() {
     if (data) {
       setCommissions(data as unknown as StaffCommission[])
     }
-  }
+  }, [supabase, staffFilter, statusFilter, dateFrom, dateTo])
 
   useEffect(() => {
     async function load() {
@@ -117,15 +117,14 @@ export default function StaffCommissionsPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadCommissions])
 
   // Reload when filters change
   useEffect(() => {
     if (!storeId || loading) return
-    loadCommissions(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [staffFilter, statusFilter, dateFrom, dateTo])
+    const reload = async () => { await loadCommissions(storeId) }
+    reload()
+  }, [staffFilter, statusFilter, dateFrom, dateTo, storeId, loading, loadCommissions])
 
   const stats = useMemo(() => {
     const now = new Date()

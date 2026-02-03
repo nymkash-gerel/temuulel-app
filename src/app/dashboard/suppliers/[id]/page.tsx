@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Supplier {
@@ -38,12 +38,7 @@ export default function SupplierDetailPage() {
   const [formPaymentTerms, setFormPaymentTerms] = useState('')
   const [formIsActive, setFormIsActive] = useState(true)
 
-  useEffect(() => {
-    loadSupplier()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadSupplier() {
+  const loadSupplier = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/suppliers/${id}`)
@@ -60,7 +55,11 @@ export default function SupplierDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadSupplier()
+  }, [loadSupplier])
 
   async function handleSave() {
     setSaving(true)

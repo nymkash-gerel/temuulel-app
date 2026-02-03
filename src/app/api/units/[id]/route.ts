@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, updateUnitSchema } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -79,8 +79,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (body.floor !== undefined) updateData.floor = body.floor
   if (body.max_occupancy !== undefined) updateData.max_occupancy = body.max_occupancy
   if (body.base_rate !== undefined) updateData.base_rate = body.base_rate
-  if (body.amenities !== undefined) updateData.amenities = body.amenities as unknown as Json
-  if (body.images !== undefined) updateData.images = body.images as unknown as Json
+  if (body.amenities !== undefined) updateData.amenities = toJson(body.amenities)
+  if (body.images !== undefined) updateData.images = toJson(body.images)
   if (body.status !== undefined) updateData.status = body.status
 
   const { data: unit, error } = await supabase

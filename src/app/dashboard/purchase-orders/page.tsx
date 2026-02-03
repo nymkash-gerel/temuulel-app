@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -82,7 +82,7 @@ function isOverdue(expectedDate: string | null, status: string) {
 
 export default function PurchaseOrdersPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -91,7 +91,7 @@ export default function PurchaseOrdersPage() {
   const [supplierFilter, setSupplierFilter] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  async function loadOrders(sid: string) {
+  const loadOrders = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('purchase_orders')
       .select('*, supplier:suppliers(id, name), purchase_order_items(id, quantity_ordered, quantity_received, unit_cost)')
@@ -101,7 +101,7 @@ export default function PurchaseOrdersPage() {
     if (data) {
       setOrders(data as unknown as PurchaseOrderRow[])
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function init() {
@@ -121,8 +121,7 @@ export default function PurchaseOrdersPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadOrders])
 
   const stats = useMemo(() => {
     const total = orders.length

@@ -2,13 +2,11 @@
  * Stock management: decrement variant quantities on order confirmation
  * and dispatch low_stock notifications when thresholds are breached.
  */
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/database.types'
 import { dispatchNotification } from '@/lib/notifications'
 
 const DEFAULT_LOW_STOCK_THRESHOLD = 5
-
-interface SupabaseClient {
-  from: (table: string) => unknown
-}
 
 /**
  * Decrement stock for all order items with a variant_id,
@@ -18,8 +16,7 @@ interface SupabaseClient {
  * Safe to call multiple times — only processes items with variant_id.
  */
 export async function decrementStockAndNotify(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   orderId: string,
   storeId: string
 ): Promise<void> {
@@ -92,8 +89,7 @@ export async function decrementStockAndNotify(
  * (i.e., stock was already decremented).
  */
 export async function restoreStockOnCancellation(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   orderId: string
 ): Promise<void> {
   const { data: items } = await supabase

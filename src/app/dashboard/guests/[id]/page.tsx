@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Guest {
@@ -57,12 +57,7 @@ export default function GuestDetailPage() {
   const [formVipLevel, setFormVipLevel] = useState('none')
   const [formNotes, setFormNotes] = useState('')
 
-  useEffect(() => {
-    loadGuest()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadGuest() {
+  const loadGuest = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/guests/${id}`)
@@ -81,7 +76,11 @@ export default function GuestDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadGuest()
+  }, [loadGuest])
 
   async function handleSave() {
     setSaving(true)

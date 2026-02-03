@@ -2,6 +2,7 @@
  * Tests for POST /api/orders — order creation with shipping calculation
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock notifications
 vi.mock('@/lib/notifications', () => ({
@@ -62,12 +63,8 @@ import { dispatchNotification } from '@/lib/notifications'
 import { rateLimit } from '@/lib/rate-limit'
 import { POST } from './route'
 
-function makeRequest(body: unknown): Request {
-  return new Request('http://localhost/api/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }) as unknown as Request
+function makeRequest(body: unknown) {
+  return createTestJsonRequest('http://localhost/api/orders', body)
 }
 
 describe('POST /api/orders', () => {
@@ -101,21 +98,21 @@ describe('POST /api/orders', () => {
   // --- Validation ---
 
   it('returns 400 if store_id is missing', async () => {
-    const res = await POST(makeRequest({ items: [{ unit_price: 1000 }] }) as never)
+    const res = await POST(makeRequest({ items: [{ unit_price: 1000 }] }))
     const json = await res.json()
     expect(res.status).toBe(400)
     expect(json.error).toMatch(/store_id/)
   })
 
   it('returns 400 if items is missing', async () => {
-    const res = await POST(makeRequest({ store_id: 'a0000000-0000-4000-8000-000000000001' }) as never)
+    const res = await POST(makeRequest({ store_id: 'a0000000-0000-4000-8000-000000000001' }))
     const json = await res.json()
     expect(res.status).toBe(400)
     expect(json.error).toMatch(/items/)
   })
 
   it('returns 400 if items is empty array', async () => {
-    const res = await POST(makeRequest({ store_id: 'a0000000-0000-4000-8000-000000000001', items: [] }) as never)
+    const res = await POST(makeRequest({ store_id: 'a0000000-0000-4000-8000-000000000001', items: [] }))
     const json = await res.json()
     expect(res.status).toBe(400)
     expect(json.error).toMatch(/items/)
@@ -125,7 +122,7 @@ describe('POST /api/orders', () => {
     const res = await POST(makeRequest({
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: -100 }],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(400)
     expect(json.error).toMatch(/unit_price/)
@@ -135,7 +132,7 @@ describe('POST /api/orders', () => {
     const res = await POST(makeRequest({
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 1000, quantity: 0 }],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(400)
     expect(json.error).toMatch(/quantity/)
@@ -146,7 +143,7 @@ describe('POST /api/orders', () => {
     const res = await POST(makeRequest({
       store_id: 'a0000000-0000-4000-8000-000000000099',
       items: [{ unit_price: 1000 }],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(404)
     expect(json.error).toMatch(/Store not found/)
@@ -169,7 +166,7 @@ describe('POST /api/orders', () => {
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 15000, quantity: 2 }],
       shipping_zone: 'Улаанбаатар хот (төв)',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.subtotal).toBe(30000)
@@ -192,7 +189,7 @@ describe('POST /api/orders', () => {
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 30000, quantity: 2 }],
       shipping_zone: 'Улаанбаатар хот (төв)',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.subtotal).toBe(60000)
@@ -214,7 +211,7 @@ describe('POST /api/orders', () => {
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 10000 }],
       shipping_zone: 'Бусад аймаг',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.shipping_amount).toBe(0)
@@ -234,7 +231,7 @@ describe('POST /api/orders', () => {
     const res = await POST(makeRequest({
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 10000 }],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.shipping_amount).toBe(0)
@@ -247,7 +244,7 @@ describe('POST /api/orders', () => {
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ product_id: 'p1', unit_price: 25000, quantity: 2 }],
       shipping_zone: 'Улаанбаатар хот (төв)',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.order_id).toBe('order_abc')
@@ -270,7 +267,7 @@ describe('POST /api/orders', () => {
     const res = await POST(makeRequest({
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 1000 }],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -282,7 +279,7 @@ describe('POST /api/orders', () => {
     const res = await POST(makeRequest({
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 1000 }],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Items insert error')
@@ -301,7 +298,7 @@ describe('POST /api/orders', () => {
     const res = await POST(makeRequest({
       store_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ unit_price: 1000 }],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(429)
     expect(json.error).toMatch(/Too many requests/)

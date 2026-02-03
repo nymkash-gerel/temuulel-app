@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Conversation {
@@ -23,7 +23,7 @@ interface Message {
 }
 
 export default function DriverChatPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -51,15 +51,13 @@ export default function DriverChatPage() {
 
   useEffect(() => {
     fetchConversations()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [fetchConversations])
 
   useEffect(() => {
     if (selectedDriver) {
       fetchMessages(selectedDriver)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDriver])
+  }, [selectedDriver, fetchMessages])
 
   // Realtime subscription
   useEffect(() => {

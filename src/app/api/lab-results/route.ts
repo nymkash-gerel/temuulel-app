@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createLabResultSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/lab-results
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     .insert({
       store_id: store.id,
       order_id: body.order_id,
-      result_data: (body.result_data || []) as unknown as Json,
+      result_data: toJson(body.result_data || []),
       interpretation: body.interpretation || null,
       report_url: body.report_url || null,
       resulted_by: body.resulted_by || null,

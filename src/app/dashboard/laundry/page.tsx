@@ -58,7 +58,7 @@ function formatDateTime(dateStr: string) {
 
 export default function LaundryOrdersPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [orders, setOrders] = useState<LaundryOrder[]>([])
   const [loading, setLoading] = useState(true)
@@ -107,8 +107,7 @@ export default function LaundryOrdersPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router])
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
 

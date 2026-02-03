@@ -2,6 +2,7 @@
  * Tests for GET/PATCH/DELETE /api/deals/[id]
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock rate-limit
 vi.mock('@/lib/rate-limit', () => ({
@@ -30,20 +31,16 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, PATCH, DELETE } from './route'
 
-function makeGetRequest(): Request {
-  return new Request('http://localhost/api/deals/deal-001', { method: 'GET' })
+function makeGetRequest() {
+  return createTestRequest('http://localhost/api/deals/deal-001')
 }
 
-function makePatchRequest(body: unknown): Request {
-  return new Request('http://localhost/api/deals/deal-001', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+function makePatchRequest(body: unknown) {
+  return createTestJsonRequest('http://localhost/api/deals/deal-001', body, 'PATCH')
 }
 
-function makeDeleteRequest(): Request {
-  return new Request('http://localhost/api/deals/deal-001', { method: 'DELETE' })
+function makeDeleteRequest() {
+  return createTestRequest('http://localhost/api/deals/deal-001', { method: 'DELETE' })
 }
 
 const params = Promise.resolve({ id: 'deal-001' })
@@ -115,24 +112,24 @@ beforeEach(() => {
 describe('GET /api/deals/[id]', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeGetRequest() as never, { params })
+    const res = await GET(makeGetRequest(), { params })
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await GET(makeGetRequest() as never, { params })
+    const res = await GET(makeGetRequest(), { params })
     expect(res.status).toBe(403)
   })
 
   it('returns 404 if deal not found', async () => {
     mockDeal = null
-    const res = await GET(makeGetRequest() as never, { params })
+    const res = await GET(makeGetRequest(), { params })
     expect(res.status).toBe(404)
   })
 
   it('returns deal with related data', async () => {
-    const res = await GET(makeGetRequest() as never, { params })
+    const res = await GET(makeGetRequest(), { params })
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.deal_number).toBe('DEAL-001')
@@ -142,13 +139,13 @@ describe('GET /api/deals/[id]', () => {
 describe('PATCH /api/deals/[id]', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await PATCH(makePatchRequest({ status: 'viewing' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'viewing' }), { params })
     expect(res.status).toBe(401)
   })
 
   it('returns 404 if deal not found', async () => {
     mockDeal = null
-    const res = await PATCH(makePatchRequest({ status: 'viewing' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'viewing' }), { params })
     expect(res.status).toBe(404)
   })
 
@@ -156,28 +153,28 @@ describe('PATCH /api/deals/[id]', () => {
   it('allows lead → viewing', async () => {
     mockDeal = { ...mockDeal!, status: 'lead' }
     mockUpdatedDeal = { ...mockDeal, status: 'viewing' }
-    const res = await PATCH(makePatchRequest({ status: 'viewing' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'viewing' }), { params })
     expect(res.status).toBe(200)
   })
 
   it('allows lead → lost', async () => {
     mockDeal = { ...mockDeal!, status: 'lead' }
     mockUpdatedDeal = { ...mockDeal, status: 'lost' }
-    const res = await PATCH(makePatchRequest({ status: 'lost' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'lost' }), { params })
     expect(res.status).toBe(200)
   })
 
   it('allows viewing → offer', async () => {
     mockDeal = { ...mockDeal!, status: 'viewing' }
     mockUpdatedDeal = { ...mockDeal, status: 'offer' }
-    const res = await PATCH(makePatchRequest({ status: 'offer' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'offer' }), { params })
     expect(res.status).toBe(200)
   })
 
   it('allows offer → contract', async () => {
     mockDeal = { ...mockDeal!, status: 'offer' }
     mockUpdatedDeal = { ...mockDeal, status: 'contract' }
-    const res = await PATCH(makePatchRequest({ status: 'contract' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'contract' }), { params })
     expect(res.status).toBe(200)
   })
 
@@ -191,21 +188,21 @@ describe('PATCH /api/deals/[id]', () => {
       agent_share_amount: 2500000,
       company_share_amount: 2500000,
     }
-    const res = await PATCH(makePatchRequest({ status: 'closed', final_price: 100000000 }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'closed', final_price: 100000000 }), { params })
     expect(res.status).toBe(200)
   })
 
   it('allows contract → withdrawn', async () => {
     mockDeal = { ...mockDeal!, status: 'contract' }
     mockUpdatedDeal = { ...mockDeal, status: 'withdrawn' }
-    const res = await PATCH(makePatchRequest({ status: 'withdrawn' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'withdrawn' }), { params })
     expect(res.status).toBe(200)
   })
 
   // Invalid transitions
   it('rejects lead → contract (skipping steps)', async () => {
     mockDeal = { ...mockDeal!, status: 'lead' }
-    const res = await PATCH(makePatchRequest({ status: 'contract' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'contract' }), { params })
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toMatch(/Cannot transition/)
@@ -213,49 +210,49 @@ describe('PATCH /api/deals/[id]', () => {
 
   it('rejects lead → closed (skipping steps)', async () => {
     mockDeal = { ...mockDeal!, status: 'lead' }
-    const res = await PATCH(makePatchRequest({ status: 'closed' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'closed' }), { params })
     expect(res.status).toBe(400)
   })
 
   it('rejects viewing → closed', async () => {
     mockDeal = { ...mockDeal!, status: 'viewing' }
-    const res = await PATCH(makePatchRequest({ status: 'closed' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'closed' }), { params })
     expect(res.status).toBe(400)
   })
 
   it('rejects closed → anything (terminal state)', async () => {
     mockDeal = { ...mockDeal!, status: 'closed' }
-    const res = await PATCH(makePatchRequest({ status: 'lead' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'lead' }), { params })
     expect(res.status).toBe(400)
   })
 
   it('rejects lost → anything (terminal state)', async () => {
     mockDeal = { ...mockDeal!, status: 'lost' }
-    const res = await PATCH(makePatchRequest({ status: 'viewing' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'viewing' }), { params })
     expect(res.status).toBe(400)
   })
 
   it('rejects withdrawn → anything (terminal state)', async () => {
     mockDeal = { ...mockDeal!, status: 'withdrawn' }
-    const res = await PATCH(makePatchRequest({ status: 'closed' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ status: 'closed' }), { params })
     expect(res.status).toBe(400)
   })
 
   // Field updates
   it('updates notes without changing status', async () => {
     mockUpdatedDeal = { ...mockDeal!, notes: 'Updated note' }
-    const res = await PATCH(makePatchRequest({ notes: 'Updated note' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ notes: 'Updated note' }), { params })
     expect(res.status).toBe(200)
   })
 
   it('returns 400 for empty update', async () => {
-    const res = await PATCH(makePatchRequest({}) as never, { params })
+    const res = await PATCH(makePatchRequest({}), { params })
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database error', async () => {
     mockUpdateError = { message: 'DB error' }
-    const res = await PATCH(makePatchRequest({ notes: 'test' }) as never, { params })
+    const res = await PATCH(makePatchRequest({ notes: 'test' }), { params })
     expect(res.status).toBe(500)
   })
 })
@@ -263,31 +260,31 @@ describe('PATCH /api/deals/[id]', () => {
 describe('DELETE /api/deals/[id]', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await DELETE(makeDeleteRequest() as never, { params })
+    const res = await DELETE(makeDeleteRequest(), { params })
     expect(res.status).toBe(401)
   })
 
   it('returns 404 if deal not found', async () => {
     mockDeal = null
-    const res = await DELETE(makeDeleteRequest() as never, { params })
+    const res = await DELETE(makeDeleteRequest(), { params })
     expect(res.status).toBe(404)
   })
 
   it('deletes a deal in lead status', async () => {
     mockDeal = { ...mockDeal!, status: 'lead' }
-    const res = await DELETE(makeDeleteRequest() as never, { params })
+    const res = await DELETE(makeDeleteRequest(), { params })
     expect(res.status).toBe(200)
   })
 
   it('deletes a deal in lost status', async () => {
     mockDeal = { ...mockDeal!, status: 'lost' }
-    const res = await DELETE(makeDeleteRequest() as never, { params })
+    const res = await DELETE(makeDeleteRequest(), { params })
     expect(res.status).toBe(200)
   })
 
   it('rejects delete of a deal in viewing status', async () => {
     mockDeal = { ...mockDeal!, status: 'viewing' }
-    const res = await DELETE(makeDeleteRequest() as never, { params })
+    const res = await DELETE(makeDeleteRequest(), { params })
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toMatch(/Only lead or lost/)
@@ -295,13 +292,13 @@ describe('DELETE /api/deals/[id]', () => {
 
   it('rejects delete of a deal in closed status', async () => {
     mockDeal = { ...mockDeal!, status: 'closed' }
-    const res = await DELETE(makeDeleteRequest() as never, { params })
+    const res = await DELETE(makeDeleteRequest(), { params })
     expect(res.status).toBe(400)
   })
 
   it('rejects delete of a deal in contract status', async () => {
     mockDeal = { ...mockDeal!, status: 'contract' }
-    const res = await DELETE(makeDeleteRequest() as never, { params })
+    const res = await DELETE(makeDeleteRequest(), { params })
     expect(res.status).toBe(400)
   })
 })

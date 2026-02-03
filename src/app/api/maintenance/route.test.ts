@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/maintenance
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -105,13 +102,13 @@ beforeEach(() => {
 describe('GET /api/maintenance', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/maintenance') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/maintenance') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance'))
     expect(res.status).toBe(403)
   })
 
@@ -121,7 +118,7 @@ describe('GET /api/maintenance', () => {
       { id: 'maint-2', category: 'electrical', status: 'in_progress', priority: 'urgent' },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/maintenance') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -131,7 +128,7 @@ describe('GET /api/maintenance', () => {
   it('returns empty list when no maintenance requests', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/maintenance') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -141,7 +138,7 @@ describe('GET /api/maintenance', () => {
   it('supports status filter', async () => {
     mockData = [{ id: 'maint-1', status: 'reported' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/maintenance?status=reported') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?status=reported'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -150,7 +147,7 @@ describe('GET /api/maintenance', () => {
   it('supports in_progress status filter', async () => {
     mockData = [{ id: 'maint-1', status: 'in_progress' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/maintenance?status=in_progress') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?status=in_progress'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -159,7 +156,7 @@ describe('GET /api/maintenance', () => {
   it('supports priority filter', async () => {
     mockData = [{ id: 'maint-1', priority: 'urgent' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/maintenance?priority=urgent') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?priority=urgent'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -168,7 +165,7 @@ describe('GET /api/maintenance', () => {
   it('supports unit_id filter', async () => {
     mockData = [{ id: 'maint-1', unit_id: 'unit-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/maintenance?unit_id=unit-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?unit_id=unit-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -177,7 +174,7 @@ describe('GET /api/maintenance', () => {
   it('supports combined status and priority filters', async () => {
     mockData = [{ id: 'maint-1', status: 'assigned', priority: 'high' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/maintenance?status=assigned&priority=high') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?status=assigned&priority=high'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -186,7 +183,7 @@ describe('GET /api/maintenance', () => {
   it('supports combined status, priority and unit_id filters', async () => {
     mockData = [{ id: 'maint-1', status: 'completed', priority: 'low', unit_id: 'unit-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/maintenance?status=completed&priority=low&unit_id=unit-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?status=completed&priority=low&unit_id=unit-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -195,7 +192,7 @@ describe('GET /api/maintenance', () => {
   it('ignores invalid status filter values', async () => {
     mockData = [{ id: 'maint-1' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/maintenance?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -204,7 +201,7 @@ describe('GET /api/maintenance', () => {
   it('ignores invalid priority filter values', async () => {
     mockData = [{ id: 'maint-1' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/maintenance?priority=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?priority=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -213,7 +210,7 @@ describe('GET /api/maintenance', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'maint-30' }]
     mockDataCount = 120
-    const res = await GET(makeRequest('http://localhost/api/maintenance?limit=10&offset=30') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance?limit=10&offset=30'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(120)
@@ -221,7 +218,7 @@ describe('GET /api/maintenance', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/maintenance') as never)
+    const res = await GET(makeRequest('http://localhost/api/maintenance'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -238,18 +235,18 @@ describe('POST /api/maintenance', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/maintenance', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/maintenance', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/maintenance', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/maintenance', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a maintenance request with required fields only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/maintenance', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/maintenance', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -273,7 +270,7 @@ describe('POST /api/maintenance', () => {
       category: 'electrical',
       priority: 'urgent',
       estimated_cost: 500,
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.category).toBe('electrical')
@@ -282,14 +279,14 @@ describe('POST /api/maintenance', () => {
   })
 
   it('returns 400 when description is missing', async () => {
-    const res = await POST(makeRequest('http://localhost/api/maintenance', {}) as never)
+    const res = await POST(makeRequest('http://localhost/api/maintenance', {}))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when description is empty', async () => {
     const res = await POST(makeRequest('http://localhost/api/maintenance', {
       description: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -297,7 +294,7 @@ describe('POST /api/maintenance', () => {
     const res = await POST(makeRequest('http://localhost/api/maintenance', {
       description: 'Some issue',
       category: 'invalid_category',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -305,7 +302,7 @@ describe('POST /api/maintenance', () => {
     const res = await POST(makeRequest('http://localhost/api/maintenance', {
       description: 'Some issue',
       priority: 'invalid_priority',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -313,24 +310,24 @@ describe('POST /api/maintenance', () => {
     const res = await POST(makeRequest('http://localhost/api/maintenance', {
       description: 'Some issue',
       estimated_cost: -50,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/maintenance', {
+    const req = createTestRequest('http://localhost/api/maintenance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'DB insert error' }
-    const res = await POST(makeRequest('http://localhost/api/maintenance', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/maintenance', validBody))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('DB insert error')

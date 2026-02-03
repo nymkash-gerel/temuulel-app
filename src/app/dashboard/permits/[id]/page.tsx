@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -48,7 +48,7 @@ function formatPrice(amount: number) {
 export default function PermitDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const permitId = params.id as string
 
   const [permit, setPermit] = useState<Permit | null>(null)
@@ -60,45 +60,45 @@ export default function PermitDetailPage() {
   const [conditions, setConditions] = useState('')
   const [notes, setNotes] = useState('')
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+  const loadPermit = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+    const { data: store } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('owner_id', user.id)
+      .single()
 
-      if (!store) { router.push('/dashboard'); return }
+    if (!store) { router.push('/dashboard'); return }
 
-      const res = await fetch(`/api/permits/${permitId}`)
-      if (!res.ok) {
-        router.push('/dashboard/permits')
-        return
-      }
-
-      const data = await res.json()
-      setPermit(data)
-      setConditions(data.conditions || '')
-      setNotes(data.notes || '')
-
-      // Fetch project name
-      if (data.project_id) {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('name')
-          .eq('id', data.project_id)
-          .single()
-        if (project) setProjectName(project.name)
-      }
-
-      setLoading(false)
+    const res = await fetch(`/api/permits/${permitId}`)
+    if (!res.ok) {
+      router.push('/dashboard/permits')
+      return
     }
-    load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permitId])
+
+    const data = await res.json()
+    setPermit(data)
+    setConditions(data.conditions || '')
+    setNotes(data.notes || '')
+
+    // Fetch project name
+    if (data.project_id) {
+      const { data: project } = await supabase
+        .from('projects')
+        .select('name')
+        .eq('id', data.project_id)
+        .single()
+      if (project) setProjectName(project.name)
+    }
+
+    setLoading(false)
+  }, [supabase, router, permitId])
+
+  useEffect(() => {
+    loadPermit()
+  }, [loadPermit])
 
   async function handleStatusChange(newStatus: string) {
     if (!permit) return

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import dynamic from 'next/dynamic'
@@ -49,7 +49,7 @@ const STATUS_COLORS: Record<string, string> = {
 const UB_CENTER: [number, number] = [47.9184, 106.9177]
 
 export default function DeliveryMapPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [drivers, setDrivers] = useState<DriverLocation[]>([])
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState('')
@@ -73,28 +73,7 @@ export default function DeliveryMapPage() {
     }
   }, [])
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
-
-      if (!store) return
-      setStoreId(store.id)
-
-      await fetchDrivers(store.id)
-      setLoading(false)
-    }
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase])
-
-  async function fetchDrivers(sid: string) {
+  const fetchDrivers = useCallback(async (sid: string) => {
     const { data: driverRows } = await supabase
       .from('delivery_drivers')
       .select('id, name, phone, vehicle_type, status, current_location')
@@ -124,7 +103,27 @@ export default function DeliveryMapPage() {
     )
 
     setDrivers(enriched)
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: store } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single()
+
+      if (!store) return
+      setStoreId(store.id)
+
+      await fetchDrivers(store.id)
+      setLoading(false)
+    }
+    load()
+  }, [supabase, fetchDrivers])
 
   // Supabase Realtime subscription for driver location updates
   useEffect(() => {

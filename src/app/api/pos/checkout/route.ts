@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { createRequestLogger } from '@/lib/logger'
+import { withSpan, addBreadcrumb } from '@/lib/sentry-helpers'
 import { z } from 'zod'
 
 const posCheckoutSchema = z.object({
@@ -28,6 +31,9 @@ const posCheckoutSchema = z.object({
  * the POS session totals.
  */
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 20, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -44,6 +50,13 @@ export async function POST(request: NextRequest) {
   if (!store) {
     return NextResponse.json({ error: 'Store not found' }, { status: 403 })
   }
+
+  const log = createRequestLogger(crypto.randomUUID(), '/api/pos/checkout', {
+    userId: user.id,
+    storeId: store.id,
+  })
+
+  return withSpan('pos.checkout', 'pos.transaction', async () => {
 
   let body: z.infer<typeof posCheckoutSchema>
   try {
@@ -138,8 +151,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
+  void addBreadcrumb('pos.checkout', 'Order created', {
+    orderNumber,
+    total_amount,
+    item_count: body.items.length,
+    payment_method: body.payment_method,
+  })
+  log.info('POS checkout complete', { orderNumber, total_amount, item_count: body.items.length })
+
   return NextResponse.json(
     { ...order, items: insertedItems },
     { status: 201 }
   )
+
+  }) // end withSpan
 }

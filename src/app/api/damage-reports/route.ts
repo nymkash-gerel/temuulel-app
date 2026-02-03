@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createDamageReportSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/damage-reports
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       description: body.description,
       damage_type: body.damage_type || undefined,
       estimated_cost: body.estimated_cost || null,
-      photos: (body.photos || []) as unknown as Json,
+      photos: toJson(body.photos || []),
     })
     .select(`
       id, reservation_id, unit_id, guest_id, description, damage_type, estimated_cost, charged_amount, photos, status,

@@ -68,4 +68,17 @@ describe('createRequestLogger', () => {
     expect(output).toContain('slow query')
     expect(output).toContain('500')
   })
+
+  it('accepts optional options parameter with userId and storeId', () => {
+    const spy = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const reqLogger = createRequestLogger('req-789', '/api/pos/checkout', {
+      userId: 'user-001',
+      storeId: 'store-001',
+    })
+    reqLogger.info('checkout started')
+    expect(spy).toHaveBeenCalledTimes(1)
+    const output = spy.mock.calls[0][0]
+    expect(output).toContain('checkout started')
+    expect(output).toContain('req-789')
+  })
 })

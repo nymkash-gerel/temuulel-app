@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -96,7 +96,7 @@ export default function EventBookingDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [booking, setBooking] = useState<EventBooking | null>(null)
@@ -106,12 +106,7 @@ export default function EventBookingDetailPage() {
   const [setupNotes, setSetupNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadBooking()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadBooking() {
+  const loadBooking = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -139,7 +134,11 @@ export default function EventBookingDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, supabase, router])
+
+  useEffect(() => {
+    loadBooking()
+  }, [loadBooking])
 
   async function updateBooking(updates: Record<string, unknown>) {
     if (!booking) return

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface PackageService {
@@ -44,12 +44,7 @@ export default function PackageDetailPage() {
   const [formValidDays, setFormValidDays] = useState('')
   const [formIsActive, setFormIsActive] = useState(true)
 
-  useEffect(() => {
-    loadPackage()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadPackage() {
+  const loadPackage = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/packages/${id}`)
@@ -65,7 +60,11 @@ export default function PackageDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadPackage()
+  }, [loadPackage])
 
   async function handleSave() {
     setSaving(true)

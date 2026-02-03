@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Unit {
@@ -53,12 +53,7 @@ export default function UnitDetailPage() {
   const [formAmenities, setFormAmenities] = useState('')
   const [formStatus, setFormStatus] = useState('available')
 
-  useEffect(() => {
-    loadUnit()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadUnit() {
+  const loadUnit = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/units/${id}`)
@@ -75,7 +70,11 @@ export default function UnitDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadUnit()
+  }, [loadUnit])
 
   async function handleSave() {
     setSaving(true)

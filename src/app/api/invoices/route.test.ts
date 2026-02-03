@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/invoices
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -32,15 +33,11 @@ vi.mock('@/lib/billing', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -111,13 +108,13 @@ beforeEach(() => {
 describe('GET /api/invoices', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/invoices') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/invoices') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices'))
     expect(res.status).toBe(403)
   })
 
@@ -126,7 +123,7 @@ describe('GET /api/invoices', () => {
       { id: 'inv-1', invoice_number: 'INV-001', status: 'draft', total_amount: 50000 },
     ]
     mockInvoicesCount = 1
-    const res = await GET(makeRequest('http://localhost/api/invoices') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -136,7 +133,7 @@ describe('GET /api/invoices', () => {
   it('returns empty list when no invoices', async () => {
     mockInvoices = []
     mockInvoicesCount = 0
-    const res = await GET(makeRequest('http://localhost/api/invoices') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -146,7 +143,7 @@ describe('GET /api/invoices', () => {
   it('supports status filter', async () => {
     mockInvoices = [{ id: 'inv-1', status: 'paid' }]
     mockInvoicesCount = 1
-    const res = await GET(makeRequest('http://localhost/api/invoices?status=paid') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices?status=paid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -155,7 +152,7 @@ describe('GET /api/invoices', () => {
   it('supports party_type filter', async () => {
     mockInvoices = [{ id: 'inv-2', party_type: 'customer' }]
     mockInvoicesCount = 1
-    const res = await GET(makeRequest('http://localhost/api/invoices?party_type=customer') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices?party_type=customer'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -164,7 +161,7 @@ describe('GET /api/invoices', () => {
   it('supports party_id filter', async () => {
     mockInvoices = [{ id: 'inv-3', party_id: 'cust-001' }]
     mockInvoicesCount = 1
-    const res = await GET(makeRequest('http://localhost/api/invoices?party_id=cust-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices?party_id=cust-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -173,7 +170,7 @@ describe('GET /api/invoices', () => {
   it('supports pagination parameters', async () => {
     mockInvoices = [{ id: 'inv-4' }]
     mockInvoicesCount = 50
-    const res = await GET(makeRequest('http://localhost/api/invoices?limit=10&offset=20') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices?limit=10&offset=20'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(50)
@@ -182,7 +179,7 @@ describe('GET /api/invoices', () => {
   it('ignores invalid status filter values', async () => {
     mockInvoices = []
     mockInvoicesCount = 0
-    const res = await GET(makeRequest('http://localhost/api/invoices?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -190,7 +187,7 @@ describe('GET /api/invoices', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/invoices') as never)
+    const res = await GET(makeRequest('http://localhost/api/invoices'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -210,18 +207,18 @@ describe('POST /api/invoices', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/invoices', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/invoices', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/invoices', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/invoices', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates an invoice with minimal fields', async () => {
-    const res = await POST(makeRequest('http://localhost/api/invoices', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/invoices', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -241,14 +238,14 @@ describe('POST /api/invoices', () => {
       notes: 'Test invoice',
       tax_rate: 10,
       discount_amount: 1000,
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when party_type is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/invoices', {
       items: [{ description: 'Item', quantity: 1, unit_price: 1000 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -256,14 +253,14 @@ describe('POST /api/invoices', () => {
     const res = await POST(makeRequest('http://localhost/api/invoices', {
       party_type: 'customer',
       items: [],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when items are missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/invoices', {
       party_type: 'customer',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -271,7 +268,7 @@ describe('POST /api/invoices', () => {
     const res = await POST(makeRequest('http://localhost/api/invoices', {
       party_type: 'invalid',
       items: [{ description: 'Item', quantity: 1, unit_price: 1000 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -279,7 +276,7 @@ describe('POST /api/invoices', () => {
     const res = await POST(makeRequest('http://localhost/api/invoices', {
       party_type: 'customer',
       items: [{ quantity: 1, unit_price: 1000 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -287,7 +284,7 @@ describe('POST /api/invoices', () => {
     const res = await POST(makeRequest('http://localhost/api/invoices', {
       party_type: 'customer',
       items: [{ description: 'Item', quantity: 1 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -296,26 +293,26 @@ describe('POST /api/invoices', () => {
       party_type: 'customer',
       items: [{ description: 'Item', quantity: 1, unit_price: 1000 }],
       due_date: '01/03/2026',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 500 when createInvoice fails', async () => {
     mockCreatedInvoice = null
     mockCreateError = 'Database insert failed'
-    const res = await POST(makeRequest('http://localhost/api/invoices', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/invoices', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Database insert failed')
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/invoices', {
+    const req = createTestRequest('http://localhost/api/invoices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
@@ -324,7 +321,7 @@ describe('POST /api/invoices', () => {
       const res = await POST(makeRequest('http://localhost/api/invoices', {
         party_type: ptype,
         items: [{ description: 'Item', quantity: 1, unit_price: 1000 }],
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
@@ -335,7 +332,7 @@ describe('POST /api/invoices', () => {
         party_type: 'customer',
         source_type: stype,
         items: [{ description: 'Item', quantity: 1, unit_price: 1000 }],
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })

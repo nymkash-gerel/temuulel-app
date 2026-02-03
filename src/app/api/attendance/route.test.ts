@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/attendance
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn(() => ({ success: true, limit: 60, remaining: 59, resetAt: Date.now() + 60000 })),
@@ -30,15 +31,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -112,7 +109,7 @@ beforeEach(() => {
 describe('GET /api/attendance', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/attendance') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance'))
     expect(res.status).toBe(401)
     const json = await res.json()
     expect(json.error).toBe('Unauthorized')
@@ -120,7 +117,7 @@ describe('GET /api/attendance', () => {
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/attendance') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance'))
     expect(res.status).toBe(403)
     const json = await res.json()
     expect(json.error).toBe('Store not found')
@@ -138,7 +135,7 @@ describe('GET /api/attendance', () => {
       },
     ]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/attendance') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -148,7 +145,7 @@ describe('GET /api/attendance', () => {
   it('returns empty list when no records', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/attendance') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -158,7 +155,7 @@ describe('GET /api/attendance', () => {
   it('supports session_id filter', async () => {
     mockData = [{ id: 'att-1', session_id: 'sess-1' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/attendance?session_id=sess-1') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance?session_id=sess-1'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -167,7 +164,7 @@ describe('GET /api/attendance', () => {
   it('supports student_id filter', async () => {
     mockData = [{ id: 'att-1', student_id: 's-1' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/attendance?student_id=s-1') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance?student_id=s-1'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -176,7 +173,7 @@ describe('GET /api/attendance', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'att-5' }]
     mockDataCount = 200
-    const res = await GET(makeRequest('http://localhost/api/attendance?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(200)
@@ -185,7 +182,7 @@ describe('GET /api/attendance', () => {
   it('supports combined filters', async () => {
     mockData = [{ id: 'att-1', session_id: 'sess-1', student_id: 's-1' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/attendance?session_id=sess-1&student_id=s-1') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance?session_id=sess-1&student_id=s-1'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -193,7 +190,7 @@ describe('GET /api/attendance', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/attendance') as never)
+    const res = await GET(makeRequest('http://localhost/api/attendance'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -211,18 +208,18 @@ describe('POST /api/attendance', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/attendance', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/attendance', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/attendance', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/attendance', validBody))
     expect(res.status).toBe(403)
   })
 
   it('records attendance with minimal data (defaults to present)', async () => {
-    const res = await POST(makeRequest('http://localhost/api/attendance', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/attendance', validBody))
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json.id).toBeDefined()
@@ -235,7 +232,7 @@ describe('POST /api/attendance', () => {
       status: 'late',
       notes: 'Arrived 10 minutes late',
     }
-    const res = await POST(makeRequest('http://localhost/api/attendance', fullBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/attendance', fullBody))
     expect(res.status).toBe(201)
   })
 
@@ -243,7 +240,7 @@ describe('POST /api/attendance', () => {
     const res = await POST(makeRequest('http://localhost/api/attendance', {
       ...validBody,
       status: 'present',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
@@ -251,7 +248,7 @@ describe('POST /api/attendance', () => {
     const res = await POST(makeRequest('http://localhost/api/attendance', {
       ...validBody,
       status: 'absent',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
@@ -259,21 +256,21 @@ describe('POST /api/attendance', () => {
     const res = await POST(makeRequest('http://localhost/api/attendance', {
       ...validBody,
       status: 'excused',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when session_id is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/attendance', {
       student_id: 'b0000000-0000-4000-8000-000000000002',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when student_id is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/attendance', {
       session_id: 'a0000000-0000-4000-8000-000000000001',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -281,7 +278,7 @@ describe('POST /api/attendance', () => {
     const res = await POST(makeRequest('http://localhost/api/attendance', {
       session_id: 'not-a-uuid',
       student_id: 'b0000000-0000-4000-8000-000000000002',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -289,7 +286,7 @@ describe('POST /api/attendance', () => {
     const res = await POST(makeRequest('http://localhost/api/attendance', {
       session_id: 'a0000000-0000-4000-8000-000000000001',
       student_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -298,31 +295,31 @@ describe('POST /api/attendance', () => {
       session_id: 'a0000000-0000-4000-8000-000000000001',
       student_id: 'b0000000-0000-4000-8000-000000000002',
       status: 'invalid_status',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when body is empty', async () => {
-    const res = await POST(makeRequest('http://localhost/api/attendance', {}) as never)
+    const res = await POST(makeRequest('http://localhost/api/attendance', {}))
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database upsert error', async () => {
     mockUpsertError = { message: 'Upsert failed' }
     mockUpsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/attendance', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/attendance', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Upsert failed')
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/attendance', {
+    const req = createTestRequest('http://localhost/api/attendance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 })

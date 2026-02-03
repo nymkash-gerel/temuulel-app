@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -38,7 +38,7 @@ const PAYMENT_TERMS_OPTIONS = [
 
 export default function SuppliersPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -56,7 +56,7 @@ export default function SuppliersPage() {
     payment_terms: 'net_30',
   })
 
-  async function loadSuppliers(sid: string) {
+  const loadSuppliers = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('suppliers')
       .select('*')
@@ -66,7 +66,7 @@ export default function SuppliersPage() {
     if (data) {
       setSuppliers(data as unknown as SupplierRow[])
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function init() {
@@ -86,8 +86,7 @@ export default function SuppliersPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadSuppliers])
 
   const stats = useMemo(() => {
     const total = suppliers.length

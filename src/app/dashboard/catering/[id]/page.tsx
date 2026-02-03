@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -79,7 +79,7 @@ export default function CateringOrderDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [order, setOrder] = useState<CateringOrder | null>(null)
@@ -88,12 +88,7 @@ export default function CateringOrderDetailPage() {
   const [logisticsNotes, setLogisticsNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadOrder()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadOrder() {
+  const loadOrder = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -120,7 +115,11 @@ export default function CateringOrderDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, supabase, router])
+
+  useEffect(() => {
+    loadOrder()
+  }, [loadOrder])
 
   async function updateOrder(updates: Record<string, unknown>) {
     if (!order) return

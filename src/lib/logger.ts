@@ -70,7 +70,7 @@ export const logger = {
     console.error(formatLog('error', message, errorContext))
 
     // Report to Sentry if configured
-    reportToSentry(error, message, context)
+    void reportToSentry(error, message, context)
   },
 }
 
@@ -80,14 +80,13 @@ export const logger = {
  * Sentry is loaded lazily to avoid importing it when not configured.
  * Set SENTRY_DSN environment variable to enable reporting.
  */
-function reportToSentry(error: unknown, message: string, context?: LogContext) {
+async function reportToSentry(error: unknown, message: string, context?: LogContext) {
   const dsn = process.env.SENTRY_DSN
   if (!dsn) return
 
   // Lazy import — Sentry is optional and won't crash if not installed
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Sentry = require('@sentry/nextjs')
+    const Sentry = await import('@sentry/nextjs')
     if (error instanceof Error) {
       Sentry.captureException(error, { extra: { message, ...context } })
     } else {
@@ -99,16 +98,63 @@ function reportToSentry(error: unknown, message: string, context?: LogContext) {
 }
 
 /**
+ * Optional enrichment context for request-scoped logging and Sentry scope.
+ */
+interface RequestLoggerOptions {
+  userId?: string
+  storeId?: string
+  [key: string]: unknown
+}
+
+/**
  * Create a child logger with pre-set context fields.
  * Useful for request-scoped logging.
+ *
+ * When `options` is provided, Sentry scope is also enriched with
+ * requestId, route, userId, and storeId tags.
  */
-export function createRequestLogger(requestId: string, route: string) {
-  const baseContext: LogContext = { requestId, route }
+export function createRequestLogger(
+  requestId: string,
+  route: string,
+  options?: RequestLoggerOptions,
+) {
+  const baseContext: LogContext = { requestId, route, ...options }
+
+  // Set Sentry scope (lazy, fire-and-forget)
+  void setSentryScope(requestId, route, options)
 
   return {
     debug(msg: string, ctx?: LogContext) { logger.debug(msg, { ...baseContext, ...ctx }) },
     info(msg: string, ctx?: LogContext) { logger.info(msg, { ...baseContext, ...ctx }) },
     warn(msg: string, ctx?: LogContext) { logger.warn(msg, { ...baseContext, ...ctx }) },
     error(msg: string, err?: unknown, ctx?: LogContext) { logger.error(msg, err, { ...baseContext, ...ctx }) },
+  }
+}
+
+/**
+ * Set Sentry scope tags for the current request.
+ * Lazy import — only runs when SENTRY_DSN is configured.
+ */
+async function setSentryScope(
+  requestId: string,
+  route: string,
+  options?: RequestLoggerOptions,
+) {
+  const dsn = process.env.SENTRY_DSN
+  if (!dsn) return
+
+  try {
+    const Sentry = await import('@sentry/nextjs')
+    Sentry.setTag('requestId', requestId)
+    Sentry.setTag('route', route)
+    if (options?.userId) {
+      Sentry.setUser({ id: options.userId })
+      Sentry.setTag('userId', options.userId)
+    }
+    if (options?.storeId) {
+      Sentry.setTag('storeId', options.storeId)
+    }
+  } catch {
+    // Sentry not available — fine
   }
 }

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createPatientSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/patients
@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
       blood_type: body.blood_type || null,
       phone: body.phone || null,
       email: body.email || null,
-      emergency_contact: (body.emergency_contact || {}) as unknown as Json,
+      emergency_contact: toJson(body.emergency_contact || {}),
       allergies: body.allergies || [],
-      insurance_info: (body.insurance_info || {}) as unknown as Json,
+      insurance_info: toJson(body.insurance_info || {}),
     })
     .select(`
       id, first_name, last_name, date_of_birth, gender, blood_type, phone, email, allergies, created_at, updated_at

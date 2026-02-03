@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
@@ -52,7 +52,7 @@ export default function NotificationBell() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const ref = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -146,8 +146,7 @@ export default function NotificationBell() {
     return () => {
       supabase.removeChannel(channel)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId])
+  }, [storeId, supabase, soundEnabled])
 
   // Register service worker and subscribe to push notifications
   useEffect(() => {

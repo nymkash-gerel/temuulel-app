@@ -1,0 +1,5 @@
+import { ListPageSkeleton } from '@/components/skeletons'
+
+export default function RepairOrdersLoading() {
+  return <ListPageSkeleton />
+}

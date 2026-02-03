@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
@@ -36,7 +36,7 @@ function formatPrice(amount: number) {
 
 export default function MaterialsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [materials, setMaterials] = useState<MaterialOrder[]>([])
@@ -55,7 +55,7 @@ export default function MaterialsPage() {
   const [formTotalCost, setFormTotalCost] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  async function loadMaterials() {
+  const loadMaterials = useCallback(async () => {
     const params = new URLSearchParams({ limit: '200' })
     if (statusFilter) params.set('status', statusFilter)
     if (projectFilter) params.set('project_id', projectFilter)
@@ -66,7 +66,7 @@ export default function MaterialsPage() {
       setMaterials(json.data || [])
       setTotalCount(json.total ?? (json.data?.length || 0))
     }
-  }
+  }, [statusFilter, projectFilter])
 
   useEffect(() => {
     async function init() {
@@ -90,14 +90,13 @@ export default function MaterialsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadMaterials])
 
   useEffect(() => {
     if (loading) return
-    loadMaterials()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, projectFilter])
+    const reload = async () => { await loadMaterials() }
+    reload()
+  }, [loading, statusFilter, projectFilter, loadMaterials])
 
   const kpis = useMemo(() => {
     const total = materials.length

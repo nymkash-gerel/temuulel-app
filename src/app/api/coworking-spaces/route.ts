@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createCoworkingSpaceSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/coworking-spaces
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       hourly_rate: body.hourly_rate || null,
       daily_rate: body.daily_rate || null,
       monthly_rate: body.monthly_rate || null,
-      amenities: (body.amenities || []) as unknown as Json,
+      amenities: toJson(body.amenities || []),
       is_active: body.is_active ?? true,
     })
     .select(`

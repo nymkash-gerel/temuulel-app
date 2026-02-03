@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Membership {
@@ -42,12 +42,7 @@ export default function MembershipDetailPage() {
   const [formPeriod, setFormPeriod] = useState('monthly')
   const [formIsActive, setFormIsActive] = useState(true)
 
-  useEffect(() => {
-    loadMembership()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadMembership() {
+  const loadMembership = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/memberships/${id}`)
@@ -62,7 +57,11 @@ export default function MembershipDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadMembership()
+  }, [loadMembership])
 
   async function handleSave() {
     setSaving(true)

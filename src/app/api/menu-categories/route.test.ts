@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/menu-categories
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -100,13 +97,13 @@ beforeEach(() => {
 describe('GET /api/menu-categories', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/menu-categories') as never)
+    const res = await GET(makeRequest('http://localhost/api/menu-categories'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/menu-categories') as never)
+    const res = await GET(makeRequest('http://localhost/api/menu-categories'))
     expect(res.status).toBe(403)
   })
 
@@ -116,7 +113,7 @@ describe('GET /api/menu-categories', () => {
       { id: 'cat-2', name: 'Main Course', sort_order: 1, is_active: true },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/menu-categories') as never)
+    const res = await GET(makeRequest('http://localhost/api/menu-categories'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -126,7 +123,7 @@ describe('GET /api/menu-categories', () => {
   it('returns empty list when no categories exist', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/menu-categories') as never)
+    const res = await GET(makeRequest('http://localhost/api/menu-categories'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -136,7 +133,7 @@ describe('GET /api/menu-categories', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'cat-3', name: 'Desserts' }]
     mockDataCount = 50
-    const res = await GET(makeRequest('http://localhost/api/menu-categories?limit=10&offset=20') as never)
+    const res = await GET(makeRequest('http://localhost/api/menu-categories?limit=10&offset=20'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(50)
@@ -144,7 +141,7 @@ describe('GET /api/menu-categories', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/menu-categories') as never)
+    const res = await GET(makeRequest('http://localhost/api/menu-categories'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -164,18 +161,18 @@ describe('POST /api/menu-categories', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/menu-categories', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/menu-categories', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/menu-categories', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/menu-categories', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a menu category with required fields only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/menu-categories', { name: 'Drinks' }) as never)
+    const res = await POST(makeRequest('http://localhost/api/menu-categories', { name: 'Drinks' }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -200,7 +197,7 @@ describe('POST /api/menu-categories', () => {
       is_active: true,
       available_from: '11:00',
       available_until: '14:00',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.name).toBe('Lunch Specials')
@@ -211,21 +208,21 @@ describe('POST /api/menu-categories', () => {
   it('returns 400 when name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/menu-categories', {
       description: 'No name provided',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when name is empty string', async () => {
     const res = await POST(makeRequest('http://localhost/api/menu-categories', {
       name: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when name is whitespace only', async () => {
     const res = await POST(makeRequest('http://localhost/api/menu-categories', {
       name: '   ',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -233,7 +230,7 @@ describe('POST /api/menu-categories', () => {
     const res = await POST(makeRequest('http://localhost/api/menu-categories', {
       name: 'Brunch',
       available_from: 'not-a-time',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -241,7 +238,7 @@ describe('POST /api/menu-categories', () => {
     const res = await POST(makeRequest('http://localhost/api/menu-categories', {
       name: 'Brunch',
       available_until: 'bad-time',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -249,24 +246,24 @@ describe('POST /api/menu-categories', () => {
     const res = await POST(makeRequest('http://localhost/api/menu-categories', {
       name: 'Snacks',
       sort_order: 'not-a-number',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/menu-categories', {
+    const req = createTestRequest('http://localhost/api/menu-categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'DB error' }
-    const res = await POST(makeRequest('http://localhost/api/menu-categories', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/menu-categories', validBody))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('DB error')

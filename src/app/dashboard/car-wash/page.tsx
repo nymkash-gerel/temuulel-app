@@ -68,7 +68,7 @@ function getVehicleDisplay(order: WashOrder): string {
 
 export default function CarWashPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [orders, setOrders] = useState<WashOrder[]>([])
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -113,8 +113,7 @@ export default function CarWashPage() {
     if (data) {
       setVehicles(data)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId])
+  }, [storeId, supabase])
 
   useEffect(() => {
     async function init() {
@@ -133,8 +132,7 @@ export default function CarWashPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router])
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
   useEffect(() => { fetchVehicles() }, [fetchVehicles])

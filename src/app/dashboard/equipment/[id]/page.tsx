@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Equipment {
@@ -56,12 +56,7 @@ export default function EquipmentDetailPage() {
   const [formNextMaint, setFormNextMaint] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  useEffect(() => {
-    loadEquipment()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadEquipment() {
+  const loadEquipment = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/equipment/${id}`)
@@ -80,7 +75,11 @@ export default function EquipmentDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadEquipment()
+  }, [loadEquipment])
 
   async function handleSave() {
     setSaving(true)

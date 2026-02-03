@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody } from '@/lib/validations'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { z } from 'zod'
 
 const generatePayoutSchema = z.object({
@@ -16,6 +17,9 @@ const generatePayoutSchema = z.object({
  * Groups by driver, sums delivery_fee, counts deliveries.
  */
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 5, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

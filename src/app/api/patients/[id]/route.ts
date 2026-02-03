@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, updatePatientSchema } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -83,9 +83,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (body.blood_type !== undefined) updateData.blood_type = body.blood_type
   if (body.phone !== undefined) updateData.phone = body.phone
   if (body.email !== undefined) updateData.email = body.email
-  if (body.emergency_contact !== undefined) updateData.emergency_contact = body.emergency_contact as unknown as Json
+  if (body.emergency_contact !== undefined) updateData.emergency_contact = toJson(body.emergency_contact)
   if (body.allergies !== undefined) updateData.allergies = body.allergies
-  if (body.insurance_info !== undefined) updateData.insurance_info = body.insurance_info as unknown as Json
+  if (body.insurance_info !== undefined) updateData.insurance_info = toJson(body.insurance_info)
 
   const { data: patient, error } = await supabase
     .from('patients')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -75,7 +75,7 @@ function renderSkeletonRows(): React.ReactNode {
 }
 
 export default function GuestsPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
   const [loading, setLoading] = useState<boolean>(true)
@@ -86,7 +86,7 @@ export default function GuestsPage() {
   const [totalCount, setTotalCount] = useState<number>(0)
   const [error, setError] = useState<string>('')
 
-  async function loadGuests(sid: string, searchTerm: string, pageNum: number): Promise<void> {
+  const loadGuests = useCallback(async (sid: string, searchTerm: string, pageNum: number): Promise<void> => {
     const from = pageNum * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
@@ -119,7 +119,7 @@ export default function GuestsPage() {
     if (count !== null && count !== undefined) {
       setTotalCount(count)
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function init(): Promise<void> {
@@ -139,24 +139,23 @@ export default function GuestsPage() {
       setLoading(false)
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadGuests])
 
   useEffect(() => {
     if (!storeId || loading) return
     const timeout = setTimeout(() => {
       setPage(0)
-      loadGuests(storeId, search, 0)
+      const reload = async () => { await loadGuests(storeId, search, 0) }
+      reload()
     }, 300)
     return () => clearTimeout(timeout)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
+  }, [search, storeId, loading, loadGuests])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadGuests(storeId, search, page)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
+    const reload = async () => { await loadGuests(storeId, search, page) }
+    reload()
+  }, [page, storeId, loading, search, loadGuests])
 
   const totalPages: number = Math.ceil(totalCount / PAGE_SIZE)
 

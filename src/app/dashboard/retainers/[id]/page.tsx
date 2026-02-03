@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -55,7 +55,7 @@ function formatDateTime(dateStr: string | null): string {
 export default function RetainerDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const retainerId = params.id as string
 
   const [retainer, setRetainer] = useState<Retainer | null>(null)
@@ -65,7 +65,7 @@ export default function RetainerDetailPage() {
   const [editNotes, setEditNotes] = useState('')
   const [editStatus, setEditStatus] = useState('')
 
-  async function loadRetainer() {
+  const loadRetainer = useCallback(async () => {
     try {
       const res = await fetch(`/api/retainers/${retainerId}`)
       if (res.ok) {
@@ -80,7 +80,7 @@ export default function RetainerDetailPage() {
       return
     }
     setLoading(false)
-  }
+  }, [retainerId, router])
 
   useEffect(() => {
     async function init() {
@@ -98,8 +98,7 @@ export default function RetainerDetailPage() {
       await loadRetainer()
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retainerId])
+  }, [supabase, router, loadRetainer])
 
   function startEdit() {
     if (!retainer) return

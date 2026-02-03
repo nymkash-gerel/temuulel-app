@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -42,7 +42,7 @@ interface StaffMember {
 
 export default function ClientProfilesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [profiles, setProfiles] = useState<ClientProfile[]>([])
@@ -53,7 +53,7 @@ export default function ClientProfilesPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  async function loadProfiles(sid: string) {
+  const loadProfiles = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('client_preferences')
       .select(`
@@ -68,7 +68,7 @@ export default function ClientProfilesPage() {
     if (data) {
       setProfiles(data as unknown as ClientProfile[])
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function load() {
@@ -94,8 +94,7 @@ export default function ClientProfilesPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadProfiles])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return profiles

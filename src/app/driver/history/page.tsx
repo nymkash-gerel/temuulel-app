@@ -49,8 +49,7 @@ export default function DriverHistoryPage() {
 
   useEffect(() => {
     fetchHistory()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [fetchHistory])
 
   if (loading) {
     return (

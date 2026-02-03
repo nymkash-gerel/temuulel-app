@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -40,7 +40,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 export default function TableReservationsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [reservations, setReservations] = useState<TableReservation[]>([])
@@ -108,8 +108,7 @@ export default function TableReservationsPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router])
 
   const filtered = useMemo(() => {
     let result = reservations

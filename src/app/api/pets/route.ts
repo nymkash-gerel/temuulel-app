@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createPetSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/pets
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       weight: body.weight || null,
       date_of_birth: body.date_of_birth || null,
       medical_notes: body.medical_notes || null,
-      vaccinations: (body.vaccinations || []) as unknown as Json,
+      vaccinations: toJson(body.vaccinations || []),
       is_active: body.is_active ?? true,
     })
     .select(`

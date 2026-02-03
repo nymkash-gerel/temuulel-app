@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Staff {
@@ -39,12 +39,7 @@ export default function StaffDetailPage() {
   const [formSpecialties, setFormSpecialties] = useState('')
   const [formStatus, setFormStatus] = useState('active')
 
-  useEffect(() => {
-    loadStaff()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadStaff() {
+  const loadStaff = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/staff/${id}`)
@@ -60,7 +55,11 @@ export default function StaffDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadStaff()
+  }, [loadStaff])
 
   async function handleSave() {
     setSaving(true)

@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/inventory/movements
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -26,15 +27,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -117,13 +114,13 @@ beforeEach(() => {
 describe('GET /api/inventory/movements', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements'))
     expect(res.status).toBe(403)
   })
 
@@ -133,7 +130,7 @@ describe('GET /api/inventory/movements', () => {
       { id: 'mov-2', movement_type: 'sold', quantity: -3 },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -143,7 +140,7 @@ describe('GET /api/inventory/movements', () => {
   it('returns empty list when no movements', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -153,7 +150,7 @@ describe('GET /api/inventory/movements', () => {
   it('supports product_id filter', async () => {
     mockData = [{ id: 'mov-1', product_id: 'prod-001', movement_type: 'received' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements?product_id=prod-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements?product_id=prod-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -162,7 +159,7 @@ describe('GET /api/inventory/movements', () => {
   it('supports movement_type filter', async () => {
     mockData = [{ id: 'mov-1', movement_type: 'sold' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements?movement_type=sold') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements?movement_type=sold'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -171,7 +168,7 @@ describe('GET /api/inventory/movements', () => {
   it('supports location_id filter', async () => {
     mockData = [{ id: 'mov-1', location_id: 'loc-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements?location_id=loc-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements?location_id=loc-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -180,7 +177,7 @@ describe('GET /api/inventory/movements', () => {
   it('supports combined filters', async () => {
     mockData = [{ id: 'mov-1', product_id: 'prod-001', movement_type: 'received', location_id: 'loc-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements?product_id=prod-001&movement_type=received&location_id=loc-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements?product_id=prod-001&movement_type=received&location_id=loc-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -189,7 +186,7 @@ describe('GET /api/inventory/movements', () => {
   it('ignores invalid movement_type filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements?movement_type=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements?movement_type=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -198,7 +195,7 @@ describe('GET /api/inventory/movements', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'mov-5' }]
     mockDataCount = 200
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements?limit=10&offset=100') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements?limit=10&offset=100'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(200)
@@ -206,7 +203,7 @@ describe('GET /api/inventory/movements', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/inventory/movements') as never)
+    const res = await GET(makeRequest('http://localhost/api/inventory/movements'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -229,18 +226,18 @@ describe('POST /api/inventory/movements', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates an inventory movement with all fields', async () => {
-    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -253,7 +250,7 @@ describe('POST /api/inventory/movements', () => {
       movement_type: 'adjusted',
       quantity: -5,
     }
-    const res = await POST(makeRequest('http://localhost/api/inventory/movements', body) as never)
+    const res = await POST(makeRequest('http://localhost/api/inventory/movements', body))
     expect(res.status).toBe(201)
   })
 
@@ -265,7 +262,7 @@ describe('POST /api/inventory/movements', () => {
       movement_type: 'transferred',
       quantity: 20,
     }
-    const res = await POST(makeRequest('http://localhost/api/inventory/movements', body) as never)
+    const res = await POST(makeRequest('http://localhost/api/inventory/movements', body))
     expect(res.status).toBe(201)
   })
 
@@ -273,7 +270,7 @@ describe('POST /api/inventory/movements', () => {
     const res = await POST(makeRequest('http://localhost/api/inventory/movements', {
       movement_type: 'received',
       quantity: 10,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -281,7 +278,7 @@ describe('POST /api/inventory/movements', () => {
     const res = await POST(makeRequest('http://localhost/api/inventory/movements', {
       product_id: 'a0000000-0000-4000-8000-000000000010',
       quantity: 10,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -289,7 +286,7 @@ describe('POST /api/inventory/movements', () => {
     const res = await POST(makeRequest('http://localhost/api/inventory/movements', {
       product_id: 'a0000000-0000-4000-8000-000000000010',
       movement_type: 'received',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -298,7 +295,7 @@ describe('POST /api/inventory/movements', () => {
       product_id: 'a0000000-0000-4000-8000-000000000010',
       movement_type: 'unknown_type',
       quantity: 10,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -307,25 +304,25 @@ describe('POST /api/inventory/movements', () => {
       product_id: 'not-a-uuid',
       movement_type: 'received',
       quantity: 10,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 404 if product not found in store', async () => {
     mockProduct = null
-    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody))
     const json = await res.json()
     expect(res.status).toBe(404)
     expect(json.error).toMatch(/Product not found/)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/inventory/movements', {
+    const req = createTestRequest('http://localhost/api/inventory/movements', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
@@ -335,7 +332,7 @@ describe('POST /api/inventory/movements', () => {
         product_id: 'a0000000-0000-4000-8000-000000000010',
         movement_type: mt,
         quantity: 1,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
@@ -343,7 +340,7 @@ describe('POST /api/inventory/movements', () => {
   it('returns 500 when database insert fails', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/inventory/movements', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')

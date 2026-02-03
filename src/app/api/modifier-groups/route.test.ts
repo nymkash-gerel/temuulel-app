@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/modifier-groups
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -28,15 +29,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -139,13 +136,13 @@ beforeEach(() => {
 describe('GET /api/modifier-groups', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/modifier-groups') as never)
+    const res = await GET(makeRequest('http://localhost/api/modifier-groups'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/modifier-groups') as never)
+    const res = await GET(makeRequest('http://localhost/api/modifier-groups'))
     expect(res.status).toBe(403)
   })
 
@@ -161,7 +158,7 @@ describe('GET /api/modifier-groups', () => {
       },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/modifier-groups') as never)
+    const res = await GET(makeRequest('http://localhost/api/modifier-groups'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -171,7 +168,7 @@ describe('GET /api/modifier-groups', () => {
   it('returns empty list when no modifier groups exist', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/modifier-groups') as never)
+    const res = await GET(makeRequest('http://localhost/api/modifier-groups'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -181,7 +178,7 @@ describe('GET /api/modifier-groups', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'mg-3', name: 'Extras' }]
     mockDataCount = 40
-    const res = await GET(makeRequest('http://localhost/api/modifier-groups?limit=5&offset=10') as never)
+    const res = await GET(makeRequest('http://localhost/api/modifier-groups?limit=5&offset=10'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(40)
@@ -189,7 +186,7 @@ describe('GET /api/modifier-groups', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/modifier-groups') as never)
+    const res = await GET(makeRequest('http://localhost/api/modifier-groups'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -210,18 +207,18 @@ describe('POST /api/modifier-groups', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/modifier-groups', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/modifier-groups', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/modifier-groups', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/modifier-groups', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a modifier group with required fields only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/modifier-groups', { name: 'Extras' }) as never)
+    const res = await POST(makeRequest('http://localhost/api/modifier-groups', { name: 'Extras' }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -236,7 +233,7 @@ describe('POST /api/modifier-groups', () => {
       max_selections: 5,
       is_required: true,
       sort_order: 2,
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
@@ -261,7 +258,7 @@ describe('POST /api/modifier-groups', () => {
         { name: 'Small', price_adjustment: 0, is_default: true, is_available: true, sort_order: 0 },
         { name: 'Large', price_adjustment: 2, is_default: false, is_available: true, sort_order: 1 },
       ],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.modifiers).toHaveLength(2)
@@ -270,14 +267,14 @@ describe('POST /api/modifier-groups', () => {
   it('returns 400 when name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/modifier-groups', {
       selection_type: 'single',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when name is empty string', async () => {
     const res = await POST(makeRequest('http://localhost/api/modifier-groups', {
       name: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -285,7 +282,7 @@ describe('POST /api/modifier-groups', () => {
     const res = await POST(makeRequest('http://localhost/api/modifier-groups', {
       name: 'Extras',
       selection_type: 'invalid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -293,7 +290,7 @@ describe('POST /api/modifier-groups', () => {
     const res = await POST(makeRequest('http://localhost/api/modifier-groups', {
       name: 'Extras',
       min_selections: -1,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -301,24 +298,24 @@ describe('POST /api/modifier-groups', () => {
     const res = await POST(makeRequest('http://localhost/api/modifier-groups', {
       name: 'Extras',
       max_selections: 0,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/modifier-groups', {
+    const req = createTestRequest('http://localhost/api/modifier-groups', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'DB error' }
-    const res = await POST(makeRequest('http://localhost/api/modifier-groups', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/modifier-groups', validBody))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('DB error')
@@ -331,7 +328,7 @@ describe('POST /api/modifier-groups', () => {
       modifiers: [
         { name: 'Small', price_adjustment: 0 },
       ],
-    }) as never)
+    }))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('Modifier insert failed')
@@ -340,7 +337,7 @@ describe('POST /api/modifier-groups', () => {
   it('returns 500 when re-fetch after insert fails', async () => {
     mockRefetchedItem = null
     mockRefetchError = { message: 'Re-fetch failed' }
-    const res = await POST(makeRequest('http://localhost/api/modifier-groups', { name: 'Extras' }) as never)
+    const res = await POST(makeRequest('http://localhost/api/modifier-groups', { name: 'Extras' }))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('Re-fetch failed')

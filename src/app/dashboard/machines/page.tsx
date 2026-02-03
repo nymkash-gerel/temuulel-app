@@ -57,7 +57,7 @@ function formatDate(dateStr: string): string {
 
 export default function MachinesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   // Data
   const [machines, setMachines] = useState<Machine[]>([])
@@ -122,15 +122,14 @@ export default function MachinesPage() {
     }
 
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, fetchMachines])
 
   // Re-fetch when filters change
   useEffect(() => {
     if (!storeId || loading) return
-    fetchMachines(storeId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter, statusFilter])
+    const reload = async () => { await fetchMachines(storeId) }
+    reload()
+  }, [typeFilter, statusFilter, fetchMachines, storeId, loading])
 
   // --------------------------------------------------
   // Derived data

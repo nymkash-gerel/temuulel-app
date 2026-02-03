@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -86,7 +86,7 @@ function formatPrice(amount: number | null) {
 
 export default function RepairOrdersPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState<RepairOrder[]>([])
@@ -117,7 +117,7 @@ export default function RepairOrdersPage() {
     assigned_to: '',
   })
 
-  async function loadOrders(sid: string) {
+  const loadOrders = useCallback(async (sid: string) => {
     let query = supabase
       .from('repair_orders')
       .select(`
@@ -145,7 +145,7 @@ export default function RepairOrdersPage() {
     if (data) {
       setOrders(data as unknown as RepairOrder[])
     }
-  }
+  }, [supabase, statusFilter, deviceTypeFilter, priorityFilter])
 
   useEffect(() => {
     async function load() {
@@ -173,14 +173,13 @@ export default function RepairOrdersPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadOrders])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadOrders(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, deviceTypeFilter, priorityFilter])
+    const reload = async () => { await loadOrders(storeId) }
+    reload()
+  }, [storeId, loading, loadOrders])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return orders

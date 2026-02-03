@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/patients
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -103,13 +100,13 @@ beforeEach(() => {
 describe('GET /api/patients', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/patients') as never)
+    const res = await GET(makeRequest('http://localhost/api/patients'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/patients') as never)
+    const res = await GET(makeRequest('http://localhost/api/patients'))
     expect(res.status).toBe(403)
   })
 
@@ -118,7 +115,7 @@ describe('GET /api/patients', () => {
       { id: 'patient-1', first_name: 'John', last_name: 'Doe', gender: 'male' },
     ]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/patients') as never)
+    const res = await GET(makeRequest('http://localhost/api/patients'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -128,7 +125,7 @@ describe('GET /api/patients', () => {
   it('returns empty list when no patients', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/patients') as never)
+    const res = await GET(makeRequest('http://localhost/api/patients'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -138,7 +135,7 @@ describe('GET /api/patients', () => {
   it('supports search filter on name', async () => {
     mockData = [{ id: 'patient-1', first_name: 'John', last_name: 'Doe' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/patients?search=John') as never)
+    const res = await GET(makeRequest('http://localhost/api/patients?search=John'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -147,7 +144,7 @@ describe('GET /api/patients', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'patient-5' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/patients?limit=10&offset=20') as never)
+    const res = await GET(makeRequest('http://localhost/api/patients?limit=10&offset=20'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -159,7 +156,7 @@ describe('GET /api/patients', () => {
       { id: 'patient-2', first_name: 'Jane', last_name: 'Smith' },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/patients') as never)
+    const res = await GET(makeRequest('http://localhost/api/patients'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -168,7 +165,7 @@ describe('GET /api/patients', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/patients') as never)
+    const res = await GET(makeRequest('http://localhost/api/patients'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -186,18 +183,18 @@ describe('POST /api/patients', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/patients', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/patients', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/patients', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/patients', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a patient with required fields only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/patients', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/patients', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBe('patient-001')
@@ -217,21 +214,21 @@ describe('POST /api/patients', () => {
       allergies: ['penicillin', 'aspirin'],
       insurance_info: { provider: 'InsureCo', policy: 'POL-123' },
     }
-    const res = await POST(makeRequest('http://localhost/api/patients', fullBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/patients', fullBody))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when first_name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/patients', {
       last_name: 'Doe',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when last_name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/patients', {
       first_name: 'John',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -239,7 +236,7 @@ describe('POST /api/patients', () => {
     const res = await POST(makeRequest('http://localhost/api/patients', {
       first_name: '',
       last_name: 'Doe',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -248,7 +245,7 @@ describe('POST /api/patients', () => {
       first_name: 'John',
       last_name: 'Doe',
       gender: 'unknown',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -257,7 +254,7 @@ describe('POST /api/patients', () => {
       first_name: 'John',
       last_name: 'Doe',
       blood_type: 'X+',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -266,7 +263,7 @@ describe('POST /api/patients', () => {
       first_name: 'John',
       last_name: 'Doe',
       email: 'not-an-email',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -275,17 +272,17 @@ describe('POST /api/patients', () => {
       first_name: 'John',
       last_name: 'Doe',
       customer_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/patients', {
+    const req = createTestRequest('http://localhost/api/patients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
@@ -295,7 +292,7 @@ describe('POST /api/patients', () => {
         first_name: 'Test',
         last_name: 'Patient',
         blood_type: bt,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
@@ -306,7 +303,7 @@ describe('POST /api/patients', () => {
         first_name: 'Test',
         last_name: 'Patient',
         gender: g,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
@@ -314,7 +311,7 @@ describe('POST /api/patients', () => {
   it('returns 500 on database insert error', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/patients', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/patients', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')

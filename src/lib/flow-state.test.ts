@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { readFlowState, writeFlowState } from './flow-state'
 import type { FlowState } from './flow-types'
 
@@ -25,7 +26,7 @@ function createMockSupabase(metadata: Record<string, unknown> | null = null) {
     eq: vi.fn().mockResolvedValue({}),
   })
 
-  return {
+  const mock = {
     from: vi.fn().mockReturnValue({
       select: selectFn,
       update: updateFn,
@@ -34,6 +35,8 @@ function createMockSupabase(metadata: Record<string, unknown> | null = null) {
     _selectFn: selectFn,
     _updateFn: updateFn,
   }
+
+  return mock as unknown as SupabaseClient & typeof mock
 }
 
 describe('flow-state', () => {
@@ -43,19 +46,19 @@ describe('flow-state', () => {
 
   describe('readFlowState', () => {
     it('returns null for empty conversationId', async () => {
-      const supabase = createMockSupabase() as never
+      const supabase = createMockSupabase()
       const result = await readFlowState(supabase, '')
       expect(result).toBeNull()
     })
 
     it('returns null when conversation has no metadata', async () => {
-      const supabase = createMockSupabase(null) as never
+      const supabase = createMockSupabase(null)
       const result = await readFlowState(supabase, 'conv-1')
       expect(result).toBeNull()
     })
 
     it('returns null when metadata has no flow_state', async () => {
-      const supabase = createMockSupabase({ some_key: 'val' }) as never
+      const supabase = createMockSupabase({ some_key: 'val' })
       const result = await readFlowState(supabase, 'conv-1')
       expect(result).toBeNull()
     })
@@ -63,7 +66,7 @@ describe('flow-state', () => {
     it('returns null when flow_state is missing flow_id', async () => {
       const supabase = createMockSupabase({
         flow_state: { current_node_id: 'n1', variables: {} },
-      }) as never
+      })
       const result = await readFlowState(supabase, 'conv-1')
       expect(result).toBeNull()
     })
@@ -71,7 +74,7 @@ describe('flow-state', () => {
     it('returns null when flow_state is missing current_node_id', async () => {
       const supabase = createMockSupabase({
         flow_state: { flow_id: 'f1', variables: {} },
-      }) as never
+      })
       const result = await readFlowState(supabase, 'conv-1')
       expect(result).toBeNull()
     })
@@ -85,7 +88,7 @@ describe('flow-state', () => {
         started_at: '2024-01-01T00:00:00Z',
         log_id: 'log-1',
       }
-      const supabase = createMockSupabase({ flow_state: state }) as never
+      const supabase = createMockSupabase({ flow_state: state })
       const result = await readFlowState(supabase, 'conv-1')
       expect(result).toEqual(state)
     })
@@ -93,9 +96,9 @@ describe('flow-state', () => {
 
   describe('writeFlowState', () => {
     it('does nothing for empty conversationId', async () => {
-      const supabase = createMockSupabase() as never
+      const supabase = createMockSupabase()
       await writeFlowState(supabase, '', null)
-      expect((supabase as { from: ReturnType<typeof vi.fn> }).from).not.toHaveBeenCalled()
+      expect(supabase.from).not.toHaveBeenCalled()
     })
 
     it('merges flow_state with existing metadata', async () => {
@@ -111,7 +114,7 @@ describe('flow-state', () => {
         log_id: 'log-1',
       }
 
-      await writeFlowState(mock as never, 'conv-1', newState)
+      await writeFlowState(mock, 'conv-1', newState)
 
       expect(mock._updateFn).toHaveBeenCalledWith({
         metadata: {
@@ -128,7 +131,7 @@ describe('flow-state', () => {
       }
       const mock = createMockSupabase(existingMeta)
 
-      await writeFlowState(mock as never, 'conv-1', null)
+      await writeFlowState(mock, 'conv-1', null)
 
       expect(mock._updateFn).toHaveBeenCalledWith({
         metadata: {
@@ -153,7 +156,7 @@ describe('flow-state', () => {
         log_id: 'log-1',
       }
 
-      await writeFlowState(mock as never, 'conv-1', newState)
+      await writeFlowState(mock, 'conv-1', newState)
 
       expect(mock._updateFn).toHaveBeenCalledWith({
         metadata: {

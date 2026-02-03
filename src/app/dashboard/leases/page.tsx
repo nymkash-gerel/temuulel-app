@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -51,7 +51,7 @@ function formatDate(dateStr: string) {
 
 export default function LeasesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -71,7 +71,7 @@ export default function LeasesPage() {
     deposit_amount: '',
   })
 
-  async function loadLeases(sid: string) {
+  const loadLeases = useCallback(async (sid: string) => {
     let query = supabase
       .from('leases')
       .select('*')
@@ -88,7 +88,7 @@ export default function LeasesPage() {
     if (data) {
       setLeases(data as unknown as LeaseRow[])
     }
-  }
+  }, [supabase, statusFilter])
 
   useEffect(() => {
     async function init() {
@@ -108,14 +108,13 @@ export default function LeasesPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadLeases])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadLeases(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
+    const reload = async () => { await loadLeases(storeId) }
+    reload()
+  }, [statusFilter, loadLeases, storeId, loading])
 
   const stats = useMemo(() => {
     const total = leases.length

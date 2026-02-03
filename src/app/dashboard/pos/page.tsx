@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -43,7 +43,7 @@ function formatDateTime(dateStr: string | null) {
 
 export default function PosSessionsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -55,7 +55,7 @@ export default function PosSessionsPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function loadSessions(sid: string) {
+  const loadSessions = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('pos_sessions')
       .select('*')
@@ -65,9 +65,9 @@ export default function PosSessionsPage() {
     if (data) {
       setSessions(data as unknown as PosSessionRow[])
     }
-  }
+  }, [supabase])
 
-  async function loadStaff(sid: string) {
+  const loadStaff = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('staff')
       .select('id, name')
@@ -80,7 +80,7 @@ export default function PosSessionsPage() {
       }
       setStaffMap(map)
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function init() {
@@ -103,8 +103,7 @@ export default function PosSessionsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadSessions, loadStaff])
 
   const stats = useMemo(() => {
     const total = sessions.length

@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/memberships
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -100,13 +97,13 @@ beforeEach(() => {
 describe('GET /api/memberships', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/memberships') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/memberships') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships'))
     expect(res.status).toBe(403)
   })
 
@@ -116,7 +113,7 @@ describe('GET /api/memberships', () => {
       { id: 'mem-2', name: 'Silver', price: 30000, billing_period: 'monthly', is_active: true },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/memberships') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -126,7 +123,7 @@ describe('GET /api/memberships', () => {
   it('returns empty list when no memberships exist', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/memberships') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -136,7 +133,7 @@ describe('GET /api/memberships', () => {
   it('supports is_active=true filter', async () => {
     mockData = [{ id: 'mem-1', is_active: true }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/memberships?is_active=true') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?is_active=true'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -145,7 +142,7 @@ describe('GET /api/memberships', () => {
   it('supports is_active=false filter', async () => {
     mockData = [{ id: 'mem-2', is_active: false }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/memberships?is_active=false') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?is_active=false'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -154,7 +151,7 @@ describe('GET /api/memberships', () => {
   it('supports billing_period=monthly filter', async () => {
     mockData = [{ id: 'mem-1', billing_period: 'monthly' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=monthly') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=monthly'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -163,7 +160,7 @@ describe('GET /api/memberships', () => {
   it('supports billing_period=yearly filter', async () => {
     mockData = [{ id: 'mem-3', billing_period: 'yearly' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=yearly') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=yearly'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -172,7 +169,7 @@ describe('GET /api/memberships', () => {
   it('supports billing_period=quarterly filter', async () => {
     mockData = [{ id: 'mem-4', billing_period: 'quarterly' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=quarterly') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=quarterly'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -181,7 +178,7 @@ describe('GET /api/memberships', () => {
   it('supports billing_period=weekly filter', async () => {
     mockData = [{ id: 'mem-5', billing_period: 'weekly' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=weekly') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=weekly'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -190,7 +187,7 @@ describe('GET /api/memberships', () => {
   it('ignores invalid billing_period filter', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=biweekly') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?billing_period=biweekly'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -199,7 +196,7 @@ describe('GET /api/memberships', () => {
   it('supports combined is_active and billing_period filters', async () => {
     mockData = [{ id: 'mem-1', is_active: true, billing_period: 'monthly' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/memberships?is_active=true&billing_period=monthly') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?is_active=true&billing_period=monthly'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -208,7 +205,7 @@ describe('GET /api/memberships', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'mem-10' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/memberships?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -216,7 +213,7 @@ describe('GET /api/memberships', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/memberships') as never)
+    const res = await GET(makeRequest('http://localhost/api/memberships'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -234,18 +231,18 @@ describe('POST /api/memberships', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/memberships', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/memberships', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/memberships', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/memberships', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a membership with required fields', async () => {
-    const res = await POST(makeRequest('http://localhost/api/memberships', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/memberships', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -259,12 +256,12 @@ describe('POST /api/memberships', () => {
       billing_period: 'monthly',
       benefits: { discount: 10, free_services: 2 },
       is_active: false,
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('creates a membership with default billing_period', async () => {
-    const res = await POST(makeRequest('http://localhost/api/memberships', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/memberships', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.billing_period).toBe('monthly')
@@ -274,21 +271,21 @@ describe('POST /api/memberships', () => {
     const res = await POST(makeRequest('http://localhost/api/memberships', {
       ...validBody,
       billing_period: 'yearly',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/memberships', {
       price: 50000,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when price is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/memberships', {
       name: 'Gold Membership',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -296,7 +293,7 @@ describe('POST /api/memberships', () => {
     const res = await POST(makeRequest('http://localhost/api/memberships', {
       name: 'Gold Membership',
       price: 0,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -304,7 +301,7 @@ describe('POST /api/memberships', () => {
     const res = await POST(makeRequest('http://localhost/api/memberships', {
       name: 'Gold Membership',
       price: -1000,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -312,7 +309,7 @@ describe('POST /api/memberships', () => {
     const res = await POST(makeRequest('http://localhost/api/memberships', {
       name: '',
       price: 50000,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -320,26 +317,26 @@ describe('POST /api/memberships', () => {
     const res = await POST(makeRequest('http://localhost/api/memberships', {
       ...validBody,
       billing_period: 'biweekly',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'Insert failed' }
-    const res = await POST(makeRequest('http://localhost/api/memberships', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/memberships', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/memberships', {
+    const req = createTestRequest('http://localhost/api/memberships', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
@@ -348,7 +345,7 @@ describe('POST /api/memberships', () => {
       const res = await POST(makeRequest('http://localhost/api/memberships', {
         ...validBody,
         billing_period: period,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })

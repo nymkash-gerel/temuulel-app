@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createClientPreferencesSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/client-preferences
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       hair_type: body.hair_type || null,
       allergies: body.allergies || [],
       preferred_staff_id: body.preferred_staff_id || null,
-      color_history: (body.color_history || []) as unknown as Json,
+      color_history: toJson(body.color_history || []),
       notes: body.notes || null,
     }, { onConflict: 'store_id,customer_id' })
     .select(`

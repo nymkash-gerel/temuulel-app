@@ -2,6 +2,7 @@
  * Tests for /api/lab-orders (GET + POST) and /api/lab-orders/[id] (GET + PATCH + DELETE)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // ---------------------------------------------------------------------------
 // Mock state
@@ -40,27 +41,19 @@ import { GET as GET_ID, PATCH, DELETE } from './[id]/route'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function makeRequest(url: string, body?: unknown, method?: string): Request {
+function makeRequest(url: string, body?: unknown, method?: string) {
   if (body) {
-    return new Request(url, {
-      method: method || 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body, method || 'POST')
   }
-  return new Request(url, { method: method || 'GET' })
+  return createTestRequest(url, { method: method || 'GET' })
 }
 
-function makePatchRequest(body: unknown): Request {
-  return new Request('http://localhost/api/lab-orders/lo-001', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+function makePatchRequest(body: unknown) {
+  return createTestJsonRequest('http://localhost/api/lab-orders/lo-001', body, 'PATCH')
 }
 
-function makeDeleteRequest(): Request {
-  return new Request('http://localhost/api/lab-orders/lo-001', { method: 'DELETE' })
+function makeDeleteRequest() {
+  return createTestRequest('http://localhost/api/lab-orders/lo-001', { method: 'DELETE' })
 }
 
 const idParams = Promise.resolve({ id: 'lo-001' })
@@ -175,7 +168,7 @@ beforeEach(() => {
 describe('GET /api/lab-orders', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/lab-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders'))
     expect(res.status).toBe(401)
     const json = await res.json()
     expect(json.error).toBe('Unauthorized')
@@ -183,7 +176,7 @@ describe('GET /api/lab-orders', () => {
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/lab-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders'))
     expect(res.status).toBe(403)
     const json = await res.json()
     expect(json.error).toBe('Store not found')
@@ -195,7 +188,7 @@ describe('GET /api/lab-orders', () => {
       { id: 'lo-2', test_name: 'MRI Brain', status: 'completed', urgency: 'urgent' },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/lab-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -205,7 +198,7 @@ describe('GET /api/lab-orders', () => {
   it('returns empty list when no lab orders', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/lab-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -215,7 +208,7 @@ describe('GET /api/lab-orders', () => {
   it('filters by status', async () => {
     mockData = [{ id: 'lo-1', test_name: 'CBC', status: 'completed' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?status=completed') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?status=completed'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -224,7 +217,7 @@ describe('GET /api/lab-orders', () => {
   it('filters by urgency', async () => {
     mockData = [{ id: 'lo-1', test_name: 'Troponin', urgency: 'stat' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?urgency=stat') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?urgency=stat'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -233,7 +226,7 @@ describe('GET /api/lab-orders', () => {
   it('filters by patient_id', async () => {
     mockData = [{ id: 'lo-1', patient_id: 'patient-001', test_name: 'CBC' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?patient_id=patient-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?patient_id=patient-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -242,7 +235,7 @@ describe('GET /api/lab-orders', () => {
   it('filters by order_type', async () => {
     mockData = [{ id: 'lo-1', order_type: 'imaging', test_name: 'MRI Brain' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?order_type=imaging') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?order_type=imaging'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -251,7 +244,7 @@ describe('GET /api/lab-orders', () => {
   it('ignores invalid status filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -260,7 +253,7 @@ describe('GET /api/lab-orders', () => {
   it('ignores invalid urgency filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?urgency=critical') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?urgency=critical'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -269,7 +262,7 @@ describe('GET /api/lab-orders', () => {
   it('ignores invalid order_type filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?order_type=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?order_type=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -278,7 +271,7 @@ describe('GET /api/lab-orders', () => {
   it('supports combined filters', async () => {
     mockData = [{ id: 'lo-1', status: 'ordered', urgency: 'urgent', patient_id: 'p-1', order_type: 'lab' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?status=ordered&urgency=urgent&patient_id=p-1&order_type=lab') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?status=ordered&urgency=urgent&patient_id=p-1&order_type=lab'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -287,7 +280,7 @@ describe('GET /api/lab-orders', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'lo-10' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/lab-orders?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -295,7 +288,7 @@ describe('GET /api/lab-orders', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/lab-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/lab-orders'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -313,7 +306,7 @@ describe('POST /api/lab-orders', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody))
     expect(res.status).toBe(401)
     const json = await res.json()
     expect(json.error).toBe('Unauthorized')
@@ -321,14 +314,14 @@ describe('POST /api/lab-orders', () => {
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody))
     expect(res.status).toBe(403)
     const json = await res.json()
     expect(json.error).toBe('Store not found')
   })
 
   it('creates a lab order with required fields only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBe('lo-001')
@@ -348,21 +341,21 @@ describe('POST /api/lab-orders', () => {
       collection_time: '2026-02-01T10:00:00Z',
       notes: 'Patient complains of headaches',
     }
-    const res = await POST(makeRequest('http://localhost/api/lab-orders', fullBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/lab-orders', fullBody))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when patient_id is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/lab-orders', {
       test_name: 'CBC',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when test_name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/lab-orders', {
       patient_id: 'a0000000-0000-4000-8000-000000000001',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -370,7 +363,7 @@ describe('POST /api/lab-orders', () => {
     const res = await POST(makeRequest('http://localhost/api/lab-orders', {
       patient_id: 'a0000000-0000-4000-8000-000000000001',
       test_name: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -378,7 +371,7 @@ describe('POST /api/lab-orders', () => {
     const res = await POST(makeRequest('http://localhost/api/lab-orders', {
       patient_id: 'not-a-uuid',
       test_name: 'CBC',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -387,7 +380,7 @@ describe('POST /api/lab-orders', () => {
       patient_id: 'a0000000-0000-4000-8000-000000000001',
       test_name: 'CBC',
       order_type: 'invalid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -396,17 +389,17 @@ describe('POST /api/lab-orders', () => {
       patient_id: 'a0000000-0000-4000-8000-000000000001',
       test_name: 'CBC',
       urgency: 'critical',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/lab-orders', {
+    const req = createTestRequest('http://localhost/api/lab-orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
@@ -416,7 +409,7 @@ describe('POST /api/lab-orders', () => {
         patient_id: 'a0000000-0000-4000-8000-000000000001',
         test_name: 'Test',
         order_type: ot,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
@@ -427,14 +420,14 @@ describe('POST /api/lab-orders', () => {
         patient_id: 'a0000000-0000-4000-8000-000000000001',
         test_name: 'Test',
         urgency: u,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
 
   it('returns 404 if patient not found in store', async () => {
     mockPatient = null
-    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(404)
     expect(json.error).toBe('Patient not found')
@@ -443,7 +436,7 @@ describe('POST /api/lab-orders', () => {
   it('returns 500 on database insert error', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/lab-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')
@@ -457,7 +450,7 @@ describe('GET /api/lab-orders/[id]', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await GET_ID(
-      makeRequest('http://localhost/api/lab-orders/lo-001') as never,
+      makeRequest('http://localhost/api/lab-orders/lo-001'),
       { params: idParams },
     )
     expect(res.status).toBe(401)
@@ -468,7 +461,7 @@ describe('GET /api/lab-orders/[id]', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await GET_ID(
-      makeRequest('http://localhost/api/lab-orders/lo-001') as never,
+      makeRequest('http://localhost/api/lab-orders/lo-001'),
       { params: idParams },
     )
     expect(res.status).toBe(403)
@@ -480,7 +473,7 @@ describe('GET /api/lab-orders/[id]', () => {
     mockDetailItem = null
     mockDetailError = { message: 'Not found' }
     const res = await GET_ID(
-      makeRequest('http://localhost/api/lab-orders/lo-999') as never,
+      makeRequest('http://localhost/api/lab-orders/lo-999'),
       { params: idParams },
     )
     expect(res.status).toBe(404)
@@ -492,7 +485,7 @@ describe('GET /api/lab-orders/[id]', () => {
     mockDetailItem = null
     mockDetailError = null
     const res = await GET_ID(
-      makeRequest('http://localhost/api/lab-orders/lo-001') as never,
+      makeRequest('http://localhost/api/lab-orders/lo-001'),
       { params: idParams },
     )
     expect(res.status).toBe(404)
@@ -500,7 +493,7 @@ describe('GET /api/lab-orders/[id]', () => {
 
   it('returns lab order detail', async () => {
     const res = await GET_ID(
-      makeRequest('http://localhost/api/lab-orders/lo-001') as never,
+      makeRequest('http://localhost/api/lab-orders/lo-001'),
       { params: idParams },
     )
     const json = await res.json()
@@ -518,7 +511,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await PATCH(
-      makePatchRequest({ status: 'collected' }) as never,
+      makePatchRequest({ status: 'collected' }),
       { params: idParams },
     )
     expect(res.status).toBe(401)
@@ -529,7 +522,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await PATCH(
-      makePatchRequest({ status: 'collected' }) as never,
+      makePatchRequest({ status: 'collected' }),
       { params: idParams },
     )
     expect(res.status).toBe(403)
@@ -540,7 +533,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
   it('updates lab order status to collected', async () => {
     mockUpdatedItem = { ...defaultLabOrder, status: 'collected', updated_at: '2026-02-01T12:00:00Z' }
     const res = await PATCH(
-      makePatchRequest({ status: 'collected' }) as never,
+      makePatchRequest({ status: 'collected' }),
       { params: idParams },
     )
     const json = await res.json()
@@ -553,7 +546,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
     mockDetailItem = { ...defaultLabOrder, status: 'collected' }
     mockUpdatedItem = { ...defaultLabOrder, status: 'processing', updated_at: '2026-02-01T12:00:00Z' }
     const res = await PATCH(
-      makePatchRequest({ status: 'processing' }) as never,
+      makePatchRequest({ status: 'processing' }),
       { params: idParams },
     )
     const json = await res.json()
@@ -566,7 +559,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
     mockDetailItem = { ...defaultLabOrder, status: 'processing' }
     mockUpdatedItem = { ...defaultLabOrder, status: 'completed', updated_at: '2026-02-01T12:00:00Z' }
     const res = await PATCH(
-      makePatchRequest({ status: 'completed' }) as never,
+      makePatchRequest({ status: 'completed' }),
       { params: idParams },
     )
     const json = await res.json()
@@ -577,7 +570,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
   it('updates lab order status to cancelled', async () => {
     mockUpdatedItem = { ...defaultLabOrder, status: 'cancelled', updated_at: '2026-02-01T12:00:00Z' }
     const res = await PATCH(
-      makePatchRequest({ status: 'cancelled' }) as never,
+      makePatchRequest({ status: 'cancelled' }),
       { params: idParams },
     )
     const json = await res.json()
@@ -588,7 +581,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
   it('updates specimen_type', async () => {
     mockUpdatedItem = { ...defaultLabOrder, specimen_type: 'urine' }
     const res = await PATCH(
-      makePatchRequest({ specimen_type: 'urine' }) as never,
+      makePatchRequest({ specimen_type: 'urine' }),
       { params: idParams },
     )
     const json = await res.json()
@@ -599,7 +592,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
   it('updates notes', async () => {
     mockUpdatedItem = { ...defaultLabOrder, notes: 'Fasting required' }
     const res = await PATCH(
-      makePatchRequest({ notes: 'Fasting required' }) as never,
+      makePatchRequest({ notes: 'Fasting required' }),
       { params: idParams },
     )
     const json = await res.json()
@@ -610,7 +603,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
   it('updates collection_time', async () => {
     mockUpdatedItem = { ...defaultLabOrder, collection_time: '2026-02-01T08:30:00Z' }
     const res = await PATCH(
-      makePatchRequest({ collection_time: '2026-02-01T08:30:00Z' }) as never,
+      makePatchRequest({ collection_time: '2026-02-01T08:30:00Z' }),
       { params: idParams },
     )
     const json = await res.json()
@@ -620,19 +613,19 @@ describe('PATCH /api/lab-orders/[id]', () => {
 
   it('returns 400 for invalid status value', async () => {
     const res = await PATCH(
-      makePatchRequest({ status: 'invalid_status' }) as never,
+      makePatchRequest({ status: 'invalid_status' }),
       { params: idParams },
     )
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/lab-orders/lo-001', {
+    const req = createTestRequest('http://localhost/api/lab-orders/lo-001', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await PATCH(req as never, { params: idParams })
+    const res = await PATCH(req, { params: idParams })
     expect(res.status).toBe(400)
   })
 
@@ -640,7 +633,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
     mockUpdatedItem = null
     mockUpdateError = null
     const res = await PATCH(
-      makePatchRequest({ status: 'collected' }) as never,
+      makePatchRequest({ status: 'collected' }),
       { params: idParams },
     )
     expect(res.status).toBe(404)
@@ -651,7 +644,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
   it('returns 500 on database update error', async () => {
     mockUpdateError = { message: 'Update failed' }
     const res = await PATCH(
-      makePatchRequest({ status: 'collected' }) as never,
+      makePatchRequest({ status: 'collected' }),
       { params: idParams },
     )
     const json = await res.json()
@@ -666,7 +659,7 @@ describe('PATCH /api/lab-orders/[id]', () => {
 describe('DELETE /api/lab-orders/[id]', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await DELETE(makeDeleteRequest() as never, { params: idParams })
+    const res = await DELETE(makeDeleteRequest(), { params: idParams })
     expect(res.status).toBe(401)
     const json = await res.json()
     expect(json.error).toBe('Unauthorized')
@@ -674,14 +667,14 @@ describe('DELETE /api/lab-orders/[id]', () => {
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await DELETE(makeDeleteRequest() as never, { params: idParams })
+    const res = await DELETE(makeDeleteRequest(), { params: idParams })
     expect(res.status).toBe(403)
     const json = await res.json()
     expect(json.error).toBe('Store not found')
   })
 
   it('deletes a lab order successfully', async () => {
-    const res = await DELETE(makeDeleteRequest() as never, { params: idParams })
+    const res = await DELETE(makeDeleteRequest(), { params: idParams })
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.success).toBe(true)
@@ -689,7 +682,7 @@ describe('DELETE /api/lab-orders/[id]', () => {
 
   it('returns 500 on database delete error', async () => {
     mockDeleteError = { message: 'Delete failed' }
-    const res = await DELETE(makeDeleteRequest() as never, { params: idParams })
+    const res = await DELETE(makeDeleteRequest(), { params: idParams })
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Delete failed')

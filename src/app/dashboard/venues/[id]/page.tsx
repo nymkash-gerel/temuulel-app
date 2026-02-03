@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -76,7 +76,7 @@ export default function VenueDetailPage(): React.ReactNode {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [venue, setVenue] = useState<Venue | null>(null)
@@ -86,12 +86,24 @@ export default function VenueDetailPage(): React.ReactNode {
   // Data loading
   // -------------------------------------------------------------------------
 
-  useEffect(() => {
-    loadVenue()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  const loadBookings = useCallback(async (venueId: string): Promise<void> => {
+    const { data } = await supabase
+      .from('venue_bookings')
+      .select(`
+        id, venue_id, customer_id, event_type, start_at, end_at,
+        guests_count, total_amount, deposit_amount, status,
+        special_requests, created_at,
+        customers(id, name)
+      `)
+      .eq('venue_id', venueId)
+      .order('created_at', { ascending: false })
 
-  async function loadVenue(): Promise<void> {
+    if (data) {
+      setBookings(data as unknown as VenueBooking[])
+    }
+  }, [supabase])
+
+  const loadVenue = useCallback(async (): Promise<void> => {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -123,24 +135,11 @@ export default function VenueDetailPage(): React.ReactNode {
     }
 
     setLoading(false)
-  }
+  }, [supabase, router, id, loadBookings])
 
-  async function loadBookings(venueId: string): Promise<void> {
-    const { data } = await supabase
-      .from('venue_bookings')
-      .select(`
-        id, venue_id, customer_id, event_type, start_at, end_at,
-        guests_count, total_amount, deposit_amount, status,
-        special_requests, created_at,
-        customers(id, name)
-      `)
-      .eq('venue_id', venueId)
-      .order('created_at', { ascending: false })
-
-    if (data) {
-      setBookings(data as unknown as VenueBooking[])
-    }
-  }
+  useEffect(() => {
+    loadVenue()
+  }, [loadVenue])
 
   // -------------------------------------------------------------------------
   // Loading state

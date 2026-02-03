@@ -1,7 +1,61 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
+import {
+  edgeRateLimit,
+  getEdgeClientIp,
+  shouldSkipRateLimit,
+  resolveTier,
+  type RateLimitResult,
+} from '@/lib/middleware-rate-limit'
+
+function withRateLimitHeaders(
+  response: NextResponse,
+  result: RateLimitResult,
+): NextResponse {
+  response.headers.set('X-RateLimit-Limit', String(result.limit))
+  response.headers.set('X-RateLimit-Remaining', String(result.remaining))
+  response.headers.set('X-RateLimit-Reset', String(Math.ceil(result.resetAt / 1000)))
+  return response
+}
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // ── Global API rate limiting (before auth, before Supabase calls) ──
+  if (pathname.startsWith('/api/')) {
+    if (shouldSkipRateLimit(pathname)) {
+      return NextResponse.next({ request })
+    }
+
+    const clientIp = getEdgeClientIp(request)
+    const tier = resolveTier(pathname)
+    const result = edgeRateLimit(`mw:${clientIp}:${pathname}`, tier)
+
+    if (!result.success) {
+      Sentry.addBreadcrumb({
+        category: 'rate_limit',
+        message: `Rate limited: ${pathname}`,
+        data: { ip: clientIp, limit: result.limit },
+        level: 'warning',
+      })
+      const response = NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429 },
+      )
+      withRateLimitHeaders(response, result)
+      response.headers.set(
+        'Retry-After',
+        String(Math.ceil((result.resetAt - Date.now()) / 1000)),
+      )
+      return response
+    }
+
+    // API routes handle their own auth — skip the Supabase auth block below
+    return withRateLimitHeaders(NextResponse.next({ request }), result)
+  }
+
+  // ── Page route auth (unchanged) ────────────────────────────────────
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -15,7 +69,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -35,10 +89,19 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname
+  // Set Sentry user context for authenticated page routes
+  if (user) {
+    Sentry.setUser({ id: user.id, email: user.email ?? undefined })
+  }
 
   // Protected dashboard routes
   if (!user && pathname.startsWith('/dashboard')) {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'Unauthenticated dashboard access redirect',
+      data: { pathname },
+      level: 'info',
+    })
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

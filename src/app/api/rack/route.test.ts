@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/rack
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -98,13 +95,13 @@ beforeEach(() => {
 describe('GET /api/rack', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/rack') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/rack') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack'))
     expect(res.status).toBe(403)
   })
 
@@ -113,7 +110,7 @@ describe('GET /api/rack', () => {
       { id: 'rack-1', rack_number: 'R-001', status: 'available', order_id: null },
     ]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/rack') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -123,7 +120,7 @@ describe('GET /api/rack', () => {
   it('returns empty list when no rack locations', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/rack') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -133,7 +130,7 @@ describe('GET /api/rack', () => {
   it('supports status filter', async () => {
     mockData = [{ id: 'rack-1', status: 'occupied' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/rack?status=occupied') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack?status=occupied'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -142,7 +139,7 @@ describe('GET /api/rack', () => {
   it('supports order_id filter', async () => {
     mockData = [{ id: 'rack-1', order_id: 'order-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/rack?order_id=order-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack?order_id=order-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -151,7 +148,7 @@ describe('GET /api/rack', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'rack-5' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/rack?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -160,7 +157,7 @@ describe('GET /api/rack', () => {
   it('ignores invalid status filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/rack?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -168,7 +165,7 @@ describe('GET /api/rack', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/rack') as never)
+    const res = await GET(makeRequest('http://localhost/api/rack'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -185,18 +182,18 @@ describe('POST /api/rack', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/rack', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/rack', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/rack', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/rack', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a rack location with rack_number only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/rack', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/rack', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBe('rack-001')
@@ -207,19 +204,19 @@ describe('POST /api/rack', () => {
     const res = await POST(makeRequest('http://localhost/api/rack', {
       rack_number: 'R-002',
       order_id: 'a0000000-0000-4000-8000-000000000001',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when rack_number is missing', async () => {
-    const res = await POST(makeRequest('http://localhost/api/rack', {}) as never)
+    const res = await POST(makeRequest('http://localhost/api/rack', {}))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when rack_number is empty string', async () => {
     const res = await POST(makeRequest('http://localhost/api/rack', {
       rack_number: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -227,24 +224,24 @@ describe('POST /api/rack', () => {
     const res = await POST(makeRequest('http://localhost/api/rack', {
       rack_number: 'R-003',
       order_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/rack', {
+    const req = createTestRequest('http://localhost/api/rack', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/rack', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/rack', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')

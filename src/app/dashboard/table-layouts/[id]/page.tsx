@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -51,7 +51,7 @@ export default function TableLayoutDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [table, setTable] = useState<TableLayoutDetail | null>(null)
@@ -59,7 +59,7 @@ export default function TableLayoutDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -90,12 +90,11 @@ export default function TableLayoutDetailPage() {
 
     setTable(data as unknown as TableLayoutDetail)
     setLoading(false)
-  }
+  }, [supabase, router, id])
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [load])
 
   function startEdit() {
     if (!table) return

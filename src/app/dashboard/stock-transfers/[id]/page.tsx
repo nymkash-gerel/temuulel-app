@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -56,7 +56,7 @@ function formatDateTime(dateStr: string | null): string {
 export default function StockTransferDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const transferId = params.id as string
 
   const [transfer, setTransfer] = useState<StockTransfer | null>(null)
@@ -67,7 +67,7 @@ export default function StockTransferDetailPage() {
   const [editNotes, setEditNotes] = useState('')
   const [editStatus, setEditStatus] = useState('')
 
-  async function loadTransfer() {
+  const loadTransfer = useCallback(async () => {
     try {
       const res = await fetch(`/api/stock-transfers/${transferId}`)
       if (res.ok) {
@@ -82,7 +82,7 @@ export default function StockTransferDetailPage() {
       return
     }
     setLoading(false)
-  }
+  }, [transferId, router])
 
   useEffect(() => {
     async function init() {
@@ -100,8 +100,7 @@ export default function StockTransferDetailPage() {
       await loadTransfer()
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transferId])
+  }, [supabase, router, loadTransfer, transferId])
 
   function startEdit() {
     if (!transfer) return

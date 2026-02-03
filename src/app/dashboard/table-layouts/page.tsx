@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -32,7 +32,7 @@ const SHAPE_LABELS: Record<string, string> = {
 
 export default function TableLayoutsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [tables, setTables] = useState<TableLayout[]>([])
@@ -77,8 +77,7 @@ export default function TableLayoutsPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router])
 
   const sections = useMemo(() => {
     const set = new Set(tables.map(t => t.section).filter(Boolean) as string[])

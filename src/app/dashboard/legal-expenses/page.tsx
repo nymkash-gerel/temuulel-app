@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 
@@ -38,7 +38,7 @@ function formatPrice(amount: number | null) {
 }
 
 export default function LegalExpensesPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [expenses, setExpenses] = useState<LegalExpense[]>([])
@@ -61,7 +61,7 @@ export default function LegalExpensesPage() {
   const [formBillable, setFormBillable] = useState(true)
   const [formReceiptUrl, setFormReceiptUrl] = useState('')
 
-  async function loadExpenses() {
+  const loadExpenses = useCallback(async () => {
     const params = new URLSearchParams()
     if (caseFilter) params.set('case_id', caseFilter)
     if (typeFilter) params.set('expense_type', typeFilter)
@@ -73,7 +73,7 @@ export default function LegalExpensesPage() {
       setExpenses(json.data || [])
       setTotal(json.total || 0)
     }
-  }
+  }, [caseFilter, typeFilter, billableFilter])
 
   useEffect(() => {
     async function load() {
@@ -98,15 +98,14 @@ export default function LegalExpensesPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadExpenses])
 
   useEffect(() => {
     if (!loading) {
-      loadExpenses()
+      const reload = async () => { await loadExpenses() }
+      reload()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseFilter, typeFilter, billableFilter])
+  }, [loading, loadExpenses])
 
   const kpis = useMemo(() => {
     const totalCount = expenses.length

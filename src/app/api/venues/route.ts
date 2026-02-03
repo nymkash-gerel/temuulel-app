@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createVenueSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/venues
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       capacity: body.capacity || undefined,
       hourly_rate: body.hourly_rate || null,
       daily_rate: body.daily_rate || null,
-      amenities: (body.amenities || []) as unknown as Json,
+      amenities: toJson(body.amenities || []),
       is_active: body.is_active ?? true,
     })
     .select(`

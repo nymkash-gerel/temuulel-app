@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 
@@ -33,7 +33,7 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
 }
 
 export default function CaseEventsPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<CaseEvent[]>([])
@@ -56,7 +56,7 @@ export default function CaseEventsPage() {
   const [formLocation, setFormLocation] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  async function loadEvents() {
+  const loadEvents = useCallback(async () => {
     const params = new URLSearchParams()
     if (caseFilter) params.set('case_id', caseFilter)
     if (typeFilter) params.set('event_type', typeFilter)
@@ -69,7 +69,7 @@ export default function CaseEventsPage() {
       setEvents(json.data || [])
       setTotal(json.total || 0)
     }
-  }
+  }, [caseFilter, typeFilter, dateFrom, dateTo])
 
   useEffect(() => {
     async function load() {
@@ -94,15 +94,14 @@ export default function CaseEventsPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadEvents])
 
   useEffect(() => {
     if (!loading) {
-      loadEvents()
+      const reload = async () => { await loadEvents() }
+      reload()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseFilter, typeFilter, dateFrom, dateTo])
+  }, [caseFilter, typeFilter, dateFrom, dateTo, loadEvents, loading])
 
   const kpis = useMemo(() => {
     const totalCount = events.length

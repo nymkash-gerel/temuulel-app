@@ -2,6 +2,8 @@
  * Tests for stock management: decrementStockAndNotify
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/database.types'
 
 // Mock notifications
 vi.mock('./notifications', () => ({
@@ -30,58 +32,60 @@ function createMockSupabase(overrides: Record<string, unknown> = {}) {
 
   const updateCalls: { variantId: string; newQuantity: number }[] = []
 
-  return {
-    client: {
-      from: vi.fn((table: string) => {
-        if (table === 'order_items') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                not: vi.fn().mockResolvedValue({ data: orderItems }),
-              })),
+  const client = {
+    from: vi.fn((table: string) => {
+      if (table === 'order_items') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              not: vi.fn().mockResolvedValue({ data: orderItems }),
             })),
-          }
+          })),
         }
-        if (table === 'stores') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({ data: store }),
-              })),
+      }
+      if (table === 'stores') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({ data: store }),
             })),
-          }
+          })),
         }
-        if (table === 'product_variants') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn((field: string, value: string) => ({
-                single: vi.fn().mockResolvedValue({
-                  data: (variants as Record<string, unknown>)[value] || null,
-                }),
-              })),
-            })),
-            update: vi.fn((data: { stock_quantity: number }) => ({
-              eq: vi.fn((field: string, value: string) => {
-                updateCalls.push({ variantId: value, newQuantity: data.stock_quantity })
-                return Promise.resolve({ error: null })
+      }
+      if (table === 'product_variants') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn((field: string, value: string) => ({
+              single: vi.fn().mockResolvedValue({
+                data: (variants as Record<string, unknown>)[value] || null,
               }),
             })),
-          }
+          })),
+          update: vi.fn((data: { stock_quantity: number }) => ({
+            eq: vi.fn((field: string, value: string) => {
+              updateCalls.push({ variantId: value, newQuantity: data.stock_quantity })
+              return Promise.resolve({ error: null })
+            }),
+          })),
         }
-        if (table === 'products') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn((field: string, value: string) => ({
-                single: vi.fn().mockResolvedValue({
-                  data: (products as Record<string, unknown>)[value] || null,
-                }),
-              })),
+      }
+      if (table === 'products') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn((field: string, value: string) => ({
+              single: vi.fn().mockResolvedValue({
+                data: (products as Record<string, unknown>)[value] || null,
+              }),
             })),
-          }
+          })),
         }
-        return {}
-      }),
-    },
+      }
+      return {}
+    }),
+  }
+
+  return {
+    client: client as unknown as SupabaseClient<Database>,
     updateCalls,
   }
 }
@@ -231,38 +235,40 @@ function createRestoreMockSupabase(overrides: Record<string, unknown> = {}) {
 
   const updateCalls: { variantId: string; newQuantity: number }[] = []
 
-  return {
-    client: {
-      from: vi.fn((table: string) => {
-        if (table === 'order_items') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                not: vi.fn().mockResolvedValue({ data: orderItems }),
-              })),
+  const client = {
+    from: vi.fn((table: string) => {
+      if (table === 'order_items') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              not: vi.fn().mockResolvedValue({ data: orderItems }),
             })),
-          }
+          })),
         }
-        if (table === 'product_variants') {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn((_field: string, value: string) => ({
-                single: vi.fn().mockResolvedValue({
-                  data: (variants as Record<string, unknown>)[value] || null,
-                }),
-              })),
-            })),
-            update: vi.fn((data: { stock_quantity: number }) => ({
-              eq: vi.fn((_field: string, value: string) => {
-                updateCalls.push({ variantId: value, newQuantity: data.stock_quantity })
-                return Promise.resolve({ error: null })
+      }
+      if (table === 'product_variants') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn((_field: string, value: string) => ({
+              single: vi.fn().mockResolvedValue({
+                data: (variants as Record<string, unknown>)[value] || null,
               }),
             })),
-          }
+          })),
+          update: vi.fn((data: { stock_quantity: number }) => ({
+            eq: vi.fn((_field: string, value: string) => {
+              updateCalls.push({ variantId: value, newQuantity: data.stock_quantity })
+              return Promise.resolve({ error: null })
+            }),
+          })),
         }
-        return {}
-      }),
-    },
+      }
+      return {}
+    }),
+  }
+
+  return {
+    client: client as unknown as SupabaseClient<Database>,
     updateCalls,
   }
 }

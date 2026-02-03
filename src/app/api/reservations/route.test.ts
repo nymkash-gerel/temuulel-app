@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/reservations
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -27,15 +28,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -133,13 +130,13 @@ beforeEach(() => {
 describe('GET /api/reservations', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/reservations') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/reservations') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations'))
     expect(res.status).toBe(403)
   })
 
@@ -149,7 +146,7 @@ describe('GET /api/reservations', () => {
       { id: 'res-2', unit_id: 'unit-002', guest_id: 'guest-002', status: 'checked_in' },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/reservations') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -159,7 +156,7 @@ describe('GET /api/reservations', () => {
   it('returns empty list when no reservations', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/reservations') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -169,7 +166,7 @@ describe('GET /api/reservations', () => {
   it('supports status filter', async () => {
     mockData = [{ id: 'res-1', status: 'confirmed' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/reservations?status=confirmed') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations?status=confirmed'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -178,7 +175,7 @@ describe('GET /api/reservations', () => {
   it('supports unit_id filter', async () => {
     mockData = [{ id: 'res-1', unit_id: 'unit-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/reservations?unit_id=unit-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations?unit_id=unit-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -187,7 +184,7 @@ describe('GET /api/reservations', () => {
   it('supports guest_id filter', async () => {
     mockData = [{ id: 'res-1', guest_id: 'guest-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/reservations?guest_id=guest-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations?guest_id=guest-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -196,7 +193,7 @@ describe('GET /api/reservations', () => {
   it('supports from_date filter', async () => {
     mockData = [{ id: 'res-1', check_in: '2026-03-01' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/reservations?from_date=2026-03-01') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations?from_date=2026-03-01'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -205,7 +202,7 @@ describe('GET /api/reservations', () => {
   it('supports to_date filter', async () => {
     mockData = [{ id: 'res-1', check_out: '2026-03-05' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/reservations?to_date=2026-03-05') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations?to_date=2026-03-05'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -214,7 +211,7 @@ describe('GET /api/reservations', () => {
   it('supports combined filters', async () => {
     mockData = [{ id: 'res-1', status: 'checked_in', unit_id: 'unit-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/reservations?status=checked_in&unit_id=unit-001&from_date=2026-03-01&to_date=2026-03-10') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations?status=checked_in&unit_id=unit-001&from_date=2026-03-01&to_date=2026-03-10'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -223,7 +220,7 @@ describe('GET /api/reservations', () => {
   it('ignores invalid status filter values', async () => {
     mockData = [{ id: 'res-1' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/reservations?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -232,7 +229,7 @@ describe('GET /api/reservations', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'res-10' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/reservations?limit=10&offset=30') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations?limit=10&offset=30'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -240,7 +237,7 @@ describe('GET /api/reservations', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/reservations') as never)
+    const res = await GET(makeRequest('http://localhost/api/reservations'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -262,18 +259,18 @@ describe('POST /api/reservations', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/reservations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/reservations', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/reservations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/reservations', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a reservation with required fields', async () => {
-    const res = await POST(makeRequest('http://localhost/api/reservations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/reservations', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -296,7 +293,7 @@ describe('POST /api/reservations', () => {
       deposit_amount: 200,
       source: 'booking_com',
       special_requests: 'Late check-in',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.source).toBe('booking_com')
@@ -305,7 +302,7 @@ describe('POST /api/reservations', () => {
 
   it('returns 404 if unit not found in store', async () => {
     mockUnit = null
-    const res = await POST(makeRequest('http://localhost/api/reservations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/reservations', validBody))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Unit/)
@@ -313,7 +310,7 @@ describe('POST /api/reservations', () => {
 
   it('returns 404 if guest not found in store', async () => {
     mockGuest = null
-    const res = await POST(makeRequest('http://localhost/api/reservations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/reservations', validBody))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Guest/)
@@ -326,7 +323,7 @@ describe('POST /api/reservations', () => {
       check_out: '2026-03-05',
       rate_per_night: 150,
       total_amount: 600,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -337,7 +334,7 @@ describe('POST /api/reservations', () => {
       check_out: '2026-03-05',
       rate_per_night: 150,
       total_amount: 600,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -348,7 +345,7 @@ describe('POST /api/reservations', () => {
       check_out: '2026-03-05',
       rate_per_night: 150,
       total_amount: 600,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -356,7 +353,7 @@ describe('POST /api/reservations', () => {
     const res = await POST(makeRequest('http://localhost/api/reservations', {
       ...validBody,
       rate_per_night: -10,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -364,24 +361,24 @@ describe('POST /api/reservations', () => {
     const res = await POST(makeRequest('http://localhost/api/reservations', {
       ...validBody,
       source: 'invalid_source',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/reservations', {
+    const req = createTestRequest('http://localhost/api/reservations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'DB insert error' }
-    const res = await POST(makeRequest('http://localhost/api/reservations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/reservations', validBody))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('DB insert error')

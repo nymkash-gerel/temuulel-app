@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, generateCommissionsSchema } from '@/lib/validations'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { createRequestLogger } from '@/lib/logger'
+import { withSpan } from '@/lib/sentry-helpers'
 
 /**
  * POST /api/commissions/generate
@@ -9,6 +12,9 @@ import { validateBody, generateCommissionsSchema } from '@/lib/validations'
  * Optionally filter by specific deal_ids.
  */
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 5, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -25,6 +31,13 @@ export async function POST(request: NextRequest) {
   if (!store) {
     return NextResponse.json({ error: 'Store not found' }, { status: 403 })
   }
+
+  const log = createRequestLogger(crypto.randomUUID(), '/api/commissions/generate', {
+    userId: user.id,
+    storeId: store.id,
+  })
+
+  return withSpan('commissions.generate', 'batch.operation', async () => {
 
   const { data: body, error: validationError } = await validateBody(request, generateCommissionsSchema)
   if (validationError) return validationError
@@ -86,8 +99,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
+  log.info('Commission generation complete', { generated: inserted?.length || 0 })
+
   return NextResponse.json({
     generated: inserted?.length || 0,
     commissions: inserted,
   })
+
+  }) // end withSpan
 }

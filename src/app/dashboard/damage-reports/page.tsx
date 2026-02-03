@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -44,7 +44,7 @@ function formatDate(dateStr: string) {
 
 export default function DamageReportsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [reports, setReports] = useState<DamageReport[]>([])
@@ -53,7 +53,7 @@ export default function DamageReportsPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [error] = useState('')
 
-  async function loadReports(sid: string) {
+  const loadReports = useCallback(async (sid: string) => {
     let query = supabase
       .from('damage_reports')
       .select(`
@@ -80,7 +80,7 @@ export default function DamageReportsPage() {
     if (data) {
       setReports(data as unknown as DamageReport[])
     }
-  }
+  }, [supabase, statusFilter, typeFilter])
 
   useEffect(() => {
     async function init() {
@@ -100,14 +100,13 @@ export default function DamageReportsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadReports])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadReports(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, typeFilter])
+    const reload = async () => { await loadReports(storeId) }
+    reload()
+  }, [statusFilter, typeFilter, storeId, loading, loadReports])
 
   const stats = useMemo(() => {
     const total = reports.length

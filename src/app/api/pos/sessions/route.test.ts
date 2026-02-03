@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/pos/sessions
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -26,15 +27,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -118,13 +115,13 @@ beforeEach(() => {
 describe('GET /api/pos/sessions', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/pos/sessions') as never)
+    const res = await GET(makeRequest('http://localhost/api/pos/sessions'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/pos/sessions') as never)
+    const res = await GET(makeRequest('http://localhost/api/pos/sessions'))
     expect(res.status).toBe(403)
   })
 
@@ -134,7 +131,7 @@ describe('GET /api/pos/sessions', () => {
       { id: 'sess-2', register_name: 'Register 2', status: 'closed', total_sales: 180000 },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/pos/sessions') as never)
+    const res = await GET(makeRequest('http://localhost/api/pos/sessions'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -144,7 +141,7 @@ describe('GET /api/pos/sessions', () => {
   it('returns empty list when no sessions', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/pos/sessions') as never)
+    const res = await GET(makeRequest('http://localhost/api/pos/sessions'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -154,7 +151,7 @@ describe('GET /api/pos/sessions', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'sess-5' }]
     mockDataCount = 50
-    const res = await GET(makeRequest('http://localhost/api/pos/sessions?limit=10&offset=20') as never)
+    const res = await GET(makeRequest('http://localhost/api/pos/sessions?limit=10&offset=20'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(50)
@@ -166,7 +163,7 @@ describe('GET /api/pos/sessions', () => {
       { id: 'sess-1', created_at: '2026-02-01T09:00:00Z' },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/pos/sessions') as never)
+    const res = await GET(makeRequest('http://localhost/api/pos/sessions'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data[0].id).toBe('sess-2')
@@ -188,7 +185,7 @@ describe('GET /api/pos/sessions', () => {
       created_at: '2026-02-01T09:00:00Z',
     }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/pos/sessions') as never)
+    const res = await GET(makeRequest('http://localhost/api/pos/sessions'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data[0]).toHaveProperty('opened_by')
@@ -199,7 +196,7 @@ describe('GET /api/pos/sessions', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/pos/sessions') as never)
+    const res = await GET(makeRequest('http://localhost/api/pos/sessions'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -217,26 +214,26 @@ describe('POST /api/pos/sessions', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody))
     expect(res.status).toBe(403)
   })
 
   it('returns 403 if user has no staff record', async () => {
     mockStaff = null
-    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody))
     const json = await res.json()
     expect(res.status).toBe(403)
     expect(json.error).toMatch(/Staff record not found/)
   })
 
   it('opens a POS session with all fields', async () => {
-    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -246,57 +243,57 @@ describe('POST /api/pos/sessions', () => {
   })
 
   it('opens a POS session without optional fields', async () => {
-    const res = await POST(makeRequest('http://localhost/api/pos/sessions', {}) as never)
+    const res = await POST(makeRequest('http://localhost/api/pos/sessions', {}))
     expect(res.status).toBe(201)
   })
 
   it('opens a session with only register_name', async () => {
     const res = await POST(makeRequest('http://localhost/api/pos/sessions', {
       register_name: 'Front Counter',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('opens a session with only opening_cash', async () => {
     const res = await POST(makeRequest('http://localhost/api/pos/sessions', {
       opening_cash: 100000,
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('opens a session with zero opening_cash', async () => {
     const res = await POST(makeRequest('http://localhost/api/pos/sessions', {
       opening_cash: 0,
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 for negative opening_cash', async () => {
     const res = await POST(makeRequest('http://localhost/api/pos/sessions', {
       opening_cash: -5000,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/pos/sessions', {
+    const req = createTestRequest('http://localhost/api/pos/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when register_name exceeds max length', async () => {
     const res = await POST(makeRequest('http://localhost/api/pos/sessions', {
       register_name: 'A'.repeat(101),
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('session is created with opened_by from staff record', async () => {
-    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.opened_by).toBe('staff-001')
@@ -305,7 +302,7 @@ describe('POST /api/pos/sessions', () => {
   it('returns 500 when database insert fails', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/pos/sessions', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')

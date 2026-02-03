@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/students
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn(() => ({ success: true, limit: 30, remaining: 29, resetAt: Date.now() + 60000 })),
@@ -30,15 +31,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -116,7 +113,7 @@ beforeEach(() => {
 describe('GET /api/students', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/students') as never)
+    const res = await GET(makeRequest('http://localhost/api/students'))
     expect(res.status).toBe(401)
     const json = await res.json()
     expect(json.error).toBe('Unauthorized')
@@ -124,7 +121,7 @@ describe('GET /api/students', () => {
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/students') as never)
+    const res = await GET(makeRequest('http://localhost/api/students'))
     expect(res.status).toBe(403)
     const json = await res.json()
     expect(json.error).toBe('Store not found')
@@ -135,7 +132,7 @@ describe('GET /api/students', () => {
       { id: 'student-1', first_name: 'Jane', last_name: 'Smith', email: 'jane@example.com' },
     ]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/students') as never)
+    const res = await GET(makeRequest('http://localhost/api/students'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -145,7 +142,7 @@ describe('GET /api/students', () => {
   it('returns empty list when no students', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/students') as never)
+    const res = await GET(makeRequest('http://localhost/api/students'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -155,7 +152,7 @@ describe('GET /api/students', () => {
   it('supports search filter via ilike on first_name and last_name', async () => {
     mockData = [{ id: 'student-1', first_name: 'Jane', last_name: 'Smith' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/students?search=jane') as never)
+    const res = await GET(makeRequest('http://localhost/api/students?search=jane'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -164,7 +161,7 @@ describe('GET /api/students', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'student-5' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/students?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/students?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -173,7 +170,7 @@ describe('GET /api/students', () => {
   it('supports search with pagination', async () => {
     mockData = [{ id: 'student-3', first_name: 'Jane', last_name: 'Doe' }]
     mockDataCount = 10
-    const res = await GET(makeRequest('http://localhost/api/students?search=jane&limit=5&offset=0') as never)
+    const res = await GET(makeRequest('http://localhost/api/students?search=jane&limit=5&offset=0'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -186,7 +183,7 @@ describe('GET /api/students', () => {
       { id: 'student-2', first_name: 'Bob', last_name: 'Jones' },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/students') as never)
+    const res = await GET(makeRequest('http://localhost/api/students'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -195,7 +192,7 @@ describe('GET /api/students', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/students') as never)
+    const res = await GET(makeRequest('http://localhost/api/students'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -213,18 +210,18 @@ describe('POST /api/students', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/students', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/students', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/students', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/students', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a student with minimal data', async () => {
-    const res = await POST(makeRequest('http://localhost/api/students', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/students', validBody))
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json.id).toBeDefined()
@@ -242,21 +239,21 @@ describe('POST /api/students', () => {
       guardian_phone: '99003344',
       notes: 'Transfer student from another school',
     }
-    const res = await POST(makeRequest('http://localhost/api/students', fullBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/students', fullBody))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when first_name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/students', {
       last_name: 'Smith',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when last_name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/students', {
       first_name: 'Jane',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -264,7 +261,7 @@ describe('POST /api/students', () => {
     const res = await POST(makeRequest('http://localhost/api/students', {
       first_name: '',
       last_name: 'Smith',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -272,7 +269,7 @@ describe('POST /api/students', () => {
     const res = await POST(makeRequest('http://localhost/api/students', {
       first_name: 'Jane',
       last_name: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -281,7 +278,7 @@ describe('POST /api/students', () => {
       first_name: 'Jane',
       last_name: 'Smith',
       email: 'not-an-email',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -290,31 +287,31 @@ describe('POST /api/students', () => {
       first_name: 'Jane',
       last_name: 'Smith',
       customer_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/students', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/students', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/students', {
+    const req = createTestRequest('http://localhost/api/students', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when body is empty', async () => {
-    const res = await POST(makeRequest('http://localhost/api/students', {}) as never)
+    const res = await POST(makeRequest('http://localhost/api/students', {}))
     expect(res.status).toBe(400)
   })
 })

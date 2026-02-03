@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
@@ -41,7 +41,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function InspectionsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [inspections, setInspections] = useState<Inspection[]>([])
@@ -59,7 +59,7 @@ export default function InspectionsPage() {
   const [formScheduledDate, setFormScheduledDate] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  async function loadInspections() {
+  const loadInspections = useCallback(async () => {
     const params = new URLSearchParams({ limit: '200' })
     if (resultFilter) params.set('result', resultFilter)
     if (typeFilter) params.set('inspection_type', typeFilter)
@@ -70,7 +70,7 @@ export default function InspectionsPage() {
       setInspections(json.data || [])
       setTotalCount(json.total ?? (json.data?.length || 0))
     }
-  }
+  }, [resultFilter, typeFilter])
 
   useEffect(() => {
     async function init() {
@@ -94,14 +94,12 @@ export default function InspectionsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadInspections])
 
   useEffect(() => {
     if (loading) return
     loadInspections()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resultFilter, typeFilter])
+  }, [resultFilter, typeFilter, loading, loadInspections])
 
   const kpis = useMemo(() => {
     const total = inspections.length

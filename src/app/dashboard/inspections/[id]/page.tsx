@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -50,7 +50,7 @@ const STATUS_FLOW = ['scheduled', 'in_progress', 'passed']
 export default function InspectionDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const inspectionId = params.id as string
 
   const [inspection, setInspection] = useState<Inspection | null>(null)
@@ -62,45 +62,45 @@ export default function InspectionDetailPage() {
   const [findings, setFindings] = useState('')
   const [notes, setNotes] = useState('')
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+  const load = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+    const { data: store } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('owner_id', user.id)
+      .single()
 
-      if (!store) { router.push('/dashboard'); return }
+    if (!store) { router.push('/dashboard'); return }
 
-      const res = await fetch(`/api/inspections/${inspectionId}`)
-      if (!res.ok) {
-        router.push('/dashboard/inspections')
-        return
-      }
-
-      const data = await res.json()
-      setInspection(data)
-      setFindings(data.findings || data.required_corrections || '')
-      setNotes(data.notes || '')
-
-      // Fetch project name
-      if (data.project_id) {
-        const { data: project } = await supabase
-          .from('projects')
-          .select('name')
-          .eq('id', data.project_id)
-          .single()
-        if (project) setProjectName(project.name)
-      }
-
-      setLoading(false)
+    const res = await fetch(`/api/inspections/${inspectionId}`)
+    if (!res.ok) {
+      router.push('/dashboard/inspections')
+      return
     }
+
+    const data = await res.json()
+    setInspection(data)
+    setFindings(data.findings || data.required_corrections || '')
+    setNotes(data.notes || '')
+
+    // Fetch project name
+    if (data.project_id) {
+      const { data: project } = await supabase
+        .from('projects')
+        .select('name')
+        .eq('id', data.project_id)
+        .single()
+      if (project) setProjectName(project.name)
+    }
+
+    setLoading(false)
+  }, [supabase, router, inspectionId])
+
+  useEffect(() => {
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspectionId])
+  }, [load])
 
   async function handleStatusChange(newStatus: string) {
     if (!inspection) return

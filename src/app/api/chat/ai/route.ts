@@ -20,8 +20,14 @@ import {
 } from '@/lib/conversation-state'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
 import { interceptWithFlow } from '@/lib/flow-middleware'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { createRequestLogger } from '@/lib/logger'
+import { addBreadcrumb } from '@/lib/sentry-helpers'
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 10, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const body = await request.json()
   const { conversation_id, customer_message, store_id, is_comment, context } = body
@@ -57,6 +63,9 @@ export async function POST(request: NextRequest) {
   const storeName = conversation.stores?.name || 'Манай дэлгүүр'
   const customerId = conversation.customer_id
   const chatbotSettings = (conversation.stores?.chatbot_settings || {}) as ChatbotSettings
+
+  const log = createRequestLogger(crypto.randomUUID(), '/api/chat/ai', { storeId })
+  log.info('AI chat request', { conversation_id })
 
   // --- Flow interception (before AI pipeline) ---
   try {
@@ -162,6 +171,13 @@ export async function POST(request: NextRequest) {
       intent, products, orders, storeName, customer_message, chatbotSettings, history
     )
   }
+
+  void addBreadcrumb('ai.intent', `Classified intent: ${intent}`, {
+    intent,
+    followUp: followUp?.type ?? 'none',
+    productsFound: products.length,
+    ordersFound: orders.length,
+  })
 
   // Save AI response as a message
   const { data: savedMessage, error } = await supabase

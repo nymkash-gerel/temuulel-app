@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/billing-payments
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -33,15 +34,11 @@ vi.mock('@/lib/billing', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -114,13 +111,13 @@ beforeEach(() => {
 describe('GET /api/billing-payments', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/billing-payments') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/billing-payments') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments'))
     expect(res.status).toBe(403)
   })
 
@@ -129,7 +126,7 @@ describe('GET /api/billing-payments', () => {
       { id: 'pay-1', payment_number: 'PAY-001', amount: 25000, method: 'cash', status: 'completed' },
     ]
     mockPaymentsCount = 1
-    const res = await GET(makeRequest('http://localhost/api/billing-payments') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -139,7 +136,7 @@ describe('GET /api/billing-payments', () => {
   it('returns empty list when no payments', async () => {
     mockPayments = []
     mockPaymentsCount = 0
-    const res = await GET(makeRequest('http://localhost/api/billing-payments') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -149,7 +146,7 @@ describe('GET /api/billing-payments', () => {
   it('supports invoice_id filter', async () => {
     mockPayments = [{ id: 'pay-1', invoice_id: 'inv-001' }]
     mockPaymentsCount = 1
-    const res = await GET(makeRequest('http://localhost/api/billing-payments?invoice_id=inv-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments?invoice_id=inv-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -158,7 +155,7 @@ describe('GET /api/billing-payments', () => {
   it('supports status filter', async () => {
     mockPayments = [{ id: 'pay-2', status: 'completed' }]
     mockPaymentsCount = 1
-    const res = await GET(makeRequest('http://localhost/api/billing-payments?status=completed') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments?status=completed'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -167,7 +164,7 @@ describe('GET /api/billing-payments', () => {
   it('supports method filter', async () => {
     mockPayments = [{ id: 'pay-3', method: 'qpay' }]
     mockPaymentsCount = 1
-    const res = await GET(makeRequest('http://localhost/api/billing-payments?method=qpay') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments?method=qpay'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -176,7 +173,7 @@ describe('GET /api/billing-payments', () => {
   it('supports pagination parameters', async () => {
     mockPayments = [{ id: 'pay-4' }]
     mockPaymentsCount = 100
-    const res = await GET(makeRequest('http://localhost/api/billing-payments?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -185,7 +182,7 @@ describe('GET /api/billing-payments', () => {
   it('ignores invalid status filter values', async () => {
     mockPayments = []
     mockPaymentsCount = 0
-    const res = await GET(makeRequest('http://localhost/api/billing-payments?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -194,7 +191,7 @@ describe('GET /api/billing-payments', () => {
   it('ignores invalid method filter values', async () => {
     mockPayments = []
     mockPaymentsCount = 0
-    const res = await GET(makeRequest('http://localhost/api/billing-payments?method=bitcoin') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments?method=bitcoin'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -202,7 +199,7 @@ describe('GET /api/billing-payments', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/billing-payments') as never)
+    const res = await GET(makeRequest('http://localhost/api/billing-payments'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -221,18 +218,18 @@ describe('POST /api/billing-payments', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a payment with invoice_id', async () => {
-    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -242,7 +239,7 @@ describe('POST /api/billing-payments', () => {
     const res = await POST(makeRequest('http://localhost/api/billing-payments', {
       amount: 10000,
       method: 'bank',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
@@ -253,21 +250,21 @@ describe('POST /api/billing-payments', () => {
       method: 'qpay',
       gateway_ref: 'QPAY-12345',
       notes: 'Payment via QPay',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when amount is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/billing-payments', {
       method: 'cash',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when method is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/billing-payments', {
       amount: 25000,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -275,7 +272,7 @@ describe('POST /api/billing-payments', () => {
     const res = await POST(makeRequest('http://localhost/api/billing-payments', {
       amount: 25000,
       method: 'bitcoin',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -283,7 +280,7 @@ describe('POST /api/billing-payments', () => {
     const res = await POST(makeRequest('http://localhost/api/billing-payments', {
       amount: 0,
       method: 'cash',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -291,7 +288,7 @@ describe('POST /api/billing-payments', () => {
     const res = await POST(makeRequest('http://localhost/api/billing-payments', {
       amount: -100,
       method: 'cash',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -300,13 +297,13 @@ describe('POST /api/billing-payments', () => {
       invoice_id: 'not-a-uuid',
       amount: 25000,
       method: 'cash',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 404 if invoice not found in store', async () => {
     mockInvoice = null
-    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Invoice not found/)
@@ -315,19 +312,19 @@ describe('POST /api/billing-payments', () => {
   it('returns 500 when recordPayment fails', async () => {
     mockCreatedPayment = null
     mockCreateError = 'Database insert failed'
-    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/billing-payments', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Database insert failed')
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/billing-payments', {
+    const req = createTestRequest('http://localhost/api/billing-payments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
@@ -336,7 +333,7 @@ describe('POST /api/billing-payments', () => {
       const res = await POST(makeRequest('http://localhost/api/billing-payments', {
         amount: 1000,
         method: m,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })

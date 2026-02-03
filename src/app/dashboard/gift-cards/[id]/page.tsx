@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -60,7 +60,7 @@ function formatDateTime(dateStr: string | null): string {
 export default function GiftCardDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const cardId = params.id as string
 
   const [card, setCard] = useState<GiftCard | null>(null)
@@ -71,7 +71,7 @@ export default function GiftCardDetailPage() {
   const [editExpiresAt, setEditExpiresAt] = useState('')
   const [editNotes, setEditNotes] = useState('')
 
-  async function loadCard() {
+  const loadCard = useCallback(async () => {
     try {
       const res = await fetch(`/api/gift-cards/${cardId}`)
       if (res.ok) {
@@ -86,7 +86,7 @@ export default function GiftCardDetailPage() {
       return
     }
     setLoading(false)
-  }
+  }, [cardId, router])
 
   useEffect(() => {
     async function init() {
@@ -104,8 +104,7 @@ export default function GiftCardDetailPage() {
       await loadCard()
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cardId])
+  }, [supabase, router, loadCard])
 
   function startEdit() {
     if (!card) return
