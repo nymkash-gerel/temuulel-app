@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface FleetVehicleDetail {
@@ -64,7 +64,6 @@ function formatNumber(num: number | null) {
 }
 
 export default function FleetVehicleDetailPage() {
-  const router = useRouter()
   const params = useParams()
   const id = params.id as string
 

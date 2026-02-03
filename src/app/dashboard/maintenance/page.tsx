@@ -50,7 +50,7 @@ export default function MaintenancePage() {
   const [storeId, setStoreId] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
-  const [error, setError] = useState('')
+  const [error] = useState('')
 
   async function loadRequests(sid: string) {
     let query = supabase

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface MaintenanceDetail {
@@ -63,7 +63,6 @@ function formatDateTime(date: string | null) {
 }
 
 export default function MaintenanceDetailPage() {
-  const router = useRouter()
   const params = useParams()
   const id = params.id as string
 

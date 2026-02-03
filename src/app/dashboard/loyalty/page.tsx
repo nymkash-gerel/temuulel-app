@@ -42,7 +42,7 @@ export default function LoyaltyPage() {
   const [storeId, setStoreId] = useState<string>('')
   const [transactions, setTransactions] = useState<LoyaltyTransactionRow[]>([])
   const [typeFilter, setTypeFilter] = useState('')
-  const [error, setError] = useState('')
+  const [error] = useState('')
 
   async function loadTransactions(sid: string) {
     let query = supabase

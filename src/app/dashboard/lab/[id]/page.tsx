@@ -74,15 +74,6 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   other: 'Бусад',
 }
 
-function formatDate(date: string | null) {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('mn-MN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
 function formatDateTime(date: string | null) {
   if (!date) return '-'
   return new Date(date).toLocaleString('mn-MN', {

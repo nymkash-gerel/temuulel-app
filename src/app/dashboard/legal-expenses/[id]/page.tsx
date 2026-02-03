@@ -18,13 +18,6 @@ interface LegalExpenseDetail {
   legal_cases: { id: string; case_number: string; title: string } | null
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Хүлээгдэж буй', color: 'bg-slate-500/20 text-slate-400' },
-  approved: { label: 'Зөвшөөрсөн', color: 'bg-blue-500/20 text-blue-400' },
-  reimbursed: { label: 'Буцаагдсан', color: 'bg-green-500/20 text-green-400' },
-  rejected: { label: 'Татгалзсан', color: 'bg-red-500/20 text-red-400' },
-}
-
 const EXPENSE_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   filing_fee: { label: 'Нэхэмжлэлийн хураамж', color: 'bg-blue-500/20 text-blue-400' },
   court_fee: { label: 'Шүүхийн хураамж', color: 'bg-purple-500/20 text-purple-400' },
