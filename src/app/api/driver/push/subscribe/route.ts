@@ -17,9 +17,7 @@ export async function POST(request: NextRequest) {
   const { endpoint, keys } = parsed.data
 
   const { error } = await supabase
-  // @ts-expect-error - push_subscriptions table may not be in current schema
     .from('push_subscriptions')
-    // @ts-expect-error - push_subscriptions table schema
     .upsert({
       user_id: auth.user.id,
       endpoint,
