@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface LabOrder {
@@ -50,28 +50,33 @@ export default function LabPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const fetchOrders = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (cancelled) return
+        if (!user) { setLoading(false); return }
 
-      const params = new URLSearchParams()
-      if (statusFilter) params.set('status', statusFilter)
-      if (urgencyFilter) params.set('urgency', urgencyFilter)
-      if (typeFilter) params.set('order_type', typeFilter)
+        const params = new URLSearchParams()
+        if (statusFilter) params.set('status', statusFilter)
+        if (urgencyFilter) params.set('urgency', urgencyFilter)
+        if (typeFilter) params.set('order_type', typeFilter)
 
-      const res = await fetch(`/api/lab-orders?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch lab orders')
-      const json = await res.json()
-      setOrders(json.data || [])
-    } catch {
-      setError('Could not load lab orders')
-    } finally {
-      setLoading(false)
+        const res = await fetch(`/api/lab-orders?${params}`)
+        if (cancelled) return
+        if (!res.ok) throw new Error('Failed to fetch lab orders')
+        const json = await res.json()
+        setOrders(json.data || [])
+      } catch {
+        if (!cancelled) setError('Could not load lab orders')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
+    load()
+    return () => { cancelled = true }
   }, [supabase, statusFilter, urgencyFilter, typeFilter])
-
-  useEffect(() => { fetchOrders() }, [fetchOrders])
 
   const stats = useMemo(() => ({
     total: orders.length,

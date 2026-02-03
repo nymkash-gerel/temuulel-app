@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Prescription {
@@ -48,16 +48,40 @@ export default function PharmacyPage() {
   const [error, setError] = useState<string | null>(null)
   const [dispensing, setDispensing] = useState<string | null>(null)
 
-  const fetchPrescriptions = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (cancelled) return
+        if (!user) { setLoading(false); return }
+
+        const params = new URLSearchParams()
+        if (statusFilter) params.set('status', statusFilter)
+
+        const res = await fetch(`/api/prescriptions?${params}`)
+        if (cancelled) return
+        if (!res.ok) throw new Error('Failed to fetch prescriptions')
+        const json = await res.json()
+        setPrescriptions(json.data || [])
+      } catch {
+        if (!cancelled) setError('Could not load prescriptions')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase, statusFilter])
+
+  async function fetchPrescriptions() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
-
+      if (!user) return
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
-
       const res = await fetch(`/api/prescriptions?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch prescriptions')
+      if (!res.ok) throw new Error('Failed')
       const json = await res.json()
       setPrescriptions(json.data || [])
     } catch {
@@ -65,9 +89,7 @@ export default function PharmacyPage() {
     } finally {
       setLoading(false)
     }
-  }, [supabase, statusFilter])
-
-  useEffect(() => { fetchPrescriptions() }, [fetchPrescriptions])
+  }
 
   const stats = useMemo(() => ({
     total: prescriptions.length,

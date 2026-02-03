@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Admission {
@@ -39,16 +39,40 @@ export default function InpatientPage() {
   const [error, setError] = useState<string | null>(null)
   const [actionId, setActionId] = useState<string | null>(null)
 
-  const fetchAdmissions = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (cancelled) return
+        if (!user) { setLoading(false); return }
+
+        const params = new URLSearchParams()
+        if (statusFilter) params.set('status', statusFilter)
+
+        const res = await fetch(`/api/admissions?${params}`)
+        if (cancelled) return
+        if (!res.ok) throw new Error('Failed to fetch admissions')
+        const json = await res.json()
+        setAdmissions(json.data || [])
+      } catch {
+        if (!cancelled) setError('Could not load admissions')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase, statusFilter])
+
+  async function fetchAdmissions() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
-
+      if (!user) return
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
-
       const res = await fetch(`/api/admissions?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch admissions')
+      if (!res.ok) throw new Error('Failed')
       const json = await res.json()
       setAdmissions(json.data || [])
     } catch {
@@ -56,9 +80,7 @@ export default function InpatientPage() {
     } finally {
       setLoading(false)
     }
-  }, [supabase, statusFilter])
-
-  useEffect(() => { fetchAdmissions() }, [fetchAdmissions])
+  }
 
   const stats = useMemo(() => ({
     total: admissions.length,

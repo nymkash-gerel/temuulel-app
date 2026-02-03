@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -77,19 +77,6 @@ export default function LaundryOrdersPage() {
   const [pickupDate, setPickupDate] = useState('')
   const [notes, setNotes] = useState('')
 
-  const fetchOrders = useCallback(async () => {
-    if (!storeId) return
-    setLoading(true)
-    let url = `/api/laundry-orders?limit=50`
-    if (statusFilter !== 'all') url += `&status=${statusFilter}`
-    const res = await fetch(url)
-    if (res.ok) {
-      const json = await res.json()
-      setOrders(json.data || [])
-    }
-    setLoading(false)
-  }, [storeId, statusFilter])
-
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -109,7 +96,37 @@ export default function LaundryOrdersPage() {
     init()
   }, [supabase, router])
 
-  useEffect(() => { fetchOrders() }, [fetchOrders])
+  useEffect(() => {
+    if (!storeId) return
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      let url = `/api/laundry-orders?limit=50`
+      if (statusFilter !== 'all') url += `&status=${statusFilter}`
+      const res = await fetch(url)
+      if (cancelled) return
+      if (res.ok) {
+        const json = await res.json()
+        setOrders(json.data || [])
+      }
+      setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [storeId, statusFilter])
+
+  async function fetchOrders() {
+    if (!storeId) return
+    setLoading(true)
+    let url = `/api/laundry-orders?limit=50`
+    if (statusFilter !== 'all') url += `&status=${statusFilter}`
+    const res = await fetch(url)
+    if (res.ok) {
+      const json = await res.json()
+      setOrders(json.data || [])
+    }
+    setLoading(false)
+  }
 
   const kpis = useMemo(() => {
     const total = orders.length
