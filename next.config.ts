@@ -47,6 +47,13 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  webpack: (config, { webpack }) => {
+    // Ignore vitest imports during production build (ESM-only, testing only)
+    config.plugins.push(
+      new webpack.IgnorePlugin({ resourceRegExp: /^vitest/ })
+    )
+    return config
+  },
   images: {
     remotePatterns: [
       {
