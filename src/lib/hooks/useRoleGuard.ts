@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -14,47 +14,58 @@ export function useRoleGuard(requiredRoles: string[] = ['owner', 'admin']) {
   const supabase = useMemo(() => createClient(), [])
   const [allowed, setAllowed] = useState(false)
   const [loading, setLoading] = useState(true)
-
-  const check = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    // Check if store owner
-    const { data: store } = await supabase
-      .from('stores')
-      .select('id')
-      .eq('owner_id', user.id)
-      .single()
-
-    if (store) {
-      setAllowed(true)
-      setLoading(false)
-      return
-    }
-
-    // Check membership role
-    const { data: membership } = await supabase
-      .from('store_members')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
-
-    if (membership && requiredRoles.includes(membership.role)) {
-      setAllowed(true)
-    } else {
-      router.push('/dashboard')
-    }
-    setLoading(false)
-  }, [supabase, router, requiredRoles])
+  const rolesRef = useRef(requiredRoles)
+  rolesRef.current = requiredRoles
 
   useEffect(() => {
+    let cancelled = false
+
+    async function check() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (cancelled) return
+
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      // Check if store owner
+      const { data: store } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single()
+
+      if (cancelled) return
+
+      if (store) {
+        setAllowed(true)
+        setLoading(false)
+        return
+      }
+
+      // Check membership role
+      const { data: membership } = await supabase
+        .from('store_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+
+      if (cancelled) return
+
+      if (membership && rolesRef.current.includes(membership.role)) {
+        setAllowed(true)
+      } else {
+        router.push('/dashboard')
+      }
+      setLoading(false)
+    }
+
     check()
-  }, [check])
+    return () => { cancelled = true }
+  }, [supabase, router])
 
   return { allowed, loading }
 }
