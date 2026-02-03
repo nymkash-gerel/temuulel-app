@@ -150,7 +150,7 @@ export default function PhotoSessionDetailPage() {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<PhotoSession | null>(null)
   const [galleries, setGalleries] = useState<PhotoGallery[]>([])
-  const [updating, setUpdating] = useState(false)
+  const [, setUpdating] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
@@ -217,6 +217,7 @@ export default function PhotoSessionDetailPage() {
   // Status update
   // -----------------------------------------------------------------------
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function handleStatusChange(newStatus: string) {
     if (!session) return
 

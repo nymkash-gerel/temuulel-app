@@ -312,6 +312,7 @@ export default function MenuItemDetailPage() {
               <div className="grid grid-cols-2 gap-2">
                 {menuItem.images.map((img, i) => (
                   <div key={i} className="aspect-square rounded-lg overflow-hidden bg-slate-700">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={img}
                       alt={`${menuItem.name} - ${i + 1}`}

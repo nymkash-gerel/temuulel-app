@@ -54,6 +54,7 @@ export default function NewPackagePage() {
       }
     }
     init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const addService = () => {

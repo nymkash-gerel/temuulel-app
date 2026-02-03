@@ -48,7 +48,7 @@ export default function PackagePurchasesPage() {
   const [storeId, setStoreId] = useState<string>('')
   const [purchases, setPurchases] = useState<PackagePurchaseRow[]>([])
   const [statusFilter, setStatusFilter] = useState('')
-  const [error, setError] = useState('')
+  const [error] = useState('')
 
   async function loadPurchases(sid: string) {
     let query = supabase

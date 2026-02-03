@@ -428,6 +428,7 @@ export default function OrderDetailPage() {
                   <div key={item.id} className="flex items-center gap-4 p-3 bg-slate-700/20 rounded-xl">
                     <div className="w-14 h-14 bg-slate-700 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
                       {((item.products?.images as string[])?.[0] || (item.product_variants?.products?.images as string[])?.[0]) ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                           src={(item.products?.images as string[])?.[0] || (item.product_variants?.products?.images as string[])?.[0]}
                           alt=""
@@ -630,6 +631,7 @@ export default function OrderDetailPage() {
                 <p className="text-xs text-slate-400 mb-3">QPay QR код</p>
                 {qrData.qr_image && (
                   <div className="bg-white rounded-xl p-3 mb-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`data:image/png;base64,${qrData.qr_image}`}
                       alt="QPay QR"
@@ -658,6 +660,7 @@ export default function OrderDetailPage() {
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 p-2 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-all text-xs text-slate-300"
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         {dl.logo && <img src={dl.logo} alt="" className="w-5 h-5 rounded" />}
                         {dl.name}
                       </a>
