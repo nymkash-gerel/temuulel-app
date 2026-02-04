@@ -18,8 +18,8 @@ test.describe('Embed Widget', () => {
     await page.goto('/embed/nonexistent-store-id-00000')
 
     // The embed page calls notFound() for invalid store IDs
-    await expect(page.getByText('Хуудас олдсонгүй')).toBeVisible({
-      timeout: 10_000,
-    })
+    await expect(
+      page.getByRole('heading', { name: 'Хуудас олдсонгүй' })
+    ).toBeVisible({ timeout: 10_000 })
   })
 })
