@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -54,7 +54,7 @@ function formatDateTime(dateStr: string | null): string {
 export default function RatePlanDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const planId = params.id as string
 
   const [plan, setPlan] = useState<RatePlan | null>(null)
@@ -71,7 +71,7 @@ export default function RatePlanDetailPage() {
   const [editMaxStay, setEditMaxStay] = useState('')
   const [editIsActive, setEditIsActive] = useState(true)
 
-  async function loadPlan() {
+  const loadPlan = useCallback(async () => {
     try {
       const res = await fetch(`/api/rate-plans/${planId}`)
       if (res.ok) {
@@ -86,7 +86,7 @@ export default function RatePlanDetailPage() {
       return
     }
     setLoading(false)
-  }
+  }, [planId, router])
 
   useEffect(() => {
     async function init() {
@@ -104,8 +104,7 @@ export default function RatePlanDetailPage() {
       await loadPlan()
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planId])
+  }, [planId, supabase, router, loadPlan])
 
   function startEdit() {
     if (!plan) return

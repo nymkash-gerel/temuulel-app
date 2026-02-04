@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
@@ -46,7 +46,7 @@ function formatPrice(amount: number) {
 
 export default function PermitsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [permits, setPermits] = useState<Permit[]>([])
@@ -66,7 +66,7 @@ export default function PermitsPage() {
   const [formCost, setFormCost] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  async function loadPermits() {
+  const loadPermits = useCallback(async () => {
     const params = new URLSearchParams({ limit: '200' })
     if (statusFilter) params.set('status', statusFilter)
     if (typeFilter) params.set('permit_type', typeFilter)
@@ -77,7 +77,7 @@ export default function PermitsPage() {
       setPermits(json.data || [])
       setTotalCount(json.total ?? (json.data?.length || 0))
     }
-  }
+  }, [statusFilter, typeFilter])
 
   useEffect(() => {
     async function init() {
@@ -101,14 +101,13 @@ export default function PermitsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadPermits])
 
   useEffect(() => {
     if (loading) return
-    loadPermits()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, typeFilter])
+    const reload = async () => { await loadPermits() }
+    reload()
+  }, [loading, loadPermits])
 
   const kpis = useMemo(() => {
     const total = permits.length

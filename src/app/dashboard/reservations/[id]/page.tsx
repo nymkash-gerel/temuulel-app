@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -72,13 +72,13 @@ export default function ReservationDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [reservation, setReservation] = useState<Reservation | null>(null)
   const [updating, setUpdating] = useState(false)
 
-  async function loadReservation() {
+  const loadReservation = useCallback(async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -106,12 +106,11 @@ export default function ReservationDetailPage() {
 
     setReservation(data as unknown as Reservation)
     setLoading(false)
-  }
+  }, [id, supabase, router])
 
   useEffect(() => {
     loadReservation()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [loadReservation])
 
   async function updateStatus(newStatus: string) {
     if (!reservation) return

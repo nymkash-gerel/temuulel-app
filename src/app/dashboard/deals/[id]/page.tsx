@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -92,7 +92,7 @@ export default function DealDetailPage() {
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
 
-  async function loadDeal() {
+  const loadDeal = useCallback(async () => {
     const res = await fetch(`/api/deals/${id}`)
     if (res.ok) {
       const data = await res.json()
@@ -100,12 +100,11 @@ export default function DealDetailPage() {
       setNotesValue(data.notes || '')
     }
     setLoading(false)
-  }
+  }, [id])
 
   useEffect(() => {
     loadDeal()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [loadDeal])
 
   async function advanceStatus() {
     if (!deal) return

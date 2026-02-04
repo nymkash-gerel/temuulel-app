@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -33,7 +33,7 @@ function formatPrice(amount: number) {
 export default function CrewMemberDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const memberId = params.id as string
 
   const [member, setMember] = useState<CrewMember | null>(null)
@@ -42,33 +42,33 @@ export default function CrewMemberDetailPage() {
   const [saving, setSaving] = useState(false)
   const [notes, setNotes] = useState('')
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+  const loadMember = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+    const { data: store } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('owner_id', user.id)
+      .single()
 
-      if (!store) { router.push('/dashboard'); return }
+    if (!store) { router.push('/dashboard'); return }
 
-      const res = await fetch(`/api/crew-members/${memberId}`)
-      if (!res.ok) {
-        router.push('/dashboard/crew')
-        return
-      }
-
-      const data = await res.json()
-      setMember(data)
-      setNotes(data.notes || '')
-      setLoading(false)
+    const res = await fetch(`/api/crew-members/${memberId}`)
+    if (!res.ok) {
+      router.push('/dashboard/crew')
+      return
     }
-    load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [memberId])
+
+    const data = await res.json()
+    setMember(data)
+    setNotes(data.notes || '')
+    setLoading(false)
+  }, [supabase, router, memberId])
+
+  useEffect(() => {
+    loadMember()
+  }, [loadMember])
 
   async function handleStatusToggle() {
     if (!member) return

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 interface ShippingZone {
   name: string
@@ -60,11 +60,11 @@ export default function ShippingSettingsPage() {
     setSaved(false)
 
     await supabase.from('stores').update({
-      shipping_settings: {
+      shipping_settings: toJson({
         free_shipping_enabled: freeShippingEnabled,
         free_shipping_minimum: freeShippingMinimum,
-        zones: zones as unknown as Json[],
-      } as unknown as Json,
+        zones,
+      }),
     }).eq('id', storeId)
 
     setSaving(false)

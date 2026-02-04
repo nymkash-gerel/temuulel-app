@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthenticatedDriver } from '@/lib/driver-auth'
 import { optimizeRoute } from '@/lib/ai/route-optimizer'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import type { DeliveryStop } from '@/lib/ai/route-optimizer'
 
 /**
@@ -9,7 +10,10 @@ import type { DeliveryStop } from '@/lib/ai/route-optimizer'
  *
  * Optimizes the order of active deliveries for the authenticated driver.
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 10, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const auth = await getAuthenticatedDriver(supabase)
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

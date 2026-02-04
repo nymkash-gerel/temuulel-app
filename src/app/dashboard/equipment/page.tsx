@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -49,7 +49,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 export default function EquipmentPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [equipment, setEquipment] = useState<Equipment[]>([])
@@ -75,7 +75,7 @@ export default function EquipmentPage() {
     next_maintenance_date: '',
   })
 
-  async function loadEquipment(sid: string) {
+  const loadEquipment = useCallback(async (sid: string) => {
     let query = supabase
       .from('equipment')
       .select(`
@@ -97,7 +97,7 @@ export default function EquipmentPage() {
     if (data) {
       setEquipment(data as unknown as Equipment[])
     }
-  }
+  }, [supabase, typeFilter, statusFilter])
 
   useEffect(() => {
     async function load() {
@@ -117,14 +117,13 @@ export default function EquipmentPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadEquipment])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadEquipment(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter, statusFilter])
+    const reload = async () => { await loadEquipment(storeId) }
+    reload()
+  }, [typeFilter, statusFilter, loadEquipment, storeId, loading])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return equipment

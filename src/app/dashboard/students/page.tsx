@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -30,7 +30,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function StudentsPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
   const [loading, setLoading] = useState<boolean>(true)
@@ -40,7 +40,7 @@ export default function StudentsPage() {
   const [search, setSearch] = useState<string>('')
   const [storeId, setStoreId] = useState<string>('')
 
-  async function loadStudents(sid: string, pageNum: number, query: string): Promise<void> {
+  const loadStudents = useCallback(async (sid: string, pageNum: number, query: string): Promise<void> => {
     const from = pageNum * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
@@ -65,7 +65,7 @@ export default function StudentsPage() {
     if (typeof count === 'number') {
       setTotalCount(count)
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function init(): Promise<void> {
@@ -85,21 +85,20 @@ export default function StudentsPage() {
       setLoading(false)
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadStudents])
 
   useEffect(() => {
     if (!storeId || loading) return
     setPage(0)
-    loadStudents(storeId, 0, search)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
+    const reload = async () => { await loadStudents(storeId, 0, search) }
+    reload()
+  }, [search, storeId, loading, loadStudents])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadStudents(storeId, page, search)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
+    const reload = async () => { await loadStudents(storeId, page, search) }
+    reload()
+  }, [page, storeId, loading, search, loadStudents])
 
   const totalPages: number = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Encounter {
@@ -58,12 +58,7 @@ export default function EncounterDetailPage() {
   const [formTreatmentPlan, setFormTreatmentPlan] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  useEffect(() => {
-    loadEncounter()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadEncounter() {
+  const loadEncounter = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/encounters/${id}`)
@@ -77,7 +72,11 @@ export default function EncounterDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadEncounter()
+  }, [loadEncounter])
 
   async function handleSave() {
     setSaving(true)

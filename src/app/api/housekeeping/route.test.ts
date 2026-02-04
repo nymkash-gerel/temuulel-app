@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/housekeeping
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -104,13 +101,13 @@ beforeEach(() => {
 describe('GET /api/housekeeping', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/housekeeping') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/housekeeping') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping'))
     expect(res.status).toBe(403)
   })
 
@@ -120,7 +117,7 @@ describe('GET /api/housekeeping', () => {
       { id: 'task-2', unit_id: 'unit-002', task_type: 'deep_cleaning', status: 'in_progress' },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/housekeeping') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -130,7 +127,7 @@ describe('GET /api/housekeeping', () => {
   it('returns empty list when no tasks', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/housekeeping') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -140,7 +137,7 @@ describe('GET /api/housekeeping', () => {
   it('supports status filter', async () => {
     mockData = [{ id: 'task-1', status: 'pending' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/housekeeping?status=pending') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping?status=pending'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -149,7 +146,7 @@ describe('GET /api/housekeeping', () => {
   it('supports in_progress status filter', async () => {
     mockData = [{ id: 'task-1', status: 'in_progress' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/housekeeping?status=in_progress') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping?status=in_progress'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -158,7 +155,7 @@ describe('GET /api/housekeeping', () => {
   it('supports unit_id filter', async () => {
     mockData = [{ id: 'task-1', unit_id: 'unit-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/housekeeping?unit_id=unit-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping?unit_id=unit-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -167,7 +164,7 @@ describe('GET /api/housekeeping', () => {
   it('supports assigned_to filter', async () => {
     mockData = [{ id: 'task-1', assigned_to: 'staff-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/housekeeping?assigned_to=staff-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping?assigned_to=staff-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -176,7 +173,7 @@ describe('GET /api/housekeeping', () => {
   it('supports combined filters', async () => {
     mockData = [{ id: 'task-1', status: 'completed', unit_id: 'unit-001', assigned_to: 'staff-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/housekeeping?status=completed&unit_id=unit-001&assigned_to=staff-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping?status=completed&unit_id=unit-001&assigned_to=staff-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -185,7 +182,7 @@ describe('GET /api/housekeeping', () => {
   it('ignores invalid status filter values', async () => {
     mockData = [{ id: 'task-1' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/housekeeping?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -194,7 +191,7 @@ describe('GET /api/housekeeping', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'task-20' }]
     mockDataCount = 75
-    const res = await GET(makeRequest('http://localhost/api/housekeeping?limit=5&offset=15') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping?limit=5&offset=15'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(75)
@@ -202,7 +199,7 @@ describe('GET /api/housekeeping', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/housekeeping') as never)
+    const res = await GET(makeRequest('http://localhost/api/housekeeping'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -219,18 +216,18 @@ describe('POST /api/housekeeping', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/housekeeping', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/housekeeping', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/housekeeping', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/housekeeping', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a housekeeping task with required fields only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/housekeeping', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/housekeeping', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -253,7 +250,7 @@ describe('POST /api/housekeeping', () => {
       priority: 'high',
       scheduled_at: '2026-02-02T08:00:00Z',
       notes: 'Extra attention to bathroom',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.task_type).toBe('deep_cleaning')
@@ -262,14 +259,14 @@ describe('POST /api/housekeeping', () => {
   })
 
   it('returns 400 when unit_id is missing', async () => {
-    const res = await POST(makeRequest('http://localhost/api/housekeeping', {}) as never)
+    const res = await POST(makeRequest('http://localhost/api/housekeeping', {}))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when unit_id is not a valid uuid', async () => {
     const res = await POST(makeRequest('http://localhost/api/housekeeping', {
       unit_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -277,7 +274,7 @@ describe('POST /api/housekeeping', () => {
     const res = await POST(makeRequest('http://localhost/api/housekeeping', {
       unit_id: 'a0000000-0000-4000-8000-000000000001',
       task_type: 'invalid_type',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -285,24 +282,24 @@ describe('POST /api/housekeeping', () => {
     const res = await POST(makeRequest('http://localhost/api/housekeeping', {
       unit_id: 'a0000000-0000-4000-8000-000000000001',
       priority: 'invalid_priority',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/housekeeping', {
+    const req = createTestRequest('http://localhost/api/housekeeping', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'DB insert error' }
-    const res = await POST(makeRequest('http://localhost/api/housekeeping', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/housekeeping', validBody))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('DB insert error')

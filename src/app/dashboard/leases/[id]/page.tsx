@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -57,7 +57,7 @@ function formatDateTime(dateStr: string | null): string {
 export default function LeaseDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const leaseId = params.id as string
 
   const [lease, setLease] = useState<Lease | null>(null)
@@ -75,7 +75,7 @@ export default function LeaseDetailPage() {
   const [editStatus, setEditStatus] = useState('')
   const [editNotes, setEditNotes] = useState('')
 
-  async function loadLease() {
+  const loadLease = useCallback(async () => {
     try {
       const res = await fetch(`/api/leases/${leaseId}`)
       if (res.ok) {
@@ -90,7 +90,7 @@ export default function LeaseDetailPage() {
       return
     }
     setLoading(false)
-  }
+  }, [leaseId, router])
 
   useEffect(() => {
     async function init() {
@@ -108,8 +108,7 @@ export default function LeaseDetailPage() {
       await loadLease()
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leaseId])
+  }, [supabase, router, loadLease])
 
   function startEdit() {
     if (!lease) return

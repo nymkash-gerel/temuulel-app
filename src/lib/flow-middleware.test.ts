@@ -55,13 +55,13 @@ describe('flow-middleware: interceptWithFlow', () => {
   })
 
   it('returns null when conversationId is empty', async () => {
-    const supabase = mockSupabase() as never
+    const supabase = mockSupabase()
     const result = await interceptWithFlow(supabase, '', 'store-1', 'hello', { is_new_conversation: false })
     expect(result).toBeNull()
   })
 
   it('returns null when storeId is empty', async () => {
-    const supabase = mockSupabase() as never
+    const supabase = mockSupabase()
     const result = await interceptWithFlow(supabase, 'conv-1', '', 'hello', { is_new_conversation: false })
     expect(result).toBeNull()
   })
@@ -70,7 +70,7 @@ describe('flow-middleware: interceptWithFlow', () => {
     mockReadFlowState.mockResolvedValue(null)
     mockFindMatchingFlow.mockResolvedValue(null)
 
-    const supabase = mockSupabase() as never
+    const supabase = mockSupabase()
     const result = await interceptWithFlow(supabase, 'conv-1', 'store-1', 'hello', { is_new_conversation: false })
     expect(result).toBeNull()
     expect(mockReadFlowState).toHaveBeenCalledWith(supabase, 'conv-1')
@@ -89,7 +89,7 @@ describe('flow-middleware: interceptWithFlow', () => {
     mockReadFlowState.mockResolvedValue(flowState)
 
     // Supabase returns no flow (deleted)
-    const supabase = mockSupabase() as never
+    const supabase = mockSupabase()
     const fromMock = (supabase as { from: ReturnType<typeof vi.fn> }).from
     const singleMock = vi.fn().mockResolvedValue({ data: null })
     fromMock.mockReturnValue({
@@ -143,7 +143,7 @@ describe('flow-middleware: interceptWithFlow', () => {
     }
     mockStartFlow.mockResolvedValue(stepResult)
 
-    const supabase = mockSupabase() as never
+    const supabase = mockSupabase()
     const fromMock = (supabase as { from: ReturnType<typeof vi.fn> }).from
     fromMock.mockReturnValue({
       insert: vi.fn().mockResolvedValue({}),
@@ -200,7 +200,7 @@ describe('flow-middleware: interceptWithFlow', () => {
       completed: false,
     })
 
-    const supabase = mockSupabase() as never
+    const supabase = mockSupabase()
     const fromMock = (supabase as { from: ReturnType<typeof vi.fn> }).from
     fromMock.mockReturnValue({
       insert: vi.fn().mockResolvedValue({}),

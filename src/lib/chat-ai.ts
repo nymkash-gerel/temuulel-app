@@ -3,6 +3,9 @@
  * Used by both /api/chat/ai (authenticated dashboard) and /api/chat/widget (public widget).
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/database.types'
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -467,7 +470,7 @@ export function extractSearchTerms(message: string): string {
  * Generic product search. Accepts any Supabase client (browser or service-role).
  */
 export async function searchProducts(
-  supabase: { from: (table: string) => unknown },
+  supabase: SupabaseClient<Database>,
   query: string,
   storeId: string,
   maxProducts?: number
@@ -481,10 +484,9 @@ export async function searchProducts(
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let dbQuery = (supabase as any)
+  let dbQuery = supabase
     .from('products')
-    .select('id, name, description, category, base_price, images, sales_script, product_faqs')
+    .select('id, name, description, category, base_price, images, sales_script')
     .eq('store_id', storeId)
     .eq('status', 'active')
 
@@ -507,20 +509,29 @@ export async function searchProducts(
   }
 
   const { data } = await dbQuery.limit(maxProducts || 5)
-  return (data as ProductMatch[]) || []
+  if (!data) return []
+  return data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description ?? '',
+    category: row.category ?? '',
+    base_price: row.base_price ?? 0,
+    images: (row.images ?? []) as string[],
+    sales_script: row.sales_script,
+    product_faqs: null,
+  }))
 }
 
 /**
  * Generic order search.
  */
 export async function searchOrders(
-  supabase: { from: (table: string) => unknown },
+  supabase: SupabaseClient<Database>,
   query: string,
   storeId: string,
   customerId?: string
 ): Promise<OrderMatch[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let dbQuery = (supabase as any)
+  let dbQuery = supabase
     .from('orders')
     .select('id, order_number, status, total_amount, tracking_number, created_at')
     .eq('store_id', storeId)
@@ -716,12 +727,11 @@ export interface MessageHistoryEntry {
  * Fetch the last N messages from a conversation for LLM context.
  */
 export async function fetchRecentMessages(
-  supabase: { from: (table: string) => unknown },
+  supabase: SupabaseClient<Database>,
   conversationId: string,
   limit = 6
 ): Promise<MessageHistoryEntry[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('messages')
     .select('content, is_from_customer')
     .eq('conversation_id', conversationId)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -87,7 +87,7 @@ function formatDateTime(dateStr: string | null) {
 
 export default function ConsultationsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
@@ -117,7 +117,7 @@ export default function ConsultationsPage() {
     consultant_id: '',
   })
 
-  async function loadConsultations(sid: string) {
+  const loadConsultations = useCallback(async (sid: string) => {
     let query = supabase
       .from('consultations')
       .select(`
@@ -141,7 +141,7 @@ export default function ConsultationsPage() {
     if (data) {
       setConsultations(data as unknown as Consultation[])
     }
-  }
+  }, [supabase, typeFilter, statusFilter])
 
   useEffect(() => {
     async function load() {
@@ -169,14 +169,13 @@ export default function ConsultationsPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadConsultations])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadConsultations(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter, statusFilter])
+    const reload = async () => { await loadConsultations(storeId) }
+    reload()
+  }, [typeFilter, statusFilter, loadConsultations, storeId, loading])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return consultations

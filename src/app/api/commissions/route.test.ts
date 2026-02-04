@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/commissions (staff commissions)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -26,16 +27,12 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeGetRequest(url = 'http://localhost/api/commissions'): Request {
-  return new Request(url, { method: 'GET' })
+function makeGetRequest(url = 'http://localhost/api/commissions') {
+  return createTestRequest(url)
 }
 
-function makePostRequest(body: unknown): Request {
-  return new Request('http://localhost/api/commissions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+function makePostRequest(body: unknown) {
+  return createTestJsonRequest('http://localhost/api/commissions', body)
 }
 
 beforeEach(() => {
@@ -106,20 +103,20 @@ beforeEach(() => {
 describe('GET /api/commissions', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeGetRequest() as never)
+    const res = await GET(makeGetRequest())
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await GET(makeGetRequest() as never)
+    const res = await GET(makeGetRequest())
     expect(res.status).toBe(403)
   })
 
   it('returns commissions list', async () => {
     mockCommissions = [{ id: 'comm-1', status: 'pending', commission_amount: 7500 }]
     mockCommissionsCount = 1
-    const res = await GET(makeGetRequest() as never)
+    const res = await GET(makeGetRequest())
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -127,7 +124,7 @@ describe('GET /api/commissions', () => {
   })
 
   it('returns empty list when no commissions', async () => {
-    const res = await GET(makeGetRequest() as never)
+    const res = await GET(makeGetRequest())
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -144,18 +141,18 @@ describe('POST /api/commissions', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makePostRequest(validBody) as never)
+    const res = await POST(makePostRequest(validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makePostRequest(validBody) as never)
+    const res = await POST(makePostRequest(validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a commission', async () => {
-    const res = await POST(makePostRequest(validBody) as never)
+    const res = await POST(makePostRequest(validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBe('comm-001')
@@ -166,7 +163,7 @@ describe('POST /api/commissions', () => {
     const res = await POST(makePostRequest({
       ...validBody,
       appointment_id: 'a0000000-0000-4000-8000-000000000003',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
@@ -174,32 +171,32 @@ describe('POST /api/commissions', () => {
     const res = await POST(makePostRequest({
       ...validBody,
       sale_type: 'product',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 for missing staff_id', async () => {
     const { staff_id: _, ...rest } = validBody
     void _
-    const res = await POST(makePostRequest(rest) as never)
+    const res = await POST(makePostRequest(rest))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for missing sale_amount', async () => {
     const { sale_amount: _, ...rest } = validBody
     void _
-    const res = await POST(makePostRequest(rest) as never)
+    const res = await POST(makePostRequest(rest))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for negative commission_rate', async () => {
-    const res = await POST(makePostRequest({ ...validBody, commission_rate: -5 }) as never)
+    const res = await POST(makePostRequest({ ...validBody, commission_rate: -5 }))
     expect(res.status).toBe(400)
   })
 
   it('returns 404 if staff not found', async () => {
     mockStaff = null
-    const res = await POST(makePostRequest(validBody) as never)
+    const res = await POST(makePostRequest(validBody))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Staff/)
@@ -210,7 +207,7 @@ describe('POST /api/commissions', () => {
     const res = await POST(makePostRequest({
       ...validBody,
       appointment_id: 'a0000000-0000-4000-8000-000000000003',
-    }) as never)
+    }))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Appointment/)
@@ -219,17 +216,17 @@ describe('POST /api/commissions', () => {
   it('returns 500 on database error', async () => {
     mockInsertedCommission = null
     mockInsertError = { message: 'DB error' }
-    const res = await POST(makePostRequest(validBody) as never)
+    const res = await POST(makePostRequest(validBody))
     expect(res.status).toBe(500)
   })
 
   it('returns 400 for invalid JSON', async () => {
-    const req = new Request('http://localhost/api/commissions', {
+    const req = createTestRequest('http://localhost/api/commissions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: 'not json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 })

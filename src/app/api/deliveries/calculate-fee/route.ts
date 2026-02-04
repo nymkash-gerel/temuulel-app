@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/validations'
 import { calculateDeliveryFee, getDeliveryZones } from '@/lib/delivery-fee-calculator'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { z } from 'zod'
 
 const calculateFeeSchema = z.object({
@@ -14,6 +15,9 @@ const calculateFeeSchema = z.object({
  * Calculate delivery fee based on address. Returns fee, zone, and district.
  */
 export async function POST(request: NextRequest) {
+  const rl = rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

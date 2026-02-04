@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/kds-stations
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -97,13 +94,13 @@ beforeEach(() => {
 describe('GET /api/kds-stations', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/kds-stations') as never)
+    const res = await GET(makeRequest('http://localhost/api/kds-stations'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/kds-stations') as never)
+    const res = await GET(makeRequest('http://localhost/api/kds-stations'))
     expect(res.status).toBe(403)
   })
 
@@ -113,7 +110,7 @@ describe('GET /api/kds-stations', () => {
       { id: 'kds-2', name: 'Bar Station', station_type: 'bar', is_active: true },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/kds-stations') as never)
+    const res = await GET(makeRequest('http://localhost/api/kds-stations'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -123,7 +120,7 @@ describe('GET /api/kds-stations', () => {
   it('returns empty list when no stations exist', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/kds-stations') as never)
+    const res = await GET(makeRequest('http://localhost/api/kds-stations'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -133,7 +130,7 @@ describe('GET /api/kds-stations', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'kds-3', name: 'Expo' }]
     mockDataCount = 25
-    const res = await GET(makeRequest('http://localhost/api/kds-stations?limit=5&offset=10') as never)
+    const res = await GET(makeRequest('http://localhost/api/kds-stations?limit=5&offset=10'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(25)
@@ -141,7 +138,7 @@ describe('GET /api/kds-stations', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/kds-stations') as never)
+    const res = await GET(makeRequest('http://localhost/api/kds-stations'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -161,18 +158,18 @@ describe('POST /api/kds-stations', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/kds-stations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/kds-stations', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/kds-stations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/kds-stations', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a KDS station with required fields only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/kds-stations', { name: 'Prep Station' }) as never)
+    const res = await POST(makeRequest('http://localhost/api/kds-stations', { name: 'Prep Station' }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -192,7 +189,7 @@ describe('POST /api/kds-stations', () => {
       station_type: 'bar',
       display_categories: ['drinks', 'cocktails'],
       is_active: true,
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.name).toBe('Bar Station')
@@ -213,7 +210,7 @@ describe('POST /api/kds-stations', () => {
       const res = await POST(makeRequest('http://localhost/api/kds-stations', {
         name: `${stationType} station`,
         station_type: stationType,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
@@ -221,21 +218,21 @@ describe('POST /api/kds-stations', () => {
   it('returns 400 when name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/kds-stations', {
       station_type: 'kitchen',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when name is empty string', async () => {
     const res = await POST(makeRequest('http://localhost/api/kds-stations', {
       name: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when name is whitespace only', async () => {
     const res = await POST(makeRequest('http://localhost/api/kds-stations', {
       name: '   ',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -243,7 +240,7 @@ describe('POST /api/kds-stations', () => {
     const res = await POST(makeRequest('http://localhost/api/kds-stations', {
       name: 'Bad Station',
       station_type: 'invalid_type',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -251,24 +248,24 @@ describe('POST /api/kds-stations', () => {
     const res = await POST(makeRequest('http://localhost/api/kds-stations', {
       name: 'Bad Categories',
       display_categories: 'not-an-array',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/kds-stations', {
+    const req = createTestRequest('http://localhost/api/kds-stations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'DB error' }
-    const res = await POST(makeRequest('http://localhost/api/kds-stations', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/kds-stations', validBody))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('DB error')

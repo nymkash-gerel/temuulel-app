@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
@@ -69,7 +69,7 @@ function formatPrice(amount: number | null) {
 }
 
 export default function LegalCasesPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [cases, setCases] = useState<LegalCase[]>([])
@@ -98,7 +98,7 @@ export default function LegalCasesPage() {
   const [formTotalFees, setFormTotalFees] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  async function loadCases() {
+  const loadCases = useCallback(async () => {
     const params = new URLSearchParams()
     if (statusFilter) params.set('status', statusFilter)
     if (caseTypeFilter) params.set('case_type', caseTypeFilter)
@@ -110,7 +110,7 @@ export default function LegalCasesPage() {
       setCases(json.data || [])
       setTotal(json.total || 0)
     }
-  }
+  }, [statusFilter, caseTypeFilter, priorityFilter])
 
   useEffect(() => {
     async function load() {
@@ -137,15 +137,13 @@ export default function LegalCasesPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadCases])
 
   useEffect(() => {
     if (!loading) {
       loadCases()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, caseTypeFilter, priorityFilter])
+  }, [statusFilter, caseTypeFilter, priorityFilter, loading, loadCases])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return cases

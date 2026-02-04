@@ -20,26 +20,7 @@ export interface FeedChangeValue {
   created_time?: number
 }
 
-export interface CommentAutoRule {
-  id: string
-  store_id: string
-  name: string
-  enabled: boolean
-  priority: number
-  trigger_type: 'keyword' | 'any' | 'first_comment' | 'contains_question'
-  keywords: string[] | null
-  match_mode: 'any' | 'all'
-  reply_comment: boolean
-  reply_dm: boolean
-  comment_template: string | null
-  dm_template: string | null
-  delay_seconds: number
-  platforms: string[]
-  matches_count: number
-  replies_sent: number
-  use_ai: boolean
-  ai_context: string | null
-}
+export type CommentAutoRule = Database['public']['Tables']['comment_auto_rules']['Row']
 
 interface StoreWithToken {
   id: string
@@ -141,8 +122,7 @@ export async function handleFeedChange(
   }
 
   // Find matching rule
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const matchingRule = findMatchingRule(applicableRules as any, change)
+  const matchingRule = findMatchingRule(applicableRules, change)
   if (!matchingRule) {
     console.log('[Comment Auto-Reply] No matching rule found')
     return
@@ -151,12 +131,13 @@ export async function handleFeedChange(
   console.log(`[Comment Auto-Reply] Matched rule: ${matchingRule.name}`)
 
   // Process reply (with optional delay)
-  if (matchingRule.delay_seconds > 0) {
-    console.log(`[Comment Auto-Reply] Delaying ${matchingRule.delay_seconds}s`)
+  const delaySeconds = matchingRule.delay_seconds ?? 0
+  if (delaySeconds > 0) {
+    console.log(`[Comment Auto-Reply] Delaying ${delaySeconds}s`)
     // For production, consider using a queue service instead of setTimeout
     setTimeout(() => {
       processCommentReply(store as StoreWithToken, matchingRule, change, platform, supabase)
-    }, matchingRule.delay_seconds * 1000)
+    }, delaySeconds * 1000)
   } else {
     await processCommentReply(store as StoreWithToken, matchingRule, change, platform, supabase)
   }

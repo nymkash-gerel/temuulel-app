@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, updateCoworkingSpaceSchema } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -79,7 +79,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (body.hourly_rate !== undefined) updateData.hourly_rate = body.hourly_rate
   if (body.daily_rate !== undefined) updateData.daily_rate = body.daily_rate
   if (body.monthly_rate !== undefined) updateData.monthly_rate = body.monthly_rate
-  if (body.amenities !== undefined) updateData.amenities = body.amenities as unknown as Json
+  if (body.amenities !== undefined) updateData.amenities = toJson(body.amenities)
   if (body.is_active !== undefined) updateData.is_active = body.is_active
 
   const { data: space, error } = await supabase

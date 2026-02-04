@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -36,7 +36,7 @@ function formatDate(dateStr: string) {
 
 export default function LoyaltyPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -44,7 +44,7 @@ export default function LoyaltyPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [error] = useState('')
 
-  async function loadTransactions(sid: string) {
+  const loadTransactions = useCallback(async (sid: string) => {
     let query = supabase
       .from('loyalty_transactions')
       .select(`
@@ -65,7 +65,7 @@ export default function LoyaltyPage() {
     if (data) {
       setTransactions(data as unknown as LoyaltyTransactionRow[])
     }
-  }
+  }, [supabase, typeFilter])
 
   useEffect(() => {
     async function init() {
@@ -85,14 +85,13 @@ export default function LoyaltyPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadTransactions])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadTransactions(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter])
+    const reload = async () => { await loadTransactions(storeId) }
+    reload()
+  }, [storeId, loading, loadTransactions])
 
   const stats = useMemo(() => {
     const total = transactions.length

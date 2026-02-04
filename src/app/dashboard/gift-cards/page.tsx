@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -53,7 +53,7 @@ function generateCode() {
 
 export default function GiftCardsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -68,7 +68,7 @@ export default function GiftCardsPage() {
     initial_balance: '',
   })
 
-  async function loadGiftCards(sid: string) {
+  const loadGiftCards = useCallback(async (sid: string) => {
     let query = supabase
       .from('gift_cards')
       .select(`
@@ -89,7 +89,7 @@ export default function GiftCardsPage() {
     if (data) {
       setGiftCards(data as unknown as GiftCardRow[])
     }
-  }
+  }, [supabase, statusFilter])
 
   useEffect(() => {
     async function init() {
@@ -109,14 +109,13 @@ export default function GiftCardsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadGiftCards])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadGiftCards(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
+    const reload = async () => { await loadGiftCards(storeId) }
+    reload()
+  }, [statusFilter, storeId, loading, loadGiftCards])
 
   const stats = useMemo(() => {
     const total = giftCards.length

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
@@ -145,7 +145,7 @@ export default function PhotoSessionDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<PhotoSession | null>(null)
@@ -159,12 +159,19 @@ export default function PhotoSessionDetailPage() {
   // Data loading
   // -----------------------------------------------------------------------
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  const loadGalleries = useCallback(async (sessionId: string) => {
+    const { data } = await supabase
+      .from('photo_galleries')
+      .select('id, session_id, name, description, gallery_url, download_url, password, photo_count, status, delivered_at, created_at')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: false })
 
-  async function load() {
+    if (data) {
+      setGalleries(data as unknown as PhotoGallery[])
+    }
+  }, [supabase])
+
+  const load = useCallback(async () => {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -199,19 +206,11 @@ export default function PhotoSessionDetailPage() {
     }
 
     setLoading(false)
-  }
+  }, [id, supabase, router, loadGalleries])
 
-  async function loadGalleries(sessionId: string) {
-    const { data } = await supabase
-      .from('photo_galleries')
-      .select('id, session_id, name, description, gallery_url, download_url, password, photo_count, status, delivered_at, created_at')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
-
-    if (data) {
-      setGalleries(data as unknown as PhotoGallery[])
-    }
-  }
+  useEffect(() => {
+    load()
+  }, [load])
 
   // -----------------------------------------------------------------------
   // Status update

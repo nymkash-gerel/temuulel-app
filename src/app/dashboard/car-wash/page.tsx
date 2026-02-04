@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -68,7 +68,7 @@ function getVehicleDisplay(order: WashOrder): string {
 
 export default function CarWashPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [orders, setOrders] = useState<WashOrder[]>([])
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -88,34 +88,6 @@ export default function CarWashPage() {
   const [totalAmount, setTotalAmount] = useState('')
   const [notes, setNotes] = useState('')
 
-  const fetchOrders = useCallback(async () => {
-    if (!storeId) return
-    setLoading(true)
-    let url = `/api/wash-orders?limit=50`
-    if (statusFilter !== 'all') url += `&status=${statusFilter}`
-    if (serviceFilter !== 'all') url += `&service_type=${serviceFilter}`
-    const res = await fetch(url)
-    if (res.ok) {
-      const json = await res.json()
-      setOrders(json.data || [])
-    }
-    setLoading(false)
-  }, [storeId, statusFilter, serviceFilter])
-
-  const fetchVehicles = useCallback(async () => {
-    if (!storeId) return
-    const { data } = await supabase
-      .from('vehicles')
-      .select('id, plate_number, make, model')
-      .eq('store_id', storeId)
-      .order('plate_number', { ascending: true })
-
-    if (data) {
-      setVehicles(data)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId])
-
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -133,11 +105,57 @@ export default function CarWashPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router])
 
-  useEffect(() => { fetchOrders() }, [fetchOrders])
-  useEffect(() => { fetchVehicles() }, [fetchVehicles])
+  useEffect(() => {
+    if (!storeId) return
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      let url = `/api/wash-orders?limit=50`
+      if (statusFilter !== 'all') url += `&status=${statusFilter}`
+      if (serviceFilter !== 'all') url += `&service_type=${serviceFilter}`
+      const res = await fetch(url)
+      if (cancelled) return
+      if (res.ok) {
+        const json = await res.json()
+        setOrders(json.data || [])
+      }
+      setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [storeId, statusFilter, serviceFilter])
+
+  useEffect(() => {
+    if (!storeId) return
+    let cancelled = false
+    async function load() {
+      const { data } = await supabase
+        .from('vehicles')
+        .select('id, plate_number, make, model')
+        .eq('store_id', storeId)
+        .order('plate_number', { ascending: true })
+      if (cancelled) return
+      if (data) setVehicles(data)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [storeId, supabase])
+
+  async function fetchOrders() {
+    if (!storeId) return
+    setLoading(true)
+    let url = `/api/wash-orders?limit=50`
+    if (statusFilter !== 'all') url += `&status=${statusFilter}`
+    if (serviceFilter !== 'all') url += `&service_type=${serviceFilter}`
+    const res = await fetch(url)
+    if (res.ok) {
+      const json = await res.json()
+      setOrders(json.data || [])
+    }
+    setLoading(false)
+  }
 
   const stats = useMemo(() => {
     const total = orders.length

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -42,7 +42,7 @@ function formatPrice(amount: number) {
 
 export default function RatePlansPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -62,7 +62,7 @@ export default function RatePlansPage() {
     max_stay: '',
   })
 
-  async function loadRatePlans(sid: string) {
+  const loadRatePlans = useCallback(async (sid: string) => {
     let query = supabase
       .from('rate_plans')
       .select('*')
@@ -79,7 +79,7 @@ export default function RatePlansPage() {
     if (data) {
       setRatePlans(data as unknown as RatePlanRow[])
     }
-  }
+  }, [supabase, pricingFilter])
 
   useEffect(() => {
     async function init() {
@@ -99,14 +99,13 @@ export default function RatePlansPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadRatePlans])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadRatePlans(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pricingFilter])
+    const reload = async () => { await loadRatePlans(storeId) }
+    reload()
+  }, [pricingFilter, storeId, loading, loadRatePlans])
 
   const stats = useMemo(() => {
     const total = ratePlans.length

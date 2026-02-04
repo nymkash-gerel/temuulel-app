@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -17,7 +17,7 @@ interface Variant {
 
 export default function NewProductPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -78,8 +78,7 @@ export default function NewProductPage() {
       }
     }
     getStoreId()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase])
 
   const addVariant = () => {
     setVariants([

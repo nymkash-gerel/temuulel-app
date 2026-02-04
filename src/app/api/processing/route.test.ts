@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/processing
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -29,15 +30,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -124,13 +121,13 @@ beforeEach(() => {
 describe('GET /api/processing', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/processing') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/processing') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing'))
     expect(res.status).toBe(403)
   })
 
@@ -139,7 +136,7 @@ describe('GET /api/processing', () => {
       { id: 'lo-1', order_number: 'LO-001', status: 'washing', total_items: 3 },
     ]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/processing') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -149,7 +146,7 @@ describe('GET /api/processing', () => {
   it('returns empty list when no orders in processing', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/processing') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -159,7 +156,7 @@ describe('GET /api/processing', () => {
   it('supports status filter with valid processing status', async () => {
     mockData = [{ id: 'lo-1', status: 'drying' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/processing?status=drying') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing?status=drying'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -168,14 +165,14 @@ describe('GET /api/processing', () => {
   it('defaults to all processing statuses when no status filter', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/processing') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing'))
     expect(res.status).toBe(200)
   })
 
   it('defaults to all processing statuses for invalid status value', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/processing?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -184,7 +181,7 @@ describe('GET /api/processing', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'lo-5' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/processing?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -192,7 +189,7 @@ describe('GET /api/processing', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/processing') as never)
+    const res = await GET(makeRequest('http://localhost/api/processing'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -210,18 +207,18 @@ describe('POST /api/processing', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/processing', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/processing', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/processing', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/processing', validBody))
     expect(res.status).toBe(403)
   })
 
   it('updates order status successfully', async () => {
-    const res = await POST(makeRequest('http://localhost/api/processing', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/processing', validBody))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.id).toBe('order-001')
@@ -232,7 +229,7 @@ describe('POST /api/processing', () => {
       const res = await POST(makeRequest('http://localhost/api/processing', {
         order_id: 'a0000000-0000-4000-8000-000000000001',
         status: s,
-      }) as never)
+      }))
       expect(res.status).toBe(200)
     }
   })
@@ -240,14 +237,14 @@ describe('POST /api/processing', () => {
   it('returns 400 when order_id is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/processing', {
       status: 'washing',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when status is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/processing', {
       order_id: 'a0000000-0000-4000-8000-000000000001',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -255,7 +252,7 @@ describe('POST /api/processing', () => {
     const res = await POST(makeRequest('http://localhost/api/processing', {
       order_id: 'a0000000-0000-4000-8000-000000000001',
       status: 'cancelled',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -263,23 +260,23 @@ describe('POST /api/processing', () => {
     const res = await POST(makeRequest('http://localhost/api/processing', {
       order_id: 'not-a-uuid',
       status: 'washing',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/processing', {
+    const req = createTestRequest('http://localhost/api/processing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 404 when order not found in store', async () => {
     mockExistingOrder = null
-    const res = await POST(makeRequest('http://localhost/api/processing', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/processing', validBody))
     const json = await res.json()
     expect(res.status).toBe(404)
     expect(json.error).toBe('Order not found')
@@ -287,7 +284,7 @@ describe('POST /api/processing', () => {
 
   it('returns 500 when update fails', async () => {
     mockUpdateError = { message: 'Update failed' }
-    const res = await POST(makeRequest('http://localhost/api/processing', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/processing', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Update failed')

@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/promotions
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -109,13 +106,13 @@ beforeEach(() => {
 describe('GET /api/promotions', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/promotions') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/promotions') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions'))
     expect(res.status).toBe(403)
   })
 
@@ -125,7 +122,7 @@ describe('GET /api/promotions', () => {
       { id: 'promo-2', name: 'BOGO Burgers', promo_type: 'bogo', is_active: true },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/promotions') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -135,7 +132,7 @@ describe('GET /api/promotions', () => {
   it('returns empty list when no promotions exist', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/promotions') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -145,7 +142,7 @@ describe('GET /api/promotions', () => {
   it('supports is_active filter', async () => {
     mockData = [{ id: 'promo-1', name: 'Active Promo', is_active: true }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/promotions?is_active=true') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions?is_active=true'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -154,7 +151,7 @@ describe('GET /api/promotions', () => {
   it('supports promo_type filter', async () => {
     mockData = [{ id: 'promo-2', name: 'BOGO Deal', promo_type: 'bogo' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/promotions?promo_type=bogo') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions?promo_type=bogo'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -163,7 +160,7 @@ describe('GET /api/promotions', () => {
   it('supports combined is_active and promo_type filters', async () => {
     mockData = [{ id: 'promo-3', promo_type: 'combo', is_active: true }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/promotions?is_active=true&promo_type=combo') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions?is_active=true&promo_type=combo'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -172,7 +169,7 @@ describe('GET /api/promotions', () => {
   it('ignores invalid promo_type filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/promotions?promo_type=invalid_type') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions?promo_type=invalid_type'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -181,7 +178,7 @@ describe('GET /api/promotions', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'promo-4' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/promotions?limit=10&offset=30') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions?limit=10&offset=30'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -189,7 +186,7 @@ describe('GET /api/promotions', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/promotions') as never)
+    const res = await GET(makeRequest('http://localhost/api/promotions'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -209,13 +206,13 @@ describe('POST /api/promotions', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/promotions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/promotions', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/promotions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/promotions', validBody))
     expect(res.status).toBe(403)
   })
 
@@ -223,7 +220,7 @@ describe('POST /api/promotions', () => {
     const res = await POST(makeRequest('http://localhost/api/promotions', {
       name: 'Flash Deal',
       promo_type: 'item_discount',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -263,7 +260,7 @@ describe('POST /api/promotions', () => {
       end_date: '2026-02-28',
       is_active: true,
       max_usage: 100,
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.name).toBe('Holiday Combo')
@@ -274,7 +271,7 @@ describe('POST /api/promotions', () => {
   it('returns 400 when name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/promotions', {
       promo_type: 'order_discount',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -282,14 +279,14 @@ describe('POST /api/promotions', () => {
     const res = await POST(makeRequest('http://localhost/api/promotions', {
       name: '',
       promo_type: 'order_discount',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when promo_type is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/promotions', {
       name: 'Missing Type',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -297,7 +294,7 @@ describe('POST /api/promotions', () => {
     const res = await POST(makeRequest('http://localhost/api/promotions', {
       name: 'Bad Type',
       promo_type: 'invalid_type',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -306,7 +303,7 @@ describe('POST /api/promotions', () => {
       name: 'Bad Discount',
       promo_type: 'order_discount',
       discount_type: 'bogus',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -315,7 +312,7 @@ describe('POST /api/promotions', () => {
       name: 'Negative Discount',
       promo_type: 'order_discount',
       discount_value: -5,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -324,24 +321,24 @@ describe('POST /api/promotions', () => {
       name: 'Bad UUIDs',
       promo_type: 'item_discount',
       applicable_products: ['not-a-uuid'],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/promotions', {
+    const req = createTestRequest('http://localhost/api/promotions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'DB error' }
-    const res = await POST(makeRequest('http://localhost/api/promotions', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/promotions', validBody))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('DB error')

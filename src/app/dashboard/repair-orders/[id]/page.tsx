@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -126,7 +126,7 @@ function formatDateTime(date: string | null | undefined): string {
 export default function RepairOrderDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const repairId = params.id as string
 
   const [order, setOrder] = useState<RepairOrder | null>(null)
@@ -137,7 +137,7 @@ export default function RepairOrderDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
@@ -184,12 +184,11 @@ export default function RepairOrderDetailPage() {
     }
 
     setLoading(false)
-  }
+  }, [supabase, router, repairId])
 
   useEffect(() => {
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repairId])
+  }, [load])
 
   async function handleStatusChange(newStatus: string) {
     if (!order) return

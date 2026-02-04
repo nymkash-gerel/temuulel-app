@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/purchase-orders
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -28,15 +29,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 const fullPo = {
@@ -136,13 +133,13 @@ beforeEach(() => {
 describe('GET /api/purchase-orders', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders'))
     expect(res.status).toBe(403)
   })
 
@@ -152,7 +149,7 @@ describe('GET /api/purchase-orders', () => {
       { id: 'po-2', po_number: 'PO-002', status: 'sent', total_amount: 30000 },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -162,7 +159,7 @@ describe('GET /api/purchase-orders', () => {
   it('returns empty list when no purchase orders', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -172,7 +169,7 @@ describe('GET /api/purchase-orders', () => {
   it('supports status filter', async () => {
     mockData = [{ id: 'po-1', status: 'draft' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders?status=draft') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders?status=draft'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -181,7 +178,7 @@ describe('GET /api/purchase-orders', () => {
   it('supports supplier_id filter', async () => {
     mockData = [{ id: 'po-1', supplier_id: 'sup-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders?supplier_id=sup-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders?supplier_id=sup-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -190,7 +187,7 @@ describe('GET /api/purchase-orders', () => {
   it('supports combined status and supplier_id filters', async () => {
     mockData = [{ id: 'po-1', status: 'confirmed', supplier_id: 'sup-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders?status=confirmed&supplier_id=sup-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders?status=confirmed&supplier_id=sup-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -199,7 +196,7 @@ describe('GET /api/purchase-orders', () => {
   it('ignores invalid status filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -208,7 +205,7 @@ describe('GET /api/purchase-orders', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'po-5' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -216,7 +213,7 @@ describe('GET /api/purchase-orders', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/purchase-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/purchase-orders'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -239,18 +236,18 @@ describe('POST /api/purchase-orders', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a purchase order with valid data', async () => {
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -265,7 +262,7 @@ describe('POST /api/purchase-orders', () => {
         { product_id: 'a0000000-0000-4000-8000-000000000020', variant_id: 'a0000000-0000-4000-8000-000000000099', quantity_ordered: 5, unit_cost: 3000 },
       ],
     }
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', body) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', body))
     expect(res.status).toBe(201)
   })
 
@@ -277,7 +274,7 @@ describe('POST /api/purchase-orders', () => {
         { product_id: 'a0000000-0000-4000-8000-000000000010', quantity_ordered: 1, unit_cost: 500 },
       ],
     }
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', body) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', body))
     expect(res.status).toBe(201)
   })
 
@@ -285,7 +282,7 @@ describe('POST /api/purchase-orders', () => {
     const res = await POST(makeRequest('http://localhost/api/purchase-orders', {
       po_number: 'PO-001',
       items: [{ product_id: 'a0000000-0000-4000-8000-000000000010', quantity_ordered: 1, unit_cost: 100 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -293,7 +290,7 @@ describe('POST /api/purchase-orders', () => {
     const res = await POST(makeRequest('http://localhost/api/purchase-orders', {
       supplier_id: 'a0000000-0000-4000-8000-000000000001',
       items: [{ product_id: 'a0000000-0000-4000-8000-000000000010', quantity_ordered: 1, unit_cost: 100 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -302,7 +299,7 @@ describe('POST /api/purchase-orders', () => {
       supplier_id: 'a0000000-0000-4000-8000-000000000001',
       po_number: 'PO-001',
       items: [],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -310,7 +307,7 @@ describe('POST /api/purchase-orders', () => {
     const res = await POST(makeRequest('http://localhost/api/purchase-orders', {
       supplier_id: 'a0000000-0000-4000-8000-000000000001',
       po_number: 'PO-001',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -319,32 +316,32 @@ describe('POST /api/purchase-orders', () => {
       supplier_id: 'not-a-uuid',
       po_number: 'PO-001',
       items: [{ product_id: 'a0000000-0000-4000-8000-000000000010', quantity_ordered: 1, unit_cost: 100 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 404 if supplier not found in store', async () => {
     mockSupplier = null
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(404)
     expect(json.error).toMatch(/Supplier not found/)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/purchase-orders', {
+    const req = createTestRequest('http://localhost/api/purchase-orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 when purchase order insert fails', async () => {
     mockInsertError = { message: 'PO insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('PO insert failed')
@@ -352,7 +349,7 @@ describe('POST /api/purchase-orders', () => {
 
   it('returns 500 when items insert fails', async () => {
     mockItemsInsertError = { message: 'Items insert failed' }
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Items insert failed')
@@ -360,7 +357,7 @@ describe('POST /api/purchase-orders', () => {
 
   it('returns 500 when fetch after insert fails', async () => {
     mockFetchError = { message: 'Fetch error' }
-    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/purchase-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Fetch error')

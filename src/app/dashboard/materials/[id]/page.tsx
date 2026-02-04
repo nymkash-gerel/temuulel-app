@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -37,7 +37,7 @@ function formatPrice(amount: number) {
 export default function MaterialOrderDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const materialId = params.id as string
 
   const [material, setMaterial] = useState<MaterialOrder | null>(null)
@@ -83,8 +83,7 @@ export default function MaterialOrderDetailPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [materialId])
+  }, [materialId, supabase, router])
 
   async function handleStatusChange(newStatus: string) {
     if (!material) return

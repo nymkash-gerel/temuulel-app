@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, updateFitnessClassSchema } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
   const updateData: Record<string, unknown> = { ...body, updated_at: new Date().toISOString() }
   if (body.schedule !== undefined) {
-    updateData.schedule = (body.schedule || {}) as unknown as Json
+    updateData.schedule = toJson(body.schedule || {})
   }
 
   const { data: fitnessClass, error } = await supabase

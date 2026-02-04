@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/client-preferences
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -27,15 +28,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -123,13 +120,13 @@ beforeEach(() => {
 describe('GET /api/client-preferences', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/client-preferences') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/client-preferences') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences'))
     expect(res.status).toBe(403)
   })
 
@@ -139,7 +136,7 @@ describe('GET /api/client-preferences', () => {
       { id: 'pref-2', customer_id: 'cust-002', skin_type: 'dry', hair_type: 'straight' },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/client-preferences') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -149,7 +146,7 @@ describe('GET /api/client-preferences', () => {
   it('returns empty list when no preferences exist', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/client-preferences') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -159,7 +156,7 @@ describe('GET /api/client-preferences', () => {
   it('supports customer_id filter', async () => {
     mockData = [{ id: 'pref-1', customer_id: 'cust-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?customer_id=cust-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?customer_id=cust-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -168,7 +165,7 @@ describe('GET /api/client-preferences', () => {
   it('supports skin_type=oily filter', async () => {
     mockData = [{ id: 'pref-1', skin_type: 'oily' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=oily') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=oily'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -177,7 +174,7 @@ describe('GET /api/client-preferences', () => {
   it('supports skin_type=dry filter', async () => {
     mockData = [{ id: 'pref-2', skin_type: 'dry' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=dry') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=dry'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -186,7 +183,7 @@ describe('GET /api/client-preferences', () => {
   it('supports skin_type=combination filter', async () => {
     mockData = [{ id: 'pref-3', skin_type: 'combination' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=combination') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=combination'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -195,7 +192,7 @@ describe('GET /api/client-preferences', () => {
   it('supports skin_type=normal filter', async () => {
     mockData = [{ id: 'pref-4', skin_type: 'normal' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=normal') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=normal'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -204,7 +201,7 @@ describe('GET /api/client-preferences', () => {
   it('supports skin_type=sensitive filter', async () => {
     mockData = [{ id: 'pref-5', skin_type: 'sensitive' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=sensitive') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=sensitive'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -213,7 +210,7 @@ describe('GET /api/client-preferences', () => {
   it('ignores invalid skin_type filter', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=unknown') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?skin_type=unknown'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -222,7 +219,7 @@ describe('GET /api/client-preferences', () => {
   it('supports hair_type=straight filter', async () => {
     mockData = [{ id: 'pref-1', hair_type: 'straight' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?hair_type=straight') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?hair_type=straight'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -231,7 +228,7 @@ describe('GET /api/client-preferences', () => {
   it('supports hair_type=curly filter', async () => {
     mockData = [{ id: 'pref-2', hair_type: 'curly' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?hair_type=curly') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?hair_type=curly'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -240,7 +237,7 @@ describe('GET /api/client-preferences', () => {
   it('supports hair_type=wavy filter', async () => {
     mockData = [{ id: 'pref-3', hair_type: 'wavy' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?hair_type=wavy') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?hair_type=wavy'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -249,7 +246,7 @@ describe('GET /api/client-preferences', () => {
   it('ignores invalid hair_type filter', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?hair_type=bald') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?hair_type=bald'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -258,7 +255,7 @@ describe('GET /api/client-preferences', () => {
   it('supports combined filters', async () => {
     mockData = [{ id: 'pref-1', customer_id: 'cust-001', skin_type: 'oily', hair_type: 'curly' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?customer_id=cust-001&skin_type=oily&hair_type=curly') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?customer_id=cust-001&skin_type=oily&hair_type=curly'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -267,7 +264,7 @@ describe('GET /api/client-preferences', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'pref-10' }]
     mockDataCount = 80
-    const res = await GET(makeRequest('http://localhost/api/client-preferences?limit=10&offset=30') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences?limit=10&offset=30'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(80)
@@ -275,7 +272,7 @@ describe('GET /api/client-preferences', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/client-preferences') as never)
+    const res = await GET(makeRequest('http://localhost/api/client-preferences'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -294,20 +291,20 @@ describe('POST /api/client-preferences', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates client preferences with required fields', async () => {
     const res = await POST(makeRequest('http://localhost/api/client-preferences', {
       customer_id: 'a0000000-0000-4000-8000-000000000001',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -320,12 +317,12 @@ describe('POST /api/client-preferences', () => {
       preferred_staff_id: 'a0000000-0000-4000-8000-000000000002',
       color_history: [{ date: '2026-01-15', color: 'auburn' }],
       notes: 'Prefers organic products',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('upserts preferences for existing customer', async () => {
-    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.customer_id).toBe('cust-001')
@@ -334,14 +331,14 @@ describe('POST /api/client-preferences', () => {
   it('returns 400 when customer_id is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/client-preferences', {
       skin_type: 'oily',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when customer_id is not a valid uuid', async () => {
     const res = await POST(makeRequest('http://localhost/api/client-preferences', {
       customer_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -349,7 +346,7 @@ describe('POST /api/client-preferences', () => {
     const res = await POST(makeRequest('http://localhost/api/client-preferences', {
       customer_id: 'a0000000-0000-4000-8000-000000000001',
       skin_type: 'unknown',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -357,7 +354,7 @@ describe('POST /api/client-preferences', () => {
     const res = await POST(makeRequest('http://localhost/api/client-preferences', {
       customer_id: 'a0000000-0000-4000-8000-000000000001',
       hair_type: 'bald',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -366,7 +363,7 @@ describe('POST /api/client-preferences', () => {
       const res = await POST(makeRequest('http://localhost/api/client-preferences', {
         customer_id: 'a0000000-0000-4000-8000-000000000001',
         skin_type: skinType,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
@@ -376,14 +373,14 @@ describe('POST /api/client-preferences', () => {
       const res = await POST(makeRequest('http://localhost/api/client-preferences', {
         customer_id: 'a0000000-0000-4000-8000-000000000001',
         hair_type: hairType,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
 
   it('returns 404 if customer not found in store', async () => {
     mockCustomer = null
-    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Customer/)
@@ -394,7 +391,7 @@ describe('POST /api/client-preferences', () => {
     const res = await POST(makeRequest('http://localhost/api/client-preferences', {
       ...validBody,
       preferred_staff_id: 'a0000000-0000-4000-8000-000000000002',
-    }) as never)
+    }))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Staff/)
@@ -405,26 +402,26 @@ describe('POST /api/client-preferences', () => {
     const res = await POST(makeRequest('http://localhost/api/client-preferences', {
       customer_id: 'a0000000-0000-4000-8000-000000000001',
       skin_type: 'dry',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 500 on database upsert error', async () => {
     mockUpsertedItem = null
     mockUpsertError = { message: 'Upsert failed' }
-    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/client-preferences', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Upsert failed')
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/client-preferences', {
+    const req = createTestRequest('http://localhost/api/client-preferences', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
@@ -432,7 +429,7 @@ describe('POST /api/client-preferences', () => {
     const res = await POST(makeRequest('http://localhost/api/client-preferences', {
       customer_id: 'a0000000-0000-4000-8000-000000000001',
       preferred_staff_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 })

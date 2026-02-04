@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -43,7 +43,7 @@ function formatPrice(amount: number) {
 
 export default function MaintenancePage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [requests, setRequests] = useState<MaintenanceRequest[]>([])
@@ -52,7 +52,7 @@ export default function MaintenancePage() {
   const [priorityFilter, setPriorityFilter] = useState('')
   const [error] = useState('')
 
-  async function loadRequests(sid: string) {
+  const loadRequests = useCallback(async (sid: string) => {
     let query = supabase
       .from('maintenance_requests')
       .select(`
@@ -78,7 +78,7 @@ export default function MaintenancePage() {
     if (data) {
       setRequests(data as unknown as MaintenanceRequest[])
     }
-  }
+  }, [supabase, statusFilter, priorityFilter])
 
   useEffect(() => {
     async function init() {
@@ -98,14 +98,13 @@ export default function MaintenancePage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadRequests])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadRequests(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, priorityFilter])
+    const reload = async () => { await loadRequests(storeId) }
+    reload()
+  }, [storeId, loading, loadRequests])
 
   const stats = useMemo(() => {
     const total = requests.length

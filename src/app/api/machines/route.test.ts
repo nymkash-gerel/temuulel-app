@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/machines
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -98,13 +95,13 @@ beforeEach(() => {
 describe('GET /api/machines', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/machines') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/machines') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines'))
     expect(res.status).toBe(403)
   })
 
@@ -113,7 +110,7 @@ describe('GET /api/machines', () => {
       { id: 'machine-1', name: 'Washer 1', machine_type: 'washer', status: 'available', capacity_kg: 10 },
     ]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/machines') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -123,7 +120,7 @@ describe('GET /api/machines', () => {
   it('returns empty list when no machines', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/machines') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -133,7 +130,7 @@ describe('GET /api/machines', () => {
   it('supports machine_type filter', async () => {
     mockData = [{ id: 'machine-1', machine_type: 'dryer' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/machines?machine_type=dryer') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines?machine_type=dryer'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -142,7 +139,7 @@ describe('GET /api/machines', () => {
   it('supports status filter', async () => {
     mockData = [{ id: 'machine-1', status: 'maintenance' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/machines?status=maintenance') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines?status=maintenance'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -151,7 +148,7 @@ describe('GET /api/machines', () => {
   it('supports combined filters', async () => {
     mockData = [{ id: 'machine-1', machine_type: 'washer', status: 'in_use' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/machines?machine_type=washer&status=in_use') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines?machine_type=washer&status=in_use'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -160,7 +157,7 @@ describe('GET /api/machines', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'machine-5' }]
     mockDataCount = 50
-    const res = await GET(makeRequest('http://localhost/api/machines?limit=10&offset=20') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines?limit=10&offset=20'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(50)
@@ -169,7 +166,7 @@ describe('GET /api/machines', () => {
   it('ignores invalid machine_type filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/machines?machine_type=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines?machine_type=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -178,7 +175,7 @@ describe('GET /api/machines', () => {
   it('ignores invalid status filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/machines?status=broken') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines?status=broken'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -186,7 +183,7 @@ describe('GET /api/machines', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/machines') as never)
+    const res = await GET(makeRequest('http://localhost/api/machines'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -203,18 +200,18 @@ describe('POST /api/machines', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/machines', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/machines', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/machines', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/machines', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a machine with name only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/machines', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/machines', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBe('machine-001')
@@ -226,7 +223,7 @@ describe('POST /api/machines', () => {
       machine_type: 'washer',
       capacity_kg: 15,
     }
-    const res = await POST(makeRequest('http://localhost/api/machines', fullBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/machines', fullBody))
     expect(res.status).toBe(201)
   })
 
@@ -235,7 +232,7 @@ describe('POST /api/machines', () => {
       const res = await POST(makeRequest('http://localhost/api/machines', {
         name: `Machine ${mt}`,
         machine_type: mt,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
@@ -243,14 +240,14 @@ describe('POST /api/machines', () => {
   it('returns 400 when name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/machines', {
       machine_type: 'washer',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when name is empty string', async () => {
     const res = await POST(makeRequest('http://localhost/api/machines', {
       name: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -258,24 +255,24 @@ describe('POST /api/machines', () => {
     const res = await POST(makeRequest('http://localhost/api/machines', {
       name: 'My Machine',
       machine_type: 'invalid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/machines', {
+    const req = createTestRequest('http://localhost/api/machines', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on database insert error', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/machines', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/machines', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')

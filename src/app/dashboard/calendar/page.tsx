@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Appointment {
@@ -38,8 +38,38 @@ interface Service {
 
 type ViewMode = 'day' | 'week' | 'month'
 
+function getStartOfPeriod(date: Date, mode: ViewMode): Date {
+  const d = new Date(date)
+  if (mode === 'day') {
+    d.setHours(0, 0, 0, 0)
+  } else if (mode === 'week') {
+    const day = d.getDay()
+    d.setDate(d.getDate() - day)
+    d.setHours(0, 0, 0, 0)
+  } else {
+    d.setDate(1)
+    d.setHours(0, 0, 0, 0)
+  }
+  return d
+}
+
+function getEndOfPeriod(date: Date, mode: ViewMode): Date {
+  const d = new Date(date)
+  if (mode === 'day') {
+    d.setHours(23, 59, 59, 999)
+  } else if (mode === 'week') {
+    const day = d.getDay()
+    d.setDate(d.getDate() + (6 - day))
+    d.setHours(23, 59, 59, 999)
+  } else {
+    d.setMonth(d.getMonth() + 1, 0)
+    d.setHours(23, 59, 59, 999)
+  }
+  return d
+}
+
 export default function CalendarPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [storeId, setStoreId] = useState<string>('')
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [staff, setStaff] = useState<Staff[]>([])
@@ -62,19 +92,7 @@ export default function CalendarPage() {
   })
   const [savingAppointment, setSavingAppointment] = useState(false)
 
-  useEffect(() => {
-    loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    if (storeId) {
-      loadAppointments()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId, currentDate, viewMode])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -106,9 +124,9 @@ export default function CalendarPage() {
     if (servicesData) setServices(servicesData)
 
     setLoading(false)
-  }
+  }, [supabase])
 
-  const loadAppointments = async () => {
+  const loadAppointments = useCallback(async () => {
     const startDate = getStartOfPeriod(currentDate, viewMode)
     const endDate = getEndOfPeriod(currentDate, viewMode)
 
@@ -129,37 +147,17 @@ export default function CalendarPage() {
     if (!error && data) {
       setAppointments(data as Appointment[])
     }
-  }
+  }, [supabase, storeId, currentDate, viewMode])
 
-  const getStartOfPeriod = (date: Date, mode: ViewMode): Date => {
-    const d = new Date(date)
-    if (mode === 'day') {
-      d.setHours(0, 0, 0, 0)
-    } else if (mode === 'week') {
-      const day = d.getDay()
-      d.setDate(d.getDate() - day)
-      d.setHours(0, 0, 0, 0)
-    } else {
-      d.setDate(1)
-      d.setHours(0, 0, 0, 0)
-    }
-    return d
-  }
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
-  const getEndOfPeriod = (date: Date, mode: ViewMode): Date => {
-    const d = new Date(date)
-    if (mode === 'day') {
-      d.setHours(23, 59, 59, 999)
-    } else if (mode === 'week') {
-      const day = d.getDay()
-      d.setDate(d.getDate() + (6 - day))
-      d.setHours(23, 59, 59, 999)
-    } else {
-      d.setMonth(d.getMonth() + 1, 0)
-      d.setHours(23, 59, 59, 999)
+  useEffect(() => {
+    if (storeId) {
+      loadAppointments()
     }
-    return d
-  }
+  }, [storeId, loadAppointments])
 
   const navigatePeriod = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate)

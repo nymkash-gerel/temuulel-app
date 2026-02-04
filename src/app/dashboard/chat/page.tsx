@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -39,7 +39,7 @@ const LEVEL_BADGE: Record<string, { bg: string; text: string; label: string }> =
 
 export default function ChatPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,6 +88,23 @@ export default function ChatPage() {
     load()
   }, [supabase, router])
 
+  const loadConversations = useCallback(async () => {
+    if (!storeId) return
+
+    const { data: convs } = await supabase
+      .from('conversations')
+      .select(`
+        *,
+        customers(name, messenger_id, instagram_id),
+        messages(content, is_from_customer, is_ai_response, created_at, metadata)
+      `)
+      .eq('store_id', storeId)
+      .order('updated_at', { ascending: false })
+      .limit(50)
+
+    if (convs) setConversations(convs as Conversation[])
+  }, [supabase, storeId])
+
   // Real-time subscription for conversation updates
   useEffect(() => {
     if (!storeId) return
@@ -123,25 +140,7 @@ export default function ChatPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId])
-
-  async function loadConversations() {
-    if (!storeId) return
-
-    const { data: convs } = await supabase
-      .from('conversations')
-      .select(`
-        *,
-        customers(name, messenger_id, instagram_id),
-        messages(content, is_from_customer, is_ai_response, created_at, metadata)
-      `)
-      .eq('store_id', storeId)
-      .order('updated_at', { ascending: false })
-      .limit(50)
-
-    if (convs) setConversations(convs as Conversation[])
-  }
+  }, [storeId, supabase, loadConversations])
 
   // Filter and search conversations
   const filteredConversations = useMemo(() => {

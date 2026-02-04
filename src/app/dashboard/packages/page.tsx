@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -38,7 +38,7 @@ function formatPrice(amount: number) {
 
 export default function PackagesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [packages, setPackages] = useState<ServicePackage[]>([])
@@ -58,7 +58,7 @@ export default function PackagesPage() {
     is_active: true,
   })
 
-  async function loadPackages(sid: string) {
+  const loadPackages = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('service_packages')
       .select(`
@@ -72,7 +72,7 @@ export default function PackagesPage() {
     if (data) {
       setPackages(data as unknown as ServicePackage[])
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function load() {
@@ -92,8 +92,7 @@ export default function PackagesPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadPackages])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return packages

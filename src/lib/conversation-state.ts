@@ -6,6 +6,9 @@
  * and query refinements without any AI calls.
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database, Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 import { normalizeText, neutralizeVowels } from './chat-ai'
 
 // ---------------------------------------------------------------------------
@@ -69,24 +72,27 @@ export function emptyState(): ConversationState {
  * Read conversation state from the metadata JSONB column.
  */
 export async function readState(
-  supabase: { from: (table: string) => unknown },
+  supabase: SupabaseClient<Database>,
   conversationId: string
 ): Promise<ConversationState> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('conversations')
     .select('metadata')
     .eq('id', conversationId)
     .single()
 
-  const raw = data?.metadata?.conversation_state
-  if (!raw || typeof raw !== 'object') return emptyState()
+  const meta = data?.metadata
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return emptyState()
 
+  const raw = (meta as Record<string, Json | undefined>).conversation_state
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return emptyState()
+
+  const state = raw as Record<string, Json | undefined>
   return {
-    last_intent: raw.last_intent ?? '',
-    last_products: Array.isArray(raw.last_products) ? raw.last_products.slice(0, 10) : [],
-    last_query: raw.last_query ?? '',
-    turn_count: typeof raw.turn_count === 'number' ? raw.turn_count : 0,
+    last_intent: typeof state.last_intent === 'string' ? state.last_intent : '',
+    last_products: Array.isArray(state.last_products) ? (state.last_products as unknown as StoredProduct[]).slice(0, 10) : [],
+    last_query: typeof state.last_query === 'string' ? state.last_query : '',
+    turn_count: typeof state.turn_count === 'number' ? state.turn_count : 0,
   }
 }
 
@@ -94,27 +100,28 @@ export async function readState(
  * Write updated conversation state back to metadata (merges with existing metadata).
  */
 export async function writeState(
-  supabase: { from: (table: string) => unknown },
+  supabase: SupabaseClient<Database>,
   conversationId: string,
   state: ConversationState
 ): Promise<void> {
   // Read existing metadata first to merge
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('conversations')
     .select('metadata')
     .eq('id', conversationId)
     .single()
 
-  const existing = (data?.metadata ?? {}) as Record<string, unknown>
+  const meta = data?.metadata
+  const existing = (meta && typeof meta === 'object' && !Array.isArray(meta))
+    ? meta as Record<string, Json | undefined>
+    : {} as Record<string, Json | undefined>
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
+  await supabase
     .from('conversations')
     .update({
       metadata: {
         ...existing,
-        conversation_state: state,
+        conversation_state: toJson(state),
       },
     })
     .eq('id', conversationId)

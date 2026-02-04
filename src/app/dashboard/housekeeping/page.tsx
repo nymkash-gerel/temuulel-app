@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -53,7 +53,7 @@ function formatDateTime(dateStr: string) {
 
 export default function HousekeepingPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [tasks, setTasks] = useState<HousekeepingTask[]>([])
@@ -63,7 +63,7 @@ export default function HousekeepingPage() {
   const [updating, setUpdating] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  async function loadTasks(sid: string) {
+  const loadTasks = useCallback(async (sid: string) => {
     let query = supabase
       .from('housekeeping_tasks')
       .select(`
@@ -88,7 +88,7 @@ export default function HousekeepingPage() {
     if (data) {
       setTasks(data as unknown as HousekeepingTask[])
     }
-  }
+  }, [supabase, statusFilter, priorityFilter])
 
   useEffect(() => {
     async function init() {
@@ -108,14 +108,13 @@ export default function HousekeepingPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadTasks])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadTasks(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, priorityFilter])
+    const reload = async () => { await loadTasks(storeId) }
+    reload()
+  }, [statusFilter, priorityFilter, storeId, loading, loadTasks])
 
   const stats = useMemo(() => {
     const total = tasks.length

@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/deals
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock rate-limit
 vi.mock('@/lib/rate-limit', () => ({
@@ -33,15 +34,11 @@ vi.mock('@/lib/supabase/server', () => ({
 import { GET, POST } from './route'
 import { rateLimit } from '@/lib/rate-limit'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -122,20 +119,20 @@ beforeEach(() => {
 describe('GET /api/deals', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/deals') as never)
+    const res = await GET(makeRequest('http://localhost/api/deals'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/deals') as never)
+    const res = await GET(makeRequest('http://localhost/api/deals'))
     expect(res.status).toBe(403)
   })
 
   it('returns deals list', async () => {
     mockDeals = [{ id: 'deal-1', deal_number: 'DEAL-001', status: 'lead' }]
     mockDealsCount = 1
-    const res = await GET(makeRequest('http://localhost/api/deals') as never)
+    const res = await GET(makeRequest('http://localhost/api/deals'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -145,7 +142,7 @@ describe('GET /api/deals', () => {
   it('returns empty list when no deals', async () => {
     mockDeals = []
     mockDealsCount = 0
-    const res = await GET(makeRequest('http://localhost/api/deals') as never)
+    const res = await GET(makeRequest('http://localhost/api/deals'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -156,20 +153,20 @@ describe('GET /api/deals', () => {
 describe('POST /api/deals', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/deals', { deal_type: 'sale' }) as never)
+    const res = await POST(makeRequest('http://localhost/api/deals', { deal_type: 'sale' }))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/deals', { deal_type: 'sale' }) as never)
+    const res = await POST(makeRequest('http://localhost/api/deals', { deal_type: 'sale' }))
     expect(res.status).toBe(403)
   })
 
   it('creates a deal with minimal data', async () => {
     const res = await POST(makeRequest('http://localhost/api/deals', {
       deal_type: 'sale',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.deal_number).toBeDefined()
@@ -186,14 +183,14 @@ describe('POST /api/deals', () => {
       commission_rate: 3,
       agent_share_rate: 60,
       notes: 'Test deal',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 for invalid deal_type', async () => {
     const res = await POST(makeRequest('http://localhost/api/deals', {
       deal_type: 'invalid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -201,7 +198,7 @@ describe('POST /api/deals', () => {
     const res = await POST(makeRequest('http://localhost/api/deals', {
       deal_type: 'sale',
       asking_price: -100,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -209,7 +206,7 @@ describe('POST /api/deals', () => {
     const res = await POST(makeRequest('http://localhost/api/deals', {
       deal_type: 'sale',
       commission_rate: 150,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -218,7 +215,7 @@ describe('POST /api/deals', () => {
     const res = await POST(makeRequest('http://localhost/api/deals', {
       property_id: 'a0000000-0000-4000-8000-000000000099',
       deal_type: 'sale',
-    }) as never)
+    }))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Property/)
@@ -229,7 +226,7 @@ describe('POST /api/deals', () => {
     const res = await POST(makeRequest('http://localhost/api/deals', {
       agent_id: 'a0000000-0000-4000-8000-000000000099',
       deal_type: 'sale',
-    }) as never)
+    }))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Agent/)
@@ -240,7 +237,7 @@ describe('POST /api/deals', () => {
     mockInsertError = { message: 'DB error' }
     const res = await POST(makeRequest('http://localhost/api/deals', {
       deal_type: 'sale',
-    }) as never)
+    }))
     expect(res.status).toBe(500)
   })
 
@@ -248,17 +245,17 @@ describe('POST /api/deals', () => {
     vi.mocked(rateLimit).mockReturnValueOnce({
       success: false, limit: 20, remaining: 0, resetAt: Date.now() + 60000,
     })
-    const res = await POST(makeRequest('http://localhost/api/deals', { deal_type: 'sale' }) as never)
+    const res = await POST(makeRequest('http://localhost/api/deals', { deal_type: 'sale' }))
     expect(res.status).toBe(429)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/deals', {
+    const req = createTestRequest('http://localhost/api/deals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 })

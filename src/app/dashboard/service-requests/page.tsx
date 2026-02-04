@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -55,7 +55,7 @@ function formatPrice(price: number) {
 
 export default function ServiceRequestsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [requests, setRequests] = useState<ServiceRequest[]>([])
@@ -76,41 +76,41 @@ export default function ServiceRequestsPage() {
   const [formEstimatedCost, setFormEstimatedCost] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+  const loadRequests = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+    const { data: store } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('owner_id', user.id)
+      .single()
 
-      if (store) {
-        setStoreId(store.id)
+    if (store) {
+      setStoreId(store.id)
 
-        const { data } = await supabase
-          .from('service_requests')
-          .select(`
-            id, request_number, service_type, address, scheduled_at,
-            duration_estimate, status, priority, estimated_cost, notes, created_at,
-            customers(id, name),
-            staff(id, name)
-          `)
-          .eq('store_id', store.id)
-          .order('created_at', { ascending: false })
-          .limit(200)
+      const { data } = await supabase
+        .from('service_requests')
+        .select(`
+          id, request_number, service_type, address, scheduled_at,
+          duration_estimate, status, priority, estimated_cost, notes, created_at,
+          customers(id, name),
+          staff(id, name)
+        `)
+        .eq('store_id', store.id)
+        .order('created_at', { ascending: false })
+        .limit(200)
 
-        if (data) {
-          setRequests(data as unknown as ServiceRequest[])
-        }
+      if (data) {
+        setRequests(data as unknown as ServiceRequest[])
       }
-      setLoading(false)
     }
-    load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    setLoading(false)
+  }, [supabase, router])
+
+  useEffect(() => {
+    loadRequests()
+  }, [loadRequests])
 
   const filtered = useMemo(() => {
     let result = requests

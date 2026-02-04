@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/encounters
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -29,15 +30,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -127,13 +124,13 @@ beforeEach(() => {
 describe('GET /api/encounters', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/encounters') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/encounters') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters'))
     expect(res.status).toBe(403)
   })
 
@@ -142,7 +139,7 @@ describe('GET /api/encounters', () => {
       { id: 'enc-1', patient_id: 'p-1', status: 'scheduled', encounter_type: 'consultation' },
     ]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/encounters') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -152,7 +149,7 @@ describe('GET /api/encounters', () => {
   it('returns empty list when no encounters', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/encounters') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -162,7 +159,7 @@ describe('GET /api/encounters', () => {
   it('supports status filter', async () => {
     mockData = [{ id: 'enc-1', status: 'in_progress' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/encounters?status=in_progress') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters?status=in_progress'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -171,7 +168,7 @@ describe('GET /api/encounters', () => {
   it('supports patient_id filter', async () => {
     mockData = [{ id: 'enc-1', patient_id: 'patient-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/encounters?patient_id=patient-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters?patient_id=patient-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -180,7 +177,7 @@ describe('GET /api/encounters', () => {
   it('supports provider_id filter', async () => {
     mockData = [{ id: 'enc-1', provider_id: 'staff-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/encounters?provider_id=staff-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters?provider_id=staff-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -189,7 +186,7 @@ describe('GET /api/encounters', () => {
   it('supports combined filters', async () => {
     mockData = [{ id: 'enc-1', status: 'completed', patient_id: 'p-1', provider_id: 's-1' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/encounters?status=completed&patient_id=p-1&provider_id=s-1') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters?status=completed&patient_id=p-1&provider_id=s-1'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -198,7 +195,7 @@ describe('GET /api/encounters', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'enc-5' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/encounters?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -207,7 +204,7 @@ describe('GET /api/encounters', () => {
   it('ignores invalid status filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/encounters?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -215,7 +212,7 @@ describe('GET /api/encounters', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/encounters') as never)
+    const res = await GET(makeRequest('http://localhost/api/encounters'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -232,18 +229,18 @@ describe('POST /api/encounters', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/encounters', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/encounters', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/encounters', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/encounters', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates an encounter with patient_id only', async () => {
-    const res = await POST(makeRequest('http://localhost/api/encounters', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/encounters', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBe('encounter-001')
@@ -257,7 +254,7 @@ describe('POST /api/encounters', () => {
       chief_complaint: 'Follow-up for migraine',
       encounter_date: '2026-02-15T10:00:00Z',
     }
-    const res = await POST(makeRequest('http://localhost/api/encounters', fullBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/encounters', fullBody))
     expect(res.status).toBe(201)
   })
 
@@ -266,20 +263,20 @@ describe('POST /api/encounters', () => {
       const res = await POST(makeRequest('http://localhost/api/encounters', {
         patient_id: 'a0000000-0000-4000-8000-000000000001',
         encounter_type: t,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
 
   it('returns 400 when patient_id is missing', async () => {
-    const res = await POST(makeRequest('http://localhost/api/encounters', {}) as never)
+    const res = await POST(makeRequest('http://localhost/api/encounters', {}))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid patient_id uuid', async () => {
     const res = await POST(makeRequest('http://localhost/api/encounters', {
       patient_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -287,7 +284,7 @@ describe('POST /api/encounters', () => {
     const res = await POST(makeRequest('http://localhost/api/encounters', {
       patient_id: 'a0000000-0000-4000-8000-000000000001',
       encounter_type: 'invalid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -295,23 +292,23 @@ describe('POST /api/encounters', () => {
     const res = await POST(makeRequest('http://localhost/api/encounters', {
       patient_id: 'a0000000-0000-4000-8000-000000000001',
       provider_id: 'not-a-uuid',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/encounters', {
+    const req = createTestRequest('http://localhost/api/encounters', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 404 when patient not found in store', async () => {
     mockPatient = null
-    const res = await POST(makeRequest('http://localhost/api/encounters', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/encounters', validBody))
     const json = await res.json()
     expect(res.status).toBe(404)
     expect(json.error).toBe('Patient not found in this store')
@@ -320,7 +317,7 @@ describe('POST /api/encounters', () => {
   it('returns 500 on database insert error', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/encounters', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/encounters', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')

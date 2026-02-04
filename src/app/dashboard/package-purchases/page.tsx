@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -42,7 +42,7 @@ function formatDate(dateStr: string) {
 
 export default function PackagePurchasesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -50,7 +50,7 @@ export default function PackagePurchasesPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [error] = useState('')
 
-  async function loadPurchases(sid: string) {
+  const loadPurchases = useCallback(async (sid: string) => {
     let query = supabase
       .from('package_purchases')
       .select(`
@@ -72,7 +72,7 @@ export default function PackagePurchasesPage() {
     if (data) {
       setPurchases(data as unknown as PackagePurchaseRow[])
     }
-  }
+  }, [supabase, statusFilter])
 
   useEffect(() => {
     async function init() {
@@ -92,14 +92,13 @@ export default function PackagePurchasesPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadPurchases])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadPurchases(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
+    const reload = async () => { await loadPurchases(storeId) }
+    reload()
+  }, [storeId, loading, loadPurchases])
 
   const stats = useMemo(() => {
     const total = purchases.length

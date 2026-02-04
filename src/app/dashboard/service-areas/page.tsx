@@ -15,7 +15,7 @@ interface ServiceArea {
 
 export default function ServiceAreasPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [areas, setAreas] = useState<ServiceArea[]>([])
@@ -58,8 +58,7 @@ export default function ServiceAreasPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router])
 
   const filtered = useMemo(() => {
     let result = areas

@@ -2,6 +2,13 @@
  * Tests for POST /api/commissions/generate
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
+
+// Mock rate-limit to always allow
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn(() => ({ success: true, limit: 5, remaining: 4, resetAt: Date.now() + 60000 })),
+  getClientIp: vi.fn(() => '127.0.0.1'),
+}))
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -24,12 +31,8 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { POST } from './route'
 
-function makeRequest(body: unknown): Request {
-  return new Request('http://localhost/api/commissions/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+function makeRequest(body: unknown) {
+  return createTestJsonRequest('http://localhost/api/commissions/generate', body)
 }
 
 beforeEach(() => {
@@ -78,19 +81,19 @@ beforeEach(() => {
 describe('POST /api/commissions/generate', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest({}) as never)
+    const res = await POST(makeRequest({}))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest({}) as never)
+    const res = await POST(makeRequest({}))
     expect(res.status).toBe(403)
   })
 
   it('returns 0 generated when no closed deals', async () => {
     mockClosedDeals = []
-    const res = await POST(makeRequest({}) as never)
+    const res = await POST(makeRequest({}))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.generated).toBe(0)
@@ -108,7 +111,7 @@ describe('POST /api/commissions/generate', () => {
       { id: 'comm-2', deal_id: 'deal-2', agent_id: 'agent-2', commission_amount: 10000000, agent_share: 5000000, company_share: 5000000, status: 'pending' },
     ]
 
-    const res = await POST(makeRequest({}) as never)
+    const res = await POST(makeRequest({}))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.generated).toBe(2)
@@ -125,7 +128,7 @@ describe('POST /api/commissions/generate', () => {
       { id: 'comm-2', deal_id: 'deal-2', agent_id: 'agent-2', commission_amount: 10000000, agent_share: 5000000, company_share: 5000000, status: 'pending' },
     ]
 
-    const res = await POST(makeRequest({}) as never)
+    const res = await POST(makeRequest({}))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.generated).toBe(1)
@@ -137,7 +140,7 @@ describe('POST /api/commissions/generate', () => {
     ]
     mockExistingCommissions = [{ deal_id: 'deal-1' }]
 
-    const res = await POST(makeRequest({}) as never)
+    const res = await POST(makeRequest({}))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.generated).toBe(0)
@@ -155,7 +158,7 @@ describe('POST /api/commissions/generate', () => {
 
     const res = await POST(makeRequest({
       deal_ids: ['a0000000-0000-4000-8000-000000000001'],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.generated).toBe(1)
@@ -168,7 +171,7 @@ describe('POST /api/commissions/generate', () => {
     mockExistingCommissions = []
     mockInsertError = { message: 'DB error' }
 
-    const res = await POST(makeRequest({}) as never)
+    const res = await POST(makeRequest({}))
     expect(res.status).toBe(500)
   })
 })

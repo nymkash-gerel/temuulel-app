@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -35,7 +35,7 @@ function generateOrderNumber(): string {
 
 export default function NewLaundryOrderPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -85,8 +85,7 @@ export default function NewLaundryOrderPage() {
     }
 
     fetchCustomers()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase])
 
   const addItem = () => {
     setItems([

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createUnitSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/units
@@ -96,8 +96,8 @@ export async function POST(request: NextRequest) {
       floor: body.floor || null,
       max_occupancy: body.max_occupancy || undefined,
       base_rate: body.base_rate,
-      amenities: (body.amenities || []) as unknown as Json,
-      images: (body.images || []) as unknown as Json,
+      amenities: toJson(body.amenities || []),
+      images: toJson(body.images || []),
       status: body.status || undefined,
     })
     .select(`

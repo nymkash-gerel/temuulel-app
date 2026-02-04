@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
@@ -73,7 +73,7 @@ function formatPrice(amount: number | null) {
 }
 
 export default function DealsPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [deals, setDeals] = useState<Deal[]>([])
@@ -94,14 +94,14 @@ export default function DealsPage() {
   const [formAgentShareRate, setFormAgentShareRate] = useState('50')
   const [formNotes, setFormNotes] = useState('')
 
-  async function loadDeals(status?: string) {
+  const loadDeals = useCallback(async (status?: string) => {
     const url = status ? `/api/deals?status=${status}&limit=100` : '/api/deals?limit=100'
     const res = await fetch(url)
     if (res.ok) {
       const data = await res.json()
       setDeals(data.data || [])
     }
-  }
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -130,8 +130,7 @@ export default function DealsPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadDeals])
 
   async function handleStatusFilter(status: string) {
     setStatusFilter(status)

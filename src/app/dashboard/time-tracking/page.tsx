@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 
@@ -34,7 +34,7 @@ function formatPrice(amount: number | null) {
 }
 
 export default function TimeTrackingPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [entries, setEntries] = useState<TimeEntry[]>([])
@@ -59,7 +59,7 @@ export default function TimeTrackingPage() {
   const [formBillable, setFormBillable] = useState(true)
   const [formDate, setFormDate] = useState('')
 
-  async function loadEntries() {
+  const loadEntries = useCallback(async () => {
     const params = new URLSearchParams()
     if (caseFilter) params.set('case_id', caseFilter)
     if (billableFilter) params.set('is_billable', billableFilter)
@@ -72,7 +72,7 @@ export default function TimeTrackingPage() {
       setEntries(json.data || [])
       setTotal(json.total || 0)
     }
-  }
+  }, [caseFilter, billableFilter, dateFrom, dateTo])
 
   useEffect(() => {
     async function load() {
@@ -99,15 +99,14 @@ export default function TimeTrackingPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadEntries])
 
   useEffect(() => {
     if (!loading) {
-      loadEntries()
+      const reload = async () => { await loadEntries() }
+      reload()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseFilter, billableFilter, dateFrom, dateTo])
+  }, [caseFilter, billableFilter, dateFrom, dateTo, loadEntries, loading])
 
   const kpis = useMemo(() => {
     const totalHours = entries.reduce((sum, e) => sum + (e.hours || 0), 0)

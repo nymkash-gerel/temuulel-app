@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import React from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -72,18 +72,13 @@ export default function PetDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [pet, setPet] = useState<Pet | null>(null)
   const [appointments, setAppointments] = useState<PetAppointment[]>([])
 
-  useEffect(() => {
-    loadPet()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadPet() {
+  const loadPet = useCallback(async () => {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -125,7 +120,11 @@ export default function PetDetailPage() {
     }
 
     setLoading(false)
-  }
+  }, [supabase, router, id])
+
+  useEffect(() => {
+    loadPet()
+  }, [loadPet])
 
   function renderVaccinations(): React.ReactNode {
     if (!pet?.vaccinations) {

@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/blocks
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -27,15 +28,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -125,13 +122,13 @@ beforeEach(() => {
 describe('GET /api/blocks', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/blocks') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/blocks') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks'))
     expect(res.status).toBe(403)
   })
 
@@ -140,7 +137,7 @@ describe('GET /api/blocks', () => {
       { id: 'block-1', staff_id: 'staff-001', block_type: 'break', start_at: '2026-02-01T09:00:00Z' },
     ]
     mockBlocksCount = 1
-    const res = await GET(makeRequest('http://localhost/api/blocks') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -150,7 +147,7 @@ describe('GET /api/blocks', () => {
   it('returns empty list when no blocks', async () => {
     mockBlocks = []
     mockBlocksCount = 0
-    const res = await GET(makeRequest('http://localhost/api/blocks') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -160,7 +157,7 @@ describe('GET /api/blocks', () => {
   it('supports staff_id filter', async () => {
     mockBlocks = [{ id: 'block-1', staff_id: 'staff-001' }]
     mockBlocksCount = 1
-    const res = await GET(makeRequest('http://localhost/api/blocks?staff_id=staff-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks?staff_id=staff-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -169,7 +166,7 @@ describe('GET /api/blocks', () => {
   it('supports resource_id filter', async () => {
     mockBlocks = [{ id: 'block-2', resource_id: 'resource-001' }]
     mockBlocksCount = 1
-    const res = await GET(makeRequest('http://localhost/api/blocks?resource_id=resource-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks?resource_id=resource-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -178,7 +175,7 @@ describe('GET /api/blocks', () => {
   it('supports block_type filter', async () => {
     mockBlocks = [{ id: 'block-3', block_type: 'holiday' }]
     mockBlocksCount = 1
-    const res = await GET(makeRequest('http://localhost/api/blocks?block_type=holiday') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks?block_type=holiday'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -187,7 +184,7 @@ describe('GET /api/blocks', () => {
   it('supports pagination parameters', async () => {
     mockBlocks = [{ id: 'block-4' }]
     mockBlocksCount = 50
-    const res = await GET(makeRequest('http://localhost/api/blocks?limit=10&offset=20') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks?limit=10&offset=20'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(50)
@@ -195,7 +192,7 @@ describe('GET /api/blocks', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/blocks') as never)
+    const res = await GET(makeRequest('http://localhost/api/blocks'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -216,18 +213,18 @@ describe('POST /api/blocks', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/blocks', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/blocks', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/blocks', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/blocks', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a block with staff_id', async () => {
-    const res = await POST(makeRequest('http://localhost/api/blocks', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/blocks', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -255,7 +252,7 @@ describe('POST /api/blocks', () => {
       end_at: '2026-02-01T15:00:00Z',
       block_type: 'maintenance',
       reason: 'Maintenance window',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.resource_id).toBe('resource-001')
@@ -267,7 +264,7 @@ describe('POST /api/blocks', () => {
       staff_id: 'a0000000-0000-4000-8000-000000000001',
       start_at: '2026-02-01T09:00:00Z',
       end_at: '2026-02-01T10:00:00Z',
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.block_type).toBe('manual')
@@ -282,7 +279,7 @@ describe('POST /api/blocks', () => {
       reason: 'Full day holiday',
       block_type: 'holiday',
       recurring: { freq: 'yearly', month: 2, day: 1 },
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
@@ -291,7 +288,7 @@ describe('POST /api/blocks', () => {
       start_at: '2026-02-01T09:00:00Z',
       end_at: '2026-02-01T10:00:00Z',
       block_type: 'manual',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -300,7 +297,7 @@ describe('POST /api/blocks', () => {
       staff_id: 'a0000000-0000-4000-8000-000000000001',
       end_at: '2026-02-01T10:00:00Z',
       block_type: 'manual',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -309,7 +306,7 @@ describe('POST /api/blocks', () => {
       staff_id: 'a0000000-0000-4000-8000-000000000001',
       start_at: '2026-02-01T09:00:00Z',
       block_type: 'manual',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -319,7 +316,7 @@ describe('POST /api/blocks', () => {
       start_at: '2026-02-01T09:00:00Z',
       end_at: '2026-02-01T10:00:00Z',
       block_type: 'invalid_type',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -329,7 +326,7 @@ describe('POST /api/blocks', () => {
       start_at: '2026-02-01T10:00:00Z',
       end_at: '2026-02-01T09:00:00Z',
       block_type: 'manual',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toMatch(/end_at must be after start_at/)
@@ -341,7 +338,7 @@ describe('POST /api/blocks', () => {
       start_at: '2026-02-01T09:00:00Z',
       end_at: '2026-02-01T09:00:00Z',
       block_type: 'manual',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toMatch(/end_at must be after start_at/)
@@ -353,7 +350,7 @@ describe('POST /api/blocks', () => {
       start_at: '2026-02-01T09:00:00Z',
       end_at: '2026-02-01T10:00:00Z',
       block_type: 'manual',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -363,13 +360,13 @@ describe('POST /api/blocks', () => {
       start_at: '2026-02-01T09:00:00Z',
       end_at: '2026-02-01T10:00:00Z',
       block_type: 'manual',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 404 if staff not found in store', async () => {
     mockStaff = null
-    const res = await POST(makeRequest('http://localhost/api/blocks', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/blocks', validBody))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Staff/)
@@ -382,7 +379,7 @@ describe('POST /api/blocks', () => {
       start_at: '2026-02-01T14:00:00Z',
       end_at: '2026-02-01T15:00:00Z',
       block_type: 'maintenance',
-    }) as never)
+    }))
     expect(res.status).toBe(404)
     const json = await res.json()
     expect(json.error).toMatch(/Resource/)
@@ -391,19 +388,19 @@ describe('POST /api/blocks', () => {
   it('returns 500 on database insert error', async () => {
     mockInsertedBlock = null
     mockInsertError = { message: 'DB error' }
-    const res = await POST(makeRequest('http://localhost/api/blocks', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/blocks', validBody))
     expect(res.status).toBe(500)
     const json = await res.json()
     expect(json.error).toBe('DB error')
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/blocks', {
+    const req = createTestRequest('http://localhost/api/blocks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 })

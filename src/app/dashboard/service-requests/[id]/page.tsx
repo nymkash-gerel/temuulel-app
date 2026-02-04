@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -101,7 +101,7 @@ function formatDateTime(date: string | null | undefined): string {
 export default function ServiceRequestDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const requestId = params.id as string
 
   const [request, setRequest] = useState<ServiceRequest | null>(null)
@@ -179,7 +179,7 @@ export default function ServiceRequestDetailPage() {
     }
   }
 
-  async function load() {
+  const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
@@ -209,12 +209,11 @@ export default function ServiceRequestDetailPage() {
 
     setRequest(data as unknown as ServiceRequest)
     setLoading(false)
-  }
+  }, [supabase, router, requestId])
 
   useEffect(() => {
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestId])
+  }, [load])
 
   if (loading) {
     return (

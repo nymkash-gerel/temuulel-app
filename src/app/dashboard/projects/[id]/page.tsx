@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
@@ -115,7 +115,7 @@ export default function ProjectDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [project, setProject] = useState<Project | null>(null)
@@ -124,12 +124,7 @@ export default function ProjectDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -174,7 +169,11 @@ export default function ProjectDetailPage() {
     }
 
     setLoading(false)
-  }
+  }, [supabase, router, id])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const taskProgress = useMemo(() => {
     const total = tasks.length

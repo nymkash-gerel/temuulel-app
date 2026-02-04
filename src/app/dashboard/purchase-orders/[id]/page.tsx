@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -95,7 +95,7 @@ function formatDateTime(dateStr: string | null): string {
 export default function PurchaseOrderDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const poId = params.id as string
 
   const [po, setPo] = useState<PurchaseOrder | null>(null)
@@ -105,7 +105,7 @@ export default function PurchaseOrderDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
@@ -138,12 +138,11 @@ export default function PurchaseOrderDetailPage() {
 
     setPo(data as unknown as PurchaseOrder)
     setLoading(false)
-  }
+  }, [poId, supabase, router])
 
   useEffect(() => {
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [poId])
+  }, [load])
 
   async function handleStatusChange(newStatus: string) {
     if (!po) return

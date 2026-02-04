@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
@@ -28,7 +28,7 @@ function formatPrice(amount: number) {
 
 export default function CrewPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [crew, setCrew] = useState<CrewMember[]>([])
@@ -44,7 +44,7 @@ export default function CrewPage() {
   const [formHourlyRate, setFormHourlyRate] = useState('')
   const [formCertifications, setFormCertifications] = useState('')
 
-  async function loadCrew() {
+  const loadCrew = useCallback(async () => {
     const params = new URLSearchParams({ limit: '200' })
     if (statusFilter) params.set('status', statusFilter)
 
@@ -54,7 +54,7 @@ export default function CrewPage() {
       setCrew(json.data || [])
       setTotalCount(json.total ?? (json.data?.length || 0))
     }
-  }
+  }, [statusFilter])
 
   useEffect(() => {
     async function init() {
@@ -65,14 +65,13 @@ export default function CrewPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadCrew])
 
   useEffect(() => {
     if (loading) return
-    loadCrew()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
+    const reload = async () => { await loadCrew() }
+    reload()
+  }, [loading, loadCrew])
 
   const kpis = useMemo(() => {
     const total = crew.length

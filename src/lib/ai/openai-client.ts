@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { withSpan } from '@/lib/sentry-helpers'
 
 const MODEL = 'gpt-4o-mini'
 const DEFAULT_TEMPERATURE = 0.3
@@ -56,32 +57,34 @@ export interface ChatCompletionResult {
  * Returns plain text (not JSON). For conversational context.
  */
 export async function chatCompletion(req: ChatCompletionRequest): Promise<ChatCompletionResult> {
-  const openai = getClient()
+  return withSpan('openai.chatCompletion', 'ai.completion', async () => {
+    const openai = getClient()
 
-  const response = await openai.chat.completions.create({
-    model: MODEL,
-    temperature: req.temperature ?? DEFAULT_TEMPERATURE,
-    max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
-    messages: req.messages,
-  })
+    const response = await openai.chat.completions.create({
+      model: MODEL,
+      temperature: req.temperature ?? DEFAULT_TEMPERATURE,
+      max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
+      messages: req.messages,
+    })
 
-  const content = response.choices[0]?.message?.content
-  if (!content) throw new Error('Empty response from OpenAI')
+    const content = response.choices[0]?.message?.content
+    if (!content) throw new Error('Empty response from OpenAI')
 
-  const usage = response.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+    const usage = response.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
 
-  console.log(
-    `[openai-chat] model=${MODEL} tokens=${usage.total_tokens} (prompt=${usage.prompt_tokens} completion=${usage.completion_tokens})`
-  )
+    console.log(
+      `[openai-chat] model=${MODEL} tokens=${usage.total_tokens} (prompt=${usage.prompt_tokens} completion=${usage.completion_tokens})`
+    )
 
-  return {
-    content,
-    usage: {
-      prompt_tokens: usage.prompt_tokens,
-      completion_tokens: usage.completion_tokens,
-      total_tokens: usage.total_tokens,
-    },
-  }
+    return {
+      content,
+      usage: {
+        prompt_tokens: usage.prompt_tokens,
+        completion_tokens: usage.completion_tokens,
+        total_tokens: usage.total_tokens,
+      },
+    }
+  }, { 'ai.model': MODEL, 'ai.max_tokens': req.maxTokens ?? DEFAULT_MAX_TOKENS })
 }
 
 // ---------------------------------------------------------------------------
@@ -93,35 +96,37 @@ export async function chatCompletion(req: ChatCompletionRequest): Promise<ChatCo
  * Parses the response as JSON of type T.
  */
 export async function jsonCompletion<T>(req: CompletionRequest): Promise<CompletionResult<T>> {
-  const openai = getClient()
+  return withSpan('openai.jsonCompletion', 'ai.completion', async () => {
+    const openai = getClient()
 
-  const response = await openai.chat.completions.create({
-    model: MODEL,
-    temperature: req.temperature ?? DEFAULT_TEMPERATURE,
-    max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: req.systemPrompt },
-      { role: 'user', content: req.userContent },
-    ],
-  })
+    const response = await openai.chat.completions.create({
+      model: MODEL,
+      temperature: req.temperature ?? DEFAULT_TEMPERATURE,
+      max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: req.systemPrompt },
+        { role: 'user', content: req.userContent },
+      ],
+    })
 
-  const content = response.choices[0]?.message?.content
-  if (!content) throw new Error('Empty response from OpenAI')
+    const content = response.choices[0]?.message?.content
+    if (!content) throw new Error('Empty response from OpenAI')
 
-  const data = JSON.parse(content) as T
-  const usage = response.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+    const data = JSON.parse(content) as T
+    const usage = response.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
 
-  console.log(
-    `[openai] model=${MODEL} tokens=${usage.total_tokens} (prompt=${usage.prompt_tokens} completion=${usage.completion_tokens})`
-  )
+    console.log(
+      `[openai] model=${MODEL} tokens=${usage.total_tokens} (prompt=${usage.prompt_tokens} completion=${usage.completion_tokens})`
+    )
 
-  return {
-    data,
-    usage: {
-      prompt_tokens: usage.prompt_tokens,
-      completion_tokens: usage.completion_tokens,
-      total_tokens: usage.total_tokens,
-    },
-  }
+    return {
+      data,
+      usage: {
+        prompt_tokens: usage.prompt_tokens,
+        completion_tokens: usage.completion_tokens,
+        total_tokens: usage.total_tokens,
+      },
+    }
+  }, { 'ai.model': MODEL, 'ai.max_tokens': req.maxTokens ?? DEFAULT_MAX_TOKENS })
 }

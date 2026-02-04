@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, createKdsTicketSchema, parsePagination } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 /**
  * GET /api/kds-tickets
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       station_id: body.station_id || null,
       order_id: body.order_id || null,
       table_session_id: body.table_session_id || null,
-      items: (body.items || []) as unknown as Json,
+      items: toJson(body.items || []),
       priority: body.priority ?? 0,
     })
     .select(`

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Conversation {
@@ -23,7 +23,7 @@ interface Message {
 }
 
 export default function DriverChatPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -32,33 +32,42 @@ export default function DriverChatPage() {
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const fetchConversations = useCallback(async () => {
+  const refreshConversations = useCallback(async () => {
     const res = await fetch('/api/driver-chat')
     if (res.ok) {
       const data = await res.json()
       setConversations(data.conversations)
     }
-    setLoading(false)
-  }, [])
-
-  const fetchMessages = useCallback(async (driverId: string) => {
-    const res = await fetch(`/api/driver-chat/${driverId}`)
-    if (res.ok) {
-      const data = await res.json()
-      setMessages(data.messages.reverse())
-    }
   }, [])
 
   useEffect(() => {
-    fetchConversations()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false
+    async function load() {
+      const res = await fetch('/api/driver-chat')
+      if (cancelled) return
+      if (res.ok) {
+        const data = await res.json()
+        setConversations(data.conversations)
+      }
+      setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
-    if (selectedDriver) {
-      fetchMessages(selectedDriver)
+    if (!selectedDriver) return
+    let cancelled = false
+    async function load() {
+      const res = await fetch(`/api/driver-chat/${selectedDriver}`)
+      if (cancelled) return
+      if (res.ok) {
+        const data = await res.json()
+        setMessages(data.messages.reverse())
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    load()
+    return () => { cancelled = true }
   }, [selectedDriver])
 
   // Realtime subscription
@@ -79,7 +88,7 @@ export default function DriverChatPage() {
           const newMsg = payload.new as Message
           setMessages(prev => [...prev, newMsg])
           // Update unread count in conversations
-          fetchConversations()
+          refreshConversations()
         }
       )
       .subscribe()
@@ -87,7 +96,7 @@ export default function DriverChatPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [selectedDriver, supabase, fetchConversations])
+  }, [selectedDriver, supabase, refreshConversations])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -108,7 +117,7 @@ export default function DriverChatPage() {
       const data = await res.json()
       setMessages(prev => [...prev, data.message])
       setNewMessage('')
-      fetchConversations()
+      refreshConversations()
     }
     setSending(false)
   }

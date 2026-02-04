@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { Json } from '@/lib/database.types'
 import { createClient } from '@/lib/supabase/client'
+import { toJson } from '@/lib/supabase/json'
 
 interface NotificationSettings {
   email_new_order: boolean
@@ -30,7 +30,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 
 export default function NotificationSettingsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -38,7 +38,7 @@ export default function NotificationSettingsPage() {
   const [userId, setUserId] = useState('')
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS)
 
-  async function load() {
+  const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
     setUserId(user.id)
@@ -53,12 +53,11 @@ export default function NotificationSettingsPage() {
       setSettings({ ...DEFAULT_SETTINGS, ...(profile.notification_settings as Record<string, boolean>) })
     }
     setLoading(false)
-  }
+  }, [supabase, router])
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [load])
 
   async function handleSave() {
     if (!userId) return
@@ -67,7 +66,7 @@ export default function NotificationSettingsPage() {
 
     await supabase
       .from('users')
-      .update({ notification_settings: settings as unknown as Json })
+      .update({ notification_settings: toJson(settings) })
       .eq('id', userId)
 
     setSaving(false)

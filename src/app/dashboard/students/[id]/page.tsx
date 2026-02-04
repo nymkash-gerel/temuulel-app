@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Student {
@@ -40,12 +40,7 @@ export default function StudentDetailPage() {
   const [formGuardianPhone, setFormGuardianPhone] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  useEffect(() => {
-    loadStudent()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadStudent() {
+  const loadStudent = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/students/${id}`)
@@ -63,7 +58,11 @@ export default function StudentDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadStudent()
+  }, [loadStudent])
 
   async function handleSave() {
     setSaving(true)

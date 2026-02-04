@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/laundry-orders
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -23,15 +24,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 // Reusable mock variables for POST flow
@@ -119,13 +116,13 @@ beforeEach(() => {
 describe('GET /api/laundry-orders', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders'))
     expect(res.status).toBe(403)
   })
 
@@ -134,7 +131,7 @@ describe('GET /api/laundry-orders', () => {
       { id: 'lo-1', order_number: 'LO-001', status: 'received', total_items: 3, total_amount: 5000 },
     ]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -144,7 +141,7 @@ describe('GET /api/laundry-orders', () => {
   it('returns empty list when no orders', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -154,7 +151,7 @@ describe('GET /api/laundry-orders', () => {
   it('supports status filter', async () => {
     mockData = [{ id: 'lo-1', status: 'washing' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders?status=washing') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders?status=washing'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -163,7 +160,7 @@ describe('GET /api/laundry-orders', () => {
   it('supports customer_id filter', async () => {
     mockData = [{ id: 'lo-1', customer_id: 'cust-001' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders?customer_id=cust-001') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders?customer_id=cust-001'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -172,7 +169,7 @@ describe('GET /api/laundry-orders', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'lo-5' }]
     mockDataCount = 50
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders?limit=10&offset=20') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders?limit=10&offset=20'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(50)
@@ -181,7 +178,7 @@ describe('GET /api/laundry-orders', () => {
   it('ignores invalid status filter values', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders?status=invalid') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders?status=invalid'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -189,7 +186,7 @@ describe('GET /api/laundry-orders', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/laundry-orders') as never)
+    const res = await GET(makeRequest('http://localhost/api/laundry-orders'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -209,18 +206,18 @@ describe('POST /api/laundry-orders', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a laundry order with valid data', async () => {
-    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBe('order-001')
@@ -238,14 +235,14 @@ describe('POST /api/laundry-orders', () => {
         { item_type: 'pants', service_type: 'press_only', quantity: 3, unit_price: 2000 },
       ],
     }
-    const res = await POST(makeRequest('http://localhost/api/laundry-orders', fullBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/laundry-orders', fullBody))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when order_number is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/laundry-orders', {
       items: [{ item_type: 'shirt', unit_price: 1500 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -253,14 +250,14 @@ describe('POST /api/laundry-orders', () => {
     const res = await POST(makeRequest('http://localhost/api/laundry-orders', {
       order_number: 'LO-003',
       items: [],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when items array is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/laundry-orders', {
       order_number: 'LO-004',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -268,23 +265,23 @@ describe('POST /api/laundry-orders', () => {
     const res = await POST(makeRequest('http://localhost/api/laundry-orders', {
       order_number: 'LO-005',
       items: [{ item_type: 'shirt' }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/laundry-orders', {
+    const req = createTestRequest('http://localhost/api/laundry-orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 when order insert fails', async () => {
     mockOrderInsertError = { message: 'Order insert failed' }
-    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Order insert failed')
@@ -292,7 +289,7 @@ describe('POST /api/laundry-orders', () => {
 
   it('returns 500 when items insert fails', async () => {
     mockItemsInsertError = { message: 'Items insert failed' }
-    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Items insert failed')
@@ -300,7 +297,7 @@ describe('POST /api/laundry-orders', () => {
 
   it('returns 500 when final fetch fails', async () => {
     mockFetchError = { message: 'Fetch failed' }
-    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/laundry-orders', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Fetch failed')
@@ -311,7 +308,7 @@ describe('POST /api/laundry-orders', () => {
       order_number: 'LO-006',
       customer_id: 'not-a-uuid',
       items: [{ item_type: 'shirt', unit_price: 1500 }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 })

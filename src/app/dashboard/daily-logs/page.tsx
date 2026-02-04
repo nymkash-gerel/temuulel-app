@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
@@ -28,7 +28,7 @@ interface Staff {
 
 export default function DailyLogsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [logs, setLogs] = useState<DailyLog[]>([])
@@ -48,7 +48,7 @@ export default function DailyLogsPage() {
   const [formIssues, setFormIssues] = useState('')
   const [formAuthorId, setFormAuthorId] = useState('')
 
-  async function loadLogs() {
+  const loadLogs = useCallback(async () => {
     const params = new URLSearchParams({ limit: '200' })
     if (projectFilter) params.set('project_id', projectFilter)
     if (dateFilter) params.set('log_date', dateFilter)
@@ -59,7 +59,7 @@ export default function DailyLogsPage() {
       setLogs(json.data || [])
       setTotalCount(json.total ?? (json.data?.length || 0))
     }
-  }
+  }, [projectFilter, dateFilter])
 
   useEffect(() => {
     async function init() {
@@ -85,14 +85,13 @@ export default function DailyLogsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadLogs])
 
   useEffect(() => {
     if (loading) return
-    loadLogs()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectFilter, dateFilter])
+    const reload = async () => { await loadLogs() }
+    reload()
+  }, [loading, projectFilter, dateFilter, loadLogs])
 
   const kpis = useMemo(() => {
     const total = logs.length

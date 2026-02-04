@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -120,7 +120,7 @@ export default function PatientDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -129,12 +129,34 @@ export default function PatientDetailPage() {
   const [medicalNotes, setMedicalNotes] = useState<MedicalNote[]>([])
   const [activeTab, setActiveTab] = useState<TabKey>('encounters')
 
-  useEffect(() => {
-    loadPatient()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  const loadChildRecords = useCallback(async (storeId: string) => {
+    const [encountersRes, prescriptionsRes, notesRes] = await Promise.all([
+      supabase
+        .from('encounters')
+        .select('id, patient_id, encounter_type, chief_complaint, diagnosis, treatment_plan, status, encounter_date, created_at')
+        .eq('patient_id', id)
+        .eq('store_id', storeId)
+        .order('encounter_date', { ascending: false }),
+      supabase
+        .from('prescriptions')
+        .select('id, patient_id, status, notes, created_at')
+        .eq('patient_id', id)
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('medical_notes')
+        .select('id, patient_id, note_type, content, created_at')
+        .eq('patient_id', id)
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: false }),
+    ])
 
-  async function loadPatient() {
+    setEncounters((encountersRes.data as unknown as Encounter[]) ?? [])
+    setPrescriptions((prescriptionsRes.data as unknown as Prescription[]) ?? [])
+    setMedicalNotes((notesRes.data as unknown as MedicalNote[]) ?? [])
+  }, [supabase, id])
+
+  const loadPatient = useCallback(async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -180,34 +202,11 @@ export default function PatientDetailPage() {
     }
 
     setLoading(false)
-  }
+  }, [id, supabase, router, loadChildRecords])
 
-  async function loadChildRecords(storeId: string) {
-    const [encountersRes, prescriptionsRes, notesRes] = await Promise.all([
-      supabase
-        .from('encounters')
-        .select('id, patient_id, encounter_type, chief_complaint, diagnosis, treatment_plan, status, encounter_date, created_at')
-        .eq('patient_id', id)
-        .eq('store_id', storeId)
-        .order('encounter_date', { ascending: false }),
-      supabase
-        .from('prescriptions')
-        .select('id, patient_id, status, notes, created_at')
-        .eq('patient_id', id)
-        .eq('store_id', storeId)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('medical_notes')
-        .select('id, patient_id, note_type, content, created_at')
-        .eq('patient_id', id)
-        .eq('store_id', storeId)
-        .order('created_at', { ascending: false }),
-    ])
-
-    setEncounters((encountersRes.data as unknown as Encounter[]) ?? [])
-    setPrescriptions((prescriptionsRes.data as unknown as Prescription[]) ?? [])
-    setMedicalNotes((notesRes.data as unknown as MedicalNote[]) ?? [])
-  }
+  useEffect(() => {
+    loadPatient()
+  }, [loadPatient])
 
   if (loading) {
     return (

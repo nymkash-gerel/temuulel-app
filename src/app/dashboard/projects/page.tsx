@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -66,7 +66,7 @@ function formatPrice(amount: number) {
 
 export default function ProjectsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
@@ -92,7 +92,7 @@ export default function ProjectsPage() {
   const [formLocation, setFormLocation] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  async function loadProjects() {
+  const loadProjects = useCallback(async () => {
     const params = new URLSearchParams({ limit: '200' })
     if (statusFilter) params.set('status', statusFilter)
     if (typeFilter) params.set('project_type', typeFilter)
@@ -104,7 +104,7 @@ export default function ProjectsPage() {
       setProjects(json.data || [])
       setTotalCount(json.total ?? (json.data?.length || 0))
     }
-  }
+  }, [statusFilter, typeFilter, priorityFilter])
 
   useEffect(() => {
     async function init() {
@@ -130,14 +130,13 @@ export default function ProjectsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadProjects])
 
   useEffect(() => {
     if (loading) return
-    loadProjects()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, typeFilter, priorityFilter])
+    const reload = async () => { await loadProjects() }
+    reload()
+  }, [loading, loadProjects])
 
   // KPI calculations
   const kpis = useMemo(() => {

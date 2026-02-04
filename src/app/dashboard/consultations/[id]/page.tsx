@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -81,7 +81,7 @@ export default function ConsultationDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [consultation, setConsultation] = useState<Consultation | null>(null)
@@ -89,7 +89,7 @@ export default function ConsultationDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
@@ -116,7 +116,7 @@ export default function ConsultationDetailPage() {
 
     setConsultation(data as unknown as Consultation)
     setLoading(false)
-  }
+  }, [supabase, router, id])
 
   function startEdit() {
     if (!consultation) return
@@ -192,8 +192,7 @@ export default function ConsultationDetailPage() {
 
   useEffect(() => {
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase, router, id])
+  }, [load])
 
 
   if (loading) {

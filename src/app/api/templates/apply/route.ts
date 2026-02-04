@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { getAllTemplates, getTemplate } from '@/lib/industry-templates'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     .from('stores')
     .update({
       business_type: template.id,
-      chatbot_settings: template.chatbotSettings as unknown as Json,
+      chatbot_settings: toJson(template.chatbotSettings),
       ai_auto_reply: true,
     })
     .eq('id', store.id)

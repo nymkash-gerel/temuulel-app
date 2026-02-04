@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -42,7 +42,7 @@ const CLASS_TYPE_LABELS: Record<string, string> = {
 
 export default function FitnessClassesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [classes, setClasses] = useState<FitnessClass[]>([])
@@ -68,7 +68,7 @@ export default function FitnessClassesPage() {
     is_active: true,
   })
 
-  async function loadClasses(sid: string) {
+  const loadClasses = useCallback(async (sid: string) => {
     let query = supabase
       .from('fitness_classes')
       .select(`
@@ -92,7 +92,7 @@ export default function FitnessClassesPage() {
     if (data) {
       setClasses(data as unknown as FitnessClass[])
     }
-  }
+  }, [supabase, classTypeFilter, activeFilter])
 
   useEffect(() => {
     async function load() {
@@ -121,14 +121,13 @@ export default function FitnessClassesPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadClasses])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadClasses(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classTypeFilter, activeFilter])
+    const reload = async () => { await loadClasses(storeId) }
+    reload()
+  }, [classTypeFilter, activeFilter, storeId, loading, loadClasses])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return classes

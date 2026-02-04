@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Complaint {
@@ -60,28 +60,33 @@ export default function ComplaintsPage() {
   const [severityFilter, setSeverityFilter] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const fetchComplaints = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (cancelled) return
+        if (!user) { setLoading(false); return }
 
-      const params = new URLSearchParams()
-      if (statusFilter) params.set('status', statusFilter)
-      if (categoryFilter) params.set('category', categoryFilter)
-      if (severityFilter) params.set('severity', severityFilter)
+        const params = new URLSearchParams()
+        if (statusFilter) params.set('status', statusFilter)
+        if (categoryFilter) params.set('category', categoryFilter)
+        if (severityFilter) params.set('severity', severityFilter)
 
-      const res = await fetch(`/api/medical-complaints?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch complaints')
-      const json = await res.json()
-      setComplaints(json.data || [])
-    } catch {
-      setError('Could not load complaints')
-    } finally {
-      setLoading(false)
+        const res = await fetch(`/api/medical-complaints?${params}`)
+        if (cancelled) return
+        if (!res.ok) throw new Error('Failed to fetch complaints')
+        const json = await res.json()
+        setComplaints(json.data || [])
+      } catch {
+        if (!cancelled) setError('Could not load complaints')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
+    load()
+    return () => { cancelled = true }
   }, [supabase, statusFilter, categoryFilter, severityFilter])
-
-  useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
   const stats = useMemo(() => ({
     total: complaints.length,

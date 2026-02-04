@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, updateClientPreferencesSchema } from '@/lib/validations'
-import type { Json } from '@/lib/database.types'
+import { toJson } from '@/lib/supabase/json'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -94,7 +94,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (body.hair_type !== undefined) updateData.hair_type = body.hair_type
   if (body.allergies !== undefined) updateData.allergies = body.allergies
   if (body.preferred_staff_id !== undefined) updateData.preferred_staff_id = body.preferred_staff_id
-  if (body.color_history !== undefined) updateData.color_history = body.color_history as unknown as Json
+  if (body.color_history !== undefined) updateData.color_history = toJson(body.color_history)
   if (body.notes !== undefined) updateData.notes = body.notes
 
   const { data: preferences, error } = await supabase

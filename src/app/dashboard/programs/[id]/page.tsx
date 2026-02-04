@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -92,7 +92,7 @@ export default function ProgramDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState<boolean>(true)
   const [program, setProgram] = useState<Program | null>(null)
@@ -100,12 +100,7 @@ export default function ProgramDetailPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [activeTab, setActiveTab] = useState<TabKey>('sessions')
 
-  useEffect(() => {
-    loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadData(): Promise<void> {
+  const loadData = useCallback(async (): Promise<void> => {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -157,7 +152,11 @@ export default function ProgramDetailPage() {
     setEnrollments((enrollmentsResult.data as unknown as Enrollment[]) || [])
 
     setLoading(false)
-  }
+  }, [supabase, router, id])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   if (loading) {
     return (

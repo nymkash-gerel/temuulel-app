@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -52,7 +52,7 @@ function formatDate(dateStr: string) {
 
 export default function ReservationsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [reservations, setReservations] = useState<ReservationRow[]>([])
@@ -64,7 +64,7 @@ export default function ReservationsPage() {
   const [error, setError] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
 
-  async function loadReservations(sid: string) {
+  const loadReservations = useCallback(async (sid: string) => {
     let query = supabase
       .from('reservations')
       .select(`
@@ -94,7 +94,7 @@ export default function ReservationsPage() {
     if (data) {
       setReservations(data as unknown as ReservationRow[])
     }
-  }
+  }, [supabase, statusFilter, dateFrom, dateTo])
 
   useEffect(() => {
     async function init() {
@@ -114,14 +114,13 @@ export default function ReservationsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadReservations])
 
   useEffect(() => {
     if (!storeId || loading) return
-    loadReservations(storeId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, dateFrom, dateTo])
+    const reload = async () => { await loadReservations(storeId) }
+    reload()
+  }, [storeId, loading, loadReservations])
 
   const stats = useMemo(() => {
     const total = reservations.length

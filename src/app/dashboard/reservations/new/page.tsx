@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -27,7 +27,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 export default function NewReservationPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -79,8 +79,7 @@ export default function NewReservationPage() {
       if (guestsRes.data) setGuests(guestsRes.data)
     }
     fetchData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase])
 
   // Auto-calculate total_amount when check_in, check_out, or rate_per_night changes
   useEffect(() => {

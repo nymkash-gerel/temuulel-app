@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -65,12 +65,7 @@ export default function TripLogDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -90,7 +85,11 @@ export default function TripLogDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, router])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   function startEdit() {
     if (!tripLog) return

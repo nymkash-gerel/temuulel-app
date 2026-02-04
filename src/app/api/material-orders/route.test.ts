@@ -14,6 +14,7 @@
  *   DELETE /api/inspections/:id      (delete)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // ---------------------------------------------------------------------------
 // Shared mock state
@@ -80,15 +81,11 @@ import {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body !== undefined) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 function makeRouteContext(id: string) {
@@ -298,7 +295,7 @@ describe('GET /api/material-orders', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
     const res = await materialOrderListGET(
-      makeRequest('http://localhost/api/material-orders') as never,
+      makeRequest('http://localhost/api/material-orders'),
     )
     expect(res.status).toBe(401)
     const json = await res.json()
@@ -308,7 +305,7 @@ describe('GET /api/material-orders', () => {
   it('returns 403 if user has no store', async () => {
     mockStore = null
     const res = await materialOrderListGET(
-      makeRequest('http://localhost/api/material-orders') as never,
+      makeRequest('http://localhost/api/material-orders'),
     )
     expect(res.status).toBe(403)
     const json = await res.json()
@@ -323,7 +320,7 @@ describe('GET /api/material-orders', () => {
     mockMaterialOrderCount = 2
 
     const res = await materialOrderListGET(
-      makeRequest('http://localhost/api/material-orders') as never,
+      makeRequest('http://localhost/api/material-orders'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -336,7 +333,7 @@ describe('GET /api/material-orders', () => {
     mockMaterialOrderCount = 0
 
     const res = await materialOrderListGET(
-      makeRequest('http://localhost/api/material-orders') as never,
+      makeRequest('http://localhost/api/material-orders'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -349,7 +346,7 @@ describe('GET /api/material-orders', () => {
     mockMaterialOrderCount = 1
 
     const res = await materialOrderListGET(
-      makeRequest('http://localhost/api/material-orders?status=shipped') as never,
+      makeRequest('http://localhost/api/material-orders?status=shipped'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -361,7 +358,7 @@ describe('GET /api/material-orders', () => {
     mockMaterialOrderCount = 1
 
     const res = await materialOrderListGET(
-      makeRequest(`http://localhost/api/material-orders?project_id=${VALID_UUID}`) as never,
+      makeRequest(`http://localhost/api/material-orders?project_id=${VALID_UUID}`),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -373,7 +370,7 @@ describe('GET /api/material-orders', () => {
     mockMaterialOrderCount = 0
 
     const res = await materialOrderListGET(
-      makeRequest('http://localhost/api/material-orders?status=bogus') as never,
+      makeRequest('http://localhost/api/material-orders?status=bogus'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -385,7 +382,7 @@ describe('GET /api/material-orders', () => {
     mockMaterialOrderCount = 100
 
     const res = await materialOrderListGET(
-      makeRequest('http://localhost/api/material-orders?limit=25&offset=50') as never,
+      makeRequest('http://localhost/api/material-orders?limit=25&offset=50'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -396,7 +393,7 @@ describe('GET /api/material-orders', () => {
     mockMaterialOrderSelectError = { message: 'DB connection lost' }
 
     const res = await materialOrderListGET(
-      makeRequest('http://localhost/api/material-orders') as never,
+      makeRequest('http://localhost/api/material-orders'),
     )
     const json = await res.json()
     expect(res.status).toBe(500)
@@ -420,7 +417,7 @@ describe('POST /api/material-orders', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await materialOrderPOST(
-      makeRequest('http://localhost/api/material-orders', validBody) as never,
+      makeRequest('http://localhost/api/material-orders', validBody),
     )
     expect(res.status).toBe(401)
   })
@@ -428,14 +425,14 @@ describe('POST /api/material-orders', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await materialOrderPOST(
-      makeRequest('http://localhost/api/material-orders', validBody) as never,
+      makeRequest('http://localhost/api/material-orders', validBody),
     )
     expect(res.status).toBe(403)
   })
 
   it('creates material order successfully with all fields', async () => {
     const res = await materialOrderPOST(
-      makeRequest('http://localhost/api/material-orders', validBody) as never,
+      makeRequest('http://localhost/api/material-orders', validBody),
     )
     const json = await res.json()
     expect(res.status).toBe(201)
@@ -448,7 +445,7 @@ describe('POST /api/material-orders', () => {
       supplier_name: 'MinimalCo',
     }
     const res = await materialOrderPOST(
-      makeRequest('http://localhost/api/material-orders', minimalBody) as never,
+      makeRequest('http://localhost/api/material-orders', minimalBody),
     )
     expect(res.status).toBe(201)
   })
@@ -457,7 +454,7 @@ describe('POST /api/material-orders', () => {
     const res = await materialOrderPOST(
       makeRequest('http://localhost/api/material-orders', {
         supplier_name: 'No Project',
-      }) as never,
+      }),
     )
     expect(res.status).toBe(400)
   })
@@ -466,7 +463,7 @@ describe('POST /api/material-orders', () => {
     const res = await materialOrderPOST(
       makeRequest('http://localhost/api/material-orders', {
         project_id: VALID_UUID,
-      }) as never,
+      }),
     )
     expect(res.status).toBe(400)
   })
@@ -476,18 +473,18 @@ describe('POST /api/material-orders', () => {
       makeRequest('http://localhost/api/material-orders', {
         project_id: 'not-a-uuid',
         supplier_name: 'SomeCo',
-      }) as never,
+      }),
     )
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/material-orders', {
+    const req = createTestRequest('http://localhost/api/material-orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{bad json!!!',
     })
-    const res = await materialOrderPOST(req as never)
+    const res = await materialOrderPOST(req)
     expect(res.status).toBe(400)
   })
 
@@ -497,7 +494,7 @@ describe('POST /api/material-orders', () => {
         project_id: VALID_UUID,
         supplier_name: 'BadCost',
         total_cost: -100,
-      }) as never,
+      }),
     )
     expect(res.status).toBe(400)
   })
@@ -507,7 +504,7 @@ describe('POST /api/material-orders', () => {
     mockMaterialOrderInserted = null
 
     const res = await materialOrderPOST(
-      makeRequest('http://localhost/api/material-orders', validBody) as never,
+      makeRequest('http://localhost/api/material-orders', validBody),
     )
     const json = await res.json()
     expect(res.status).toBe(500)
@@ -522,7 +519,7 @@ describe('GET /api/material-orders/:id', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await materialOrderDetailGET(
-      makeRequest('http://localhost/api/material-orders/mo-001') as never,
+      makeRequest('http://localhost/api/material-orders/mo-001'),
       makeRouteContext('mo-001'),
     )
     expect(res.status).toBe(401)
@@ -531,7 +528,7 @@ describe('GET /api/material-orders/:id', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await materialOrderDetailGET(
-      makeRequest('http://localhost/api/material-orders/mo-001') as never,
+      makeRequest('http://localhost/api/material-orders/mo-001'),
       makeRouteContext('mo-001'),
     )
     expect(res.status).toBe(403)
@@ -539,7 +536,7 @@ describe('GET /api/material-orders/:id', () => {
 
   it('returns material order detail', async () => {
     const res = await materialOrderDetailGET(
-      makeRequest('http://localhost/api/material-orders/mo-001') as never,
+      makeRequest('http://localhost/api/material-orders/mo-001'),
       makeRouteContext('mo-001'),
     )
     const json = await res.json()
@@ -552,7 +549,7 @@ describe('GET /api/material-orders/:id', () => {
     mockMaterialOrderSingle = null
 
     const res = await materialOrderDetailGET(
-      makeRequest('http://localhost/api/material-orders/nonexistent') as never,
+      makeRequest('http://localhost/api/material-orders/nonexistent'),
       makeRouteContext('nonexistent'),
     )
     const json = await res.json()
@@ -564,7 +561,7 @@ describe('GET /api/material-orders/:id', () => {
     mockMaterialOrderSingleError = { message: 'Row not found' }
 
     const res = await materialOrderDetailGET(
-      makeRequest('http://localhost/api/material-orders/mo-001') as never,
+      makeRequest('http://localhost/api/material-orders/mo-001'),
       makeRouteContext('mo-001'),
     )
     expect(res.status).toBe(404)
@@ -578,7 +575,7 @@ describe('PATCH /api/material-orders/:id', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await materialOrderPATCH(
-      makeRequest('http://localhost/api/material-orders/mo-001', { status: 'shipped' }) as never,
+      makeRequest('http://localhost/api/material-orders/mo-001', { status: 'shipped' }),
       makeRouteContext('mo-001'),
     )
     expect(res.status).toBe(401)
@@ -587,7 +584,7 @@ describe('PATCH /api/material-orders/:id', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await materialOrderPATCH(
-      makeRequest('http://localhost/api/material-orders/mo-001', { status: 'shipped' }) as never,
+      makeRequest('http://localhost/api/material-orders/mo-001', { status: 'shipped' }),
       makeRouteContext('mo-001'),
     )
     expect(res.status).toBe(403)
@@ -595,7 +592,7 @@ describe('PATCH /api/material-orders/:id', () => {
 
   it('updates material order status successfully', async () => {
     const res = await materialOrderPATCH(
-      makeRequest('http://localhost/api/material-orders/mo-001', { status: 'shipped' }) as never,
+      makeRequest('http://localhost/api/material-orders/mo-001', { status: 'shipped' }),
       makeRouteContext('mo-001'),
     )
     const json = await res.json()
@@ -609,7 +606,7 @@ describe('PATCH /api/material-orders/:id', () => {
     const res = await materialOrderPATCH(
       makeRequest('http://localhost/api/material-orders/mo-001', {
         supplier_name: 'NewCo',
-      }) as never,
+      }),
       makeRouteContext('mo-001'),
     )
     const json = await res.json()
@@ -621,7 +618,7 @@ describe('PATCH /api/material-orders/:id', () => {
     const res = await materialOrderPATCH(
       makeRequest('http://localhost/api/material-orders/mo-001', {
         status: 'invalid_status',
-      }) as never,
+      }),
       makeRouteContext('mo-001'),
     )
     expect(res.status).toBe(400)
@@ -634,7 +631,7 @@ describe('PATCH /api/material-orders/:id', () => {
     const res = await materialOrderPATCH(
       makeRequest('http://localhost/api/material-orders/nonexistent', {
         status: 'delivered',
-      }) as never,
+      }),
       makeRouteContext('nonexistent'),
     )
     const json = await res.json()
@@ -648,7 +645,7 @@ describe('PATCH /api/material-orders/:id', () => {
     const res = await materialOrderPATCH(
       makeRequest('http://localhost/api/material-orders/mo-001', {
         status: 'delivered',
-      }) as never,
+      }),
       makeRouteContext('mo-001'),
     )
     const json = await res.json()
@@ -664,7 +661,7 @@ describe('DELETE /api/material-orders/:id', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await materialOrderDELETE(
-      makeRequest('http://localhost/api/material-orders/mo-001') as never,
+      makeRequest('http://localhost/api/material-orders/mo-001'),
       makeRouteContext('mo-001'),
     )
     expect(res.status).toBe(401)
@@ -673,7 +670,7 @@ describe('DELETE /api/material-orders/:id', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await materialOrderDELETE(
-      makeRequest('http://localhost/api/material-orders/mo-001') as never,
+      makeRequest('http://localhost/api/material-orders/mo-001'),
       makeRouteContext('mo-001'),
     )
     expect(res.status).toBe(403)
@@ -681,7 +678,7 @@ describe('DELETE /api/material-orders/:id', () => {
 
   it('deletes material order successfully', async () => {
     const res = await materialOrderDELETE(
-      makeRequest('http://localhost/api/material-orders/mo-001') as never,
+      makeRequest('http://localhost/api/material-orders/mo-001'),
       makeRouteContext('mo-001'),
     )
     const json = await res.json()
@@ -693,7 +690,7 @@ describe('DELETE /api/material-orders/:id', () => {
     mockMaterialOrderDeleteError = { message: 'FK constraint' }
 
     const res = await materialOrderDELETE(
-      makeRequest('http://localhost/api/material-orders/mo-001') as never,
+      makeRequest('http://localhost/api/material-orders/mo-001'),
       makeRouteContext('mo-001'),
     )
     const json = await res.json()
@@ -713,7 +710,7 @@ describe('GET /api/inspections', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections') as never,
+      makeRequest('http://localhost/api/inspections'),
     )
     expect(res.status).toBe(401)
     const json = await res.json()
@@ -723,7 +720,7 @@ describe('GET /api/inspections', () => {
   it('returns 403 if user has no store', async () => {
     mockStore = null
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections') as never,
+      makeRequest('http://localhost/api/inspections'),
     )
     expect(res.status).toBe(403)
   })
@@ -736,7 +733,7 @@ describe('GET /api/inspections', () => {
     mockInspectionCount = 2
 
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections') as never,
+      makeRequest('http://localhost/api/inspections'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -749,7 +746,7 @@ describe('GET /api/inspections', () => {
     mockInspectionCount = 0
 
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections') as never,
+      makeRequest('http://localhost/api/inspections'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -762,7 +759,7 @@ describe('GET /api/inspections', () => {
     mockInspectionCount = 1
 
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections?result=fail') as never,
+      makeRequest('http://localhost/api/inspections?result=fail'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -774,7 +771,7 @@ describe('GET /api/inspections', () => {
     mockInspectionCount = 1
 
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections?inspection_type=fire') as never,
+      makeRequest('http://localhost/api/inspections?inspection_type=fire'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -786,7 +783,7 @@ describe('GET /api/inspections', () => {
     mockInspectionCount = 1
 
     const res = await inspectionListGET(
-      makeRequest(`http://localhost/api/inspections?project_id=${VALID_UUID}`) as never,
+      makeRequest(`http://localhost/api/inspections?project_id=${VALID_UUID}`),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -798,7 +795,7 @@ describe('GET /api/inspections', () => {
     mockInspectionCount = 1
 
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections?result=pass&inspection_type=structural') as never,
+      makeRequest('http://localhost/api/inspections?result=pass&inspection_type=structural'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -810,7 +807,7 @@ describe('GET /api/inspections', () => {
     mockInspectionCount = 0
 
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections?result=invalid') as never,
+      makeRequest('http://localhost/api/inspections?result=invalid'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -822,7 +819,7 @@ describe('GET /api/inspections', () => {
     mockInspectionCount = 200
 
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections?limit=10&offset=50') as never,
+      makeRequest('http://localhost/api/inspections?limit=10&offset=50'),
     )
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -833,7 +830,7 @@ describe('GET /api/inspections', () => {
     mockInspectionSelectError = { message: 'Timeout' }
 
     const res = await inspectionListGET(
-      makeRequest('http://localhost/api/inspections') as never,
+      makeRequest('http://localhost/api/inspections'),
     )
     const json = await res.json()
     expect(res.status).toBe(500)
@@ -856,7 +853,7 @@ describe('POST /api/inspections', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await inspectionPOST(
-      makeRequest('http://localhost/api/inspections', validBody) as never,
+      makeRequest('http://localhost/api/inspections', validBody),
     )
     expect(res.status).toBe(401)
   })
@@ -864,14 +861,14 @@ describe('POST /api/inspections', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await inspectionPOST(
-      makeRequest('http://localhost/api/inspections', validBody) as never,
+      makeRequest('http://localhost/api/inspections', validBody),
     )
     expect(res.status).toBe(403)
   })
 
   it('creates inspection successfully with all fields', async () => {
     const res = await inspectionPOST(
-      makeRequest('http://localhost/api/inspections', validBody) as never,
+      makeRequest('http://localhost/api/inspections', validBody),
     )
     const json = await res.json()
     expect(res.status).toBe(201)
@@ -886,7 +883,7 @@ describe('POST /api/inspections', () => {
       scheduled_date: '2026-04-01',
     }
     const res = await inspectionPOST(
-      makeRequest('http://localhost/api/inspections', minimalBody) as never,
+      makeRequest('http://localhost/api/inspections', minimalBody),
     )
     expect(res.status).toBe(201)
   })
@@ -896,7 +893,7 @@ describe('POST /api/inspections', () => {
       makeRequest('http://localhost/api/inspections', {
         inspector_name: 'Test',
         scheduled_date: '2026-03-01',
-      }) as never,
+      }),
     )
     expect(res.status).toBe(400)
   })
@@ -906,7 +903,7 @@ describe('POST /api/inspections', () => {
       makeRequest('http://localhost/api/inspections', {
         project_id: VALID_UUID,
         scheduled_date: '2026-03-01',
-      }) as never,
+      }),
     )
     expect(res.status).toBe(400)
   })
@@ -916,7 +913,7 @@ describe('POST /api/inspections', () => {
       makeRequest('http://localhost/api/inspections', {
         project_id: VALID_UUID,
         inspector_name: 'Test Inspector',
-      }) as never,
+      }),
     )
     expect(res.status).toBe(400)
   })
@@ -927,18 +924,18 @@ describe('POST /api/inspections', () => {
         project_id: 'not-uuid',
         inspector_name: 'Test',
         scheduled_date: '2026-03-01',
-      }) as never,
+      }),
     )
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/inspections', {
+    const req = createTestRequest('http://localhost/api/inspections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{{not json',
     })
-    const res = await inspectionPOST(req as never)
+    const res = await inspectionPOST(req)
     expect(res.status).toBe(400)
   })
 
@@ -947,7 +944,7 @@ describe('POST /api/inspections', () => {
     mockInspectionInserted = null
 
     const res = await inspectionPOST(
-      makeRequest('http://localhost/api/inspections', validBody) as never,
+      makeRequest('http://localhost/api/inspections', validBody),
     )
     const json = await res.json()
     expect(res.status).toBe(500)
@@ -962,7 +959,7 @@ describe('GET /api/inspections/:id', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await inspectionDetailGET(
-      makeRequest('http://localhost/api/inspections/insp-001') as never,
+      makeRequest('http://localhost/api/inspections/insp-001'),
       makeRouteContext('insp-001'),
     )
     expect(res.status).toBe(401)
@@ -971,7 +968,7 @@ describe('GET /api/inspections/:id', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await inspectionDetailGET(
-      makeRequest('http://localhost/api/inspections/insp-001') as never,
+      makeRequest('http://localhost/api/inspections/insp-001'),
       makeRouteContext('insp-001'),
     )
     expect(res.status).toBe(403)
@@ -979,7 +976,7 @@ describe('GET /api/inspections/:id', () => {
 
   it('returns inspection detail', async () => {
     const res = await inspectionDetailGET(
-      makeRequest('http://localhost/api/inspections/insp-001') as never,
+      makeRequest('http://localhost/api/inspections/insp-001'),
       makeRouteContext('insp-001'),
     )
     const json = await res.json()
@@ -993,7 +990,7 @@ describe('GET /api/inspections/:id', () => {
     mockInspectionSingle = null
 
     const res = await inspectionDetailGET(
-      makeRequest('http://localhost/api/inspections/nonexistent') as never,
+      makeRequest('http://localhost/api/inspections/nonexistent'),
       makeRouteContext('nonexistent'),
     )
     const json = await res.json()
@@ -1005,7 +1002,7 @@ describe('GET /api/inspections/:id', () => {
     mockInspectionSingleError = { message: 'Row not found' }
 
     const res = await inspectionDetailGET(
-      makeRequest('http://localhost/api/inspections/insp-001') as never,
+      makeRequest('http://localhost/api/inspections/insp-001'),
       makeRouteContext('insp-001'),
     )
     expect(res.status).toBe(404)
@@ -1019,7 +1016,7 @@ describe('PATCH /api/inspections/:id', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await inspectionPATCH(
-      makeRequest('http://localhost/api/inspections/insp-001', { result: 'pass' }) as never,
+      makeRequest('http://localhost/api/inspections/insp-001', { result: 'pass' }),
       makeRouteContext('insp-001'),
     )
     expect(res.status).toBe(401)
@@ -1028,7 +1025,7 @@ describe('PATCH /api/inspections/:id', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await inspectionPATCH(
-      makeRequest('http://localhost/api/inspections/insp-001', { result: 'pass' }) as never,
+      makeRequest('http://localhost/api/inspections/insp-001', { result: 'pass' }),
       makeRouteContext('insp-001'),
     )
     expect(res.status).toBe(403)
@@ -1036,7 +1033,7 @@ describe('PATCH /api/inspections/:id', () => {
 
   it('updates inspection result to pass', async () => {
     const res = await inspectionPATCH(
-      makeRequest('http://localhost/api/inspections/insp-001', { result: 'pass' }) as never,
+      makeRequest('http://localhost/api/inspections/insp-001', { result: 'pass' }),
       makeRouteContext('insp-001'),
     )
     const json = await res.json()
@@ -1057,7 +1054,7 @@ describe('PATCH /api/inspections/:id', () => {
         result: 'fail',
         required_corrections: 'Fix wiring in unit 3B',
         notes: 'Needs follow-up',
-      }) as never,
+      }),
       makeRouteContext('insp-001'),
     )
     const json = await res.json()
@@ -1070,7 +1067,7 @@ describe('PATCH /api/inspections/:id', () => {
     const res = await inspectionPATCH(
       makeRequest('http://localhost/api/inspections/insp-001', {
         result: 'unknown_value',
-      }) as never,
+      }),
       makeRouteContext('insp-001'),
     )
     expect(res.status).toBe(400)
@@ -1083,7 +1080,7 @@ describe('PATCH /api/inspections/:id', () => {
     const res = await inspectionPATCH(
       makeRequest('http://localhost/api/inspections/nonexistent', {
         result: 'pass',
-      }) as never,
+      }),
       makeRouteContext('nonexistent'),
     )
     const json = await res.json()
@@ -1097,7 +1094,7 @@ describe('PATCH /api/inspections/:id', () => {
     const res = await inspectionPATCH(
       makeRequest('http://localhost/api/inspections/insp-001', {
         result: 'partial',
-      }) as never,
+      }),
       makeRouteContext('insp-001'),
     )
     const json = await res.json()
@@ -1113,7 +1110,7 @@ describe('DELETE /api/inspections/:id', () => {
   it('returns 401 if not authenticated', async () => {
     mockUser = null
     const res = await inspectionDELETE(
-      makeRequest('http://localhost/api/inspections/insp-001') as never,
+      makeRequest('http://localhost/api/inspections/insp-001'),
       makeRouteContext('insp-001'),
     )
     expect(res.status).toBe(401)
@@ -1122,7 +1119,7 @@ describe('DELETE /api/inspections/:id', () => {
   it('returns 403 if no store', async () => {
     mockStore = null
     const res = await inspectionDELETE(
-      makeRequest('http://localhost/api/inspections/insp-001') as never,
+      makeRequest('http://localhost/api/inspections/insp-001'),
       makeRouteContext('insp-001'),
     )
     expect(res.status).toBe(403)
@@ -1130,7 +1127,7 @@ describe('DELETE /api/inspections/:id', () => {
 
   it('deletes inspection successfully', async () => {
     const res = await inspectionDELETE(
-      makeRequest('http://localhost/api/inspections/insp-001') as never,
+      makeRequest('http://localhost/api/inspections/insp-001'),
       makeRouteContext('insp-001'),
     )
     const json = await res.json()
@@ -1142,7 +1139,7 @@ describe('DELETE /api/inspections/:id', () => {
     mockInspectionDeleteError = { message: 'Cannot delete, related records exist' }
 
     const res = await inspectionDELETE(
-      makeRequest('http://localhost/api/inspections/insp-001') as never,
+      makeRequest('http://localhost/api/inspections/insp-001'),
       makeRouteContext('insp-001'),
     )
     const json = await res.json()

@@ -2,6 +2,7 @@
  * Tests for GET /api/availability
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -28,8 +29,8 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET } from './route'
 
-function makeRequest(url: string): Request {
-  return new Request(url, { method: 'GET' })
+function makeRequest(url: string) {
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -80,7 +81,7 @@ beforeEach(() => {
 describe('GET /api/availability', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15'))
     expect(res.status).toBe(401)
     const json = await res.json()
     expect(json.error).toBe('Unauthorized')
@@ -88,28 +89,28 @@ describe('GET /api/availability', () => {
 
   it('returns 403 when store not found', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15'))
     expect(res.status).toBe(403)
     const json = await res.json()
     expect(json.error).toBe('Store not found')
   })
 
   it('returns 400 when neither staff_id nor resource_id provided', async () => {
-    const res = await GET(makeRequest('http://localhost/api/availability?date=2026-03-15') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?date=2026-03-15'))
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toBe('staff_id or resource_id is required')
   })
 
   it('returns 400 when date is missing', async () => {
-    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1'))
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toBe('Valid date (YYYY-MM-DD) is required')
   })
 
   it('returns 400 when date is invalid format', async () => {
-    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=15-03-2026') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=15-03-2026'))
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toBe('Valid date (YYYY-MM-DD) is required')
@@ -117,7 +118,7 @@ describe('GET /api/availability', () => {
 
   it('returns empty slots when store is closed (is_closed=true)', async () => {
     mockStoreHours = { open_time: '09:00', close_time: '18:00', is_closed: true }
-    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15'))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.slots).toEqual([])
@@ -126,7 +127,7 @@ describe('GET /api/availability', () => {
 
   it('returns empty slots when store has closure on that date', async () => {
     mockClosure = { id: 'closure-001' }
-    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15'))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.slots).toEqual([])
@@ -135,7 +136,7 @@ describe('GET /api/availability', () => {
 
   it('returns available slots when no conflicts exist', async () => {
     // 09:00 to 18:00 with 30-min default duration, 30-min step = 18 slots
-    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15'))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.date).toBe('2026-03-15')
@@ -163,7 +164,7 @@ describe('GET /api/availability', () => {
       })
       .mockResolvedValue({ hasConflict: false, conflicts: [] })
 
-    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15') as never)
+    const res = await GET(makeRequest('http://localhost/api/availability?staff_id=s1&date=2026-03-15'))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.slots.length).toBe(18)

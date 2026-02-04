@@ -73,6 +73,10 @@ function makeRule(overrides: Partial<CommentAutoRule> = {}): CommentAutoRule {
     replies_sent: 0,
     use_ai: false,
     ai_context: null,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    last_triggered_at: null,
+    post_filter: null,
     ...overrides,
   }
 }

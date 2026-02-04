@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/suppliers
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -25,15 +26,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -107,13 +104,13 @@ beforeEach(() => {
 describe('GET /api/suppliers', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/suppliers') as never)
+    const res = await GET(makeRequest('http://localhost/api/suppliers'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/suppliers') as never)
+    const res = await GET(makeRequest('http://localhost/api/suppliers'))
     expect(res.status).toBe(403)
   })
 
@@ -123,7 +120,7 @@ describe('GET /api/suppliers', () => {
       { id: 'sup-2', name: 'Global Parts', is_active: true },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/suppliers') as never)
+    const res = await GET(makeRequest('http://localhost/api/suppliers'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -133,7 +130,7 @@ describe('GET /api/suppliers', () => {
   it('returns empty list when no suppliers', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/suppliers') as never)
+    const res = await GET(makeRequest('http://localhost/api/suppliers'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -143,7 +140,7 @@ describe('GET /api/suppliers', () => {
   it('supports search filter on name', async () => {
     mockData = [{ id: 'sup-1', name: 'Acme Supplies' }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/suppliers?search=Acme') as never)
+    const res = await GET(makeRequest('http://localhost/api/suppliers?search=Acme'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -152,7 +149,7 @@ describe('GET /api/suppliers', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'sup-5' }]
     mockDataCount = 100
-    const res = await GET(makeRequest('http://localhost/api/suppliers?limit=25&offset=50') as never)
+    const res = await GET(makeRequest('http://localhost/api/suppliers?limit=25&offset=50'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(100)
@@ -161,7 +158,7 @@ describe('GET /api/suppliers', () => {
   it('returns results without search param', async () => {
     mockData = [{ id: 'sup-1', name: 'Alpha' }, { id: 'sup-2', name: 'Beta' }]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/suppliers') as never)
+    const res = await GET(makeRequest('http://localhost/api/suppliers'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -169,7 +166,7 @@ describe('GET /api/suppliers', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/suppliers') as never)
+    const res = await GET(makeRequest('http://localhost/api/suppliers'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -191,18 +188,18 @@ describe('POST /api/suppliers', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/suppliers', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/suppliers', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/suppliers', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/suppliers', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a supplier with all fields', async () => {
-    const res = await POST(makeRequest('http://localhost/api/suppliers', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/suppliers', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -212,7 +209,7 @@ describe('POST /api/suppliers', () => {
   it('creates a supplier with only required fields', async () => {
     const res = await POST(makeRequest('http://localhost/api/suppliers', {
       name: 'Minimal Supplier',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
@@ -221,21 +218,21 @@ describe('POST /api/suppliers', () => {
       name: 'Test Supplier',
       email: 'test@supplier.com',
       phone: '12345',
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/suppliers', {
       contact_name: 'John',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when name is empty string', async () => {
     const res = await POST(makeRequest('http://localhost/api/suppliers', {
       name: '',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -243,7 +240,7 @@ describe('POST /api/suppliers', () => {
     const res = await POST(makeRequest('http://localhost/api/suppliers', {
       name: 'Test',
       email: 'not-an-email',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -251,7 +248,7 @@ describe('POST /api/suppliers', () => {
     const res = await POST(makeRequest('http://localhost/api/suppliers', {
       name: 'Test',
       payment_terms: 'net_999',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -260,25 +257,25 @@ describe('POST /api/suppliers', () => {
       const res = await POST(makeRequest('http://localhost/api/suppliers', {
         name: `Supplier ${pt}`,
         payment_terms: pt,
-      }) as never)
+      }))
       expect(res.status).toBe(201)
     }
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/suppliers', {
+    const req = createTestRequest('http://localhost/api/suppliers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 500 when database insert fails', async () => {
     mockInsertError = { message: 'Insert failed' }
     mockInsertedItem = null
-    const res = await POST(makeRequest('http://localhost/api/suppliers', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/suppliers', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')

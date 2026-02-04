@@ -2,6 +2,7 @@
  * Tests for GET/POST /api/packages
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock state
 let mockUser: { id: string } | null = null
@@ -27,15 +28,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { GET, POST } from './route'
 
-function makeRequest(url: string, body?: unknown): Request {
+function makeRequest(url: string, body?: unknown) {
   if (body) {
-    return new Request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    return createTestJsonRequest(url, body)
   }
-  return new Request(url, { method: 'GET' })
+  return createTestRequest(url)
 }
 
 beforeEach(() => {
@@ -115,13 +112,13 @@ beforeEach(() => {
 describe('GET /api/packages', () => {
   it('returns 401 if user is not authenticated', async () => {
     mockUser = null
-    const res = await GET(makeRequest('http://localhost/api/packages') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages'))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if user has no store', async () => {
     mockStore = null
-    const res = await GET(makeRequest('http://localhost/api/packages') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages'))
     expect(res.status).toBe(403)
   })
 
@@ -131,7 +128,7 @@ describe('GET /api/packages', () => {
       { id: 'pkg-2', name: 'Hair Treatment', price: 80000, is_active: true },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/packages') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -141,7 +138,7 @@ describe('GET /api/packages', () => {
   it('returns empty list when no packages exist', async () => {
     mockData = []
     mockDataCount = 0
-    const res = await GET(makeRequest('http://localhost/api/packages') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
@@ -151,7 +148,7 @@ describe('GET /api/packages', () => {
   it('supports is_active=true filter', async () => {
     mockData = [{ id: 'pkg-1', is_active: true }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/packages?is_active=true') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages?is_active=true'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -160,7 +157,7 @@ describe('GET /api/packages', () => {
   it('supports is_active=false filter', async () => {
     mockData = [{ id: 'pkg-2', is_active: false }]
     mockDataCount = 1
-    const res = await GET(makeRequest('http://localhost/api/packages?is_active=false') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages?is_active=false'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(1)
@@ -172,7 +169,7 @@ describe('GET /api/packages', () => {
       { id: 'pkg-2', is_active: false },
     ]
     mockDataCount = 2
-    const res = await GET(makeRequest('http://localhost/api/packages') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(2)
@@ -181,7 +178,7 @@ describe('GET /api/packages', () => {
   it('supports pagination parameters', async () => {
     mockData = [{ id: 'pkg-5' }]
     mockDataCount = 50
-    const res = await GET(makeRequest('http://localhost/api/packages?limit=10&offset=20') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages?limit=10&offset=20'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.total).toBe(50)
@@ -189,7 +186,7 @@ describe('GET /api/packages', () => {
 
   it('returns 500 on database error', async () => {
     mockSelectError = { message: 'DB error' }
-    const res = await GET(makeRequest('http://localhost/api/packages') as never)
+    const res = await GET(makeRequest('http://localhost/api/packages'))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('DB error')
@@ -208,18 +205,18 @@ describe('POST /api/packages', () => {
 
   it('returns 401 if not authenticated', async () => {
     mockUser = null
-    const res = await POST(makeRequest('http://localhost/api/packages', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/packages', validBody))
     expect(res.status).toBe(401)
   })
 
   it('returns 403 if no store', async () => {
     mockStore = null
-    const res = await POST(makeRequest('http://localhost/api/packages', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/packages', validBody))
     expect(res.status).toBe(403)
   })
 
   it('creates a package with required fields', async () => {
-    const res = await POST(makeRequest('http://localhost/api/packages', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/packages', validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.id).toBeDefined()
@@ -231,7 +228,7 @@ describe('POST /api/packages', () => {
       description: 'A premium facial treatment package',
       original_price: 150000,
       valid_days: 90,
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
@@ -242,26 +239,26 @@ describe('POST /api/packages', () => {
         { service_id: 'a0000000-0000-4000-8000-000000000001', quantity: 2 },
         { service_id: 'a0000000-0000-4000-8000-000000000002' },
       ],
-    }) as never)
+    }))
     expect(res.status).toBe(201)
   })
 
   it('creates a package without services', async () => {
-    const res = await POST(makeRequest('http://localhost/api/packages', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/packages', validBody))
     expect(res.status).toBe(201)
   })
 
   it('returns 400 when name is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/packages', {
       price: 120000,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when price is missing', async () => {
     const res = await POST(makeRequest('http://localhost/api/packages', {
       name: 'Facial Package',
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -269,7 +266,7 @@ describe('POST /api/packages', () => {
     const res = await POST(makeRequest('http://localhost/api/packages', {
       name: 'Facial Package',
       price: 0,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -277,7 +274,7 @@ describe('POST /api/packages', () => {
     const res = await POST(makeRequest('http://localhost/api/packages', {
       name: 'Facial Package',
       price: -100,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -285,7 +282,7 @@ describe('POST /api/packages', () => {
     const res = await POST(makeRequest('http://localhost/api/packages', {
       name: '',
       price: 120000,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
@@ -293,14 +290,14 @@ describe('POST /api/packages', () => {
     const res = await POST(makeRequest('http://localhost/api/packages', {
       ...validBody,
       services: [{ service_id: 'not-a-uuid' }],
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 
   it('returns 500 on insert database error', async () => {
     mockInsertedItem = null
     mockInsertError = { message: 'Insert failed' }
-    const res = await POST(makeRequest('http://localhost/api/packages', validBody) as never)
+    const res = await POST(makeRequest('http://localhost/api/packages', validBody))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Insert failed')
@@ -311,19 +308,19 @@ describe('POST /api/packages', () => {
     const res = await POST(makeRequest('http://localhost/api/packages', {
       ...validBody,
       services: [{ service_id: 'a0000000-0000-4000-8000-000000000001', quantity: 1 }],
-    }) as never)
+    }))
     const json = await res.json()
     expect(res.status).toBe(500)
     expect(json.error).toBe('Link error')
   })
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/packages', {
+    const req = createTestRequest('http://localhost/api/packages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
     })
-    const res = await POST(req as never)
+    const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
@@ -331,7 +328,7 @@ describe('POST /api/packages', () => {
     const res = await POST(makeRequest('http://localhost/api/packages', {
       ...validBody,
       valid_days: -10,
-    }) as never)
+    }))
     expect(res.status).toBe(400)
   })
 })

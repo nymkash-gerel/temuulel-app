@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -124,7 +124,7 @@ export default function LegalCaseDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [legalCase, setLegalCase] = useState<LegalCaseDetail | null>(null)
@@ -133,12 +133,7 @@ export default function LegalCaseDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -181,7 +176,11 @@ export default function LegalCaseDetailPage() {
 
     setDocuments(docs || [])
     setLoading(false)
-  }
+  }, [supabase, router, id])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   function startEdit() {
     if (!legalCase) return

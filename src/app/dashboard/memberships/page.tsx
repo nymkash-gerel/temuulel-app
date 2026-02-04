@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -39,7 +39,7 @@ function formatPrice(amount: number) {
 
 export default function MembershipsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<MembershipPlan[]>([])
@@ -58,7 +58,7 @@ export default function MembershipsPage() {
     is_active: true,
   })
 
-  async function loadPlans(sid: string) {
+  const loadPlans = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('memberships')
       .select(`
@@ -72,7 +72,7 @@ export default function MembershipsPage() {
     if (data) {
       setPlans(data as unknown as MembershipPlan[])
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function load() {
@@ -92,8 +92,7 @@ export default function MembershipsPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadPlans])
 
   const stats = useMemo(() => {
     const total = plans.length

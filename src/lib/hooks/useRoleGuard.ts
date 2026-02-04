@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -11,15 +11,24 @@ import { createClient } from '@/lib/supabase/client'
  */
 export function useRoleGuard(requiredRoles: string[] = ['owner', 'admin']) {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [allowed, setAllowed] = useState(false)
   const [loading, setLoading] = useState(true)
+  const rolesRef = useRef(requiredRoles)
 
   useEffect(() => {
+    rolesRef.current = requiredRoles
+  }, [requiredRoles])
+
+  useEffect(() => {
+    let cancelled = false
+
     async function check() {
       const {
         data: { user },
       } = await supabase.auth.getUser()
+      if (cancelled) return
+
       if (!user) {
         router.push('/login')
         return
@@ -31,6 +40,8 @@ export function useRoleGuard(requiredRoles: string[] = ['owner', 'admin']) {
         .select('id')
         .eq('owner_id', user.id)
         .single()
+
+      if (cancelled) return
 
       if (store) {
         setAllowed(true)
@@ -45,16 +56,19 @@ export function useRoleGuard(requiredRoles: string[] = ['owner', 'admin']) {
         .eq('user_id', user.id)
         .single()
 
-      if (membership && requiredRoles.includes(membership.role)) {
+      if (cancelled) return
+
+      if (membership && rolesRef.current.includes(membership.role)) {
         setAllowed(true)
       } else {
         router.push('/dashboard')
       }
       setLoading(false)
     }
+
     check()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    return () => { cancelled = true }
+  }, [supabase, router])
 
   return { allowed, loading }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -40,7 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function ResourcesPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState('')
@@ -56,7 +56,7 @@ export default function ResourcesPage() {
     features: {} as Record<string, boolean>,
   })
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -77,12 +77,11 @@ export default function ResourcesPage() {
 
     if (data) setResources(data as Resource[])
     setLoading(false)
-  }
+  }, [supabase])
 
   useEffect(() => {
     loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [loadData])
 
   async function handleCreate() {
     if (!form.name.trim()) return

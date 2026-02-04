@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -41,7 +41,7 @@ export default function ServiceAreaDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [area, setArea] = useState<ServiceAreaDetail | null>(null)
@@ -49,7 +49,7 @@ export default function ServiceAreaDetailPage() {
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -80,12 +80,11 @@ export default function ServiceAreaDetailPage() {
 
     setArea(data as unknown as ServiceAreaDetail)
     setLoading(false)
-  }
+  }, [id, supabase, router])
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [load])
 
   function startEdit() {
     if (!area) return

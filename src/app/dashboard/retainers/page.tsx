@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 
@@ -38,7 +38,7 @@ function formatPrice(amount: number | null) {
 }
 
 export default function RetainersPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [retainers, setRetainers] = useState<Retainer[]>([])
@@ -57,7 +57,7 @@ export default function RetainersPage() {
   const [formClientId, setFormClientId] = useState('')
   const [formInitialAmount, setFormInitialAmount] = useState('')
 
-  async function loadRetainers() {
+  const loadRetainers = useCallback(async () => {
     const params = new URLSearchParams()
     if (caseFilter) params.set('case_id', caseFilter)
     if (statusFilter) params.set('status', statusFilter)
@@ -68,7 +68,7 @@ export default function RetainersPage() {
       setRetainers(json.data || [])
       setTotal(json.total || 0)
     }
-  }
+  }, [caseFilter, statusFilter])
 
   useEffect(() => {
     async function load() {
@@ -95,15 +95,14 @@ export default function RetainersPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadRetainers])
 
   useEffect(() => {
     if (!loading) {
-      loadRetainers()
+      const reload = async () => { await loadRetainers() }
+      reload()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseFilter, statusFilter])
+  }, [caseFilter, statusFilter, loading, loadRetainers])
 
   const kpis = useMemo(() => {
     const totalCount = retainers.length

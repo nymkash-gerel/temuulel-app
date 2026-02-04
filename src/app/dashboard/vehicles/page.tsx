@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -33,7 +33,7 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
 
 export default function VehiclesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState<boolean>(true)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -76,8 +76,7 @@ export default function VehiclesPage() {
       setLoading(false)
     }
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return vehicles

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -71,7 +71,7 @@ function isToday(dateStr: string) {
 
 export default function InventoryPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [storeId, setStoreId] = useState<string>('')
@@ -88,7 +88,7 @@ export default function InventoryPage() {
     location_type: 'warehouse',
   })
 
-  async function loadLocations(sid: string) {
+  const loadLocations = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('inventory_locations')
       .select('*')
@@ -98,9 +98,9 @@ export default function InventoryPage() {
     if (data) {
       setLocations(data as unknown as LocationRow[])
     }
-  }
+  }, [supabase])
 
-  async function loadMovements(sid: string) {
+  const loadMovements = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('inventory_movements')
       .select('*, product:products(id, name)')
@@ -111,7 +111,7 @@ export default function InventoryPage() {
     if (data) {
       setMovements(data as unknown as MovementRow[])
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function init() {
@@ -134,8 +134,7 @@ export default function InventoryPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadLocations, loadMovements])
 
   const stats = useMemo(() => {
     const totalLocations = locations.length

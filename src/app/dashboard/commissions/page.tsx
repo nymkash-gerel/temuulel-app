@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import * as XLSX from 'xlsx'
 
@@ -41,7 +41,7 @@ function formatPrice(amount: number) {
 }
 
 export default function CommissionsPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [commissions, setCommissions] = useState<Commission[]>([])
@@ -51,7 +51,7 @@ export default function CommissionsPage() {
   const [generating, setGenerating] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
 
-  async function loadCommissions() {
+  const loadCommissions = useCallback(async () => {
     const params = new URLSearchParams({ limit: '100' })
     if (statusFilter) params.set('status', statusFilter)
     if (agentFilter) params.set('agent_id', agentFilter)
@@ -61,7 +61,7 @@ export default function CommissionsPage() {
       const data = await res.json()
       setCommissions(data.data || [])
     }
-  }
+  }, [statusFilter, agentFilter])
 
   useEffect(() => {
     async function load() {
@@ -85,13 +85,14 @@ export default function CommissionsPage() {
       setLoading(false)
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, loadCommissions])
 
   useEffect(() => {
-    if (!loading) loadCommissions()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, agentFilter])
+    if (!loading) {
+      const reload = async () => { await loadCommissions() }
+      reload()
+    }
+  }, [statusFilter, agentFilter, loading, loadCommissions])
 
   async function handleGenerate() {
     setGenerating(true)

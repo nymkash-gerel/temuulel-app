@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -39,7 +39,7 @@ function formatPrice(amount: number) {
 
 export default function UnitsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [units, setUnits] = useState<UnitRow[]>([])
@@ -58,7 +58,7 @@ export default function UnitsPage() {
     base_rate: '',
   })
 
-  async function loadUnits(sid: string) {
+  const loadUnits = useCallback(async (sid: string) => {
     const { data } = await supabase
       .from('units')
       .select('*')
@@ -68,7 +68,7 @@ export default function UnitsPage() {
     if (data) {
       setUnits(data as unknown as UnitRow[])
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
     async function init() {
@@ -88,8 +88,7 @@ export default function UnitsPage() {
       setLoading(false)
     }
     init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, router, loadUnits])
 
   const stats = useMemo(() => {
     const total = units.length

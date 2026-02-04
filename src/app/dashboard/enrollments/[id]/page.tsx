@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Enrollment {
@@ -43,12 +43,7 @@ export default function EnrollmentDetailPage() {
   const [formGrade, setFormGrade] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
-  useEffect(() => {
-    loadEnrollment()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  async function loadEnrollment() {
+  const loadEnrollment = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/enrollments/${id}`)
@@ -61,7 +56,11 @@ export default function EnrollmentDetailPage() {
       }
     } catch { /* */ }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadEnrollment()
+  }, [loadEnrollment])
 
   async function handleSave() {
     setSaving(true)
