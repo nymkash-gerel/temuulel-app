@@ -15,7 +15,10 @@ export function useRoleGuard(requiredRoles: string[] = ['owner', 'admin']) {
   const [allowed, setAllowed] = useState(false)
   const [loading, setLoading] = useState(true)
   const rolesRef = useRef(requiredRoles)
-  rolesRef.current = requiredRoles
+
+  useEffect(() => {
+    rolesRef.current = requiredRoles
+  }, [requiredRoles])
 
   useEffect(() => {
     let cancelled = false

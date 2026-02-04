@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
@@ -45,6 +46,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function NotificationBell() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [open, setOpen] = useState(false)
@@ -223,7 +225,7 @@ export default function NotificationBell() {
 
     // Navigate
     const route = typeToRoute[notification.type] || '/dashboard'
-    window.location.href = route
+    router.push(route)
   }
 
   return (
