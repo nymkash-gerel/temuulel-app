@@ -63,19 +63,31 @@ export async function POST(request: NextRequest) {
   const { data: body, error: validationError } = await validateBody(request, createOrderSchema)
   if (validationError) return validationError
 
-  const { store_id, customer_id, items, shipping_zone, shipping_address, notes } = body
+  const {
+    store_id, customer_id, items, shipping_zone, shipping_address, notes,
+    order_type, table_session_id, scheduled_pickup_time, kitchen_start_time,
+  } = body
 
   const supabase = getSupabase()
 
-  // Fetch store to verify it exists and get shipping settings
+  // Fetch store to verify it exists and get shipping + busy settings
   const { data: store } = await supabase
     .from('stores')
-    .select('id, shipping_settings')
+    .select('id, shipping_settings, busy_mode, busy_message, estimated_wait_minutes')
     .eq('id', store_id)
     .single()
 
   if (!store) {
     return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  }
+
+  // Reject orders when store is in busy mode
+  if (store.busy_mode) {
+    return NextResponse.json({
+      error: store.busy_message || 'Дэлгүүр одоогоор захиалга авахгүй байна',
+      busy: true,
+      estimated_wait_minutes: store.estimated_wait_minutes,
+    }, { status: 503 })
   }
 
   // Calculate subtotal from items
@@ -84,9 +96,11 @@ export async function POST(request: NextRequest) {
     return sum + item.unit_price * qty
   }, 0)
 
-  // Calculate shipping
+  // Calculate shipping (only for delivery orders)
   const shippingSettings = (store.shipping_settings || {}) as ShippingSettings
-  const shippingAmount = calculateShipping(subtotal, shipping_zone, shippingSettings)
+  const shippingAmount = order_type === 'delivery'
+    ? calculateShipping(subtotal, shipping_zone, shippingSettings)
+    : 0
   const totalAmount = subtotal + shippingAmount
 
   // Create order
@@ -103,8 +117,12 @@ export async function POST(request: NextRequest) {
       payment_status: 'pending',
       shipping_address: shipping_address || null,
       notes: notes || null,
+      order_type: order_type || 'delivery',
+      table_session_id: table_session_id || null,
+      scheduled_pickup_time: scheduled_pickup_time || null,
+      kitchen_start_time: kitchen_start_time || null,
     })
-    .select('id, order_number, total_amount, shipping_amount, status, payment_status, created_at')
+    .select('id, order_number, total_amount, shipping_amount, status, payment_status, order_type, created_at')
     .single()
 
   if (orderError) {
@@ -140,6 +158,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     order_id: newOrder.id,
     order_number: newOrder.order_number,
+    order_type: newOrder.order_type,
     subtotal,
     shipping_amount: newOrder.shipping_amount,
     total_amount: newOrder.total_amount,

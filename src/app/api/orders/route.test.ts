@@ -285,6 +285,70 @@ describe('POST /api/orders', () => {
     expect(json.error).toBe('Items insert error')
   })
 
+  // --- Busy mode ---
+
+  it('returns 503 when store is in busy mode', async () => {
+    mockStore = {
+      ...mockStore,
+      busy_mode: true,
+      busy_message: 'Захиалга түр хаалттай',
+      estimated_wait_minutes: 30,
+    }
+
+    const res = await POST(makeRequest({
+      store_id: 'a0000000-0000-4000-8000-000000000001',
+      items: [{ unit_price: 1000 }],
+    }))
+    const json = await res.json()
+    expect(res.status).toBe(503)
+    expect(json.busy).toBe(true)
+    expect(json.error).toBe('Захиалга түр хаалттай')
+    expect(json.estimated_wait_minutes).toBe(30)
+  })
+
+  // --- Order type ---
+
+  it('accepts dine_in order_type', async () => {
+    mockInsertedOrder = { ...mockInsertedOrder, order_type: 'dine_in' }
+
+    const res = await POST(makeRequest({
+      store_id: 'a0000000-0000-4000-8000-000000000001',
+      items: [{ unit_price: 10000 }],
+      order_type: 'dine_in',
+    }))
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.order_type).toBe('dine_in')
+  })
+
+  it('skips shipping for non-delivery order types', async () => {
+    mockInsertedOrder = {
+      ...mockInsertedOrder,
+      shipping_amount: 0,
+      total_amount: 10000,
+      order_type: 'pickup',
+    }
+
+    const res = await POST(makeRequest({
+      store_id: 'a0000000-0000-4000-8000-000000000001',
+      items: [{ unit_price: 10000 }],
+      order_type: 'pickup',
+      shipping_zone: 'Улаанбаатар хот (төв)',
+    }))
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.shipping_amount).toBe(0)
+  })
+
+  it('returns 400 for invalid order_type', async () => {
+    const res = await POST(makeRequest({
+      store_id: 'a0000000-0000-4000-8000-000000000001',
+      items: [{ unit_price: 1000 }],
+      order_type: 'invalid_type',
+    }))
+    expect(res.status).toBe(400)
+  })
+
   // --- Rate limiting ---
 
   it('returns 429 when rate limited', async () => {

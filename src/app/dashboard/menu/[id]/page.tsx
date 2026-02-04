@@ -16,7 +16,25 @@ interface MenuItem {
   sku: string | null
   created_at: string
   updated_at: string
+  // Restaurant features
+  available_today: boolean
+  daily_limit: number | null
+  daily_sold: number
+  sold_out: boolean
+  allergens: string[]
+  spicy_level: number
+  is_vegan: boolean
+  is_halal: boolean
+  is_gluten_free: boolean
+  dietary_tags: string[]
 }
+
+const ALLERGEN_OPTIONS = [
+  'Гурил (Gluten)', 'Сүү (Dairy)', 'Өндөг (Eggs)', 'Самар (Nuts)',
+  'Загас (Fish)', 'Хавч (Shellfish)', 'Буурцаг (Soy)', 'Зөгийн бал (Honey)',
+]
+
+const SPICY_LABELS = ['Амтгүй', '🌶️', '🌶️🌶️', '🌶️🌶️🌶️', '🌶️🌶️🌶️🌶️', '🌶️🌶️🌶️🌶️🌶️']
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   active: { label: 'Идэвхтэй', color: 'bg-green-500/20 text-green-400' },
@@ -50,6 +68,8 @@ export default function MenuItemDetailPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
+  const [savingAvail, setSavingAvail] = useState(false)
+  const [savingAllergens, setSavingAllergens] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -135,6 +155,46 @@ export default function MenuItemDetailPage() {
       alert(e instanceof Error ? e.message : 'Алдаа гарлаа')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleAvailabilityUpdate(data: Record<string, unknown>) {
+    setSavingAvail(true)
+    try {
+      const res = await fetch(`/api/products/${id}/availability`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Алдаа гарлаа' }))
+        throw new Error(err.error || 'Алдаа гарлаа')
+      }
+      load()
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Алдаа гарлаа')
+    } finally {
+      setSavingAvail(false)
+    }
+  }
+
+  async function handleAllergensUpdate(data: Record<string, unknown>) {
+    setSavingAllergens(true)
+    try {
+      const res = await fetch(`/api/products/${id}/allergens`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Алдаа гарлаа' }))
+        throw new Error(err.error || 'Алдаа гарлаа')
+      }
+      load()
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Алдаа гарлаа')
+    } finally {
+      setSavingAllergens(false)
     }
   }
 
@@ -357,6 +417,153 @@ export default function MenuItemDetailPage() {
             {menuItem.description || 'Тайлбар оруулаагүй'}
           </p>
         )}
+      </div>
+
+      {/* Availability + Allergens Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Availability Card */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm text-slate-400 font-medium">Цэсний бэлэн байдал</h3>
+            {menuItem.sold_out && (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">Дууссан</span>
+            )}
+          </div>
+          <div className="space-y-4">
+            {/* Available Today Toggle */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-300">Өнөөдөр идэвхтэй</span>
+              <button
+                onClick={() => handleAvailabilityUpdate({ available_today: !menuItem.available_today })}
+                disabled={savingAvail}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  menuItem.available_today ? 'bg-green-600' : 'bg-slate-600'
+                }`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  menuItem.available_today ? 'translate-x-5' : ''
+                }`} />
+              </button>
+            </div>
+
+            {/* Sold Out Toggle */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-300">Дууссан гэж тэмдэглэх</span>
+              <button
+                onClick={() => handleAvailabilityUpdate({ sold_out: !menuItem.sold_out })}
+                disabled={savingAvail}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  menuItem.sold_out ? 'bg-red-600' : 'bg-slate-600'
+                }`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  menuItem.sold_out ? 'translate-x-5' : ''
+                }`} />
+              </button>
+            </div>
+
+            {/* Daily Limit */}
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">Өдрийн лимит</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  defaultValue={menuItem.daily_limit ?? ''}
+                  placeholder="Хязгааргүй"
+                  className={`${inputClassName} flex-1`}
+                  onBlur={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : null
+                    if (val !== menuItem.daily_limit) {
+                      handleAvailabilityUpdate({ daily_limit: val })
+                    }
+                  }}
+                />
+                <span className="text-xs text-slate-500 whitespace-nowrap">
+                  Зарагдсан: {menuItem.daily_sold ?? 0}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Allergens & Dietary Card */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-sm text-slate-400 font-medium mb-4">Харшил & Хоолны горим</h3>
+          <div className="space-y-4">
+            {/* Dietary Toggles */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'is_vegan', label: 'Vegan', icon: '🌱' },
+                { key: 'is_halal', label: 'Halal', icon: '☪️' },
+                { key: 'is_gluten_free', label: 'Gluten Free', icon: '🌾' },
+              ].map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => handleAllergensUpdate({ [key]: !(menuItem as unknown as Record<string, boolean>)[key] })}
+                  disabled={savingAllergens}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                    (menuItem as unknown as Record<string, boolean>)[key]
+                      ? 'bg-green-500/20 border-green-500/40 text-green-400'
+                      : 'bg-slate-700/30 border-slate-600 text-slate-400 hover:border-slate-500'
+                  }`}
+                >
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Spicy Level */}
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">Халуун ногооны түвшин</label>
+              <div className="flex items-center gap-1">
+                {SPICY_LABELS.map((label, level) => (
+                  <button
+                    key={level}
+                    onClick={() => handleAllergensUpdate({ spicy_level: level })}
+                    disabled={savingAllergens}
+                    className={`px-2 py-1 rounded text-xs transition-all ${
+                      menuItem.spicy_level === level
+                        ? 'bg-orange-500/20 border border-orange-500/40 text-orange-400'
+                        : 'bg-slate-700/30 border border-slate-600 text-slate-500 hover:border-slate-500'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Allergens Multi-Select */}
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">Харшлын мэдээлэл</label>
+              <div className="flex flex-wrap gap-1.5">
+                {ALLERGEN_OPTIONS.map((allergen) => {
+                  const active = menuItem.allergens?.includes(allergen)
+                  return (
+                    <button
+                      key={allergen}
+                      onClick={() => {
+                        const updated = active
+                          ? menuItem.allergens.filter((a) => a !== allergen)
+                          : [...(menuItem.allergens || []), allergen]
+                        handleAllergensUpdate({ allergens: updated })
+                      }}
+                      disabled={savingAllergens}
+                      className={`px-2 py-1 rounded text-xs transition-all ${
+                        active
+                          ? 'bg-amber-500/20 border border-amber-500/40 text-amber-400'
+                          : 'bg-slate-700/30 border border-slate-600 text-slate-500 hover:border-slate-500'
+                      }`}
+                    >
+                      {allergen}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Footer Meta */}

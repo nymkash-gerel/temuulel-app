@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -5064,14 +5059,18 @@ export type Database = {
           created_at: string | null
           customer_id: string | null
           id: string
+          kitchen_start_time: string | null
           notes: string | null
           order_number: string
+          order_type: string | null
           payment_method: string | null
           payment_status: string | null
+          scheduled_pickup_time: string | null
           shipping_address: string | null
           shipping_amount: number | null
           status: string | null
           store_id: string
+          table_session_id: string | null
           total_amount: number | null
           tracking_number: string | null
           updated_at: string | null
@@ -5080,14 +5079,18 @@ export type Database = {
           created_at?: string | null
           customer_id?: string | null
           id?: string
+          kitchen_start_time?: string | null
           notes?: string | null
           order_number: string
+          order_type?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          scheduled_pickup_time?: string | null
           shipping_address?: string | null
           shipping_amount?: number | null
           status?: string | null
           store_id: string
+          table_session_id?: string | null
           total_amount?: number | null
           tracking_number?: string | null
           updated_at?: string | null
@@ -5096,14 +5099,18 @@ export type Database = {
           created_at?: string | null
           customer_id?: string | null
           id?: string
+          kitchen_start_time?: string | null
           notes?: string | null
           order_number?: string
+          order_type?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          scheduled_pickup_time?: string | null
           shipping_address?: string | null
           shipping_amount?: number | null
           status?: string | null
           store_id?: string
+          table_session_id?: string | null
           total_amount?: number | null
           tracking_number?: string | null
           updated_at?: string | null
@@ -5121,6 +5128,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_table_session_id_fkey"
+            columns: ["table_session_id"]
+            isOneToOne: false
+            referencedRelation: "table_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -6014,20 +6028,30 @@ export type Database = {
       products: {
         Row: {
           ai_context: string | null
+          allergens: string[] | null
+          available_today: boolean | null
           base_price: number | null
           category: string | null
           created_at: string | null
+          daily_limit: number | null
+          daily_sold: number | null
           description: string | null
+          dietary_tags: string[] | null
           facebook_post_id: string | null
           has_variants: boolean | null
           id: string
           images: Json | null
           instagram_post_id: string | null
+          is_gluten_free: boolean | null
+          is_halal: boolean | null
+          is_vegan: boolean | null
           menu_category_id: string | null
           name: string
           sales_script: string | null
           search_aliases: string[] | null
           sku: string | null
+          sold_out: boolean | null
+          spicy_level: number | null
           status: string | null
           store_id: string
           subcategory: string | null
@@ -6035,20 +6059,30 @@ export type Database = {
         }
         Insert: {
           ai_context?: string | null
+          allergens?: string[] | null
+          available_today?: boolean | null
           base_price?: number | null
           category?: string | null
           created_at?: string | null
+          daily_limit?: number | null
+          daily_sold?: number | null
           description?: string | null
+          dietary_tags?: string[] | null
           facebook_post_id?: string | null
           has_variants?: boolean | null
           id?: string
           images?: Json | null
           instagram_post_id?: string | null
+          is_gluten_free?: boolean | null
+          is_halal?: boolean | null
+          is_vegan?: boolean | null
           menu_category_id?: string | null
           name: string
           sales_script?: string | null
           search_aliases?: string[] | null
           sku?: string | null
+          sold_out?: boolean | null
+          spicy_level?: number | null
           status?: string | null
           store_id: string
           subcategory?: string | null
@@ -6056,20 +6090,30 @@ export type Database = {
         }
         Update: {
           ai_context?: string | null
+          allergens?: string[] | null
+          available_today?: boolean | null
           base_price?: number | null
           category?: string | null
           created_at?: string | null
+          daily_limit?: number | null
+          daily_sold?: number | null
           description?: string | null
+          dietary_tags?: string[] | null
           facebook_post_id?: string | null
           has_variants?: boolean | null
           id?: string
           images?: Json | null
           instagram_post_id?: string | null
+          is_gluten_free?: boolean | null
+          is_halal?: boolean | null
+          is_vegan?: boolean | null
           menu_category_id?: string | null
           name?: string
           sales_script?: string | null
           search_aliases?: string[] | null
           sku?: string | null
+          sold_out?: boolean | null
+          spicy_level?: number | null
           status?: string | null
           store_id?: string
           subcategory?: string | null
@@ -7705,6 +7749,8 @@ export type Database = {
           ai_auto_reply: boolean | null
           api_key: string | null
           business_type: string | null
+          busy_message: string | null
+          busy_mode: boolean | null
           chatbot_settings: Json | null
           created_at: string | null
           delivery_settings: Json | null
@@ -7712,6 +7758,7 @@ export type Database = {
           description: string | null
           email: string | null
           enabled_modules: Json | null
+          estimated_wait_minutes: number | null
           facebook_connected_at: string | null
           facebook_page_access_token: string | null
           facebook_page_id: string | null
@@ -7739,6 +7786,8 @@ export type Database = {
           ai_auto_reply?: boolean | null
           api_key?: string | null
           business_type?: string | null
+          busy_message?: string | null
+          busy_mode?: boolean | null
           chatbot_settings?: Json | null
           created_at?: string | null
           delivery_settings?: Json | null
@@ -7746,6 +7795,7 @@ export type Database = {
           description?: string | null
           email?: string | null
           enabled_modules?: Json | null
+          estimated_wait_minutes?: number | null
           facebook_connected_at?: string | null
           facebook_page_access_token?: string | null
           facebook_page_id?: string | null
@@ -7773,6 +7823,8 @@ export type Database = {
           ai_auto_reply?: boolean | null
           api_key?: string | null
           business_type?: string | null
+          busy_message?: string | null
+          busy_mode?: boolean | null
           chatbot_settings?: Json | null
           created_at?: string | null
           delivery_settings?: Json | null
@@ -7780,6 +7832,7 @@ export type Database = {
           description?: string | null
           email?: string | null
           enabled_modules?: Json | null
+          estimated_wait_minutes?: number | null
           facebook_connected_at?: string | null
           facebook_page_access_token?: string | null
           facebook_page_id?: string | null
@@ -8095,6 +8148,8 @@ export type Database = {
           name: string
           position_x: number | null
           position_y: number | null
+          qr_code_token: string | null
+          qr_enabled: boolean | null
           section: string | null
           shape: string
           status: string
@@ -8109,6 +8164,8 @@ export type Database = {
           name: string
           position_x?: number | null
           position_y?: number | null
+          qr_code_token?: string | null
+          qr_enabled?: boolean | null
           section?: string | null
           shape?: string
           status?: string
@@ -8123,6 +8180,8 @@ export type Database = {
           name?: string
           position_x?: number | null
           position_y?: number | null
+          qr_code_token?: string | null
+          qr_enabled?: boolean | null
           section?: string | null
           shape?: string
           status?: string
@@ -8144,6 +8203,8 @@ export type Database = {
           created_at: string
           customer_id: string | null
           duration_minutes: number
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           notes: string | null
           party_size: number
@@ -8157,6 +8218,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           duration_minutes?: number
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           notes?: string | null
           party_size?: number
@@ -8170,6 +8233,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           duration_minutes?: number
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           notes?: string | null
           party_size?: number
@@ -9057,6 +9122,7 @@ export type Database = {
         Returns: undefined
       }
       is_store_owner: { Args: { p_store_id: string }; Returns: boolean }
+      reset_daily_sold_counters: { Args: never; Returns: undefined }
       save_facebook_connection: { Args: { payload: Json }; Returns: Json }
       save_instagram_connection: { Args: { payload: Json }; Returns: Json }
       show_limit: { Args: never; Returns: number }
@@ -9196,3 +9262,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

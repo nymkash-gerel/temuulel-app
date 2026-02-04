@@ -21,6 +21,8 @@ const posCheckoutSchema = z.object({
   payment_method: z.enum(['cash', 'card', 'qpay', 'bank']),
   amount_paid: z.number().min(0),
   notes: z.string().optional(),
+  order_type: z.enum(['dine_in', 'pickup', 'delivery', 'catering']).default('dine_in'),
+  table_session_id: z.string().uuid().optional(),
 })
 
 /**
@@ -112,6 +114,8 @@ export async function POST(request: NextRequest) {
       payment_method: body.payment_method,
       payment_status: 'paid',
       notes: body.notes || null,
+      order_type: body.order_type,
+      table_session_id: body.table_session_id || null,
     })
     .select()
     .single()

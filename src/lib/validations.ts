@@ -90,12 +90,41 @@ export const createOrderSchema = z.object({
   shipping_zone: z.string().optional(),
   shipping_address: z.string().nullish(),
   notes: z.string().nullish(),
+  order_type: z.enum(['dine_in', 'pickup', 'delivery', 'catering']).default('delivery'),
+  table_session_id: z.string().uuid().optional(),
+  scheduled_pickup_time: z.string().optional(),
+  kitchen_start_time: z.string().optional(),
 })
 
 export const updateOrderStatusSchema = z.object({
   order_id: uuid,
   status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']),
   tracking_number: z.string().optional(),
+})
+
+// ---------------------------------------------------------------------------
+// Restaurant feature schemas
+// ---------------------------------------------------------------------------
+
+export const updateProductAvailabilitySchema = z.object({
+  available_today: z.boolean().optional(),
+  daily_limit: z.number().int().min(0).nullish(),
+  sold_out: z.boolean().optional(),
+})
+
+export const updateProductAllergensSchema = z.object({
+  allergens: z.array(z.string()).optional(),
+  spicy_level: z.number().int().min(0).max(5).optional(),
+  is_vegan: z.boolean().optional(),
+  is_halal: z.boolean().optional(),
+  is_gluten_free: z.boolean().optional(),
+  dietary_tags: z.array(z.string()).optional(),
+})
+
+export const updateBusyModeSchema = z.object({
+  busy_mode: z.boolean(),
+  busy_message: z.string().max(200).nullish(),
+  estimated_wait_minutes: z.number().int().min(0).max(180).nullish(),
 })
 
 // ---------------------------------------------------------------------------

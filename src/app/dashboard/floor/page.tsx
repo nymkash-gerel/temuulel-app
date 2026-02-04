@@ -38,6 +38,12 @@ export default function FloorManagementPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [closingId, setClosingId] = useState<string | null>(null)
 
+  // Busy mode state
+  const [busyMode, setBusyMode] = useState(false)
+  const [busyMessage, setBusyMessage] = useState('')
+  const [busyWait, setBusyWait] = useState<number | ''>('')
+  const [savingBusy, setSavingBusy] = useState(false)
+
   const fetchSessions = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -62,9 +68,24 @@ export default function FloorManagementPage() {
     }
   }, [supabase, statusFilter])
 
+  const fetchBusyMode = useCallback(async () => {
+    try {
+      const res = await fetch('/api/stores/busy-mode')
+      if (res.ok) {
+        const data = await res.json()
+        setBusyMode(data.busy_mode ?? false)
+        setBusyMessage(data.busy_message ?? '')
+        setBusyWait(data.estimated_wait_minutes ?? '')
+      }
+    } catch {
+      // ignore - non-critical
+    }
+  }, [])
+
   useEffect(() => {
     fetchSessions()
-  }, [fetchSessions])
+    fetchBusyMode()
+  }, [fetchSessions, fetchBusyMode])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return sessions
@@ -112,6 +133,31 @@ export default function FloorManagementPage() {
     }
   }
 
+  async function handleBusyToggle(newBusy: boolean) {
+    setSavingBusy(true)
+    try {
+      const res = await fetch('/api/stores/busy-mode', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          busy_mode: newBusy,
+          busy_message: newBusy ? (busyMessage || null) : null,
+          estimated_wait_minutes: newBusy && busyWait ? Number(busyWait) : null,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to update busy mode')
+      const data = await res.json()
+      setBusyMode(data.busy_mode)
+      setBusyMessage(data.busy_message ?? '')
+      setBusyWait(data.estimated_wait_minutes ?? '')
+      setSuccess(newBusy ? 'Завгүй горим идэвхжлээ' : 'Завгүй горим унтарлаа')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setSavingBusy(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -144,6 +190,65 @@ export default function FloorManagementPage() {
           {success}
         </div>
       )}
+
+      {/* Busy Mode Panel */}
+      <div className={`mb-6 border rounded-xl p-4 ${busyMode ? 'bg-red-500/10 border-red-500/30' : 'bg-slate-800/50 border-slate-700'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-lg">{busyMode ? '🔴' : '🟢'}</span>
+            <div>
+              <h3 className="text-sm font-medium text-white">
+                {busyMode ? 'Завгүй горим идэвхтэй' : 'Захиалга авч байна'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {busyMode
+                  ? 'Шинэ захиалга хүлээн авахгүй байна'
+                  : 'Шинэ захиалга хэвийн хүлээн авч байна'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleBusyToggle(!busyMode)}
+            disabled={savingBusy}
+            className={`relative w-12 h-7 rounded-full transition-colors ${
+              busyMode ? 'bg-red-600' : 'bg-green-600'
+            }`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform ${
+              busyMode ? 'translate-x-5' : ''
+            }`} />
+          </button>
+        </div>
+
+        {busyMode && (
+          <div className="mt-4 pt-4 border-t border-red-500/20 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Мессеж (сонголтоор)</label>
+              <input
+                type="text"
+                value={busyMessage}
+                onChange={(e) => setBusyMessage(e.target.value)}
+                onBlur={() => handleBusyToggle(true)}
+                placeholder="Жишээ: Одоогоор завгүй байна"
+                className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-red-500 transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Хүлээх хугацаа (минут)</label>
+              <input
+                type="number"
+                min="0"
+                max="180"
+                value={busyWait}
+                onChange={(e) => setBusyWait(e.target.value ? Number(e.target.value) : '')}
+                onBlur={() => handleBusyToggle(true)}
+                placeholder="30"
+                className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-red-500 transition-all"
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
