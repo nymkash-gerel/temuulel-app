@@ -6,7 +6,7 @@ test.describe('Landing Page', () => {
 
     await expect(page.getByText('TEMUULEL').first()).toBeVisible()
     await expect(page.getByText('Цахим худалдааны')).toBeVisible()
-    await expect(page.getByText('ухаалаг туслах')).toBeVisible()
+    await expect(page.getByText('ухаалаг туслах').first()).toBeVisible()
   })
 
   test('login link navigates to /login', async ({ page }) => {

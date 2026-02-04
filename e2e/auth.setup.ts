@@ -9,7 +9,7 @@ setup('authenticate', async ({ page }) => {
   // Fill login form (selectors verified against src/app/(auth)/login/page.tsx)
   await page.getByPlaceholder('example@email.com').fill(process.env.E2E_TEST_EMAIL!)
   await page.getByPlaceholder('••••••••').fill(process.env.E2E_TEST_PASSWORD!)
-  await page.getByRole('button', { name: 'Нэвтрэх' }).click()
+  await page.locator('button[type="submit"]').click()
 
   // Wait for redirect to dashboard
   await page.waitForURL('/dashboard**', { timeout: 15_000 })

@@ -6,7 +6,7 @@ test.describe('Authentication', () => {
 
     await page.getByPlaceholder('example@email.com').fill(process.env.E2E_TEST_EMAIL!)
     await page.getByPlaceholder('••••••••').fill(process.env.E2E_TEST_PASSWORD!)
-    await page.getByRole('button', { name: 'Нэвтрэх' }).click()
+    await page.locator('button[type="submit"]').click()
 
     await page.waitForURL('/dashboard**', { timeout: 15_000 })
     await expect(page.getByText('Сайн байна уу!')).toBeVisible({ timeout: 10_000 })
@@ -17,7 +17,7 @@ test.describe('Authentication', () => {
 
     await page.getByPlaceholder('example@email.com').fill('invalid@test.com')
     await page.getByPlaceholder('••••••••').fill('WrongPassword123!')
-    await page.getByRole('button', { name: 'Нэвтрэх' }).click()
+    await page.locator('button[type="submit"]').click()
 
     await expect(page.getByText('Имэйл эсвэл нууц үг буруу байна')).toBeVisible({
       timeout: 10_000,

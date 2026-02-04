@@ -10,15 +10,15 @@ test.describe('Embed Widget', () => {
 
     await page.goto(`/embed/${storeId}`)
 
-    // Verify the page loaded without a Next.js not-found error
-    await expect(page.locator('body')).not.toContainText('This page could not be found')
+    // Verify the page loaded without a not-found error
+    await expect(page.locator('body')).not.toContainText('Хуудас олдсонгүй')
   })
 
   test('embed page returns not-found for invalid store', async ({ page }) => {
     await page.goto('/embed/nonexistent-store-id-00000')
 
     // The embed page calls notFound() for invalid store IDs
-    await expect(page.getByText('This page could not be found')).toBeVisible({
+    await expect(page.getByText('Хуудас олдсонгүй')).toBeVisible({
       timeout: 10_000,
     })
   })
