@@ -22,6 +22,12 @@ function withRateLimitHeaders(
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
+  // ── Skip auth for public pages (no Supabase call needed) ──
+  const publicPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/verify', '/demo']
+  if (publicPaths.includes(pathname) || pathname.startsWith('/embed') || pathname.startsWith('/track')) {
+    return NextResponse.next({ request })
+  }
+
   // ── Global API rate limiting (before auth, before Supabase calls) ──
   if (pathname.startsWith('/api/')) {
     if (shouldSkipRateLimit(pathname)) {
@@ -55,7 +61,7 @@ export async function middleware(request: NextRequest) {
     return withRateLimitHeaders(NextResponse.next({ request }), result)
   }
 
-  // ── Page route auth (unchanged) ────────────────────────────────────
+  // ── Page route auth (only for protected routes now) ────────────────
   let supabaseResponse = NextResponse.next({
     request,
   })
