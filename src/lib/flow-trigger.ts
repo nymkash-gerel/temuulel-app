@@ -6,7 +6,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { normalizeText } from './chat-ai'
+import { normalizeText, classifyIntentWithConfidence } from './chat-ai'
 import type {
   Flow,
   FlowNode,
@@ -17,6 +17,17 @@ import type {
   IntentMatchTriggerConfig,
   ButtonClickTriggerConfig,
 } from './flow-types'
+
+/**
+ * Intents that indicate the customer's message has clear, substantive purpose.
+ * When detected, new_conversation welcome flows should NOT intercept —
+ * let the AI pipeline answer the actual question instead.
+ */
+const SUBSTANTIVE_INTENTS = new Set([
+  'product_search', 'order_status', 'size_info', 'payment', 'shipping',
+  'complaint', 'return_exchange', 'table_reservation', 'allergen_info',
+  'menu_availability',
+])
 
 /**
  * Find the first active flow whose trigger matches the context.
@@ -38,6 +49,15 @@ export async function findMatchingFlow(
   if (!flows || flows.length === 0) return null
 
   const normalizedMsg = normalizeText(message)
+
+  // Pre-classify intent so new_conversation triggers can decide
+  // whether to intercept or let the AI pipeline handle the question.
+  if (!context.classified_intent) {
+    const { intent, confidence } = classifyIntentWithConfidence(message)
+    if (confidence >= 1) {
+      context.classified_intent = intent
+    }
+  }
 
   for (const row of flows) {
     const flow = rowToFlow(row)
@@ -62,7 +82,14 @@ export function matchesTrigger(
       return matchKeywordTrigger(flow.trigger_config as KeywordTriggerConfig, normalizedMessage)
 
     case 'new_conversation':
-      return context.is_new_conversation
+      if (!context.is_new_conversation) return false
+      // If the first message has clear substantive intent (product question,
+      // sizing query, order check, etc.), skip the welcome flow so the AI
+      // pipeline can answer the actual question.
+      if (context.classified_intent && SUBSTANTIVE_INTENTS.has(context.classified_intent)) {
+        return false
+      }
+      return true
 
     case 'button_click': {
       const config = flow.trigger_config as ButtonClickTriggerConfig

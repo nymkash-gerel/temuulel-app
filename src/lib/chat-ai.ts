@@ -309,6 +309,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'жин', 'жинтэй', 'өндөр', 'өндөртэй',
     'биеийн', 'бие', 'али нь', 'алинийг',
     'тохирно', 'тохирох уу', 'таарах', 'таарна',
+    // "болох уу" / "тааруу" — common sizing question forms
+    'болох уу', 'болху', 'блху', 'тааруу',
+    // Latin-typed (common FB Messenger abbreviations)
+    'hemjee', 'razmer', 'saiz',
   ],
   payment: [
     // Core
