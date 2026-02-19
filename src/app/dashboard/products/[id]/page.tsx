@@ -189,8 +189,14 @@ export default function EditProductPage() {
 
       router.push('/dashboard/products')
       router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Алдаа гарлаа')
+    } catch (err: unknown) {
+      const msg = err instanceof Error
+        ? err.message
+        : typeof err === 'object' && err !== null && 'message' in err
+          ? String((err as Record<string, unknown>).message)
+          : 'Алдаа гарлаа'
+      setError(msg)
+      console.error('[Product Save]', err)
     } finally {
       setSaving(false)
     }

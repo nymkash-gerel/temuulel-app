@@ -125,24 +125,25 @@ export function detectRepeatedMessage(
 }
 
 /**
- * Count how many consecutive customer messages appear at the end of the
- * conversation with only AI replies (no human agent reply) in between.
- * This indicates the AI is failing to resolve the customer's issue.
+ * Count how many consecutive customer messages appear at the END of the
+ * conversation with NO response at all (neither AI nor human).
+ * This detects situations where the system is completely failing to respond.
+ *
+ * For cases where the AI responds but unhelpfully, the `repeated_message`
+ * signal handles escalation instead.
  */
 export function countConsecutiveAiOnly(messages: RecentMessage[]): number {
   let customerCount = 0
 
-  // Walk backwards through messages
+  // Walk backwards — any response (AI or human) breaks the streak
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
 
     if (msg.is_from_customer) {
       customerCount++
-    } else if (!msg.is_ai_response) {
-      // Human agent replied — stop counting
+    } else {
       break
     }
-    // AI responses don't break the streak
   }
 
   return customerCount
@@ -195,20 +196,22 @@ export function evaluateEscalation(
     signals.push('payment_dispute')
   }
 
-  // 5. Repeated message (check last 5 customer messages)
-  const recentCustomerMsgs = recentMessages
+  // 5. Repeated message (check last 5 customer messages BEFORE the current one)
+  const allCustomerMsgs = recentMessages
     .filter((m) => m.is_from_customer)
     .map((m) => m.content)
-    .slice(-5)
+  // Exclude the last entry — it's the current message (already saved to DB
+  // before this check runs), so comparing against it would always self-match.
+  const recentCustomerMsgs = allCustomerMsgs.slice(0, -1).slice(-5)
 
   if (detectRepeatedMessage(currentMessage, recentCustomerMsgs)) {
     addedScore += WEIGHTS.repeated_message
     signals.push('repeated_message')
   }
 
-  // 6. AI fail-to-resolve (3+ customer messages with only AI replies)
+  // 6. AI fail-to-resolve (5+ customer messages with only AI replies)
   const consecutiveCustomer = countConsecutiveAiOnly(recentMessages)
-  if (consecutiveCustomer >= 3) {
+  if (consecutiveCustomer >= 5) {
     addedScore += WEIGHTS.ai_fail_to_resolve
     signals.push('ai_fail_to_resolve')
   }

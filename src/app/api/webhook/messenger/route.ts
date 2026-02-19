@@ -14,6 +14,7 @@ import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
 import { handleFeedChange, FeedChangeValue } from '@/lib/comment-auto-reply'
 import type { ChatbotSettings } from '@/lib/chat-ai'
 import { interceptWithFlow } from '@/lib/flow-middleware'
+import { processAIChat } from '@/lib/chat-ai-handler'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -309,49 +310,50 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
           // Show typing indicator
           await sendTypingIndicator(senderId, true, pageToken)
 
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-          const aiRes = await fetch(`${appUrl}/api/chat/ai`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              conversation_id: conversation.id,
-              customer_message: messageText,
-            }),
+          const aiResult = await processAIChat(supabase, {
+            conversationId: conversation.id,
+            customerMessage: messageText,
+            storeId: store.id,
+            storeName: store.name || 'Манай дэлгүүр',
+            customerId: customer.id,
+            chatbotSettings,
           })
 
           // Turn off typing
           await sendTypingIndicator(senderId, false, pageToken)
 
-          if (aiRes.ok) {
-            const aiData = await aiRes.json()
-            const aiResponse = typeof aiData?.response === 'string' ? aiData.response : null
-            const aiIntent = typeof aiData?.intent === 'string' ? aiData.intent : null
+          const aiResponse = aiResult.response
+          const aiIntent = aiResult.intent
+          console.log('[AI] Intent:', aiIntent, 'Response length:', aiResponse?.length ?? 0)
 
-            if (aiResponse) {
-              // If product_search intent with products found, send cards + text
-              if (aiIntent === 'product_search' && aiData.metadata?.products_found > 0) {
-                await sendProductCardsForIntent(
-                  senderId, store.id, aiResponse, pageToken, supabase
-                )
-              } else if (aiIntent === 'greeting' || aiIntent === 'general') {
-                // Send with quick reply suggestions
-                await sendQuickReplies(
-                  senderId,
-                  aiResponse,
-                  [
-                    { title: 'Бүтээгдэхүүн', payload: 'BROWSE_PRODUCTS' },
-                    { title: 'Захиалга шалгах', payload: 'CHECK_ORDER' },
-                    { title: 'Хүргэлт', payload: 'SHIPPING_INFO' },
-                  ],
-                  pageToken
-                )
-              } else {
-                await sendTextMessage(senderId, aiResponse, pageToken)
-              }
+          if (aiResponse) {
+            let sendResult
+            // If product_search intent with products found, send cards + text
+            if (aiIntent === 'product_search' && aiResult.metadata?.products_found > 0) {
+              await sendProductCardsForIntent(
+                senderId, store.id, aiResponse, pageToken, supabase
+              )
+            } else if (aiIntent === 'greeting' || aiIntent === 'general') {
+              // Send with quick reply suggestions
+              sendResult = await sendQuickReplies(
+                senderId,
+                aiResponse,
+                [
+                  { title: 'Бүтээгдэхүүн', payload: 'BROWSE_PRODUCTS' },
+                  { title: 'Захиалга шалгах', payload: 'CHECK_ORDER' },
+                  { title: 'Хүргэлт', payload: 'SHIPPING_INFO' },
+                ],
+                pageToken
+              )
+            } else {
+              sendResult = await sendTextMessage(senderId, aiResponse, pageToken)
             }
+            console.log('[Messenger] Send result:', sendResult ? 'sent' : 'failed')
+          } else {
+            console.warn('[AI] No response text returned')
           }
-        } catch {
-          // AI response failed, admin will handle manually
+        } catch (aiErr) {
+          console.error('[AI] Exception:', aiErr instanceof Error ? aiErr.message : aiErr)
         }
       }
     }
@@ -378,16 +380,14 @@ async function sendProductCardsForIntent(
     .limit(5)
 
   if (products && products.length > 0) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
     const cards = products.map((p) => {
       const images = (p.images || []) as string[]
       const price = new Intl.NumberFormat('mn-MN').format(p.base_price) + '₮'
+      const desc = p.description ? p.description.substring(0, 80) : price
       return {
         title: p.name,
-        subtitle: price,
+        subtitle: desc,
         imageUrl: images[0] || undefined,
-        buttonUrl: appUrl ? `${appUrl}/products/${p.id}` : undefined,
-        buttonTitle: 'Дэлгэрэнгүй',
       }
     })
 
