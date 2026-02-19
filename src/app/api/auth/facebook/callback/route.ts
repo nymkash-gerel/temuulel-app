@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 const GRAPH_API = 'https://graph.facebook.com/v18.0'
 
@@ -75,6 +76,15 @@ async function fetchBusinessPages(
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limit: 5 requests per 60 seconds
+  const rl = rateLimit(getClientIp(request), { limit: 5, windowSeconds: 60 })
+  if (!rl.success) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL!
+    return NextResponse.redirect(
+      `${appUrl}/dashboard/settings/integrations?fb_error=rate_limited`
+    )
+  }
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!
   const appId = process.env.FACEBOOK_APP_ID!
   const appSecret = process.env.FACEBOOK_APP_SECRET!

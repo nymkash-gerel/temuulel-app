@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 const GRAPH_API = 'https://graph.facebook.com/v18.0'
 
@@ -12,6 +13,15 @@ function getAdminSupabase() {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 requests per 60 seconds
+  const rl = rateLimit(getClientIp(request), { limit: 5, windowSeconds: 60 })
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    )
+  }
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

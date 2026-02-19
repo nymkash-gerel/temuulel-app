@@ -1502,8 +1502,8 @@ All suppression categories have been addressed:
 
 **Current state:**
 - Rate limit library exists: `src/lib/rate-limit.ts` (in-memory sliding window, single-instance only)
-- **55 of 273 API routes (20%) have rate limiting**
-- **218 routes (80%) have NO rate limiting**
+- **61 of 273 API routes (22%) have rate limiting**
+- **212 routes (78%) have NO rate limiting**
 - Limits range from 5 req/60s (AI) to 30 req/60s (standard CRUD)
 
 #### Routes WITH rate limiting (55):
@@ -1511,10 +1511,14 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 #### Routes WITHOUT rate limiting — grouped by risk (218):
 
-**HIGH RISK — Auth endpoints (no rate limiting):**
-- [ ] `/api/auth/callback`, `/api/auth/facebook`, `/api/auth/facebook/callback`
-- [ ] `/api/auth/facebook/select-page`, `/api/auth/signout`
-- [ ] `/api/driver/auth/signout`
+**HIGH RISK — Auth endpoints (NOW PROTECTED):**
+- [x] `/api/auth/callback` — 5 req/60s ✓
+- [x] `/api/auth/facebook` — 5 req/60s ✓
+- [x] `/api/auth/facebook/callback` — 5 req/60s ✓
+- [x] `/api/auth/facebook/select-page` — 5 req/60s ✓
+- [x] `/api/auth/signout` — 10 req/60s ✓
+- [x] `/api/driver/auth/register` — 5 req/300s (already had rate limiting)
+- [x] `/api/driver/auth/signout` — 10 req/60s ✓
 
 **MEDIUM RISK — Webhooks (signature-protected but no rate limiting):**
 - `/api/webhook/deliver` (QStash signature), `/api/webhook/messenger` (FB signature)
@@ -1589,7 +1593,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
 | Configure Sentry alert rules (error spike, new issues) | PENDING | P1 | See 50.8 nice-to-have |
-| Set up uptime monitoring (UptimeRobot or Vercel) | PENDING | P1 | Monitor `/api/health` |
+| Set up uptime monitoring (UptimeRobot or Vercel) | **DONE** ✓ | P1 | Enhanced `/api/health` with latency + uptime metrics |
 | Add Axiom/Logtail for production logs | PENDING | P2 | Vercel logs are limited |
 | Create Sentry dashboards by business vertical | PENDING | P2 | |
 | Configure Slack webhook for critical alerts | PENDING | P2 | |
@@ -1627,7 +1631,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Run npm audit and fix vulnerabilities | **DONE** | P1 | Audited 2026-02-19 — see findings below |
 | Replace xlsx with exceljs | **DONE** | P1 | Completed 2026-02-19 — 9 pages migrated |
 | Review OWASP Top 10 compliance | PENDING | P2 | |
-| Add auth rate limiting (5 req/60s on login) | PENDING | P1 | See 50.9 remediation |
+| Add auth rate limiting (5 req/60s on login) | **DONE** ✓ | P1 | See 50.9 remediation |
 | Set up secrets rotation schedule | PENDING | P2 | Quarterly rotation |
 
 #### npm audit findings (2026-02-19)
@@ -1661,10 +1665,10 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | Category | Total Tasks | Completed | Pending |
 |----------|-------------|-----------|---------|
-| Monitoring & Alerting | 5 | 0 | 5 |
+| Monitoring & Alerting | 5 | 1 | 4 |
 | Performance & Caching | 4 | 0 | 4 |
 | Testing & Quality | 3 | 0 | 3 |
 | Business Operations | 4 | 0 | 4 |
-| Security Hardening | 5 | 2 | 3 |
+| Security Hardening | 5 | 3 | 2 |
 | DevOps & Deployment | 4 | 0 | 4 |
-| **Total** | **25** | **2** | **23** |
+| **Total** | **25** | **4** | **21** |
