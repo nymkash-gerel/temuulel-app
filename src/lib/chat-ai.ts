@@ -148,6 +148,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'price', 'cheap', 'expensive', 'new arrival', 'show me', 'browse',
     'search', 'find', 'looking for', 'want to buy', 'how much',
     'available', 'in stock',
+    // English product names (also triggers product_search intent)
+    'cashmere', 'shirt', 'hat', 'bag', 'shoes', 'pants', 'jacket',
+    'coat', 'watch', 'earphone', 'headphone', 'charger', 'toy', 'lego',
+    'shampoo', 'cream',
     // Aliases — misspellings, informal, transliterated
     'бутээгдэхүүн', 'бутээгдхүүн', 'бүтээгдхүүн',
     'барааа', 'бараагаа',
@@ -178,6 +182,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'бга ю', 'бгаа', 'бга', 'бий', 'плаж',
     // Price inquiry (common in product search context)
     'хэд', 'хэдээр',
+    // Latin-typed price inquiry abbreviations (hd=хэд, une=үнэ, ve=вэ)
+    'хд',
     // Latin aliases for product category names
     'умд', 'цамц',
   ],
@@ -538,6 +544,42 @@ export function extractSearchTerms(message: string): string {
   return meaningful.join(' ')
 }
 
+/**
+ * Extract the original Latin words from a message (before Cyrillic normalization).
+ * Used as a fallback search — "cashmere" won't match "Кашемир" after normalization
+ * because c→с but Mongolian uses к.
+ */
+export function extractLatinTerms(message: string): string[] {
+  const latinWordRegex = /[a-zA-Z]{3,}/g
+  const matches = message.match(latinWordRegex) || []
+  return matches.map((w) => w.toLowerCase())
+}
+
+/**
+ * Map of common English product terms to their Mongolian equivalents.
+ * Handles cases where Latin→Cyrillic char mapping doesn't produce the right word.
+ */
+const ENGLISH_TO_MONGOLIAN: Record<string, string[]> = {
+  cashmere: ['кашемир', 'ноолуур'],
+  shirt: ['цамц'],
+  hat: ['малгай'],
+  bag: ['цүнх', 'уут'],
+  shoes: ['гутал'],
+  pants: ['өмд'],
+  jacket: ['куртка', 'хүрэм'],
+  coat: ['пальто'],
+  watch: ['цаг'],
+  earphone: ['чихэвч'],
+  earphones: ['чихэвч'],
+  headphone: ['чихэвч'],
+  headphones: ['чихэвч'],
+  charger: ['цэнэглэгч'],
+  toy: ['тоглоом'],
+  lego: ['лего'],
+  shampoo: ['шампунь'],
+  cream: ['тос'],
+}
+
 export interface SearchProductsOptions {
   maxProducts?: number
   /** Filter to only available items (restaurant menus) */
@@ -582,10 +624,18 @@ export async function searchProducts(
     dbQuery = dbQuery.eq('category', mappedCategory)
   } else {
     const searchTerms = extractSearchTerms(query)
-    if (searchTerms) {
-      // Split into individual words and match any word in name, description, or search_aliases
-      const words = searchTerms.split(/\s+/).filter(Boolean)
-      const conditions = words
+    // Also get original Latin words + their Mongolian translations
+    const latinWords = extractLatinTerms(query)
+    const translatedWords = latinWords.flatMap((w) => ENGLISH_TO_MONGOLIAN[w] || [])
+
+    const allSearchWords = [
+      ...searchTerms.split(/\s+/).filter(Boolean),
+      ...latinWords,       // original Latin (e.g. "cashmere" matches product names)
+      ...translatedWords,  // Mongolian equivalents (e.g. "кашемир")
+    ]
+
+    if (allSearchWords.length > 0) {
+      const conditions = allSearchWords
         .flatMap((w) => [
           `name.ilike.%${w}%`,
           `description.ilike.%${w}%`,
