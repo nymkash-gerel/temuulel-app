@@ -40,7 +40,8 @@ export interface ProductMatch {
   base_price: number
   images: string[]
   sales_script: string | null
-  product_faqs: Record<string, string> | null
+  product_faqs?: Record<string, string> | null
+  ai_context?: string | null
   variants?: ProductVariantInfo[]
   // Restaurant features
   available_today?: boolean
@@ -619,10 +620,13 @@ export async function searchProducts(
     }
   }
 
-  let dbQuery = supabase
-    .from('products')
+  // product_faqs and ai_context exist in DB but not in generated Supabase types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let dbQuery = (supabase
+    .from('products') as any)
     .select(`
       id, name, description, category, base_price, images, sales_script,
+      product_faqs, ai_context,
       available_today, sold_out, allergens, spicy_level,
       is_vegan, is_halal, is_gluten_free, dietary_tags,
       product_variants(size, color, price, stock_quantity)
@@ -665,9 +669,9 @@ export async function searchProducts(
 
   const { data } = await dbQuery.limit(maxProducts)
   if (!data) return []
-  return data.map((row) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawVariants = (row as any).product_variants as { size: string | null; color: string | null; price: number; stock_quantity: number }[] | undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map((row: any) => {
+    const rawVariants = row.product_variants as { size: string | null; color: string | null; price: number; stock_quantity: number }[] | undefined
     return {
       id: row.id,
       name: row.name,
@@ -676,7 +680,8 @@ export async function searchProducts(
       base_price: row.base_price ?? 0,
       images: (row.images ?? []) as string[],
       sales_script: row.sales_script,
-      product_faqs: null,
+      product_faqs: (row.product_faqs ?? null) as Record<string, string> | null,
+      ai_context: (row.ai_context ?? null) as string | null,
       variants: rawVariants && rawVariants.length > 0 ? rawVariants : undefined,
       // Restaurant features
       available_today: row.available_today ?? true,
@@ -687,7 +692,7 @@ export async function searchProducts(
       is_halal: row.is_halal ?? false,
       is_gluten_free: row.is_gluten_free ?? false,
       dietary_tags: (row.dietary_tags ?? []) as string[],
-    }
+    } as ProductMatch
   })
 }
 
@@ -1099,6 +1104,7 @@ export async function generateAIResponse(
           base_price: p.base_price,
           description: p.description,
           product_faqs: p.product_faqs,
+          ai_context: p.ai_context,
           variants: p.variants,
           // Restaurant features
           allergens: p.allergens,

@@ -30,6 +30,7 @@ export interface ProductContext {
   base_price: number
   description?: string
   product_faqs?: Record<string, string> | null
+  ai_context?: string | null
   variants?: ProductVariantContext[]
   // Restaurant features
   allergens?: string[]
@@ -150,6 +151,10 @@ function buildSystemPrompt(input: ContextualInput): string {
             prompt += `   ${key}: ${value}\n`
           })
         }
+      }
+      // Include merchant's AI instructions for this product
+      if (p.ai_context) {
+        prompt += `   📌 Заавар: ${p.ai_context}\n`
       }
     })
   }
