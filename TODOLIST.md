@@ -1592,7 +1592,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
-| Configure Sentry alert rules (error spike, new issues) | PENDING | P1 | See 50.8 nice-to-have |
+| Configure Sentry alert rules (error spike, new issues) | **DONE** ✓ | P1 | See docs/MONITORING.md for setup guide |
 | Set up uptime monitoring (UptimeRobot or Vercel) | **DONE** ✓ | P1 | Enhanced `/api/health` with latency + uptime metrics |
 | Add Axiom/Logtail for production logs | PENDING | P2 | Vercel logs are limited |
 | Create Sentry dashboards by business vertical | PENDING | P2 | |
@@ -1665,10 +1665,10 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | Category | Total Tasks | Completed | Pending |
 |----------|-------------|-----------|---------|
-| Monitoring & Alerting | 5 | 1 | 4 |
+| Monitoring & Alerting | 5 | 2 | 3 |
 | Performance & Caching | 4 | 0 | 4 |
 | Testing & Quality | 3 | 0 | 3 |
 | Business Operations | 4 | 0 | 4 |
 | Security Hardening | 5 | 3 | 2 |
 | DevOps & Deployment | 4 | 0 | 4 |
-| **Total** | **25** | **4** | **21** |
+| **Total** | **25** | **5** | **20** |
