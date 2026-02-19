@@ -1,5 +1,6 @@
 import { jsonCompletion, isOpenAIConfigured } from './openai-client'
 import type { RecommendationInput, RecommendationOutput, ProductForRecommendation } from './types'
+import { normalizeText } from '../chat-ai'
 
 const SYSTEM_PROMPT = `Та Facebook Messenger дээрх монгол дэлгүүрийн борлуулалтын туслах.
 Хэрэглэгчийн хайлтад тохирсон бүтээгдэхүүнүүдийг байгалийн хэллэгээр санал болго.
@@ -28,7 +29,11 @@ export async function writeRecommendation(
   if (input.products.length === 0) return null
 
   try {
-    const userContent = `Хайлт: ${input.customer_query}\n\nБүтээгдэхүүнүүд:\n${formatProducts(input.products)}`
+    // Normalize Latin-typed Mongolian → Cyrillic so GPT understands
+    const query = /[a-zA-Z]{2,}/.test(input.customer_query)
+      ? normalizeText(input.customer_query)
+      : input.customer_query
+    const userContent = `Хайлт: ${query}\n\nБүтээгдэхүүнүүд:\n${formatProducts(input.products)}`
 
     const result = await jsonCompletion<RecommendationOutput>({
       systemPrompt: SYSTEM_PROMPT,

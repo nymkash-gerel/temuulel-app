@@ -5,6 +5,7 @@
 
 import { isOpenAIConfigured, chatCompletion } from './openai-client'
 import type { ChatMessage } from './openai-client'
+import { normalizeText } from '../chat-ai'
 
 export interface MessageHistoryEntry {
   role: 'user' | 'assistant'
@@ -213,13 +214,20 @@ export async function contextualAIResponse(input: ContextualInput): Promise<stri
   if (input.history.length === 0) return null
 
   try {
+    // Normalize Latin-typed Mongolian to Cyrillic so GPT understands it.
+    // e.g. "nooluuuran tsamts" → "ноолуууран цамц"
+    const normalizeMsgContent = (text: string): string => {
+      const hasLatin = /[a-zA-Z]{2,}/.test(text)
+      return hasLatin ? normalizeText(text) : text
+    }
+
     const messages: ChatMessage[] = [
       { role: 'system', content: buildSystemPrompt(input) },
       ...input.history.map((h) => ({
         role: h.role as 'user' | 'assistant',
-        content: h.content,
+        content: h.role === 'user' ? normalizeMsgContent(h.content) : h.content,
       })),
-      { role: 'user' as const, content: input.currentMessage },
+      { role: 'user' as const, content: normalizeMsgContent(input.currentMessage) },
     ]
 
     const result = await chatCompletion({ messages, maxTokens: 500 })
