@@ -597,6 +597,29 @@ const ENGLISH_TO_MONGOLIAN: Record<string, string[]> = {
   cream: ['тос'],
 }
 
+/**
+ * Mongolian synonym groups — words within each group are interchangeable.
+ * When a search query contains one word, we also search for its synonyms.
+ * This handles кашемир = ноолуур, арьс = leather, etc.
+ */
+const MONGOLIAN_SYNONYMS: string[][] = [
+  ['кашемир', 'ноолуур', 'ноолууран'],
+  ['арьс', 'арьсан', 'leather'],
+  ['гутал', 'шаахай', 'пүүз'],
+  ['цүнх', 'уут', 'bag'],
+]
+
+/** Given a search word, return any synonyms from MONGOLIAN_SYNONYMS */
+function expandSynonyms(word: string): string[] {
+  const extras: string[] = []
+  for (const group of MONGOLIAN_SYNONYMS) {
+    if (group.some((syn) => word.includes(syn) || syn.includes(word))) {
+      extras.push(...group.filter((syn) => syn !== word))
+    }
+  }
+  return extras
+}
+
 export interface SearchProductsOptions {
   maxProducts?: number
   /** Filter to only available items (restaurant menus) */
@@ -653,8 +676,13 @@ export async function searchProducts(
     const latinWords = extractLatinTerms(latinSource)
     const translatedWords = latinWords.flatMap((w) => ENGLISH_TO_MONGOLIAN[w] || [])
 
+    const baseWords = searchTerms.split(/\s+/).filter(Boolean)
+    // Expand Mongolian synonyms (ноолуур → кашемир, etc.)
+    const synonymWords = baseWords.flatMap((w) => expandSynonyms(w))
+
     const allSearchWords = [
-      ...searchTerms.split(/\s+/).filter(Boolean),
+      ...baseWords,
+      ...synonymWords,     // Mongolian synonyms (e.g. "ноолуур" → "кашемир")
       ...latinWords,       // original Latin (e.g. "cashmere" matches product names)
       ...translatedWords,  // Mongolian equivalents (e.g. "кашемир")
     ]
