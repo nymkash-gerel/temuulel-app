@@ -379,11 +379,17 @@ async function sendProductCardsForIntent(
     .eq('status', 'active')
     .limit(5)
 
+  // Always send the AI text response first (has natural language + prices)
+  await sendTextMessage(recipientId, textFallback, pageToken)
+
   if (products && products.length > 0) {
     const cards = products.map((p) => {
       const images = (p.images || []) as string[]
       const price = new Intl.NumberFormat('mn-MN').format(p.base_price) + '₮'
-      const desc = p.description ? p.description.substring(0, 80) : price
+      // Always include price in subtitle, then short description
+      const desc = p.description
+        ? `💰 ${price}\n${p.description.substring(0, 60)}`
+        : `💰 ${price}`
       return {
         title: p.name,
         subtitle: desc,
@@ -392,8 +398,5 @@ async function sendProductCardsForIntent(
     })
 
     await sendProductCards(recipientId, cards, pageToken)
-  } else {
-    // Fall back to text
-    await sendTextMessage(recipientId, textFallback, pageToken)
   }
 }
