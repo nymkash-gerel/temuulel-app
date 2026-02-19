@@ -3,15 +3,22 @@ name: Deploy Migrations
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
       confirm:
-        description: 'Type "migrate" to confirm pushing migrations to production'
+        description: 'Type "migrate" to confirm'
         required: true
 
 jobs:
-  migrate:
-    name: Push Migrations
+  migrate-staging:
+    name: Push Migrations to Staging
     runs-on: ubuntu-latest
-    if: github.event.inputs.confirm == 'migrate'
+    if: github.event.inputs.confirm == 'migrate' && github.event.inputs.target == 'staging'
 
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +27,34 @@ jobs:
         with:
           version: latest
 
-      - name: Link Supabase project
+      - name: Link Supabase staging project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Dry run (show pending migrations)
+        run: supabase db push --dry-run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Push migrations to staging
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  migrate-production:
+    name: Push Migrations to Production
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'migrate' && github.event.inputs.target == 'production'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase production project
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -30,7 +64,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Push migrations
+      - name: Push migrations to production
         run: supabase db push
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
