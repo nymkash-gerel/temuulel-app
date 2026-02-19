@@ -129,7 +129,7 @@ export async function processAIChat(
 
         // Parallel: search + history fetch based on intent
         const [llmProducts, llmOrders, llmHistory] = await Promise.all([
-          (intent === 'product_search' || intent === 'general')
+          (intent === 'product_search' || intent === 'general' || intent === 'size_info')
             ? searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products, originalQuery: customerMessage })
             : Promise.resolve([]),
           (intent === 'order_status')
@@ -164,7 +164,7 @@ export async function processAIChat(
 
       // Parallel: all DB fetches + history in one batch
       const [searchedProducts, searchedOrders, searchedTables, history] = await Promise.all([
-        (intent === 'product_search' || intent === 'general' || intent === 'menu_availability' || intent === 'allergen_info')
+        (intent === 'product_search' || intent === 'general' || intent === 'menu_availability' || intent === 'allergen_info' || intent === 'size_info')
           ? searchProducts(supabase, searchTerms, storeId, {
               maxProducts: chatbotSettings.max_products,
               originalQuery: customerMessage,
