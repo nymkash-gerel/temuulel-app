@@ -1,0 +1,60 @@
+name: Migration Review
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+
+jobs:
+  migration-diff:
+    name: Post Migration Diff
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get new migration files
+        id: migrations
+        run: |
+          FILES=$(git diff --name-only --diff-filter=A origin/main...HEAD -- 'supabase/migrations/*.sql')
+          if [ -z "$FILES" ]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "files<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$FILES" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build comment body
+        if: steps.migrations.outputs.found == 'true'
+        id: comment
+        run: |
+          BODY="## Migration Review\n\n"
+          BODY+="The following migration files are new in this PR:\n\n"
+          while IFS= read -r file; do
+            BODY+="\`\`\`sql\n"
+            BODY+="-- $file\n"
+            BODY+="$(cat "$file")\n"
+            BODY+="\`\`\`\n\n"
+          done <<< "${{ steps.migrations.outputs.files }}"
+          BODY+="### Checklist\n"
+          BODY+="- [ ] Migration is idempotent or has been tested with \`supabase db reset\`\n"
+          BODY+="- [ ] Rollback plan documented (see \`-- ROLLBACK:\` comment in SQL)\n"
+          BODY+="- [ ] Applied to staging first (\`workflow_dispatch\` → staging)\n"
+          BODY+="- [ ] Types regenerated (\`npm run gen:types\`)\n"
+
+          # Write to file to avoid escaping issues
+          echo -e "$BODY" > /tmp/comment.md
+
+      - name: Post comment on PR
+        if: steps.migrations.outputs.found == 'true'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: migration-review
+          path: /tmp/comment.md
