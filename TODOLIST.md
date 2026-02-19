@@ -1620,14 +1620,31 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Configure Stripe billing with proper webhooks | PENDING | P1 | Subscription lifecycle |
 | Set up backup verification (test restore) | PENDING | P1 | Verify backups actually work |
 
-### 51.5 Security Hardening — PENDING
+### 51.5 Security Hardening — IN PROGRESS
 
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
-| Run npm audit and fix vulnerabilities | PENDING | P1 | Regular schedule |
+| Run npm audit and fix vulnerabilities | **DONE** | P1 | Audited 2026-02-19 — see findings below |
+| Replace xlsx with exceljs | **DONE** | P1 | Completed 2026-02-19 — 9 pages migrated |
 | Review OWASP Top 10 compliance | PENDING | P2 | |
 | Add auth rate limiting (5 req/60s on login) | PENDING | P1 | See 50.9 remediation |
 | Set up secrets rotation schedule | PENDING | P2 | Quarterly rotation |
+
+#### npm audit findings (2026-02-19)
+
+**Summary:** 48 vulnerabilities (3 moderate, 45 high)
+
+| Category | Packages | Risk Level | Action |
+|----------|----------|------------|--------|
+| Dev dependencies | eslint, typescript-eslint, vercel CLI, @sentry/* | Low (dev-only) | Wait for upstream fixes |
+| Production | **xlsx** (v0.18.5) | **HIGH** | Replace with exceljs |
+
+**xlsx vulnerability details:**
+- Prototype Pollution (GHSA-4r6h-8v6p-xvw6) — HIGH severity
+- ReDoS (GHSA-5pgg-2g8v-p4x9) — HIGH severity
+- **No fix available** — SheetJS community edition abandoned
+- Used in 9 dashboard pages for Excel export (client-side only, admin-only)
+- Mitigation: Replace with `exceljs` package (actively maintained, no known vulns)
 
 ### 51.6 DevOps & Deployment — PENDING
 
@@ -1648,6 +1665,6 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Performance & Caching | 4 | 0 | 4 |
 | Testing & Quality | 3 | 0 | 3 |
 | Business Operations | 4 | 0 | 4 |
-| Security Hardening | 4 | 0 | 4 |
+| Security Hardening | 5 | 2 | 3 |
 | DevOps & Deployment | 4 | 0 | 4 |
-| **Total** | **24** | **0** | **24** |
+| **Total** | **25** | **2** | **23** |
