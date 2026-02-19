@@ -14,7 +14,7 @@ import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
 import { handleFeedChange, FeedChangeValue } from '@/lib/comment-auto-reply'
 import type { ChatbotSettings } from '@/lib/chat-ai'
 import { interceptWithFlow } from '@/lib/flow-middleware'
-import { processAIChat } from '@/lib/chat-ai-handler'
+import { processAIChat, type AIProductCard } from '@/lib/chat-ai-handler'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -138,9 +138,9 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
       // Per-store token with fallback to global env for backward compatibility
       const pageToken = store.facebook_page_access_token || process.env.FACEBOOK_PAGE_ACCESS_TOKEN
 
-      // Mark message as seen
+      // Mark message as seen (fire-and-forget — visual only)
       if (pageToken) {
-        await markSeen(senderId, pageToken)
+        void markSeen(senderId, pageToken).catch(() => {})
       }
 
       // Find or create customer
@@ -224,14 +224,30 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
 
       if (!conversation) continue
 
-      // Save customer message
-      const { data: savedMsg } = await supabase.from('messages').insert({
-        conversation_id: conversation.id,
-        content: messageText,
-        is_from_customer: true,
-        is_ai_response: false,
-        metadata: quickReplyPayload ? { quick_reply: quickReplyPayload } : {},
-      }).select('id').single()
+      // Save customer message + increment unread — in parallel
+      const [{ data: savedMsg }] = await Promise.all([
+        supabase.from('messages').insert({
+          conversation_id: conversation.id,
+          content: messageText,
+          is_from_customer: true,
+          is_ai_response: false,
+          metadata: quickReplyPayload ? { quick_reply: quickReplyPayload } : {},
+        }).select('id').single(),
+        (async () => {
+          const { error: rpcError } = await supabase.rpc('increment_unread', { conv_id: conversation.id })
+          if (rpcError) {
+            await supabase
+              .from('conversations')
+              .update({ updated_at: new Date().toISOString(), unread_count: 1 })
+              .eq('id', conversation.id)
+          } else {
+            await supabase
+              .from('conversations')
+              .update({ updated_at: new Date().toISOString() })
+              .eq('id', conversation.id)
+          }
+        })(),
+      ])
 
       // Tag message with sentiment + topic tags (fire-and-forget)
       if (savedMsg?.id) {
@@ -249,21 +265,7 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
         })()
       }
 
-      // Update conversation timestamp and increment unread
-      const { error: rpcError } = await supabase.rpc('increment_unread', { conv_id: conversation.id })
-      if (rpcError) {
-        await supabase
-          .from('conversations')
-          .update({ updated_at: new Date().toISOString(), unread_count: 1 })
-          .eq('id', conversation.id)
-      } else {
-        await supabase
-          .from('conversations')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('id', conversation.id)
-      }
-
-      // Dispatch new_message notification (email + in-app + webhook)
+      // Dispatch new_message notification (fire-and-forget)
       dispatchNotification(store.id, 'new_message', {
         conversation_id: conversation.id,
         customer_id: customer.id,
@@ -307,8 +309,8 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
         }
 
         try {
-          // Show typing indicator
-          await sendTypingIndicator(senderId, true, pageToken)
+          // Show typing indicator (fire-and-forget — visual only)
+          void sendTypingIndicator(senderId, true, pageToken).catch(() => {})
 
           const aiResult = await processAIChat(supabase, {
             conversationId: conversation.id,
@@ -319,23 +321,19 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
             chatbotSettings,
           })
 
-          // Turn off typing
-          await sendTypingIndicator(senderId, false, pageToken)
-
           const aiResponse = aiResult.response
           const aiIntent = aiResult.intent
           console.log('[AI] Intent:', aiIntent, 'Response length:', aiResponse?.length ?? 0)
 
           if (aiResponse) {
-            let sendResult
-            // If product_search intent with products found, send cards + text
-            if (aiIntent === 'product_search' && aiResult.metadata?.products_found > 0) {
-              await sendProductCardsForIntent(
-                senderId, store.id, aiResponse, pageToken, supabase
+            // If product_search with products found, send text + cards (using AI result products)
+            if (aiIntent === 'product_search' && aiResult.products.length > 0) {
+              await sendProductCardsFromResult(
+                senderId, aiResponse, aiResult.products, pageToken
               )
             } else if (aiIntent === 'greeting' || aiIntent === 'general') {
               // Send with quick reply suggestions
-              sendResult = await sendQuickReplies(
+              await sendQuickReplies(
                 senderId,
                 aiResponse,
                 [
@@ -346,12 +344,14 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
                 pageToken
               )
             } else {
-              sendResult = await sendTextMessage(senderId, aiResponse, pageToken)
+              await sendTextMessage(senderId, aiResponse, pageToken)
             }
-            console.log('[Messenger] Send result:', sendResult ? 'sent' : 'failed')
           } else {
             console.warn('[AI] No response text returned')
           }
+
+          // Turn off typing (fire-and-forget)
+          void sendTypingIndicator(senderId, false, pageToken).catch(() => {})
         } catch (aiErr) {
           console.error('[AI] Exception:', aiErr instanceof Error ? aiErr.message : aiErr)
         }
@@ -363,30 +363,22 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
 }
 
 /**
- * Fetch products from DB and send as Messenger cards
+ * Send AI text response + product cards using products already fetched by AI pipeline.
+ * No extra DB query needed.
  */
-async function sendProductCardsForIntent(
+async function sendProductCardsFromResult(
   recipientId: string,
-  storeId: string,
   textFallback: string,
-  pageToken: string,
-  supabase: ReturnType<typeof getSupabase>
+  products: AIProductCard[],
+  pageToken: string
 ) {
-  const { data: products } = await supabase
-    .from('products')
-    .select('id, name, base_price, images, description')
-    .eq('store_id', storeId)
-    .eq('status', 'active')
-    .limit(5)
-
   // Always send the AI text response first (has natural language + prices)
   await sendTextMessage(recipientId, textFallback, pageToken)
 
-  if (products && products.length > 0) {
-    const cards = products.map((p) => {
+  if (products.length > 0) {
+    const cards = products.slice(0, 10).map((p) => {
       const images = (p.images || []) as string[]
       const price = new Intl.NumberFormat('mn-MN').format(p.base_price) + '₮'
-      // Always include price in subtitle, then short description
       const desc = p.description
         ? `💰 ${price}\n${p.description.substring(0, 60)}`
         : `💰 ${price}`

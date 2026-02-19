@@ -186,6 +186,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хд',
     // Latin aliases for product category names
     'умд', 'цамц',
+    // Image/photo requests (trigger product cards with images)
+    'зураг', 'зургийг', 'зургаа', 'зургыг', 'зурагтай', 'фото',
+    'photo', 'picture', 'pic', 'image', 'show photo', 'show picture',
+    'үзүүлээч', 'харуулаач', 'харуулаад', 'үзүүлээд',
   ],
   order_status: [
     // Core — Note: 'хүргэлт' moved to shipping (it means "delivery", not "order status")

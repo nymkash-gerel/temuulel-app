@@ -39,10 +39,18 @@ export interface AIProcessingContext {
   chatbotSettings: ChatbotSettings
 }
 
+export interface AIProductCard {
+  name: string
+  base_price: number
+  description: string
+  images: string[]
+}
+
 export interface AIProcessingResult {
   response: string
   intent: string
   messageId?: string
+  products: AIProductCard[]
   metadata: {
     products_found: number
     orders_found: number
@@ -52,6 +60,8 @@ export interface AIProcessingResult {
 /**
  * Process a customer message through the AI pipeline:
  * classify intent → search products/orders → generate response → save to DB.
+ *
+ * Optimized: parallel DB fetches, fire-and-forget writes where possible.
  */
 export async function processAIChat(
   supabase: SupabaseClient,
@@ -66,8 +76,12 @@ export async function processAIChat(
     chatbotSettings,
   } = ctx
 
-  // --- Conversation Memory ---
-  const state = await readState(supabase, conversationId)
+  // --- Parallel: fetch conversation state + busy mode at the same time ---
+  const [state, busyMode] = await Promise.all([
+    readState(supabase, conversationId),
+    checkStoreBusyMode(supabase, storeId),
+  ])
+
   const followUp = resolveFollowUp(customerMessage, state)
 
   let intent: string
@@ -75,9 +89,6 @@ export async function processAIChat(
   let orders: Awaited<ReturnType<typeof searchOrders>> = []
   let tables: TableMatch[] = []
   let responseText: string
-
-  // Check busy mode for restaurant stores
-  const busyMode = await checkStoreBusyMode(supabase, storeId)
 
   if (followUp) {
     switch (followUp.type) {
@@ -98,15 +109,15 @@ export async function processAIChat(
       }
       case 'query_refinement': {
         intent = 'product_search'
-        products = await searchProducts(
-          supabase,
-          followUp.refinedQuery!,
-          storeId,
-          { maxProducts: chatbotSettings.max_products, originalQuery: followUp.refinedQuery! }
-        )
-        const refHistory = isOpenAIConfigured()
-          ? await fetchRecentMessages(supabase, conversationId)
-          : undefined
+        // Parallel: search products + fetch history
+        const [refProducts, refHistory] = await Promise.all([
+          searchProducts(supabase, followUp.refinedQuery!, storeId, {
+            maxProducts: chatbotSettings.max_products,
+            originalQuery: followUp.refinedQuery!,
+          }),
+          isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId) : Promise.resolve(undefined),
+        ])
+        products = refProducts
         responseText = await generateAIResponse(
           intent, products, orders, storeName, followUp.refinedQuery!, chatbotSettings, refHistory
         )
@@ -114,19 +125,20 @@ export async function processAIChat(
       }
       case 'prefer_llm': {
         intent = classifyIntent(customerMessage)
+        const searchTerms = extractSearchTerms(customerMessage)
 
-        if (intent === 'product_search' || intent === 'general') {
-          const searchTerms = extractSearchTerms(customerMessage)
-          products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products, originalQuery: customerMessage })
-        }
-        if (intent === 'order_status') {
-          const searchTerms = extractSearchTerms(customerMessage)
-          orders = await searchOrders(supabase, searchTerms, storeId, customerId ?? undefined)
-        }
-
-        const llmHistory = isOpenAIConfigured()
-          ? await fetchRecentMessages(supabase, conversationId)
-          : undefined
+        // Parallel: search + history fetch based on intent
+        const [llmProducts, llmOrders, llmHistory] = await Promise.all([
+          (intent === 'product_search' || intent === 'general')
+            ? searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products, originalQuery: customerMessage })
+            : Promise.resolve([]),
+          (intent === 'order_status')
+            ? searchOrders(supabase, searchTerms, storeId, customerId ?? undefined)
+            : Promise.resolve([]),
+          isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId) : Promise.resolve(undefined),
+        ])
+        products = llmProducts
+        orders = llmOrders
         responseText = await generateAIResponse(
           intent, products, orders, storeName, customerMessage, chatbotSettings, llmHistory
         )
@@ -148,32 +160,31 @@ export async function processAIChat(
         || `⚠️ Одоогоор захиалга түр хаасан байна.${waitMsg} Тун удахгүй дахин оролдоно уу!`
       intent = 'busy_mode'
     } else {
-      if (intent === 'product_search' || intent === 'general') {
-        const searchTerms = extractSearchTerms(customerMessage)
-        products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products, originalQuery: customerMessage })
-      }
+      const searchTerms = extractSearchTerms(customerMessage)
 
-      if (intent === 'menu_availability' || intent === 'allergen_info') {
-        const searchTerms = extractSearchTerms(customerMessage)
-        products = await searchProducts(supabase, searchTerms, storeId, {
-          maxProducts: chatbotSettings.max_products,
-          availableOnly: intent === 'menu_availability',
-          originalQuery: customerMessage,
-        })
-      }
+      // Parallel: all DB fetches + history in one batch
+      const [searchedProducts, searchedOrders, searchedTables, history] = await Promise.all([
+        (intent === 'product_search' || intent === 'general' || intent === 'menu_availability' || intent === 'allergen_info')
+          ? searchProducts(supabase, searchTerms, storeId, {
+              maxProducts: chatbotSettings.max_products,
+              originalQuery: customerMessage,
+              availableOnly: intent === 'menu_availability',
+            })
+          : Promise.resolve([]),
+        (intent === 'order_status')
+          ? searchOrders(supabase, searchTerms, storeId, customerId ?? undefined)
+          : Promise.resolve([]),
+        (intent === 'table_reservation')
+          ? searchAvailableTables(supabase, storeId)
+          : Promise.resolve([] as TableMatch[]),
+        isOpenAIConfigured()
+          ? fetchRecentMessages(supabase, conversationId)
+          : Promise.resolve(undefined),
+      ])
 
-      if (intent === 'table_reservation') {
-        tables = await searchAvailableTables(supabase, storeId)
-      }
-
-      if (intent === 'order_status') {
-        const searchTerms = extractSearchTerms(customerMessage)
-        orders = await searchOrders(supabase, searchTerms, storeId, customerId ?? undefined)
-      }
-
-      const history = isOpenAIConfigured()
-        ? await fetchRecentMessages(supabase, conversationId)
-        : undefined
+      products = searchedProducts
+      orders = searchedOrders
+      tables = searchedTables
 
       responseText = await generateAIResponse(
         intent, products, orders, storeName, customerMessage, chatbotSettings, history,
@@ -183,43 +194,48 @@ export async function processAIChat(
     }
   }
 
-  // Save AI response as a message
-  const { data: savedMessage } = await supabase
-    .from('messages')
-    .insert({
-      conversation_id: conversationId,
-      content: responseText,
-      is_from_customer: false,
-      is_ai_response: true,
-      metadata: {
-        intent,
-        products_found: products.length,
-        orders_found: orders.length,
-        follow_up: followUp?.type ?? null,
-      },
-    })
-    .select('id, created_at')
-    .single()
-
-  // Update conversation state
+  // Save AI response + update state + update conversation — all in parallel
   const storedProducts: StoredProduct[] = products.map((p) => ({
     id: p.id,
     name: p.name,
     base_price: p.base_price,
   }))
   const nextState = updateState(state, intent, storedProducts, customerMessage)
-  await writeState(supabase, conversationId, nextState)
 
-  // Update conversation timestamp
-  await supabase
-    .from('conversations')
-    .update({ updated_at: new Date().toISOString() })
-    .eq('id', conversationId)
+  const [savedMessageResult] = await Promise.all([
+    supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        content: responseText,
+        is_from_customer: false,
+        is_ai_response: true,
+        metadata: {
+          intent,
+          products_found: products.length,
+          orders_found: orders.length,
+          follow_up: followUp?.type ?? null,
+        },
+      })
+      .select('id, created_at')
+      .single(),
+    writeState(supabase, conversationId, nextState),
+    supabase
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId),
+  ])
 
   return {
     response: responseText,
     intent,
-    messageId: savedMessage?.id,
+    messageId: savedMessageResult.data?.id,
+    products: products.map((p) => ({
+      name: p.name,
+      base_price: p.base_price,
+      description: p.description ?? '',
+      images: p.images ?? [],
+    })),
     metadata: {
       products_found: products.length,
       orders_found: orders.length,
