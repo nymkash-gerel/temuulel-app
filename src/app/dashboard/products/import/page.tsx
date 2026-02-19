@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import * as XLSX from 'xlsx'
+import { readExcelFile } from '@/lib/export-utils'
 
 interface ProductRow {
   name: string
@@ -83,11 +83,8 @@ export default function ImportProductsPage() {
     return rows
   }
 
-  const parseExcel = (data: ArrayBuffer): ProductRow[] => {
-    const workbook = XLSX.read(data, { type: 'array' })
-    const sheetName = workbook.SheetNames[0]
-    const sheet = workbook.Sheets[sheetName]
-    const jsonData = XLSX.utils.sheet_to_json(sheet) as Record<string, unknown>[]
+  const parseExcel = async (data: ArrayBuffer): Promise<ProductRow[]> => {
+    const jsonData = await readExcelFile(data)
 
     return jsonData.map((row) => ({
       name: String(row['name'] || row['нэр'] || row['Name'] || ''),
@@ -116,10 +113,10 @@ export default function ImportProductsPage() {
     const reader = new FileReader()
     const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
 
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       if (isExcel) {
         const data = event.target?.result as ArrayBuffer
-        const parsed = parseExcel(data)
+        const parsed = await parseExcel(data)
         setProducts(parsed)
       } else {
         const text = event.target?.result as string

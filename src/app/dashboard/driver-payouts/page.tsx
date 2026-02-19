@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import * as XLSX from 'xlsx'
+import { exportToFile } from '@/lib/export-utils'
 
 interface Payout {
   id: string
@@ -195,21 +195,7 @@ export default function DriverPayoutsPage() {
       'Нийт дүн': Number(p.total_amount),
       'Төлөв': STATUS_CONFIG[p.status]?.label || p.status,
     }))
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Жолоочийн төлбөр')
-    if (format === 'csv') {
-      const csv = XLSX.utils.sheet_to_csv(ws)
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'joloochiin-tolbor.csv'
-      a.click()
-      URL.revokeObjectURL(url)
-    } else {
-      XLSX.writeFile(wb, 'joloochiin-tolbor.xlsx')
-    }
+    exportToFile(data, 'joloochiin-tolbor', format, 'Жолоочийн төлбөр')
   }
 
   if (loading) {

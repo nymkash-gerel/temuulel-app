@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import * as XLSX from 'xlsx'
+import { exportToFile } from '@/lib/export-utils'
 
 interface Commission {
   id: string
@@ -140,10 +140,7 @@ export default function CommissionsPage() {
       'Төлөв': STATUS_CONFIG[c.status]?.label || c.status,
       'Огноо': new Date(c.created_at).toLocaleDateString('mn-MN'),
     }))
-    const ws = XLSX.utils.json_to_sheet(rows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Комисс')
-    XLSX.writeFile(wb, `commissions_${new Date().toISOString().split('T')[0]}.xlsx`)
+    exportToFile(rows, `commissions_${new Date().toISOString().split('T')[0]}`, 'xlsx', 'Комисс')
   }
 
   // Summary calculations

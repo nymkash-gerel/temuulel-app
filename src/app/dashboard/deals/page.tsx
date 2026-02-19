@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import * as XLSX from 'xlsx'
+import { exportToFile } from '@/lib/export-utils'
 
 interface Deal {
   id: string
@@ -186,10 +186,7 @@ export default function DealsPage() {
       'Комисс': d.commission_amount || 0,
       'Огноо': new Date(d.created_at).toLocaleDateString('mn-MN'),
     }))
-    const ws = XLSX.utils.json_to_sheet(rows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Хэлцэлүүд')
-    XLSX.writeFile(wb, `deals_${new Date().toISOString().split('T')[0]}.xlsx`)
+    exportToFile(rows, `deals_${new Date().toISOString().split('T')[0]}`, 'xlsx', 'Хэлцэлүүд')
   }
 
   // KPI calculations
