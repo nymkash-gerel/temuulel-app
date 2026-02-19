@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
 
 // POST - Receive messages from Messenger
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+
   const appSecret = process.env.FACEBOOK_APP_SECRET
   if (!appSecret) {
     console.error('FACEBOOK_APP_SECRET is not configured — rejecting webhook')
@@ -53,7 +55,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
   }
 
-  return handleWebhookEvents(JSON.parse(rawBody))
+  try {
+    const result = await handleWebhookEvents(JSON.parse(rawBody))
+    console.log('[Webhook] Processed:', {
+      duration_ms: Date.now() - startTime,
+      timestamp: new Date().toISOString(),
+    })
+    return result
+  } catch (error) {
+    console.error('[Webhook] Failed:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      duration_ms: Date.now() - startTime,
+      timestamp: new Date().toISOString(),
+    })
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
+  }
 }
 
 async function handleWebhookEvents(body: Record<string, unknown>) {
