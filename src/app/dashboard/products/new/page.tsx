@@ -36,6 +36,9 @@ export default function NewProductPage() {
     { id: '1', size: '', color: '', price: '', stock: '', sku: '' }
   ])
 
+  // Stock for simple products (no variants)
+  const [stockQuantity, setStockQuantity] = useState('')
+
   // Fit note (merchant's sizing guide for chatbot)
   const [fitNote, setFitNote] = useState('')
 
@@ -141,7 +144,7 @@ export default function NewProductPage() {
 
       if (productError) throw productError
 
-      // Create variants if exists
+      // Create variants or default stock entry
       if (hasVariants && variants.length > 0) {
         const variantData = variants
           .filter(v => v.size || v.color)
@@ -162,13 +165,13 @@ export default function NewProductPage() {
           if (variantError) throw variantError
         }
       } else {
-        // Create single default variant
+        // Simple product — create single default variant for stock tracking
         const { error: variantError } = await supabase
           .from('product_variants')
           .insert({
             product_id: product.id,
             price: parseFloat(basePrice) || 0,
-            stock_quantity: parseInt(variants[0]?.stock) || 0,
+            stock_quantity: parseInt(stockQuantity) || 0,
             sku: sku || null,
           })
 
@@ -290,7 +293,7 @@ export default function NewProductPage() {
             <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
               <h2 className="text-lg font-semibold text-white mb-4">Үнэ & Нөөц</h2>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className={`grid ${hasVariants ? 'grid-cols-2' : 'grid-cols-3'} gap-4`}>
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Үндсэн үнэ (₮) *
@@ -304,6 +307,21 @@ export default function NewProductPage() {
                       required
                     />
                   </div>
+                  {!hasVariants && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Нөөц (ширхэг)
+                      </label>
+                      <input
+                        type="number"
+                        value={stockQuantity}
+                        onChange={(e) => setStockQuantity(e.target.value)}
+                        placeholder="0"
+                        min="0"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       SKU код
@@ -332,7 +350,7 @@ export default function NewProductPage() {
                 </div>
 
                 {/* Variants List */}
-                {hasVariants ? (
+                {hasVariants && (
                   <div className="space-y-3 pt-4">
                     {variants.map((variant, index) => (
                       <div
@@ -393,20 +411,6 @@ export default function NewProductPage() {
                       <span>➕</span>
                       <span>Хувилбар нэмэх</span>
                     </button>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      Нөөцийн тоо *
-                    </label>
-                    <input
-                      type="number"
-                      value={variants[0]?.stock || ''}
-                      onChange={(e) => updateVariant(variants[0]?.id || '1', 'stock', e.target.value)}
-                      placeholder="0"
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all"
-                      required
-                    />
                   </div>
                 )}
               </div>

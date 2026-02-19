@@ -18,11 +18,19 @@ export interface ActiveVoucherContext {
   valid_until: string
 }
 
+export interface ProductVariantContext {
+  size: string | null
+  color: string | null
+  price: number
+  stock_quantity: number
+}
+
 export interface ProductContext {
   name: string
   base_price: number
   description?: string
   product_faqs?: Record<string, string> | null
+  variants?: ProductVariantContext[]
   // Restaurant features
   allergens?: string[]
   spicy_level?: number
@@ -73,12 +81,11 @@ function buildSystemPrompt(input: ContextualInput): string {
   3. Менежер баталгаажуулж холбогдоно гэж мэдэгд
 - Жишээ: "Захиалахыг хүсвэл ямар бараа, хэдэн ширхэг хэрэгтэйг бичнэ үү. Бид хаяг, утасны дугаар аваад хүргэлт зохион байгуулна!"
 
-ХЭМЖЭЭ/РАЗМЕР ДҮРЭМ:
-- Бүтээгдэхүүний мэдээлэлд "size_fit" гэсэн хэмжээний зөвлөмж байвал ТЭР МЭДЭЭЛЛИЙГ АШИГЛАЖ тохирох размер зөвлөнө.
-- Хэрэглэгч жин, өндөр, биеийн хэмжээ хэлсэн бол size_fit мэдээлэлд тулгуурлан тодорхой размер санал болго.
-- Жишээ: size_fit-д "160см 55кг хүнд M тохиромжтой" гэсэн бол 160см 55кг хэрэглэгчид M зөвлө.
-- size_fit мэдээлэл байхгүй бол зүгээр байгаа размеруудыг жагсааж, "менежерээс лавлана уу" гэж нэм.
-- 100% баталгаа өгөхгүй — "яг тохирохыг баталгаажуулахын тулд манай менежерээс лавлана уу" гэж нэмнэ.
+ХЭМЖЭЭ/ӨНГӨ ДҮРЭМ:
+- Бүтээгдэхүүний "Хувилбарууд" хэсэгт ЯГ ямар размер, өнгө байгааг жагсаасан.
+- ЗӨВХӨН тэр жагсаалтад байгаа размер, өнгийг хэл — ШИНЭЭР ЗОХИОХГҮЙ.
+- Жагсаалтад байхгүй размер, өнгийг хэрэглэгч асуувал "Одоогоор тэр хувилбар байхгүй байна" гэж хариулна.
+- "size_fit" мэдээлэл байвал тохирох размер зөвлөнө, 100% баталгаа өгөхгүй.
 
 ҮНИЙН ДҮРЭМ:
 - Бүтээгдэхүүн дурдах бүрт ЗААВАЛ үнийг хамт бич. Жишээ: "Кашемир цамц — 189,000₮"
@@ -122,6 +129,18 @@ function buildSystemPrompt(input: ContextualInput): string {
       }
       if (p.allergens && p.allergens.length > 0) {
         prompt += `   ⚠️ Харшил: ${p.allergens.join(', ')}\n`
+      }
+      // Include variant data (sizes, colors, stock)
+      if (p.variants && p.variants.length > 0) {
+        const variantLines = p.variants.map((v) => {
+          const parts: string[] = []
+          if (v.size) parts.push(v.size)
+          if (v.color) parts.push(v.color)
+          parts.push(`${v.stock_quantity} ширхэг`)
+          return parts.join(' / ')
+        })
+        prompt += `   Хувилбарууд: ${variantLines.join(', ')}\n`
+        prompt += `   ⚠️ ЗӨВХӨН дээрх хувилбарууд байна — өөр размер, өнгө ЗОХИОХГҮЙ.\n`
       }
       // Include FAQ data if available
       if (p.product_faqs) {

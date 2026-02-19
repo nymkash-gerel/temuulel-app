@@ -25,6 +25,13 @@ export interface ChatbotSettings {
   return_policy?: string
 }
 
+export interface ProductVariantInfo {
+  size: string | null
+  color: string | null
+  price: number
+  stock_quantity: number
+}
+
 export interface ProductMatch {
   id: string
   name: string
@@ -34,6 +41,7 @@ export interface ProductMatch {
   images: string[]
   sales_script: string | null
   product_faqs: Record<string, string> | null
+  variants?: ProductVariantInfo[]
   // Restaurant features
   available_today?: boolean
   sold_out?: boolean
@@ -616,7 +624,8 @@ export async function searchProducts(
     .select(`
       id, name, description, category, base_price, images, sales_script,
       available_today, sold_out, allergens, spicy_level,
-      is_vegan, is_halal, is_gluten_free, dietary_tags
+      is_vegan, is_halal, is_gluten_free, dietary_tags,
+      product_variants(size, color, price, stock_quantity)
     `)
     .eq('store_id', storeId)
     .eq('status', 'active')
@@ -656,25 +665,30 @@ export async function searchProducts(
 
   const { data } = await dbQuery.limit(maxProducts)
   if (!data) return []
-  return data.map((row) => ({
-    id: row.id,
-    name: row.name,
-    description: row.description ?? '',
-    category: row.category ?? '',
-    base_price: row.base_price ?? 0,
-    images: (row.images ?? []) as string[],
-    sales_script: row.sales_script,
-    product_faqs: null,
-    // Restaurant features
-    available_today: row.available_today ?? true,
-    sold_out: row.sold_out ?? false,
-    allergens: (row.allergens ?? []) as string[],
-    spicy_level: row.spicy_level ?? 0,
-    is_vegan: row.is_vegan ?? false,
-    is_halal: row.is_halal ?? false,
-    is_gluten_free: row.is_gluten_free ?? false,
-    dietary_tags: (row.dietary_tags ?? []) as string[],
-  }))
+  return data.map((row) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawVariants = (row as any).product_variants as { size: string | null; color: string | null; price: number; stock_quantity: number }[] | undefined
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description ?? '',
+      category: row.category ?? '',
+      base_price: row.base_price ?? 0,
+      images: (row.images ?? []) as string[],
+      sales_script: row.sales_script,
+      product_faqs: null,
+      variants: rawVariants && rawVariants.length > 0 ? rawVariants : undefined,
+      // Restaurant features
+      available_today: row.available_today ?? true,
+      sold_out: row.sold_out ?? false,
+      allergens: (row.allergens ?? []) as string[],
+      spicy_level: row.spicy_level ?? 0,
+      is_vegan: row.is_vegan ?? false,
+      is_halal: row.is_halal ?? false,
+      is_gluten_free: row.is_gluten_free ?? false,
+      dietary_tags: (row.dietary_tags ?? []) as string[],
+    }
+  })
 }
 
 /**
@@ -1085,6 +1099,7 @@ export async function generateAIResponse(
           base_price: p.base_price,
           description: p.description,
           product_faqs: p.product_faqs,
+          variants: p.variants,
           // Restaurant features
           allergens: p.allergens,
           spicy_level: p.spicy_level,

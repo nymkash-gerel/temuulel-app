@@ -38,6 +38,7 @@ export default function EditProductPage() {
   const [status, setStatus] = useState<'active' | 'draft'>('draft')
   const [hasVariants, setHasVariants] = useState(false)
   const [variants, setVariants] = useState<Variant[]>([])
+  const [stockQuantity, setStockQuantity] = useState('')
   const [fitNote, setFitNote] = useState('')
   const [existingFaqs, setExistingFaqs] = useState<Record<string, string>>({})
   const [facebookPostId, setFacebookPostId] = useState('')
@@ -103,6 +104,10 @@ export default function EditProductPage() {
             stock: String(v.stock_quantity || ''),
             sku: (v.sku as string) || '',
           })))
+          // For simple products, load stock from first variant
+          if (!product.has_variants) {
+            setStockQuantity(String(product.product_variants[0].stock_quantity || ''))
+          }
         }
       }
       setLoading(false)
@@ -158,25 +163,47 @@ export default function EditProductPage() {
 
       if (productError) throw productError
 
-      // Handle variants
-      for (const variant of variants) {
-        if (variant.isNew || variant.id.startsWith('new-')) {
+      // Handle variants / stock
+      if (hasVariants) {
+        for (const variant of variants) {
+          if (variant.isNew || variant.id.startsWith('new-')) {
+            await supabase.from('product_variants').insert({
+              product_id: productId,
+              size: variant.size || null,
+              color: variant.color || null,
+              price: parseFloat(variant.price) || parseFloat(basePrice) || 0,
+              stock_quantity: parseInt(variant.stock) || 0,
+              sku: variant.sku || null,
+            })
+          } else {
+            await supabase.from('product_variants').update({
+              size: variant.size || null,
+              color: variant.color || null,
+              price: parseFloat(variant.price) || parseFloat(basePrice) || 0,
+              stock_quantity: parseInt(variant.stock) || 0,
+              sku: variant.sku || null,
+            }).eq('id', variant.id)
+          }
+        }
+      } else {
+        // Simple product — upsert a single default variant for stock tracking
+        const stock = parseInt(stockQuantity) || 0
+        const defaultVariant = variants.find(v => !v.id.startsWith('new-'))
+        if (defaultVariant) {
+          await supabase.from('product_variants').update({
+            size: null, color: null,
+            price: parseFloat(basePrice) || 0,
+            stock_quantity: stock,
+            sku: sku || null,
+          }).eq('id', defaultVariant.id)
+        } else {
           await supabase.from('product_variants').insert({
             product_id: productId,
-            size: variant.size || null,
-            color: variant.color || null,
-            price: parseFloat(variant.price) || parseFloat(basePrice) || 0,
-            stock_quantity: parseInt(variant.stock) || 0,
-            sku: variant.sku || null,
+            size: null, color: null,
+            price: parseFloat(basePrice) || 0,
+            stock_quantity: stock,
+            sku: sku || null,
           })
-        } else {
-          await supabase.from('product_variants').update({
-            size: variant.size || null,
-            color: variant.color || null,
-            price: parseFloat(variant.price) || parseFloat(basePrice) || 0,
-            stock_quantity: parseInt(variant.stock) || 0,
-            sku: variant.sku || null,
-          }).eq('id', variant.id)
         }
       }
 
@@ -281,11 +308,17 @@ export default function EditProductPage() {
             <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
               <h2 className="text-lg font-semibold text-white mb-4">Үнэ & Нөөц</h2>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className={`grid ${hasVariants ? 'grid-cols-2' : 'grid-cols-3'} gap-4`}>
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">Үнэ (₮) *</label>
                     <input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500" required />
                   </div>
+                  {!hasVariants && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Нөөц (ширхэг)</label>
+                      <input type="number" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} placeholder="0" min="0" className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500" />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">SKU</label>
                     <input type="text" value={sku} onChange={(e) => setSku(e.target.value)} className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500" />
