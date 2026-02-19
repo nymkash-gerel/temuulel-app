@@ -1654,7 +1654,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
-| Document rollback procedure | PENDING | P1 | Quick revert on bad deploy |
+| Document rollback procedure | **DONE** ✓ | P1 | Added to docs/DEPLOYMENT.md — decision tree, 4 rollback methods |
 | Test database migration rollback | PENDING | P1 | |
 | Set up deployment notifications (Slack/Discord) | PENDING | P2 | |
 | Configure proper environment parity (local ≈ staging ≈ prod) | PENDING | P2 | |
@@ -1670,5 +1670,5 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Testing & Quality | 3 | 0 | 3 |
 | Business Operations | 4 | 0 | 4 |
 | Security Hardening | 5 | 3 | 2 |
-| DevOps & Deployment | 4 | 0 | 4 |
-| **Total** | **25** | **5** | **20** |
+| DevOps & Deployment | 4 | 1 | 3 |
+| **Total** | **25** | **6** | **19** |

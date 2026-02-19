@@ -591,10 +591,154 @@ Or run the new SQL files manually via the Supabase Dashboard SQL Editor.
 
 ### Rolling Back
 
-If a deployment causes issues:
+Use these procedures when a deployment causes issues. Always start with the least destructive option.
 
-1. **Vercel rollback**: In the Vercel Dashboard, go to **Deployments**, find the last known-good deployment, and click **Promote to Production**.
-2. **Database rollback**: Restore from your latest backup if a migration caused data issues. Supabase PITR (Pro plan) allows restoring to any point in time.
+#### Decision Tree
+
+```
+Issue detected after deploy
+  ├─ App crash / UI broken / API errors?
+  │   └─ Step 1: Vercel Instant Rollback (30 seconds)
+  ├─ Database migration broke queries?
+  │   └─ Step 2: Database Migration Rollback
+  ├─ Bad data written / data corruption?
+  │   └─ Step 3: Database Point-in-Time Recovery
+  └─ Need to undo a git commit?
+      └─ Step 4: Git Revert
+```
+
+#### Step 1: Vercel Instant Rollback (App Code)
+
+Fastest option. Reverts the running app to a previous deployment without touching the database.
+
+**Via Dashboard:**
+1. Go to Vercel Dashboard > **Deployments**
+2. Find the last known-good deployment (green checkmark)
+3. Click the three-dot menu (⋯) > **Promote to Production**
+
+**Via CLI:**
+```bash
+# List recent deployments
+vercel ls
+
+# Promote a specific deployment to production
+vercel promote <deployment-url>
+```
+
+**Recovery time:** ~30 seconds
+
+#### Step 2: Database Migration Rollback
+
+If a migration broke queries or schema, revert the specific changes.
+
+**Before rolling back**, always take a backup:
+```bash
+pg_dump "postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres" \
+  --format=custom \
+  --no-owner \
+  --no-privileges \
+  -f pre_rollback_$(date +%Y%m%d_%H%M%S).dump
+```
+
+**Option A: Manual SQL revert**
+
+Each migration should have a known reverse operation. Run the reverse SQL in the Supabase Dashboard SQL Editor:
+
+```sql
+-- Example: If migration added a column
+ALTER TABLE stores DROP COLUMN IF EXISTS new_column;
+
+-- Example: If migration added a table
+DROP TABLE IF EXISTS new_table;
+
+-- Example: If migration added an index
+DROP INDEX IF EXISTS idx_new_index;
+```
+
+**Option B: Supabase CLI**
+
+```bash
+# Check current migration status
+npx supabase migration list
+
+# To revert, create a new "down" migration
+npx supabase migration new rollback_047_description
+# Edit the new file with reverse SQL, then push
+npx supabase db push
+```
+
+**Recovery time:** 2-10 minutes depending on migration complexity
+
+#### Step 3: Database Point-in-Time Recovery (PITR)
+
+For data corruption or bad data writes. **Requires Supabase Pro plan.**
+
+1. Go to Supabase Dashboard > **Settings > Database > Backups**
+2. Select **Point in Time Recovery**
+3. Choose the timestamp just before the issue occurred
+4. Click **Restore**
+
+**Warning:** This replaces the entire database state. Any data written after the recovery point will be lost.
+
+**For Free plan (daily backups):**
+```bash
+# Restore from a backup file
+pg_restore --clean --no-owner --no-privileges \
+  -d "postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres" \
+  backup_YYYYMMDD_HHMMSS.dump
+```
+
+**Recovery time:** 5-30 minutes depending on database size
+
+#### Step 4: Git Revert
+
+To undo a specific commit while preserving history:
+
+```bash
+# Revert the most recent commit
+git revert HEAD --no-edit
+git push origin main
+
+# Revert a specific commit
+git revert <commit-hash> --no-edit
+git push origin main
+
+# Revert multiple commits (oldest to newest order)
+git revert <oldest-hash>^..<newest-hash> --no-edit
+git push origin main
+```
+
+To go back to a tagged checkpoint:
+```bash
+# List available checkpoints
+git tag -l "checkpoint-*"
+
+# Create a revert branch from checkpoint
+git checkout -b hotfix/rollback checkpoint-before-facebook
+git push origin hotfix/rollback
+# Then merge via PR or cherry-pick fixes
+```
+
+**Recovery time:** 1-5 minutes (Vercel auto-deploys on push to main)
+
+#### Post-Rollback Checklist
+
+After any rollback, verify the system is stable:
+
+- [ ] `GET /api/health` returns `200` with `"status": "healthy"`
+- [ ] Check Sentry for new errors (there should be none)
+- [ ] Verify critical paths: login, dashboard load, chat send, order create
+- [ ] Check Supabase Dashboard for database connectivity
+- [ ] Notify team of rollback and root cause
+
+#### Emergency Contacts
+
+| Service | Action | Where |
+|---------|--------|-------|
+| Vercel | Rollback deployment | vercel.com > Deployments |
+| Supabase | Restore backup / PITR | supabase.com > Database > Backups |
+| Sentry | Check errors | sentry.io > Issues |
+| Domain/DNS | Check DNS propagation | whatsmydns.net |
 
 ---
 
