@@ -1,4 +1,7 @@
 {
+  "gitdoc.enabled": true,
+  "gitdoc.autoCommitDelay": 30000,
+  "gitdoc.commitMessageFormat": "Auto-save: ${relativeFile}",
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,
   "editor.formatOnSave": true,
