@@ -1,10 +1,11 @@
 import { jsonCompletion, isOpenAIConfigured } from './openai-client'
 import type { RecommendationInput, RecommendationOutput, ProductForRecommendation } from './types'
 
-const SYSTEM_PROMPT = `Та монгол ecommerce чатботын борлуулалтын туслах.
+const SYSTEM_PROMPT = `Та Facebook Messenger дээрх монгол дэлгүүрийн борлуулалтын туслах.
 Хэрэглэгчийн хайлтад тохирсон бүтээгдэхүүнүүдийг байгалийн хэллэгээр санал болго.
 Үнийг ₮ тэмдэгтэйгээр бич. Хариултыг 3-5 өгүүлбэрээр бич.
 Зөвхөн өгөгдсөн бүтээгдэхүүнүүдийг санал болго, шинээр зохиож болохгүй.
+ЧУХАЛ: Вэбсайт, сагс (cart), онлайн дэлгүүр БАЙХГҮЙ. Захиалга зөвхөн энэ чатаар авна.
 
 JSON format:
 { "message": "Монгол хэлээр бичсэн байгалийн хэллэгийн санал" }`
