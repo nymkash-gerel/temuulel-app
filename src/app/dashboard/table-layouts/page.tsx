@@ -13,6 +13,8 @@ interface TableLayout {
   status: string
   is_active: boolean
   created_at: string
+  qr_code_token: string | null
+  qr_enabled: boolean | null
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -50,6 +52,9 @@ export default function TableLayoutsPage() {
   const [formShape, setFormShape] = useState('round')
   const [formIsActive, setFormIsActive] = useState(true)
 
+  // QR modal state
+  const [qrModalTable, setQrModalTable] = useState<TableLayout | null>(null)
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -66,7 +71,7 @@ export default function TableLayoutsPage() {
 
         const { data } = await supabase
           .from('table_layouts')
-          .select('id, name, section, capacity, shape, status, is_active, created_at')
+          .select('id, name, section, capacity, shape, status, is_active, created_at, qr_code_token, qr_enabled')
           .eq('store_id', store.id)
           .order('name', { ascending: true })
 
@@ -157,6 +162,25 @@ export default function TableLayoutsPage() {
       ))
     }
   }
+
+  const toggleQrEnabled = useCallback(async (table: TableLayout) => {
+    const newEnabled = !table.qr_enabled
+    const { error } = await supabase
+      .from('table_layouts')
+      .update({ qr_enabled: newEnabled })
+      .eq('id', table.id)
+
+    if (!error) {
+      setTables(prev => prev.map(t =>
+        t.id === table.id ? { ...t, qr_enabled: newEnabled } : t
+      ))
+    }
+  }, [supabase])
+
+  const getQrUrl = useCallback((token: string) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    return `${baseUrl}/table/${token}`
+  }, [])
 
   if (loading) {
     return (
@@ -354,6 +378,7 @@ export default function TableLayoutsPage() {
                 <th className="text-center py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Суудал</th>
                 <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Хэлбэр</th>
                 <th className="text-center py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Төлөв</th>
+                <th className="text-center py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">QR</th>
                 <th className="text-center py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Идэвхтэй</th>
                 <th className="text-right py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Үйлдэл</th>
               </tr>
@@ -381,6 +406,28 @@ export default function TableLayoutsPage() {
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${sc.color}`}>
                         {sc.label}
                       </span>
+                    </td>
+                    <td className="py-3 px-3 md:py-4 md:px-6 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => toggleQrEnabled(table)}
+                          className={`px-2 py-1 text-xs rounded-lg transition-all ${
+                            table.qr_enabled
+                              ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                              : 'bg-slate-600/20 text-slate-500 hover:bg-slate-600/30'
+                          }`}
+                        >
+                          {table.qr_enabled ? 'ON' : 'OFF'}
+                        </button>
+                        {table.qr_enabled && table.qr_code_token && (
+                          <button
+                            onClick={() => setQrModalTable(table)}
+                            className="px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-all"
+                          >
+                            QR
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${
@@ -458,6 +505,65 @@ export default function TableLayoutsPage() {
           >
             Эхний ширээгээ нэмэх
           </button>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {qrModalTable && qrModalTable.qr_code_token && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setQrModalTable(null)}>
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-white mb-2 text-center">QR код</h2>
+            <p className="text-slate-400 text-center mb-4">{qrModalTable.name}</p>
+
+            {/* QR Code Image using QR Server API */}
+            <div className="bg-white rounded-xl p-4 mb-4">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(getQrUrl(qrModalTable.qr_code_token))}`}
+                alt="QR Code"
+                className="w-full"
+              />
+            </div>
+
+            {/* URL display */}
+            <div className="mb-4">
+              <p className="text-xs text-slate-500 mb-1">URL:</p>
+              <div className="bg-gray-700 rounded-lg p-2 break-all text-xs text-slate-300">
+                {getQrUrl(qrModalTable.qr_code_token)}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(getQrUrl(qrModalTable.qr_code_token!))
+                  alert('URL хуулагдлаа!')
+                }}
+                className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all text-sm"
+              >
+                URL хуулах
+              </button>
+              <button
+                onClick={() => {
+                  const url = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(getQrUrl(qrModalTable.qr_code_token!))}`
+                  const link = document.createElement('a')
+                  link.href = url
+                  link.download = `qr-${qrModalTable.name}.png`
+                  link.click()
+                }}
+                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all text-sm"
+              >
+                Татах
+              </button>
+            </div>
+
+            <button
+              onClick={() => setQrModalTable(null)}
+              className="w-full mt-3 px-4 py-2 text-slate-400 hover:text-white transition-all text-sm"
+            >
+              Хаах
+            </button>
+          </div>
         </div>
       )}
     </div>

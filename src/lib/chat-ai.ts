@@ -34,6 +34,23 @@ export interface ProductMatch {
   images: string[]
   sales_script: string | null
   product_faqs: Record<string, string> | null
+  // Restaurant features
+  available_today?: boolean
+  sold_out?: boolean
+  allergens?: string[]
+  spicy_level?: number
+  is_vegan?: boolean
+  is_halal?: boolean
+  is_gluten_free?: boolean
+  dietary_tags?: string[]
+}
+
+export interface TableMatch {
+  id: string
+  table_name: string
+  capacity: number
+  status: string
+  location: string | null
 }
 
 export interface OrderMatch {
@@ -320,6 +337,61 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Address structure (customer providing delivery address)
     'байр', 'баир', 'давхар', 'тоот', 'орц', 'хотхон', 'хороолол',
   ],
+  // Restaurant-specific intents
+  table_reservation: [
+    // Core
+    'ширээ', 'суудал', 'захиал', 'захиалах', 'резерв', 'бронь',
+    'хүн', 'хүний', 'зочин', 'орой', 'оройн', 'өглөө',
+    'үдийн', 'хоол', 'зоогийн',
+    // Table-specific
+    'сул', 'чөлөөтэй', 'байна уу', 'бий юу',
+    'суух', 'суудлын',
+    // Time expressions
+    'цагт', 'цаг', 'орой',
+    // English
+    'table', 'reservation', 'reserve', 'book', 'booking',
+    'seat', 'seats', 'party', 'dinner', 'lunch',
+    // Aliases
+    'ширээний', 'ширээ авах', 'ширээ захиалах',
+    'суудал авах', 'суудал захиалах',
+    'резервлэх', 'броньлох',
+    'орой хоол', 'үдийн хоол',
+  ],
+  allergen_info: [
+    // Core allergens
+    'харшил', 'харшлийн', 'аллерги', 'орц', 'найрлага',
+    'глютен', 'глютенгүй', 'сүү', 'сүүний', 'самар',
+    'самрын', 'өндөг', 'өндөгний', 'загас', 'далайн',
+    // Dietary preferences
+    'вега', 'веган', 'вегетари', 'халал', 'халяль',
+    'цэвэр', 'органик',
+    // Spicy level
+    'халуун', 'халуунтай', 'ногоон чинжүү', 'амт',
+    // English
+    'allergy', 'allergies', 'allergen', 'ingredient',
+    'gluten', 'gluten-free', 'dairy', 'nuts', 'egg',
+    'vegan', 'vegetarian', 'halal', 'spicy',
+    // Aliases
+    'ямар орц', 'юу орсон', 'орц найрлага',
+    'аллергитай', 'харшилтай',
+    'глютенгүй юу', 'сүү орсон уу',
+  ],
+  menu_availability: [
+    // Core
+    'цэс', 'меню', 'өнөөдөр', 'өнөөдрийн', 'бэлэн',
+    'дууссан', 'үлдсэн', 'байна уу', 'идэж',
+    // Food items
+    'хоол', 'хоолны', 'уух', 'ундаа',
+    // Availability check
+    'байгаа юу', 'бий юу', 'авч болох',
+    // English
+    'menu', 'available', 'today', 'sold out',
+    'in stock', 'can order',
+    // Aliases
+    'өнөөдрийн цэс', 'яг одоо', 'одоо байгаа',
+    'хоол байна уу', 'ямар хоол', 'юу захиалах',
+    'дуусчхсан уу', 'дуусав уу',
+  ],
 }
 
 /** Pre-compute normalized keyword lists (done once at module load) */
@@ -466,6 +538,12 @@ export function extractSearchTerms(message: string): string {
   return meaningful.join(' ')
 }
 
+export interface SearchProductsOptions {
+  maxProducts?: number
+  /** Filter to only available items (restaurant menus) */
+  availableOnly?: boolean
+}
+
 /**
  * Generic product search. Accepts any Supabase client (browser or service-role).
  */
@@ -473,8 +551,9 @@ export async function searchProducts(
   supabase: SupabaseClient<Database>,
   query: string,
   storeId: string,
-  maxProducts?: number
+  options: SearchProductsOptions = {}
 ): Promise<ProductMatch[]> {
+  const { maxProducts = 5, availableOnly = false } = options
   const normalizedQuery = normalizeText(query)
   let mappedCategory: string | null = null
   for (const [mn, en] of Object.entries(CATEGORY_MAP)) {
@@ -486,9 +565,18 @@ export async function searchProducts(
 
   let dbQuery = supabase
     .from('products')
-    .select('id, name, description, category, base_price, images, sales_script')
+    .select(`
+      id, name, description, category, base_price, images, sales_script,
+      available_today, sold_out, allergens, spicy_level,
+      is_vegan, is_halal, is_gluten_free, dietary_tags
+    `)
     .eq('store_id', storeId)
     .eq('status', 'active')
+
+  // For restaurant menus, filter to available items only
+  if (availableOnly) {
+    dbQuery = dbQuery.eq('available_today', true).eq('sold_out', false)
+  }
 
   if (mappedCategory) {
     dbQuery = dbQuery.eq('category', mappedCategory)
@@ -508,7 +596,7 @@ export async function searchProducts(
     }
   }
 
-  const { data } = await dbQuery.limit(maxProducts || 5)
+  const { data } = await dbQuery.limit(maxProducts)
   if (!data) return []
   return data.map((row) => ({
     id: row.id,
@@ -519,7 +607,96 @@ export async function searchProducts(
     images: (row.images ?? []) as string[],
     sales_script: row.sales_script,
     product_faqs: null,
+    // Restaurant features
+    available_today: row.available_today ?? true,
+    sold_out: row.sold_out ?? false,
+    allergens: (row.allergens ?? []) as string[],
+    spicy_level: row.spicy_level ?? 0,
+    is_vegan: row.is_vegan ?? false,
+    is_halal: row.is_halal ?? false,
+    is_gluten_free: row.is_gluten_free ?? false,
+    dietary_tags: (row.dietary_tags ?? []) as string[],
   }))
+}
+
+/**
+ * Search for available tables at a restaurant.
+ * Returns tables that are currently available or could be reserved.
+ */
+export async function searchAvailableTables(
+  supabase: SupabaseClient<Database>,
+  storeId: string,
+  partySize?: number,
+  dateTime?: Date
+): Promise<TableMatch[]> {
+  let dbQuery = supabase
+    .from('table_layouts')
+    .select('id, name, capacity, status, section')
+    .eq('store_id', storeId)
+    .eq('status', 'available')
+    .eq('is_active', true)
+    .order('capacity', { ascending: true })
+
+  if (partySize) {
+    dbQuery = dbQuery.gte('capacity', partySize)
+  }
+
+  const { data } = await dbQuery.limit(10)
+  if (!data) return []
+
+  // If a specific date/time is requested, filter out tables with conflicting reservations
+  if (dateTime) {
+    const reservationWindow = new Date(dateTime)
+    const windowStart = new Date(reservationWindow.getTime() - 2 * 60 * 60 * 1000) // 2 hours before
+    const windowEnd = new Date(reservationWindow.getTime() + 2 * 60 * 60 * 1000) // 2 hours after
+
+    const { data: reservations } = await supabase
+      .from('table_reservations')
+      .select('table_id')
+      .eq('store_id', storeId)
+      .in('status', ['confirmed', 'pending'])
+      .gte('reservation_time', windowStart.toISOString())
+      .lte('reservation_time', windowEnd.toISOString())
+
+    const reservedTableIds = new Set(reservations?.map(r => r.table_id) ?? [])
+    return data
+      .filter(t => !reservedTableIds.has(t.id))
+      .map(row => ({
+        id: row.id,
+        table_name: row.name,
+        capacity: row.capacity,
+        status: row.status,
+        location: row.section,
+      }))
+  }
+
+  return data.map(row => ({
+    id: row.id,
+    table_name: row.name,
+    capacity: row.capacity,
+    status: row.status,
+    location: row.section,
+  }))
+}
+
+/**
+ * Check if a store is in busy mode.
+ */
+export async function checkStoreBusyMode(
+  supabase: SupabaseClient<Database>,
+  storeId: string
+): Promise<{ busy_mode: boolean; busy_message: string | null; estimated_wait_minutes: number | null }> {
+  const { data } = await supabase
+    .from('stores')
+    .select('busy_mode, busy_message, estimated_wait_minutes')
+    .eq('id', storeId)
+    .single()
+
+  return {
+    busy_mode: data?.busy_mode ?? false,
+    busy_message: data?.busy_message ?? null,
+    estimated_wait_minutes: data?.estimated_wait_minutes ?? null,
+  }
 }
 
 /**
@@ -661,6 +838,57 @@ export function generateResponse(
     case 'shipping':
       return `Хүргэлтийн мэдээлэл:\n\n🚚 **Хүргэлтийн нөхцөл:**\n• Улаанбаатар хот: 1-2 ажлын өдөр\n• Хөдөө орон нутаг: 3-5 ажлын өдөр\n• Хүргэлтийн төлбөр захиалгын дүнгээс хамаарна\n\nТа хаягаа бичвэл бид хүргэлтийн төлбөрийг тооцоолж хэлж өгье.`
 
+    case 'table_reservation':
+      return `🍽️ **Ширээ захиалга:**\n\nБид таны захиалгыг хүлээн авахад бэлэн байна!\n\nДараах мэдээллийг бичнэ үү:\n• Хэдэн хүн?\n• Аль өдөр, хэдэн цагт?\n• Нэр, утасны дугаар\n\nЖишээ: "4 хүн, өнөөдөр орой 7 цагт, Болд 99112233"\n\nМенежер тантай холбогдож баталгаажуулна.`
+
+    case 'allergen_info': {
+      if (products.length > 0) {
+        let response = `🥗 **Орц найрлага / Харшлийн мэдээлэл:**\n\n`
+        products.forEach((p, i) => {
+          response += `${i + 1}. **${p.name}**\n`
+          if (p.allergens && p.allergens.length > 0) {
+            response += `   ⚠️ Харшил: ${p.allergens.join(', ')}\n`
+          } else {
+            response += `   ✅ Түгээмэл харшлийн бүтээгдэхүүнгүй\n`
+          }
+          if (p.is_vegan) response += `   🌱 Веган\n`
+          if (p.is_halal) response += `   ☪️ Халал\n`
+          if (p.is_gluten_free) response += `   🌾 Глютенгүй\n`
+          if (p.spicy_level && p.spicy_level > 0) {
+            response += `   🌶️ Халуун түвшин: ${'🌶️'.repeat(p.spicy_level)}\n`
+          }
+          response += '\n'
+        })
+        response += `Тодорхой бүтээгдэхүүний талаар дэлгэрэнгүй асуухыг хүсвэл нэрийг нь бичнэ үү!`
+        return response
+      }
+      return `🥗 **Орц найрлага / Харшлийн мэдээлэл:**\n\nБид дараах мэдээллийг бүх бүтээгдэхүүнд тэмдэглэсэн:\n• 🌱 Веган\n• ☪️ Халал\n• 🌾 Глютенгүй\n• 🌶️ Халуун түвшин\n\nТодорхой бүтээгдэхүүний орц найрлагыг мэдэхийг хүсвэл нэрийг нь бичнэ үү!`
+    }
+
+    case 'menu_availability': {
+      if (products.length > 0) {
+        const available = products.filter(p => p.available_today && !p.sold_out)
+        const soldOut = products.filter(p => p.sold_out)
+
+        let response = `📋 **Өнөөдрийн цэс:**\n\n`
+        if (available.length > 0) {
+          response += `✅ **Бэлэн байгаа:**\n`
+          available.forEach((p, i) => {
+            response += `${i + 1}. ${p.name} — ${formatPrice(p.base_price)}\n`
+          })
+        }
+        if (soldOut.length > 0) {
+          response += `\n❌ **Дууссан:**\n`
+          soldOut.forEach((p) => {
+            response += `• ${p.name}\n`
+          })
+        }
+        response += `\nЯмар хоол захиалах вэ?`
+        return response
+      }
+      return `📋 **Өнөөдрийн цэс:**\n\nМанай бүх цэс идэвхтэй байна. Ямар хоол захиалах вэ?\n\nЦэс үзэхийг хүсвэл "цэс" гэж бичнэ үү.`
+    }
+
     case 'product_suggestions': {
       let response = `Уучлаарай, таны хайсан бүтээгдэхүүн олдсонгүй. Гэхдээ манай дэлгүүрт дараах бүтээгдэхүүнүүд байна:\n\n`
       products.forEach((p, i) => {
@@ -766,6 +994,15 @@ export interface ActiveVoucherInfo {
   valid_until: string
 }
 
+export interface RestaurantContext {
+  availableTables?: TableMatch[]
+  busyMode?: {
+    busy_mode: boolean
+    busy_message?: string | null
+    estimated_wait_minutes?: number | null
+  }
+}
+
 export async function generateAIResponse(
   intent: string,
   products: ProductMatch[],
@@ -774,7 +1011,8 @@ export async function generateAIResponse(
   customerQuery: string,
   settings?: ChatbotSettings,
   history?: MessageHistoryEntry[],
-  activeVouchers?: ActiveVoucherInfo[]
+  activeVouchers?: ActiveVoucherInfo[],
+  restaurantContext?: RestaurantContext
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history
   if (history && history.length > 0) {
@@ -789,6 +1027,13 @@ export async function generateAIResponse(
           base_price: p.base_price,
           description: p.description,
           product_faqs: p.product_faqs,
+          // Restaurant features
+          allergens: p.allergens,
+          spicy_level: p.spicy_level,
+          is_vegan: p.is_vegan,
+          is_halal: p.is_halal,
+          is_gluten_free: p.is_gluten_free,
+          sold_out: p.sold_out,
         })),
         orders: orders.map((o) => ({
           order_number: o.order_number,
@@ -798,6 +1043,14 @@ export async function generateAIResponse(
         storeName,
         returnPolicy: settings?.return_policy,
         activeVouchers,
+        // Restaurant context
+        availableTables: restaurantContext?.availableTables?.map(t => ({
+          table_name: t.table_name,
+          capacity: t.capacity,
+          status: t.status,
+          location: t.location,
+        })),
+        busyMode: restaurantContext?.busyMode,
       })
       if (contextResult) return contextResult
     } catch {

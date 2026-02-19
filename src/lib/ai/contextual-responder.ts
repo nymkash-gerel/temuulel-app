@@ -18,15 +18,45 @@ export interface ActiveVoucherContext {
   valid_until: string
 }
 
+export interface ProductContext {
+  name: string
+  base_price: number
+  description?: string
+  product_faqs?: Record<string, string> | null
+  // Restaurant features
+  allergens?: string[]
+  spicy_level?: number
+  is_vegan?: boolean
+  is_halal?: boolean
+  is_gluten_free?: boolean
+  sold_out?: boolean
+}
+
+export interface TableContext {
+  table_name: string
+  capacity: number
+  status: string
+  location?: string | null
+}
+
+export interface BusyModeContext {
+  busy_mode: boolean
+  busy_message?: string | null
+  estimated_wait_minutes?: number | null
+}
+
 export interface ContextualInput {
   history: MessageHistoryEntry[]
   currentMessage: string
   intent: string
-  products: { name: string; base_price: number; description?: string; product_faqs?: Record<string, string> | null }[]
+  products: ProductContext[]
   orders: { order_number: string; status: string; total_amount: number }[]
   storeName: string
   returnPolicy?: string
   activeVouchers?: ActiveVoucherContext[]
+  // Restaurant features
+  availableTables?: TableContext[]
+  busyMode?: BusyModeContext
 }
 
 function buildSystemPrompt(input: ContextualInput): string {
@@ -42,12 +72,38 @@ function buildSystemPrompt(input: ContextualInput): string {
 - 100% баталгаа өгөхгүй — "яг тохирохыг баталгаажуулахын тулд манай менежерээс лавлана уу" гэж нэмнэ.
 Үнийг ₮ тэмдэгтэйгээр бич.`
 
+  // Busy mode warning (restaurants)
+  if (input.busyMode?.busy_mode) {
+    prompt += '\n\n⚠️ ЗАВГҮЙ ГОРИМ ИДЭВХТЭЙ:\n'
+    prompt += 'Одоогоор захиалга түр хаасан байна.\n'
+    if (input.busyMode.busy_message) {
+      prompt += `Мессеж: ${input.busyMode.busy_message}\n`
+    }
+    if (input.busyMode.estimated_wait_minutes) {
+      prompt += `Хүлээлтийн хугацаа: ${input.busyMode.estimated_wait_minutes} минут\n`
+    }
+    prompt += 'Хэрэглэгч захиалга өгөхийг хүсвэл энэ мэдээллийг хэлж, дараа дахин оролдохыг хүс.\n'
+  }
+
   if (input.products.length > 0) {
     prompt += '\n\nБүтээгдэхүүнүүд:\n'
     input.products.forEach((p, i) => {
       prompt += `${i + 1}. ${p.name} — ${p.base_price}₮`
+      if (p.sold_out) prompt += ' [ДУУССАН]'
       if (p.description) prompt += ` | ${p.description.slice(0, 150)}`
       prompt += '\n'
+      // Include allergen/dietary info for restaurants
+      const dietary: string[] = []
+      if (p.is_vegan) dietary.push('🌱 Веган')
+      if (p.is_halal) dietary.push('☪️ Халал')
+      if (p.is_gluten_free) dietary.push('🌾 Глютенгүй')
+      if (p.spicy_level && p.spicy_level > 0) dietary.push(`🌶️ x${p.spicy_level}`)
+      if (dietary.length > 0) {
+        prompt += `   Тэмдэглэгээ: ${dietary.join(', ')}\n`
+      }
+      if (p.allergens && p.allergens.length > 0) {
+        prompt += `   ⚠️ Харшил: ${p.allergens.join(', ')}\n`
+      }
       // Include FAQ data if available
       if (p.product_faqs) {
         const faqEntries = Object.entries(p.product_faqs).filter(([, v]) => v)
@@ -58,6 +114,17 @@ function buildSystemPrompt(input: ContextualInput): string {
         }
       }
     })
+  }
+
+  // Available tables (restaurants)
+  if (input.availableTables && input.availableTables.length > 0) {
+    prompt += '\n\nБОЛОМЖТОЙ ШИРЭЭНҮҮД:\n'
+    input.availableTables.forEach((t) => {
+      prompt += `• ${t.table_name} — ${t.capacity} хүн`
+      if (t.location) prompt += ` (${t.location})`
+      prompt += '\n'
+    })
+    prompt += 'Ширээ захиалах бол хэрэглэгчээс нэр, утас, хүний тоо, цаг авна.\n'
   }
 
   if (input.orders.length > 0) {

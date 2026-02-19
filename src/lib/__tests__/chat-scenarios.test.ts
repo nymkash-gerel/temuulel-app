@@ -32,7 +32,7 @@ describe('Mongolian Intent Classification', () => {
     ['10 удаагийн багц хэд вэ?', 'product_search'],     // Wellness: packages
     ['Энэ бараа нөөцөд байна уу?', 'product_search'],   // Retail: stock check
     ['Хуримын зураг авалт хэд вэ?', 'product_search'],  // Photography: pricing
-    ['Цагаан хоолны сонголт байна уу?', 'product_search'], // Restaurant: vegetarian
+    ['Цагаан хоолны сонголт байна уу?', 'menu_availability'], // Restaurant: vegetarian (now triggers menu_availability)
     ['Сургалтын төлбөр хэд вэ?', 'product_search'],     // Education: tuition
     ['Дэлгэц засвар хэд вэ?', 'product_search'],        // Repair: screen fix
     ['3 өрөө байрны цэвэрлэгээ хэд вэ?', 'product_search'], // Home: house cleaning
@@ -276,7 +276,7 @@ describe('Known Classifier Gaps & Ambiguities', () => {
     // "төлбөрийн" doesn't trigger payment; other keywords match product_search
     ['Ямар төлбөрийн хэлбэр байна?', 'product_search'], // Ideal: payment
     // No matching keywords → general
-    ['Кейтеринг цэс юу вэ?', 'general'],              // Ideal: product_search
+    ['Кейтеринг цэс юу вэ?', 'menu_availability'],     // Now triggers menu_availability due to "цэс"
   ] as const
 
   const ambiguousEN = [

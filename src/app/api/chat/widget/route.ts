@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
           supabase,
           followUp.refinedQuery!,
           store_id,
-          chatbotSettings.max_products
+          { maxProducts: chatbotSettings.max_products }
         )
         // Fetch history for LLM tier
         const refHistory = conversation_id && isOpenAIConfigured()
@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
 
         if (intent === 'product_search' || intent === 'general') {
           products = await searchProducts(
-            supabase, customer_message, store_id, chatbotSettings.max_products
+            supabase, customer_message, store_id, { maxProducts: chatbotSettings.max_products }
           )
         }
 
@@ -285,12 +285,12 @@ export async function POST(request: NextRequest) {
         supabase,
         customer_message,
         store_id,
-        chatbotSettings.max_products
+        { maxProducts: chatbotSettings.max_products }
       )
 
       // If no products found, fetch suggested products as fallback
       if (products.length === 0) {
-        products = await searchProducts(supabase, '', store_id, chatbotSettings.max_products)
+        products = await searchProducts(supabase, '', store_id, { maxProducts: chatbotSettings.max_products })
         if (products.length > 0) {
           // Override intent so response template shows "suggested" framing
           intent = 'product_suggestions'

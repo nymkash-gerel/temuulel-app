@@ -5,11 +5,14 @@ import {
   extractSearchTerms,
   searchProducts,
   searchOrders,
+  searchAvailableTables,
+  checkStoreBusyMode,
   generateAIResponse,
   generateResponse,
   formatPrice,
   fetchRecentMessages,
   ChatbotSettings,
+  TableMatch,
 } from '@/lib/chat-ai'
 import {
   readState,
@@ -88,7 +91,11 @@ export async function POST(request: NextRequest) {
   let intent: string
   let products: Awaited<ReturnType<typeof searchProducts>> = []
   let orders: Awaited<ReturnType<typeof searchOrders>> = []
+  let tables: TableMatch[] = []
   let responseText: string
+
+  // Check busy mode for restaurant stores
+  const busyMode = await checkStoreBusyMode(supabase, storeId)
 
   if (followUp) {
     // Handle follow-up without re-classifying intent
@@ -114,7 +121,7 @@ export async function POST(request: NextRequest) {
           supabase,
           followUp.refinedQuery!,
           storeId,
-          chatbotSettings.max_products
+          { maxProducts: chatbotSettings.max_products }
         )
         const refHistory = isOpenAIConfigured()
           ? await fetchRecentMessages(supabase, conversation_id)
@@ -129,7 +136,7 @@ export async function POST(request: NextRequest) {
 
         if (intent === 'product_search' || intent === 'general') {
           const searchTerms = extractSearchTerms(customer_message)
-          products = await searchProducts(supabase, searchTerms, storeId, chatbotSettings.max_products)
+          products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products })
         }
         if (intent === 'order_status') {
           const searchTerms = extractSearchTerms(customer_message)
@@ -152,24 +159,49 @@ export async function POST(request: NextRequest) {
     // Normal classification path
     intent = classifyIntent(customer_message)
 
-    if (intent === 'product_search' || intent === 'general') {
-      const searchTerms = extractSearchTerms(customer_message)
-      products = await searchProducts(supabase, searchTerms, storeId, chatbotSettings.max_products)
+    // Check busy mode for order-related intents
+    if (busyMode.busy_mode && ['product_search', 'table_reservation', 'menu_availability'].includes(intent)) {
+      const waitMsg = busyMode.estimated_wait_minutes
+        ? ` Хүлээлтийн хугацаа: ${busyMode.estimated_wait_minutes} минут.`
+        : ''
+      responseText = busyMode.busy_message
+        || `⚠️ Одоогоор захиалга түр хаасан байна.${waitMsg} Тун удахгүй дахин оролдоно уу!`
+      intent = 'busy_mode'
+    } else {
+      if (intent === 'product_search' || intent === 'general') {
+        const searchTerms = extractSearchTerms(customer_message)
+        products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products })
+      }
+
+      // Restaurant-specific intents
+      if (intent === 'menu_availability' || intent === 'allergen_info') {
+        const searchTerms = extractSearchTerms(customer_message)
+        products = await searchProducts(supabase, searchTerms, storeId, {
+          maxProducts: chatbotSettings.max_products,
+          availableOnly: intent === 'menu_availability',
+        })
+      }
+
+      if (intent === 'table_reservation') {
+        tables = await searchAvailableTables(supabase, storeId)
+      }
+
+      if (intent === 'order_status') {
+        const searchTerms = extractSearchTerms(customer_message)
+        orders = await searchOrders(supabase, searchTerms, storeId, customerId ?? undefined)
+      }
+
+      // Fetch history for LLM tier
+      const history = isOpenAIConfigured()
+        ? await fetchRecentMessages(supabase, conversation_id)
+        : undefined
+
+      responseText = await generateAIResponse(
+        intent, products, orders, storeName, customer_message, chatbotSettings, history,
+        undefined, // activeVouchers
+        { availableTables: tables, busyMode }
+      )
     }
-
-    if (intent === 'order_status') {
-      const searchTerms = extractSearchTerms(customer_message)
-      orders = await searchOrders(supabase, searchTerms, storeId, customerId ?? undefined)
-    }
-
-    // Fetch history for LLM tier
-    const history = isOpenAIConfigured()
-      ? await fetchRecentMessages(supabase, conversation_id)
-      : undefined
-
-    responseText = await generateAIResponse(
-      intent, products, orders, storeName, customer_message, chatbotSettings, history
-    )
   }
 
   void addBreadcrumb('ai.intent', `Classified intent: ${intent}`, {
@@ -262,7 +294,7 @@ async function handleCommentAI(
   let products: Awaited<ReturnType<typeof searchProducts>> = []
   if (intent === 'product_search' || intent === 'general' || intent === 'price_info') {
     const searchTerms = extractSearchTerms(customerMessage)
-    products = await searchProducts(supabase, searchTerms, storeId, chatbotSettings.max_products || 5)
+    products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products || 5 })
   }
 
   // Generate AI response (no history for comments)

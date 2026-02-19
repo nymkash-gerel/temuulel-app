@@ -455,9 +455,10 @@ describe('Intent Classification — Restaurant messages', () => {
     expect(classifyIntent('цэс харуулна уу')).toBe('product_search')
   })
 
-  it('"хоол захиалмаар байна" should trigger product_search or general', () => {
+  it('"хоол захиалмаар байна" should trigger product_search, table_reservation or menu_availability', () => {
     const intent = classifyIntent('хоол захиалмаар байна')
-    expect(['product_search', 'general', 'order_status']).toContain(intent)
+    // "хоол" triggers menu_availability, "захиал" triggers table_reservation
+    expect(['product_search', 'general', 'order_status', 'table_reservation', 'menu_availability']).toContain(intent)
   })
 
   it('"хүргэлт хийдэг үү" classifies as shipping', () => {
@@ -479,11 +480,11 @@ describe('Intent Classification — Beauty Salon messages', () => {
 })
 
 describe('Intent Classification — Hospital / Clinic messages', () => {
-  it('"цаг захиалмаар байна" detects ordering intent', () => {
+  it('"цаг захиалмаар байна" detects ordering or reservation intent', () => {
     const { intent, confidence } = classifyIntentWithConfidence('цаг захиалмаар байна')
-    // "цаг" and "захиал" are keywords
+    // "цаг" and "захиал" are keywords that can trigger order_status or table_reservation
     expect(confidence).toBeGreaterThan(0)
-    expect(['order_status', 'product_search']).toContain(intent)
+    expect(['order_status', 'product_search', 'table_reservation']).toContain(intent)
   })
 
   it('"даатгалтай бол хэрхэн бүртгүүлэх вэ" has some confidence', () => {
@@ -496,8 +497,8 @@ describe('Intent Classification — Coffee Shop messages', () => {
   it('"кофе захиалмаар байна" detects intent', () => {
     const { intent, confidence } = classifyIntentWithConfidence('кофе захиалмаар байна')
     expect(confidence).toBeGreaterThan(0)
-    // "захиал" prefix matches order_status
-    expect(['order_status', 'product_search']).toContain(intent)
+    // "захиал" prefix matches order_status, table_reservation, or product_search
+    expect(['order_status', 'product_search', 'table_reservation']).toContain(intent)
   })
 })
 
