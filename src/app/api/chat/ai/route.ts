@@ -129,7 +129,7 @@ async function handleCommentAI(
   let products: Awaited<ReturnType<typeof searchProducts>> = []
   if (intent === 'product_search' || intent === 'general' || intent === 'price_info') {
     const searchTerms = extractSearchTerms(customerMessage)
-    products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products || 5 })
+    products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products || 5, originalQuery: customerMessage })
   }
 
   const responseText = await generateAIResponse(

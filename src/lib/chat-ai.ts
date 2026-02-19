@@ -584,6 +584,8 @@ export interface SearchProductsOptions {
   maxProducts?: number
   /** Filter to only available items (restaurant menus) */
   availableOnly?: boolean
+  /** Original message before Cyrillic normalization — used to extract Latin words for search */
+  originalQuery?: string
 }
 
 /**
@@ -595,7 +597,7 @@ export async function searchProducts(
   storeId: string,
   options: SearchProductsOptions = {}
 ): Promise<ProductMatch[]> {
-  const { maxProducts = 5, availableOnly = false } = options
+  const { maxProducts = 5, availableOnly = false, originalQuery } = options
   const normalizedQuery = normalizeText(query)
   let mappedCategory: string | null = null
   for (const [mn, en] of Object.entries(CATEGORY_MAP)) {
@@ -624,8 +626,10 @@ export async function searchProducts(
     dbQuery = dbQuery.eq('category', mappedCategory)
   } else {
     const searchTerms = extractSearchTerms(query)
-    // Also get original Latin words + their Mongolian translations
-    const latinWords = extractLatinTerms(query)
+    // Extract Latin words from the ORIGINAL message (before Cyrillic normalization)
+    // query is already Cyrillic-normalized so extractLatinTerms(query) would find nothing
+    const latinSource = originalQuery || query
+    const latinWords = extractLatinTerms(latinSource)
     const translatedWords = latinWords.flatMap((w) => ENGLISH_TO_MONGOLIAN[w] || [])
 
     const allSearchWords = [

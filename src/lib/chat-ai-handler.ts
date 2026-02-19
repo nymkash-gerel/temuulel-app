@@ -102,7 +102,7 @@ export async function processAIChat(
           supabase,
           followUp.refinedQuery!,
           storeId,
-          { maxProducts: chatbotSettings.max_products }
+          { maxProducts: chatbotSettings.max_products, originalQuery: followUp.refinedQuery! }
         )
         const refHistory = isOpenAIConfigured()
           ? await fetchRecentMessages(supabase, conversationId)
@@ -117,7 +117,7 @@ export async function processAIChat(
 
         if (intent === 'product_search' || intent === 'general') {
           const searchTerms = extractSearchTerms(customerMessage)
-          products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products })
+          products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products, originalQuery: customerMessage })
         }
         if (intent === 'order_status') {
           const searchTerms = extractSearchTerms(customerMessage)
@@ -150,7 +150,7 @@ export async function processAIChat(
     } else {
       if (intent === 'product_search' || intent === 'general') {
         const searchTerms = extractSearchTerms(customerMessage)
-        products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products })
+        products = await searchProducts(supabase, searchTerms, storeId, { maxProducts: chatbotSettings.max_products, originalQuery: customerMessage })
       }
 
       if (intent === 'menu_availability' || intent === 'allergen_info') {
@@ -158,6 +158,7 @@ export async function processAIChat(
         products = await searchProducts(supabase, searchTerms, storeId, {
           maxProducts: chatbotSettings.max_products,
           availableOnly: intent === 'menu_availability',
+          originalQuery: customerMessage,
         })
       }
 
