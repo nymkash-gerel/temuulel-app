@@ -27,6 +27,14 @@ export async function GET() {
     database: { status: 'error' },
   }
 
+  // Service availability (env vars configured)
+  const services = {
+    facebook: !!process.env.FACEBOOK_APP_SECRET,
+    openai: !!process.env.OPENAI_API_KEY,
+    telegram: !!process.env.TELEGRAM_BOT_TOKEN,
+    sentry: !!process.env.SENTRY_DSN,
+  }
+
   // Check Supabase connectivity with latency measurement
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -53,6 +61,7 @@ export async function GET() {
     {
       status: healthy ? 'healthy' : 'degraded',
       checks,
+      services,
       uptime_seconds: uptimeSeconds,
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version || '0.1.0',
