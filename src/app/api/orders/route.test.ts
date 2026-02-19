@@ -11,7 +11,7 @@ vi.mock('@/lib/notifications', () => ({
 
 // Mock rate-limit to always allow
 vi.mock('@/lib/rate-limit', () => ({
-  rateLimit: vi.fn(() => ({ success: true, limit: 10, remaining: 9, resetAt: Date.now() + 60000 })),
+  rateLimit: vi.fn(async () => ({ success: true, limit: 10, remaining: 9, resetAt: Date.now() + 60000 })),
   getClientIp: vi.fn(() => '127.0.0.1'),
 }))
 
@@ -352,7 +352,7 @@ describe('POST /api/orders', () => {
   // --- Rate limiting ---
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(rateLimit).mockReturnValueOnce({
+    vi.mocked(rateLimit).mockResolvedValueOnce({
       success: false,
       limit: 10,
       remaining: 0,

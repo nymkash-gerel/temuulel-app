@@ -77,7 +77,7 @@ async function fetchBusinessPages(
 
 export async function GET(request: NextRequest) {
   // Rate limit: 5 requests per 60 seconds
-  const rl = rateLimit(getClientIp(request), { limit: 5, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 5, windowSeconds: 60 })
   if (!rl.success) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!
     return NextResponse.redirect(

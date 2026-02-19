@@ -6,7 +6,7 @@ import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 // Mock rate-limit to always allow
 vi.mock('@/lib/rate-limit', () => ({
-  rateLimit: vi.fn(() => ({ success: true, limit: 5, remaining: 4, resetAt: Date.now() + 60000 })),
+  rateLimit: vi.fn(async () => ({ success: true, limit: 5, remaining: 4, resetAt: Date.now() + 60000 })),
   getClientIp: vi.fn(() => '127.0.0.1'),
 }))
 

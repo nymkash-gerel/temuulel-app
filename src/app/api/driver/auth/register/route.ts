@@ -15,7 +15,7 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
  * 4. Links user_id on the delivery_drivers record
  */
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), { limit: 5, windowSeconds: 300 })
+  const rl = await rateLimit(getClientIp(request), { limit: 5, windowSeconds: 300 })
   if (!rl.success) {
     return NextResponse.json({ error: 'Хэт олон оролдлого. Түр хүлээнэ үү.' }, { status: 429 })
   }

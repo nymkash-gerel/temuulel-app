@@ -1602,7 +1602,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | Task | Status | Priority | Notes |
 |------|--------|----------|-------|
-| Set up Redis/Upstash for session caching | PENDING | P1 | Rate limiting + session data |
+| Set up Redis/Upstash for session caching | **DONE** ✓ | P1 | @upstash/redis + @upstash/ratelimit, 67 routes upgraded to async |
 | Add query optimization (EXPLAIN ANALYZE) for slow queries | PENDING | P2 | |
 | Implement API response caching for hot endpoints | PENDING | P2 | |
 | Review and optimize Supabase connection pooling | PENDING | P2 | |
@@ -1666,9 +1666,9 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Category | Total Tasks | Completed | Pending |
 |----------|-------------|-----------|---------|
 | Monitoring & Alerting | 5 | 2 | 3 |
-| Performance & Caching | 4 | 0 | 4 |
+| Performance & Caching | 4 | 1 | 3 |
 | Testing & Quality | 3 | 0 | 3 |
 | Business Operations | 4 | 0 | 4 |
 | Security Hardening | 5 | 3 | 2 |
 | DevOps & Deployment | 4 | 1 | 3 |
-| **Total** | **25** | **6** | **19** |
+| **Total** | **25** | **7** | **18** |

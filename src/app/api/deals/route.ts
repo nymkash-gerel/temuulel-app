@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
  * Create a new deal (starts as 'lead').
  */
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), { limit: 20, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 20, windowSeconds: 60 })
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }

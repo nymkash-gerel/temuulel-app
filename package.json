@@ -19,6 +19,8 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.90.1",
     "@upstash/qstash": "^2.9.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.2",
     "@xyflow/react": "^12.10.0",
     "exceljs": "^4.4.0",
     "leaflet": "^1.9.4",

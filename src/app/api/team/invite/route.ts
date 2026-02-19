@@ -13,7 +13,7 @@ const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
  * Sends an invite email after adding to store_members.
  */
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
   if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   const supabase = await createClient()

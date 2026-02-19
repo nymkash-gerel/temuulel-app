@@ -41,7 +41,7 @@ export async function GET() {
 
 // POST - Create a new comment auto-reply rule
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
   if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   const supabase = await createClient()

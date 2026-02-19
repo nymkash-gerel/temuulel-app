@@ -10,7 +10,7 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
  * Get the authenticated driver's profile and delivery stats.
  */
 export async function GET(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
   if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   const supabase = await createClient()
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
  * Update the authenticated driver's profile (name, vehicle info).
  */
 export async function PATCH(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), { limit: 10, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 10, windowSeconds: 60 })
   if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   const supabase = await createClient()

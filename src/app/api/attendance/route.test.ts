@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
 
 vi.mock('@/lib/rate-limit', () => ({
-  rateLimit: vi.fn(() => ({ success: true, limit: 60, remaining: 59, resetAt: Date.now() + 60000 })),
+  rateLimit: vi.fn(async () => ({ success: true, limit: 60, remaining: 59, resetAt: Date.now() + 60000 })),
   getClientIp: vi.fn(() => '127.0.0.1'),
 }))
 

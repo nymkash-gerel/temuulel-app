@@ -56,7 +56,7 @@ export async function GET() {
  * Assign a driver to the store by phone or driver_id.
  */
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), { limit: 20, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 20, windowSeconds: 60 })
   if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   const supabase = await createClient()

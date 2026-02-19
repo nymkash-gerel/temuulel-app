@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
  * Create a new program for the store.
  */
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }

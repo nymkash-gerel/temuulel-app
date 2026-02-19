@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
  * Uses upsert with onConflict on session_id + student_id.
  */
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), { limit: 60, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 60, windowSeconds: 60 })
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }

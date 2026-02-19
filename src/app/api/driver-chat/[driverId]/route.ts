@@ -66,7 +66,7 @@ export async function POST(
   { params }: { params: Promise<{ driverId: string }> }
 ) {
   const { driverId } = await params
-  const rl = rateLimit(getClientIp(request), { limit: 60, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 60, windowSeconds: 60 })
   if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   const supabase = await createClient()

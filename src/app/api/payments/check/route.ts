@@ -24,7 +24,7 @@ function getSupabase() {
  * - Bank/Cash: Manual verification only (admin marks as paid)
  */
 export async function POST(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
  * Manually update payment status (for bank transfer and cash payments)
  */
 export async function PATCH(request: NextRequest) {
-  const rl = rateLimit(getClientIp(request), RATE_LIMIT)
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }

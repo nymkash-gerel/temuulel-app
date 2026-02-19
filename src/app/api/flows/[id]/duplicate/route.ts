@@ -9,7 +9,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const rl = rateLimit(getClientIp(_request), { limit: 10, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(_request), { limit: 10, windowSeconds: 60 })
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }

@@ -71,6 +71,8 @@ Open `.env.local` and fill in the required values. The full list of environment 
 | `VAPID_PRIVATE_KEY` | No | VAPID private key for web push notifications |
 | `VAPID_SUBJECT` | No | VAPID subject (e.g. `mailto:support@yourdomain.com`) |
 | `CRON_SECRET` | No | Secret token to authenticate cron job requests |
+| `UPSTASH_REDIS_REST_URL` | No | Upstash Redis URL for production rate limiting & caching |
+| `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis REST token |
 | `QSTASH_TOKEN` | No | Upstash QStash token for reliable webhook delivery |
 | `QSTASH_CURRENT_SIGNING_KEY` | No | QStash current signing key |
 | `QSTASH_NEXT_SIGNING_KEY` | No | QStash next signing key |

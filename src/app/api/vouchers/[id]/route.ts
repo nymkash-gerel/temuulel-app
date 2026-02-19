@@ -59,7 +59,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const rl = rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
+  const rl = await rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
