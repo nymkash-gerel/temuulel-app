@@ -97,7 +97,9 @@ export async function processAIChat(
   let orders: Awaited<ReturnType<typeof searchOrders>> = []
   let tables: TableMatch[] = []
   let responseText: string
-  let orderDraft: OrderDraft | null = state.order_draft ?? null
+  // If resolveFollowUp returned null but there WAS an order draft, it means
+  // the user sent an off-topic message — clear the draft so they can browse freely.
+  let orderDraft: OrderDraft | null = (!followUp && state.order_draft) ? null : (state.order_draft ?? null)
 
   if (followUp) {
     switch (followUp.type) {
@@ -185,6 +187,13 @@ export async function processAIChat(
         intent = 'order_collection'
         orderDraft = result.draft
         responseText = result.responseText
+        break
+      }
+
+      case 'order_cancel': {
+        orderDraft = null
+        responseText = '❌ Захиалга цуцлагдлаа. Өөр асуух зүйл байвал бичнэ үү!'
+        intent = 'general'
         break
       }
 

@@ -47,6 +47,7 @@ export type FollowUpType =
   | 'select_single'
   | 'order_intent'
   | 'order_step_input'
+  | 'order_cancel'
   | 'price_question'
   | 'size_question'
   | 'contextual_question'
@@ -317,8 +318,33 @@ export function resolveFollowUp(
   // No state yet — can't be a follow-up
   if (state.turn_count === 0) return null
 
-  // 0. Active order draft — always intercept until order completes or cancels
+  // 0. Active order draft — intercept UNLESS the message is clearly off-topic
   if (state.order_draft) {
+    const normalized = normalizeText(message).trim()
+    // Cancel keywords: "цуцлах", "болих", "өөр", "буцах", "буцаа"
+    const cancelWords = ['цуцл', 'болих', 'буцах', 'буцаа']
+    const isCancelRequest = cancelWords.some((w) => normalized.includes(normalizeText(w)))
+    if (isCancelRequest) {
+      return { type: 'order_cancel' as FollowUpType }
+    }
+
+    // Detect off-topic: message looks like a product query or browsing request
+    // If message has 3+ words and contains browsing keywords, escape the order flow
+    const words = normalized.split(/\s+/)
+    const browseKeywords = ['узи', 'узэ', 'узь', 'харуул', 'юу байна', 'бну', 'байна уу',
+      'юу', 'ямар', 'бусад', 'каталог', 'жагсаалт', 'бараа',
+      'өөр бараа', 'өөр зүйл']
+    const hasBrowseIntent = browseKeywords.some((kw) => normalized.includes(normalizeText(kw)))
+    // If message has browse intent and is NOT a valid phone/address, escape order flow
+    const looksLikePhone = /^\d{8}$/.test(message.trim())
+    const looksLikeAddress = /дүүрэг|хороо|байр|тоот|гудамж|хотхон|орон|гэр|apartment/i.test(message)
+      || /сбд|бзд|бгд|худ|схд|чд|sbd|bzd|bgd|hud|shd|chd/i.test(message)
+
+    if (hasBrowseIntent && !looksLikePhone && !looksLikeAddress) {
+      // Off-topic — cancel draft and process as normal message
+      return null
+    }
+
     return { type: 'order_step_input' }
   }
 
