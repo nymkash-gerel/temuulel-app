@@ -369,8 +369,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Table-specific
     'сул', 'чөлөөтэй', 'байна уу', 'бий юу',
     'суух', 'суудлын',
-    // Time expressions
-    'цагт', 'цаг', 'орой',
+    // Time expressions (avoid bare 'цаг' — too ambiguous, matches "ухаалаг цаг" = smart watch)
+    'цагт', 'хэдэн цагт',
     // English
     'table', 'reservation', 'reserve', 'book', 'booking',
     'seat', 'seats', 'party', 'dinner', 'lunch',

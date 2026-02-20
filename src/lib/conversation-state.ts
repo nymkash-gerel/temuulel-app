@@ -390,9 +390,8 @@ export function resolveFollowUp(
     }
   }
 
-  // 1d. Order intent: customer saw product (detail or search) and wants to order
-  const orderTriggerIntents = ['product_detail', 'product_search', 'product_suggestions']
-  if (orderTriggerIntents.includes(state.last_intent) && products.length > 0) {
+  // 1d. Order intent: customer has products in context and wants to order
+  if (products.length > 0) {
     const msgWords = normalized.split(/\s+/)
     const hasOrder = msgWords.some((w) =>
       ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
