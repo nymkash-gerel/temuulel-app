@@ -32,6 +32,9 @@ import {
 import { normalizeText } from '@/lib/chat-ai'
 import { dispatchNotification } from '@/lib/notifications'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
+import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
+
+const DEFAULT_DELIVERY_FEE = 5000
 
 export interface AIProcessingContext {
   conversationId: string
@@ -153,7 +156,8 @@ export async function processAIChat(
               const order = await createOrderFromChat(supabase, storeId, customerId, draft)
               orderDraft = null
               if (order) {
-                responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа!`
+                const productTotal = draft.unit_price * draft.quantity
+                responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Бараа: ${formatPrice(productTotal)}\n🚚 Хүргэлт: ${formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа!`
                 intent = 'order_created'
               } else {
                 responseText = '⚠️ Захиалга үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.'
@@ -472,11 +476,18 @@ function resolveVariantFromMessage(msg: string, variants: VariantRow[]): Variant
  * Build a summary message showing ALL order details before confirmation.
  */
 function buildOrderSummary(draft: OrderDraft): string {
+  const productTotal = draft.unit_price * draft.quantity
+  const feeResult = draft.address ? calculateDeliveryFee(draft.address) : null
+  const deliveryFee = feeResult?.fee ?? DEFAULT_DELIVERY_FEE
+  const grandTotal = productTotal + deliveryFee
+
   const lines = ['📋 Захиалгын мэдээлэл:\n']
   lines.push(`📦 ${draft.product_name}`)
   if (draft.variant_label) lines.push(`   Хувилбар: ${draft.variant_label}`)
   lines.push(`   Тоо: ${draft.quantity} ширхэг`)
-  lines.push(`   💰 Үнэ: ${formatPrice(draft.unit_price * draft.quantity)}`)
+  lines.push(`   💰 Бараа: ${formatPrice(productTotal)}`)
+  lines.push(`🚚 Хүргэлт: ${formatPrice(deliveryFee)}`)
+  lines.push(`💰 Нийт: ${formatPrice(grandTotal)}`)
   if (draft.address) lines.push(`📍 Хаяг: ${draft.address}`)
   if (draft.phone) lines.push(`📱 Утас: ${draft.phone}`)
   lines.push('\nЗахиалгаа баталгаажуулах уу? (Тийм/Үгүй)')
@@ -570,9 +581,14 @@ async function createOrderFromChat(
   storeId: string,
   customerId: string | null,
   draft: OrderDraft
-): Promise<{ order_number: string; total_amount: number } | null> {
+): Promise<{ order_number: string; total_amount: number; delivery_fee: number } | null> {
   const orderNumber = `ORD-${Date.now()}`
-  const totalAmount = draft.unit_price * draft.quantity
+  const productTotal = draft.unit_price * draft.quantity
+
+  // Calculate delivery fee from address
+  const feeResult = draft.address ? calculateDeliveryFee(draft.address) : null
+  const deliveryFee = feeResult?.fee ?? DEFAULT_DELIVERY_FEE
+  const totalAmount = productTotal + deliveryFee
 
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
@@ -582,7 +598,7 @@ async function createOrderFromChat(
       order_number: orderNumber,
       status: 'pending',
       total_amount: totalAmount,
-      shipping_amount: 0,
+      shipping_amount: deliveryFee,
       payment_status: 'pending',
       shipping_address: draft.address || null,
       order_type: 'delivery',
@@ -596,14 +612,41 @@ async function createOrderFromChat(
     return null
   }
 
-  await supabase.from('order_items').insert({
-    order_id: newOrder.id,
-    product_id: draft.product_id,
-    variant_id: draft.variant_id || null,
-    quantity: draft.quantity,
-    unit_price: draft.unit_price,
-    variant_label: draft.variant_label || null,
-  })
+  // Create order item + delivery record in parallel
+  const deliveryNumber = `DEL-${Date.now()}`
+
+  // Fetch customer name for delivery record
+  let customerName: string | null = null
+  if (customerId) {
+    const { data: cust } = await supabase
+      .from('customers')
+      .select('name')
+      .eq('id', customerId)
+      .single()
+    customerName = cust?.name ?? null
+  }
+
+  await Promise.all([
+    supabase.from('order_items').insert({
+      order_id: newOrder.id,
+      product_id: draft.product_id,
+      variant_id: draft.variant_id || null,
+      quantity: draft.quantity,
+      unit_price: draft.unit_price,
+      variant_label: draft.variant_label || null,
+    }),
+    supabase.from('deliveries').insert({
+      store_id: storeId,
+      order_id: newOrder.id,
+      delivery_number: deliveryNumber,
+      status: 'pending',
+      delivery_type: 'own_driver',
+      delivery_address: draft.address || 'Хаяг тодорхойгүй',
+      customer_name: customerName,
+      customer_phone: draft.phone || null,
+      delivery_fee: deliveryFee,
+    }),
+  ])
 
   dispatchNotification(storeId, 'new_order', {
     order_id: newOrder.id,
@@ -612,5 +655,5 @@ async function createOrderFromChat(
     payment_method: null,
   })
 
-  return { order_number: newOrder.order_number, total_amount: newOrder.total_amount }
+  return { order_number: newOrder.order_number, total_amount: totalAmount, delivery_fee: deliveryFee }
 }
