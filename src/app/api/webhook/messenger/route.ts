@@ -327,8 +327,10 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
             'OrderStep:', aiResult.orderStep, 'Response length:', aiResponse?.length ?? 0)
 
           if (aiResponse) {
-            // If product_search with products found, send text + cards (using AI result products)
-            if (aiIntent === 'product_search' && aiResult.products.length > 0) {
+            // Send text + product cards when products are available
+            const hasProducts = aiResult.products.length > 0
+            const showCards = hasProducts && (aiIntent === 'product_search' || aiIntent === 'product_detail')
+            if (showCards) {
               console.log('[AI] Sending product cards:', aiResult.products.map(p => p.name))
               await sendProductCardsFromResult(
                 senderId, aiResponse, aiResult.products, pageToken

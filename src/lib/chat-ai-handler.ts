@@ -192,6 +192,13 @@ export async function processAIChat(
       case 'select_single': {
         const p = followUp.product!
         intent = 'product_detail'
+        // Fetch full product data (with images) for product card
+        const [detailProducts] = await Promise.all([
+          searchProducts(supabase, p.name, storeId, { maxProducts: 1, originalQuery: p.name }),
+        ])
+        if (detailProducts.length > 0) {
+          products = detailProducts
+        }
         responseText = `**${p.name}**\n💰 ${formatPrice(p.base_price)}\n\nЭнэ бүтээгдэхүүнийг захиалмаар байвал бичнэ үү!`
         break
       }
