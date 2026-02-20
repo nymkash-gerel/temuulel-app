@@ -442,8 +442,20 @@ function isNegative(msg: string): boolean {
 }
 
 function extractPhone(msg: string): string | null {
-  const match = msg.replace(/\s+/g, '').match(/(\d{8})/)
-  return match ? match[1] : null
+  // Match standalone 8-digit number (not adjacent to other digits).
+  // Don't strip whitespace first — that merges address numbers with phone,
+  // e.g. "36a 96 91250305" → "9691250305" → wrong phone "96912503".
+  const standalone = msg.match(/(?<!\d)\d{8}(?!\d)/)
+  if (standalone) return standalone[0]
+
+  // Fallback: phone with spaces between groups, e.g. "9125 0305" or "91 25 03 05"
+  const spaced = msg.match(/(?<!\d)(\d{2,4}[\s-]\d{2,4}[\s-]?\d{0,4})(?!\d)/)
+  if (spaced) {
+    const digits = spaced[1].replace(/[\s-]/g, '')
+    if (digits.length === 8) return digits
+  }
+
+  return null
 }
 
 /**
