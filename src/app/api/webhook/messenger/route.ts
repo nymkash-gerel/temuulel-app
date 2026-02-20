@@ -331,8 +331,8 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
               await sendProductCardsFromResult(
                 senderId, aiResponse, aiResult.products, pageToken
               )
-            } else if (aiResult.orderStep === 'confirm') {
-              // Order confirmation step — send with Тийм/Үгүй quick replies
+            } else if (aiResult.orderStep === 'confirming') {
+              // Order summary — send with Тийм/Үгүй quick replies
               await sendQuickReplies(
                 senderId,
                 aiResponse,

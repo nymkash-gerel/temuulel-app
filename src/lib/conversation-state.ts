@@ -28,7 +28,8 @@ export interface OrderDraft {
   variant_label?: string
   unit_price: number
   quantity: number
-  step: 'variant' | 'confirm' | 'address' | 'phone'
+  /** 'variant' = pick size/color, 'info' = collecting address+phone, 'confirming' = summary shown */
+  step: 'variant' | 'info' | 'confirming'
   address?: string
   phone?: string
 }

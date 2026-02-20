@@ -59,7 +59,7 @@ export interface AIProcessingResult {
     orders_found: number
   }
   /** Active order draft step — used by webhook to send Quick Replies */
-  orderStep?: 'variant' | 'confirm' | 'address' | 'phone' | null
+  orderStep?: 'variant' | 'info' | 'confirming' | null
 }
 
 /**
@@ -99,7 +99,7 @@ export async function processAIChat(
   if (followUp) {
     switch (followUp.type) {
       case 'order_step_input': {
-        const draft = state.order_draft!
+        const draft = { ...state.order_draft! }
         intent = 'order_collection'
 
         switch (draft.step) {
@@ -116,51 +116,71 @@ export async function processAIChat(
               draft.variant_id = resolved.id
               draft.variant_label = label
               draft.unit_price = resolved.price ?? draft.unit_price
-              draft.step = 'confirm'
-              orderDraft = { ...draft }
-              responseText = buildConfirmMessage(draft)
+
+              // Also try to extract address + phone from same message
+              const phone = extractPhone(customerMessage)
+              const addr = extractAddress(customerMessage, phone)
+              if (phone) draft.phone = phone
+              if (addr) draft.address = addr
+
+              if (draft.address && draft.phone) {
+                // All info collected — show summary
+                draft.step = 'confirming'
+                orderDraft = draft
+                responseText = buildOrderSummary(draft)
+              } else {
+                draft.step = 'info'
+                orderDraft = draft
+                responseText = buildInfoRequest(draft)
+              }
             } else {
               orderDraft = draft
               responseText = 'Аль хувилбарыг сонгохоо дугаараар бичнэ үү:'
             }
             break
           }
-          case 'confirm': {
-            if (isAffirmative(customerMessage)) {
-              draft.step = 'address'
-              orderDraft = { ...draft }
-              responseText = '📍 Хүргэлтийн хаяг бичнэ үү (дүүрэг, хороо, байр, тоот):'
+
+          case 'info': {
+            // Parse message for address and/or phone
+            const phone = extractPhone(customerMessage)
+            const addr = extractAddress(customerMessage, phone)
+
+            if (phone && !draft.phone) draft.phone = phone
+            if (addr && !draft.address) draft.address = addr
+
+            if (draft.address && draft.phone) {
+              // All info collected — show summary
+              draft.step = 'confirming'
+              orderDraft = draft
+              responseText = buildOrderSummary(draft)
             } else {
-              orderDraft = null
-              responseText = '❌ Захиалга цуцлагдлаа. Өөр асуух зүйл байвал бичнэ үү!'
+              orderDraft = draft
+              responseText = buildInfoRequest(draft)
             }
             break
           }
-          case 'address': {
-            draft.address = customerMessage.trim()
-            draft.step = 'phone'
-            orderDraft = { ...draft }
-            responseText = '📱 Утасны дугаар бичнэ үү (жишээ: 99112233):'
-            break
-          }
-          case 'phone': {
-            const phone = extractPhone(customerMessage)
-            if (phone) {
-              draft.phone = phone
+
+          case 'confirming': {
+            if (isAffirmative(customerMessage)) {
               const order = await createOrderFromChat(supabase, storeId, customerId, draft)
               orderDraft = null
               if (order) {
-                responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа! 🙏`
+                responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа!`
                 intent = 'order_created'
               } else {
                 responseText = '⚠️ Захиалга үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.'
               }
+            } else if (isNegative(customerMessage)) {
+              orderDraft = null
+              responseText = '❌ Захиалга цуцлагдлаа. Өөр асуух зүйл байвал бичнэ үү!'
             } else {
+              // Not clear yes/no — remind them
               orderDraft = draft
-              responseText = '8 оронтой утасны дугаар бичнэ үү (жишээ: 99112233):'
+              responseText = 'Захиалгаа баталгаажуулах уу? (Тийм/Үгүй)'
             }
             break
           }
+
           default:
             orderDraft = null
             responseText = 'Захиалгын алхам алдаатай байна. Дахин оролдоно уу.'
@@ -169,57 +189,10 @@ export async function processAIChat(
       }
 
       case 'order_intent': {
-        const p = followUp.product!
+        const result = await startOrderDraft(supabase, followUp.product!, customerMessage)
         intent = 'order_collection'
-
-        const { data: variants } = await supabase
-          .from('product_variants')
-          .select('id, size, color, price, stock_quantity')
-          .eq('product_id', p.id)
-          .gt('stock_quantity', 0)
-
-        const inStock = variants ?? []
-
-        if (inStock.length > 1) {
-          orderDraft = {
-            product_id: p.id,
-            product_name: p.name,
-            unit_price: p.base_price,
-            quantity: 1,
-            step: 'variant',
-          }
-          const variantList = inStock.map((v, i) => {
-            const parts: string[] = []
-            if (v.size) parts.push(v.size)
-            if (v.color) parts.push(v.color)
-            parts.push(formatPrice(v.price ?? p.base_price))
-            return `${i + 1}. ${parts.join(' / ')}`
-          }).join('\n')
-          responseText = `📦 ${p.name} захиалга\n\nАль хувилбарыг сонгох вэ?\n${variantList}\n\nДугаараа бичнэ үү:`
-        } else if (inStock.length === 1) {
-          const variant = inStock[0]
-          const label = [variant.size, variant.color].filter(Boolean).join('/')
-          orderDraft = {
-            product_id: p.id,
-            product_name: p.name,
-            variant_id: variant.id,
-            variant_label: label || undefined,
-            unit_price: variant.price ?? p.base_price,
-            quantity: 1,
-            step: 'confirm',
-          }
-          responseText = buildConfirmMessage(orderDraft)
-        } else {
-          // No variants — use base product
-          orderDraft = {
-            product_id: p.id,
-            product_name: p.name,
-            unit_price: p.base_price,
-            quantity: 1,
-            step: 'confirm',
-          }
-          responseText = buildConfirmMessage(orderDraft)
-        }
+        orderDraft = result.draft
+        responseText = result.responseText
         break
       }
 
@@ -327,72 +300,10 @@ export async function processAIChat(
       // start order flow directly instead of just showing product info.
       if (products.length > 0 && hasOrderIntent(customerMessage)) {
         const p = products[0]
-        const { data: variants } = await supabase
-          .from('product_variants')
-          .select('id, size, color, price, stock_quantity')
-          .eq('product_id', p.id)
-          .gt('stock_quantity', 0)
-
-        const inStock = variants ?? []
-
-        if (inStock.length > 1) {
-          // Check if the customer specified a variant in their message
-          const preselected = resolveVariantFromMessage(customerMessage, inStock)
-          if (preselected) {
-            const label = [preselected.size, preselected.color].filter(Boolean).join('/')
-            orderDraft = {
-              product_id: p.id,
-              product_name: p.name,
-              variant_id: preselected.id,
-              variant_label: label,
-              unit_price: preselected.price ?? p.base_price,
-              quantity: 1,
-              step: 'confirm',
-            }
-            responseText = buildConfirmMessage(orderDraft)
-          } else {
-            orderDraft = {
-              product_id: p.id,
-              product_name: p.name,
-              unit_price: p.base_price,
-              quantity: 1,
-              step: 'variant',
-            }
-            const variantList = inStock.map((v, i) => {
-              const parts: string[] = []
-              if (v.size) parts.push(v.size)
-              if (v.color) parts.push(v.color)
-              parts.push(formatPrice(v.price ?? p.base_price))
-              return `${i + 1}. ${parts.join(' / ')}`
-            }).join('\n')
-            responseText = `📦 ${p.name} захиалга\n\nАль хувилбарыг сонгох вэ?\n${variantList}\n\nДугаараа бичнэ үү:`
-          }
-          intent = 'order_collection'
-        } else if (inStock.length === 1) {
-          const variant = inStock[0]
-          const label = [variant.size, variant.color].filter(Boolean).join('/')
-          orderDraft = {
-            product_id: p.id,
-            product_name: p.name,
-            variant_id: variant.id,
-            variant_label: label || undefined,
-            unit_price: variant.price ?? p.base_price,
-            quantity: 1,
-            step: 'confirm',
-          }
-          responseText = buildConfirmMessage(orderDraft)
-          intent = 'order_collection'
-        } else {
-          orderDraft = {
-            product_id: p.id,
-            product_name: p.name,
-            unit_price: p.base_price,
-            quantity: 1,
-            step: 'confirm',
-          }
-          responseText = buildConfirmMessage(orderDraft)
-          intent = 'order_collection'
-        }
+        const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
+        orderDraft = result.draft
+        responseText = result.responseText
+        intent = 'order_collection'
       }
     }
   }
@@ -478,9 +389,33 @@ function isAffirmative(msg: string): boolean {
   return words.some((w) => n === w || n.startsWith(w + ' '))
 }
 
+function isNegative(msg: string): boolean {
+  const n = normalizeText(msg).trim()
+  const words = ['үгүй', 'болихгүй', 'цуцлах', 'цуцал', 'хүсэхгүй', 'нет', 'no']
+  return words.some((w) => n === w || n.startsWith(w + ' '))
+}
+
 function extractPhone(msg: string): string | null {
   const match = msg.replace(/\s+/g, '').match(/(\d{8})/)
   return match ? match[1] : null
+}
+
+/**
+ * Extract address from a message. Removes phone number if found.
+ * Returns null if remaining text is too short to be an address.
+ */
+function extractAddress(msg: string, phone: string | null): string | null {
+  let text = msg.trim()
+  // Remove phone digits from text
+  if (phone) {
+    text = text.replace(new RegExp(phone.split('').join('\\s*')), '').trim()
+  }
+  // Remove common prefixes like "утас:", "утас нь", "дугаар:"
+  text = text.replace(/утас\s*(нь|:)?\s*/gi, '').replace(/дугаар\s*:?\s*/gi, '').trim()
+  // Clean up punctuation at edges
+  text = text.replace(/^[,;:\s]+|[,;:\s]+$/g, '').trim()
+  // Must be substantial to be an address (at least 5 chars)
+  return text.length >= 5 ? text : null
 }
 
 function resolveVariantFromMessage(msg: string, variants: VariantRow[]): VariantRow | null {
@@ -494,22 +429,135 @@ function resolveVariantFromMessage(msg: string, variants: VariantRow[]): Variant
     if (idx >= 0 && idx < variants.length) return variants[idx]
   }
 
-  // Size/color keyword match
+  // Size/color keyword match (fuzzy: message contains the variant keyword)
   for (const v of variants) {
     if (v.size && normalized.includes(normalizeText(v.size))) return v
     if (v.color && normalized.includes(normalizeText(v.color))) return v
   }
 
+  // Fuzzy color match: "цаганас" contains "цагаан" prefix
+  for (const v of variants) {
+    if (v.color) {
+      const normColor = normalizeText(v.color)
+      // Check if any word in the message starts with the color name (3+ chars)
+      if (normColor.length >= 3) {
+        const words = normalized.split(/\s+/)
+        if (words.some((w) => w.startsWith(normColor) || normColor.startsWith(w) && w.length >= 3)) {
+          return v
+        }
+      }
+    }
+  }
+
   return null
 }
 
-function buildConfirmMessage(draft: OrderDraft): string {
-  const lines = [`📦 ${draft.product_name}`]
-  if (draft.variant_label) lines.push(`Хувилбар: ${draft.variant_label}`)
-  lines.push(`Тоо: ${draft.quantity} ширхэг`)
-  lines.push(`Үнэ: ${formatPrice(draft.unit_price * draft.quantity)}`)
-  lines.push('\nЗахиалга баталгаажуулах уу? (Тийм/Үгүй)')
+/**
+ * Build a summary message showing ALL order details before confirmation.
+ */
+function buildOrderSummary(draft: OrderDraft): string {
+  const lines = ['📋 Захиалгын мэдээлэл:\n']
+  lines.push(`📦 ${draft.product_name}`)
+  if (draft.variant_label) lines.push(`   Хувилбар: ${draft.variant_label}`)
+  lines.push(`   Тоо: ${draft.quantity} ширхэг`)
+  lines.push(`   💰 Үнэ: ${formatPrice(draft.unit_price * draft.quantity)}`)
+  if (draft.address) lines.push(`📍 Хаяг: ${draft.address}`)
+  if (draft.phone) lines.push(`📱 Утас: ${draft.phone}`)
+  lines.push('\nЗахиалгаа баталгаажуулах уу? (Тийм/Үгүй)')
   return lines.join('\n')
+}
+
+/**
+ * Build a message asking for missing info (address and/or phone).
+ */
+function buildInfoRequest(draft: OrderDraft): string {
+  const missing: string[] = []
+  if (!draft.address) missing.push('хүргэлтийн хаяг (дүүрэг, хороо, байр, тоот)')
+  if (!draft.phone) missing.push('утасны дугаар (8 оронтой)')
+  return `📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} — ${formatPrice(draft.unit_price)}\n\nЗахиалга үүсгэхийн тулд дараах мэдээлэл хэрэгтэй:\n• ${missing.join('\n• ')}\n\nБичнэ үү:`
+}
+
+/**
+ * Start a new order draft for a product. Fetches variants and resolves
+ * any variant/address/phone info from the customer message.
+ */
+async function startOrderDraft(
+  supabase: SupabaseClient,
+  product: StoredProduct,
+  customerMessage: string
+): Promise<{ draft: OrderDraft; responseText: string }> {
+  const { data: variants } = await supabase
+    .from('product_variants')
+    .select('id, size, color, price, stock_quantity')
+    .eq('product_id', product.id)
+    .gt('stock_quantity', 0)
+
+  const inStock = variants ?? []
+  const phone = extractPhone(customerMessage)
+  const addr = extractAddress(customerMessage, phone)
+
+  let draft: OrderDraft
+
+  if (inStock.length > 1) {
+    // Try to auto-select variant from message
+    const preselected = resolveVariantFromMessage(customerMessage, inStock)
+    if (preselected) {
+      const label = [preselected.size, preselected.color].filter(Boolean).join('/')
+      draft = {
+        product_id: product.id,
+        product_name: product.name,
+        variant_id: preselected.id,
+        variant_label: label,
+        unit_price: preselected.price ?? product.base_price,
+        quantity: 1,
+        step: 'info',
+        address: addr ?? undefined,
+        phone: phone ?? undefined,
+      }
+    } else {
+      draft = {
+        product_id: product.id,
+        product_name: product.name,
+        unit_price: product.base_price,
+        quantity: 1,
+        step: 'variant',
+      }
+      const variantList = inStock.map((v, i) => {
+        const parts: string[] = []
+        if (v.size) parts.push(v.size)
+        if (v.color) parts.push(v.color)
+        parts.push(formatPrice(v.price ?? product.base_price))
+        return `${i + 1}. ${parts.join(' / ')}`
+      }).join('\n')
+      return {
+        draft,
+        responseText: `📦 ${product.name} захиалга\n\nАль хувилбарыг сонгох вэ?\n${variantList}\n\nДугаараа бичнэ үү:`,
+      }
+    }
+  } else {
+    // 0 or 1 variant — auto-select
+    const variant = inStock[0]
+    const label = variant ? [variant.size, variant.color].filter(Boolean).join('/') : undefined
+    draft = {
+      product_id: product.id,
+      product_name: product.name,
+      variant_id: variant?.id,
+      variant_label: label || undefined,
+      unit_price: variant?.price ?? product.base_price,
+      quantity: 1,
+      step: 'info',
+      address: addr ?? undefined,
+      phone: phone ?? undefined,
+    }
+  }
+
+  // Check if all info is already provided
+  if (draft.address && draft.phone) {
+    draft.step = 'confirming'
+    return { draft, responseText: buildOrderSummary(draft) }
+  }
+
+  return { draft, responseText: buildInfoRequest(draft) }
 }
 
 async function createOrderFromChat(
@@ -533,7 +581,7 @@ async function createOrderFromChat(
       payment_status: 'pending',
       shipping_address: draft.address || null,
       order_type: 'delivery',
-      notes: 'Messenger захиалга',
+      notes: `Messenger захиалга | Утас: ${draft.phone || ''}`,
     })
     .select('id, order_number, total_amount')
     .single()

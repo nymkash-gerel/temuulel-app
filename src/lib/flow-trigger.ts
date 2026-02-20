@@ -30,6 +30,16 @@ const SUBSTANTIVE_INTENTS = new Set([
 ])
 
 /**
+ * Order/buy intent words. When any of these appear in the first message,
+ * the welcome flow should NOT intercept — the AI pipeline handles ordering.
+ */
+const ORDER_INTENT_WORDS = [
+  'авъя', 'авья', 'авна', 'авах', 'авйа', 'ави', 'авь',
+  'захиалъя', 'захиалья', 'захиалах', 'захиалмаар',
+  'худалдаж', 'авмаар', 'сонирхож',
+]
+
+/**
  * Find the first active flow whose trigger matches the context.
  * Flows are checked in priority order (lower = first).
  */
@@ -56,6 +66,18 @@ export async function findMatchingFlow(
     const { intent, confidence } = classifyIntentWithConfidence(message)
     if (confidence >= 1) {
       context.classified_intent = intent
+    } else {
+      // Low confidence from keywords, but check for order/buy intent words.
+      // Messages like "цаганас ни ави" (take the white one) don't match
+      // standard intent keywords but clearly have purchase intent.
+      const paddedMsg = ` ${normalizedMsg} `
+      const hasOrderWords = ORDER_INTENT_WORDS.some((w) => {
+        const nw = normalizeText(w)
+        return paddedMsg.includes(` ${nw} `)
+      })
+      if (hasOrderWords) {
+        context.classified_intent = 'product_search'
+      }
     }
   }
 
