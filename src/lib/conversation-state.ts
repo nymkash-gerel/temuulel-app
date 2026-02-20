@@ -398,7 +398,22 @@ export function resolveFollowUp(
       || ORDER_EXACT_WORDS.some((ew) => paddedIncludes(` ${w} `, ew))
     )
     if (hasOrder) {
-      return { type: 'order_intent', product: products[0] }
+      // Try to match a product name from the message (e.g. "tsag zahialii" → Ухаалаг цаг)
+      let bestProduct = products[0]
+      if (products.length > 1) {
+        const nonOrderWords = msgWords.filter((w) =>
+          !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+          && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+        )
+        if (nonOrderWords.length > 0) {
+          const nameMatch = products.find((p) => {
+            const pWords = normalizeText(p.name).split(/\s+/)
+            return nonOrderWords.some((mw) => pWords.some((pw) => pw.includes(mw) || mw.includes(pw)))
+          })
+          if (nameMatch) bestProduct = nameMatch
+        }
+      }
+      return { type: 'order_intent', product: bestProduct }
     }
   }
 
@@ -501,15 +516,13 @@ export function updateState(
     'delivery_info', 'order_info', 'payment_info', 'warranty_info', 'stock_info',
   ]
 
-  // Intents that fetch/narrow products and should save them to state
-  const saveProductIntents = ['product_search', 'low_confidence', 'product_suggestions', 'product_detail']
-
-  // search intent with results → save; preserve intents → keep previous; else → clear
-  const nextProducts = saveProductIntents.includes(intent) && products.length > 0
+  // If products were found this turn, always save them — even if intent was
+  // misclassified (e.g. "ухаалаг цаг узи" classified as 'general' but products found).
+  const nextProducts = products.length > 0
     ? products.slice(0, 10)
     : preserveIntents.includes(intent) ? current.last_products : []
 
-  const nextQuery = saveProductIntents.includes(intent) && query
+  const nextQuery = products.length > 0 && query
     ? query
     : preserveIntents.includes(intent) ? current.last_query : ''
 
