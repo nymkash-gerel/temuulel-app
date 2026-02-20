@@ -424,22 +424,30 @@ export function resolveFollowUp(
       || ORDER_EXACT_WORDS.some((ew) => paddedIncludes(` ${w} `, ew))
     )
     if (hasOrder) {
-      // Try to match a product name from the message (e.g. "tsag zahialii" → Ухаалаг цаг)
-      let bestProduct = products[0]
-      if (products.length > 1) {
-        const nonOrderWords = msgWords.filter((w) =>
-          !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
-          && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
-        )
-        if (nonOrderWords.length > 0) {
-          const nameMatch = products.find((p) => {
-            const pWords = normalizeText(p.name).split(/\s+/)
-            return nonOrderWords.some((mw) => pWords.some((pw) => pw.includes(mw) || mw.includes(pw)))
-          })
-          if (nameMatch) bestProduct = nameMatch
+      if (products.length === 1) {
+        // Only 1 product in context — auto-select it
+        return { type: 'order_intent', product: products[0] }
+      }
+      // Multiple products — try to match a product name from the message
+      const nonOrderWords = msgWords.filter((w) =>
+        w.length >= 3  // Filter particles like "ни", "нь" that cause false substring matches
+        && !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+        && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+      )
+      if (nonOrderWords.length > 0) {
+        const nameMatch = products.find((p) => {
+          const pWords = normalizeText(p.name).split(/\s+/)
+          return nonOrderWords.some((mw) =>
+            mw.length >= 3 && pWords.some((pw) => pw.includes(mw) || mw.includes(pw))
+          )
+        })
+        if (nameMatch) {
+          return { type: 'order_intent', product: nameMatch }
         }
       }
-      return { type: 'order_intent', product: bestProduct }
+      // No clear product match with multiple products — don't guess, fall through
+      // to normal classification which will show catalog
+      return null
     }
   }
 
