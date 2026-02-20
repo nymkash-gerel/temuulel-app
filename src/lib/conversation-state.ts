@@ -160,10 +160,10 @@ const ORDINALS: Record<string, number> = {
   'сүүлийнх': -1, 'сүүлийн': -1,
 }
 
-/** Words that mean "I want to order/buy" — triggers order collection when product already shown */
-const ORDER_WORDS = [
-  'авъя', 'авья', 'авна', 'авах', 'авйа',
-  'захиалъя', 'захиалья', 'захиалах', 'захиалмаар',
+/** Prefix stems + exact words for order/buy intent */
+const ORDER_WORD_STEMS = ['захиал', 'авъ', 'авь']
+const ORDER_EXACT_WORDS = [
+  'авна', 'авах', 'авйа', 'ави', 'авмаар',
   'тийм', 'за', 'зүгээр', 'болно',
 ]
 
@@ -393,12 +393,13 @@ export function resolveFollowUp(
   // 1d. Order intent: customer saw product (detail or search) and wants to order
   const orderTriggerIntents = ['product_detail', 'product_search', 'product_suggestions']
   if (orderTriggerIntents.includes(state.last_intent) && products.length > 0) {
-    const padded = ` ${normalized} `
-    for (const word of ORDER_WORDS) {
-      if (paddedIncludes(padded, word)) {
-        // If multiple products, prefer the first one (customer can pick variant later)
-        return { type: 'order_intent', product: products[0] }
-      }
+    const msgWords = normalized.split(/\s+/)
+    const hasOrder = msgWords.some((w) =>
+      ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+      || ORDER_EXACT_WORDS.some((ew) => paddedIncludes(` ${w} `, ew))
+    )
+    if (hasOrder) {
+      return { type: 'order_intent', product: products[0] }
     }
   }
 

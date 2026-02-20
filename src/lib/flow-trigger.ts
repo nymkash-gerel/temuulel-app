@@ -32,11 +32,11 @@ const SUBSTANTIVE_INTENTS = new Set([
 /**
  * Order/buy intent words. When any of these appear in the first message,
  * the welcome flow should NOT intercept — the AI pipeline handles ordering.
+ * Uses both exact matches and prefix stems for Mongolian verb conjugations.
  */
-const ORDER_INTENT_WORDS = [
-  'авъя', 'авья', 'авна', 'авах', 'авйа', 'ави', 'авь',
-  'захиалъя', 'захиалья', 'захиалах', 'захиалмаар',
-  'худалдаж', 'авмаар', 'сонирхож',
+const ORDER_WORD_STEMS = ['захиал', 'авъ', 'авь']
+const ORDER_EXACT_WORDS = [
+  'авна', 'авах', 'авйа', 'ави', 'авмаар', 'худалдаж', 'сонирхож',
 ]
 
 /**
@@ -68,13 +68,13 @@ export async function findMatchingFlow(
       context.classified_intent = intent
     } else {
       // Low confidence from keywords, but check for order/buy intent words.
-      // Messages like "цаганас ни ави" (take the white one) don't match
+      // Messages like "цаганас ни ави" or "захиали" don't match
       // standard intent keywords but clearly have purchase intent.
-      const paddedMsg = ` ${normalizedMsg} `
-      const hasOrderWords = ORDER_INTENT_WORDS.some((w) => {
-        const nw = normalizeText(w)
-        return paddedMsg.includes(` ${nw} `)
-      })
+      const msgWords = normalizedMsg.split(/\s+/)
+      const hasOrderWords = msgWords.some((w) =>
+        ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+        || ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+      )
       if (hasOrderWords) {
         context.classified_intent = 'product_search'
       }

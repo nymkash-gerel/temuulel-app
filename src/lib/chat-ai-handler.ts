@@ -296,14 +296,30 @@ export async function processAIChat(
         { availableTables: tables, busyMode }
       )
 
-      // If the message also contains order intent and products were found,
-      // start order flow directly instead of just showing product info.
-      if (products.length > 0 && hasOrderIntent(customerMessage)) {
-        const p = products[0]
-        const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
-        orderDraft = result.draft
-        responseText = result.responseText
-        intent = 'order_collection'
+      // If the message contains order intent, start order flow.
+      if (hasOrderIntent(customerMessage)) {
+        if (products.length > 0) {
+          // Product found — start order draft
+          const p = products[0]
+          const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
+          orderDraft = result.draft
+          responseText = result.responseText
+          intent = 'order_collection'
+        } else {
+          // No product specified — search all and show catalog
+          const allProducts = await searchProducts(supabase, '', storeId, {
+            maxProducts: chatbotSettings.max_products || 5,
+            originalQuery: '',
+          })
+          if (allProducts.length > 0) {
+            products = allProducts
+            intent = 'product_search'
+            const productList = allProducts.map((p, i) =>
+              `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}`
+            ).join('\n')
+            responseText = `Ямар бүтээгдэхүүн захиалмаар байна?\n\n${productList}\n\nДугаараа бичнэ үү:`
+          }
+        }
       }
     }
   }
@@ -371,16 +387,16 @@ interface VariantRow {
   stock_quantity: number | null
 }
 
-/** Order intent words — used to detect order intent in first messages */
-const ORDER_INTENT_WORDS = [
-  'авъя', 'авья', 'авна', 'авах', 'авйа', 'ави', 'авь',
-  'захиалъя', 'захиалья', 'захиалах', 'захиалмаар',
-]
+/** Order intent — prefix stems + exact words for Mongolian verb forms */
+const ORDER_WORD_STEMS = ['захиал', 'авъ', 'авь']
+const ORDER_EXACT_WORDS = ['авна', 'авах', 'авйа', 'ави', 'авмаар']
 
 function hasOrderIntent(msg: string): boolean {
-  const normalized = normalizeText(msg).trim()
-  const padded = ` ${normalized} `
-  return ORDER_INTENT_WORDS.some((w) => padded.includes(` ${normalizeText(w)} `))
+  const words = normalizeText(msg).trim().split(/\s+/)
+  return words.some((w) =>
+    ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+    || ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+  )
 }
 
 function isAffirmative(msg: string): boolean {
