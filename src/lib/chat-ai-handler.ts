@@ -301,15 +301,25 @@ export async function processAIChat(
 
       // If the message contains order intent, start order flow.
       if (hasOrderIntent(customerMessage)) {
-        if (products.length > 0) {
-          // Product found — start order draft
+        // Check if message has meaningful non-order words that identify a product.
+        // If message is ONLY order words (e.g. "zahialu"), products from search are
+        // likely coincidental matches (description contains "захиал*") — show catalog.
+        const msgWords = normalizeText(customerMessage).trim().split(/\s+/)
+        const nonOrderWords = msgWords.filter((w) =>
+          !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+          && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+        )
+        const hasProductIdentifier = nonOrderWords.some((w) => w.length >= 2)
+
+        if (products.length > 0 && hasProductIdentifier) {
+          // Message has product-identifying words + products found — start order draft
           const p = products[0]
           const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
           orderDraft = result.draft
           responseText = result.responseText
           intent = 'order_collection'
         } else {
-          // No product specified — search all and show catalog
+          // Pure order words only or no products — show catalog
           const allProducts = await searchProducts(supabase, '', storeId, {
             maxProducts: chatbotSettings.max_products || 5,
             originalQuery: '',
