@@ -331,6 +331,23 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
               await sendProductCardsFromResult(
                 senderId, aiResponse, aiResult.products, pageToken
               )
+            } else if (aiResult.orderStep === 'confirm') {
+              // Order confirmation step — send with Тийм/Үгүй quick replies
+              await sendQuickReplies(
+                senderId,
+                aiResponse,
+                [
+                  { title: 'Тийм ✅', payload: 'ORDER_CONFIRM_YES' },
+                  { title: 'Үгүй ❌', payload: 'ORDER_CONFIRM_NO' },
+                ],
+                pageToken
+              )
+            } else if (aiIntent === 'order_created') {
+              // Order completed — send confirmation text
+              await sendTextMessage(senderId, aiResponse, pageToken)
+            } else if (aiIntent === 'order_collection') {
+              // Order collection in progress — just send text
+              await sendTextMessage(senderId, aiResponse, pageToken)
             } else if (aiIntent === 'greeting' || aiIntent === 'general') {
               // Send with quick reply suggestions
               await sendQuickReplies(

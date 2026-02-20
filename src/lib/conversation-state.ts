@@ -21,16 +21,31 @@ export interface StoredProduct {
   base_price: number
 }
 
+export interface OrderDraft {
+  product_id: string
+  product_name: string
+  variant_id?: string
+  variant_label?: string
+  unit_price: number
+  quantity: number
+  step: 'variant' | 'confirm' | 'address' | 'phone'
+  address?: string
+  phone?: string
+}
+
 export interface ConversationState {
   last_intent: string
   last_products: StoredProduct[]
   last_query: string
   turn_count: number
+  order_draft?: OrderDraft | null
 }
 
 export type FollowUpType =
   | 'number_reference'
   | 'select_single'
+  | 'order_intent'
+  | 'order_step_input'
   | 'price_question'
   | 'size_question'
   | 'contextual_question'
@@ -65,7 +80,7 @@ export interface FollowUpResult {
 // ---------------------------------------------------------------------------
 
 export function emptyState(): ConversationState {
-  return { last_intent: '', last_products: [], last_query: '', turn_count: 0 }
+  return { last_intent: '', last_products: [], last_query: '', turn_count: 0, order_draft: null }
 }
 
 /**
@@ -93,6 +108,9 @@ export async function readState(
     last_products: Array.isArray(state.last_products) ? (state.last_products as unknown as StoredProduct[]).slice(0, 10) : [],
     last_query: typeof state.last_query === 'string' ? state.last_query : '',
     turn_count: typeof state.turn_count === 'number' ? state.turn_count : 0,
+    order_draft: (state.order_draft && typeof state.order_draft === 'object' && !Array.isArray(state.order_draft))
+      ? state.order_draft as unknown as OrderDraft
+      : null,
   }
 }
 
@@ -140,6 +158,13 @@ const ORDINALS: Record<string, number> = {
   'тав дахь': 4, 'тавдугаар': 4, '5': 4,
   'сүүлийнх': -1, 'сүүлийн': -1,
 }
+
+/** Words that mean "I want to order/buy" — triggers order collection when product already shown */
+const ORDER_WORDS = [
+  'авъя', 'авья', 'авна', 'авах', 'авйа',
+  'захиалъя', 'захиалья', 'захиалах', 'захиалмаар',
+  'тийм', 'за', 'зүгээр', 'болно',
+]
 
 /** Words that mean "this one" / "I'll take it" */
 const SELECT_WORDS = [
@@ -291,6 +316,11 @@ export function resolveFollowUp(
   // No state yet — can't be a follow-up
   if (state.turn_count === 0) return null
 
+  // 0. Active order draft — always intercept until order completes or cancels
+  if (state.order_draft) {
+    return { type: 'order_step_input' }
+  }
+
   const normalized = normalizeText(message).trim()
   const products = state.last_products
 
@@ -355,6 +385,16 @@ export function resolveFollowUp(
         if (hasContext) {
           return { type: 'number_reference', product: matched }
         }
+      }
+    }
+  }
+
+  // 1d. Order intent: customer already saw product detail and now wants to order
+  if (state.last_intent === 'product_detail' && products.length > 0) {
+    const padded = ` ${normalized} `
+    for (const word of ORDER_WORDS) {
+      if (paddedIncludes(padded, word)) {
+        return { type: 'order_intent', product: products[0] }
       }
     }
   }
@@ -475,5 +515,6 @@ export function updateState(
     last_products: nextProducts,
     last_query: nextQuery,
     turn_count: current.turn_count + 1,
+    order_draft: current.order_draft ?? null,
   }
 }
