@@ -389,11 +389,13 @@ export function resolveFollowUp(
     }
   }
 
-  // 1d. Order intent: customer already saw product detail and now wants to order
-  if (state.last_intent === 'product_detail' && products.length > 0) {
+  // 1d. Order intent: customer saw product (detail or search) and wants to order
+  const orderTriggerIntents = ['product_detail', 'product_search', 'product_suggestions']
+  if (orderTriggerIntents.includes(state.last_intent) && products.length > 0) {
     const padded = ` ${normalized} `
     for (const word of ORDER_WORDS) {
       if (paddedIncludes(padded, word)) {
+        // If multiple products, prefer the first one (customer can pick variant later)
         return { type: 'order_intent', product: products[0] }
       }
     }
