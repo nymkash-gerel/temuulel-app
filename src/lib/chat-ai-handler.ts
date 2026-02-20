@@ -227,8 +227,12 @@ export async function processAIChat(
         )
         break
       }
+      case 'size_question':
+      case 'contextual_question':
       case 'prefer_llm': {
-        intent = classifyIntent(customerMessage)
+        intent = followUp.type === 'size_question' ? 'size_info'
+          : followUp.type === 'contextual_question' ? 'general'
+          : classifyIntent(customerMessage)
         const searchTerms = extractSearchTerms(customerMessage)
 
         // Parallel: search + history fetch based on intent
@@ -241,7 +245,7 @@ export async function processAIChat(
             : Promise.resolve([]),
           isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId) : Promise.resolve(undefined),
         ])
-        products = llmProducts
+        products = llmProducts.length > 0 ? llmProducts : products
         orders = llmOrders
         responseText = await generateAIResponse(
           intent, products, orders, storeName, customerMessage, chatbotSettings, llmHistory
@@ -325,11 +329,19 @@ export async function processAIChat(
   }
 
   // Save AI response + update state + update conversation — all in parallel
-  const storedProducts: StoredProduct[] = products.map((p) => ({
+  let storedProducts: StoredProduct[] = products.map((p) => ({
     id: p.id,
     name: p.name,
     base_price: p.base_price,
   }))
+
+  // Preserve the selected product in state after number_reference/select_single/order_intent.
+  // Without this, after selecting "2" from a list, last_products becomes [] and
+  // subsequent messages like "тийм" lose all product context.
+  if (followUp?.product && storedProducts.length === 0) {
+    storedProducts = [followUp.product]
+  }
+
   const nextState = updateState(state, intent, storedProducts, customerMessage)
   nextState.order_draft = orderDraft
 
