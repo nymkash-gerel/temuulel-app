@@ -117,22 +117,10 @@ export async function processAIChat(
               draft.variant_label = label
               draft.unit_price = resolved.price ?? draft.unit_price
 
-              // Also try to extract address + phone from same message
-              const phone = extractPhone(customerMessage)
-              const addr = extractAddress(customerMessage, phone)
-              if (phone) draft.phone = phone
-              if (addr) draft.address = addr
-
-              if (draft.address && draft.phone) {
-                // All info collected — show summary
-                draft.step = 'confirming'
-                orderDraft = draft
-                responseText = buildOrderSummary(draft)
-              } else {
-                draft.step = 'info'
-                orderDraft = draft
-                responseText = buildInfoRequest(draft)
-              }
+              // Move to info step — ask for address + phone next
+              draft.step = 'info'
+              orderDraft = draft
+              responseText = buildInfoRequest(draft)
             } else {
               orderDraft = draft
               responseText = 'Аль хувилбарыг сонгохоо дугаараар бичнэ үү:'
@@ -521,8 +509,6 @@ async function startOrderDraft(
     .gt('stock_quantity', 0)
 
   const inStock = variants ?? []
-  const phone = extractPhone(customerMessage)
-  const addr = extractAddress(customerMessage, phone)
 
   let draft: OrderDraft
 
@@ -539,8 +525,6 @@ async function startOrderDraft(
         unit_price: preselected.price ?? product.base_price,
         quantity: 1,
         step: 'info',
-        address: addr ?? undefined,
-        phone: phone ?? undefined,
       }
     } else {
       draft = {
@@ -574,17 +558,10 @@ async function startOrderDraft(
       unit_price: variant?.price ?? product.base_price,
       quantity: 1,
       step: 'info',
-      address: addr ?? undefined,
-      phone: phone ?? undefined,
     }
   }
 
-  // Check if all info is already provided
-  if (draft.address && draft.phone) {
-    draft.step = 'confirming'
-    return { draft, responseText: buildOrderSummary(draft) }
-  }
-
+  // Always ask for address + phone after product/variant selection
   return { draft, responseText: buildInfoRequest(draft) }
 }
 
