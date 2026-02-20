@@ -323,11 +323,13 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
 
           const aiResponse = aiResult.response
           const aiIntent = aiResult.intent
-          console.log('[AI] Intent:', aiIntent, 'Response length:', aiResponse?.length ?? 0)
+          console.log('[AI] Intent:', aiIntent, 'Products:', aiResult.products.length,
+            'OrderStep:', aiResult.orderStep, 'Response length:', aiResponse?.length ?? 0)
 
           if (aiResponse) {
             // If product_search with products found, send text + cards (using AI result products)
             if (aiIntent === 'product_search' && aiResult.products.length > 0) {
+              console.log('[AI] Sending product cards:', aiResult.products.map(p => p.name))
               await sendProductCardsFromResult(
                 senderId, aiResponse, aiResult.products, pageToken
               )
@@ -406,6 +408,11 @@ async function sendProductCardsFromResult(
       }
     })
 
-    await sendProductCards(recipientId, cards, pageToken)
+    console.log('[ProductCards] Sending', cards.length, 'cards, images:',
+      cards.map(c => c.imageUrl ? 'yes' : 'no'))
+    const cardResult = await sendProductCards(recipientId, cards, pageToken)
+    if (!cardResult) {
+      console.error('[ProductCards] Failed to send — API returned null')
+    }
   }
 }
