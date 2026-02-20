@@ -322,6 +322,78 @@ export async function processAIChat(
         undefined,
         { availableTables: tables, busyMode }
       )
+
+      // If the message also contains order intent and products were found,
+      // start order flow directly instead of just showing product info.
+      if (products.length > 0 && hasOrderIntent(customerMessage)) {
+        const p = products[0]
+        const { data: variants } = await supabase
+          .from('product_variants')
+          .select('id, size, color, price, stock_quantity')
+          .eq('product_id', p.id)
+          .gt('stock_quantity', 0)
+
+        const inStock = variants ?? []
+
+        if (inStock.length > 1) {
+          // Check if the customer specified a variant in their message
+          const preselected = resolveVariantFromMessage(customerMessage, inStock)
+          if (preselected) {
+            const label = [preselected.size, preselected.color].filter(Boolean).join('/')
+            orderDraft = {
+              product_id: p.id,
+              product_name: p.name,
+              variant_id: preselected.id,
+              variant_label: label,
+              unit_price: preselected.price ?? p.base_price,
+              quantity: 1,
+              step: 'confirm',
+            }
+            responseText = buildConfirmMessage(orderDraft)
+          } else {
+            orderDraft = {
+              product_id: p.id,
+              product_name: p.name,
+              unit_price: p.base_price,
+              quantity: 1,
+              step: 'variant',
+            }
+            const variantList = inStock.map((v, i) => {
+              const parts: string[] = []
+              if (v.size) parts.push(v.size)
+              if (v.color) parts.push(v.color)
+              parts.push(formatPrice(v.price ?? p.base_price))
+              return `${i + 1}. ${parts.join(' / ')}`
+            }).join('\n')
+            responseText = `📦 ${p.name} захиалга\n\nАль хувилбарыг сонгох вэ?\n${variantList}\n\nДугаараа бичнэ үү:`
+          }
+          intent = 'order_collection'
+        } else if (inStock.length === 1) {
+          const variant = inStock[0]
+          const label = [variant.size, variant.color].filter(Boolean).join('/')
+          orderDraft = {
+            product_id: p.id,
+            product_name: p.name,
+            variant_id: variant.id,
+            variant_label: label || undefined,
+            unit_price: variant.price ?? p.base_price,
+            quantity: 1,
+            step: 'confirm',
+          }
+          responseText = buildConfirmMessage(orderDraft)
+          intent = 'order_collection'
+        } else {
+          orderDraft = {
+            product_id: p.id,
+            product_name: p.name,
+            unit_price: p.base_price,
+            quantity: 1,
+            step: 'confirm',
+          }
+          responseText = buildConfirmMessage(orderDraft)
+          intent = 'order_collection'
+        }
+      }
     }
   }
 
@@ -386,6 +458,18 @@ interface VariantRow {
   color: string | null
   price: number | null
   stock_quantity: number | null
+}
+
+/** Order intent words — used to detect order intent in first messages */
+const ORDER_INTENT_WORDS = [
+  'авъя', 'авья', 'авна', 'авах', 'авйа', 'ави', 'авь',
+  'захиалъя', 'захиалья', 'захиалах', 'захиалмаар',
+]
+
+function hasOrderIntent(msg: string): boolean {
+  const normalized = normalizeText(msg).trim()
+  const padded = ` ${normalized} `
+  return ORDER_INTENT_WORDS.some((w) => padded.includes(` ${normalizeText(w)} `))
 }
 
 function isAffirmative(msg: string): boolean {
