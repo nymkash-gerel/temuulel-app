@@ -52,8 +52,12 @@ const FRUSTRATION_KEYWORDS = [
   'уурласан', 'бухимдсан', 'залхсан', 'ичмээр',
   'ямар ч', 'хариулахгүй', 'хэзээ ч',
   // Delivery delay frustration
-  'ирэхгүй', 'хэзээ', 'удаан', 'хоцорсон',
-  'хүрэхгүй', 'хоног болсон', 'хоног өнгөрсөн',
+  // Future: won't arrive / won't reach
+  'ирэхгүй', 'хүрэхгүй',
+  // Past: didn't arrive / didn't reach (commonly used in complaints)
+  'ирсэнгүй', 'ирээгүй', 'хүрсэнгүй', 'хүрээгүй',
+  // Delay signals
+  'хэзээ', 'удаан', 'хоцорсон', 'хоног болсон', 'хоног өнгөрсөн',
   'алга болсон', 'байхгүй болсон', 'олдохгүй',
 ]
 
@@ -65,6 +69,9 @@ const RETURN_EXCHANGE_KEYWORDS = [
 const PAYMENT_DISPUTE_KEYWORDS = [
   'төлбөр буруу', 'давхар төлсөн', 'мөнгө ирээгүй',
   'залилсан', 'хуурсан', 'төлбөр төлсөн ч',
+  // Refund demand variants
+  'мөнгөө буцааж', 'мөнгоо буцааж', 'мөнгөө буцаа', 'буцааж өг',
+  'мөнгө буцаа', 'буцаан өг', 'буцааж ог',
 ]
 
 // ---------------------------------------------------------------------------
@@ -94,6 +101,14 @@ export function scoreToLevel(score: number): EscalationLevel {
 
 function matchesAny(lower: string, keywords: string[]): boolean {
   return keywords.some((kw) => lower.includes(kw))
+}
+
+/**
+ * Count how many distinct keywords from a list appear in the message.
+ * Used to scale frustration/complaint score by intensity (more keywords = angrier).
+ */
+function countKeywordMatches(lower: string, keywords: string[]): number {
+  return keywords.filter((kw) => lower.includes(kw)).length
 }
 
 /**
@@ -176,15 +191,22 @@ export function evaluateEscalation(
   let addedScore = 0
   const signals: string[] = []
 
-  // 1. Complaint keywords
-  if (matchesAny(lower, COMPLAINT_KEYWORDS)) {
-    addedScore += WEIGHTS.complaint
+  // 1. Complaint keywords — scale by number of distinct matches (cap at 3×)
+  //    e.g. "гомдол байна, чанар муу, алдаа гарсан" → 3 keywords → 75 pts
+  const complaintCount = countKeywordMatches(lower, COMPLAINT_KEYWORDS)
+  if (complaintCount > 0) {
+    addedScore += WEIGHTS.complaint * Math.min(complaintCount, 3)
     signals.push('complaint')
   }
 
-  // 2. Frustration language
-  if (matchesAny(lower, FRUSTRATION_KEYWORDS)) {
-    addedScore += WEIGHTS.frustration
+  // 2. Frustration language — diminishing returns to avoid premature escalation
+  //    1st keyword: full weight (20), each additional: half weight (10)
+  //    e.g. "яагаад удаан" → 2 keywords → 20+10=30 pts
+  //         "яагаад удаан хариулахгүй" → 3 keywords → 20+10+10=40 pts
+  const frustrationCount = countKeywordMatches(lower, FRUSTRATION_KEYWORDS)
+  if (frustrationCount > 0) {
+    const extraMatches = Math.min(frustrationCount - 1, 4)
+    addedScore += WEIGHTS.frustration + extraMatches * Math.floor(WEIGHTS.frustration / 2)
     signals.push('frustration')
   }
 

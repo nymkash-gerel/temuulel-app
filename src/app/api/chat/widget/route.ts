@@ -116,6 +116,25 @@ export async function POST(request: NextRequest) {
       customerId = customer?.id ?? null
     }
 
+    // Ensure conversation row exists so writeState / processEscalation can
+    // UPDATE it. Without this, fresh conversation_ids have no DB row and
+    // all state writes silently fail.
+    const upsertResult = await supabase
+      .from('conversations')
+      .upsert(
+        {
+          id: conversation_id,
+          store_id,
+          channel: 'widget',
+          status: 'open',
+          customer_id: customerId,
+        },
+        { onConflict: 'id', ignoreDuplicates: true }
+      )
+    if (upsertResult.error) {
+      console.error('[Widget] conversation upsert failed:', upsertResult.error.message)
+    }
+
     const aiResult = await processAIChat(supabase, {
       conversationId: conversation_id,
       customerMessage: customer_message,

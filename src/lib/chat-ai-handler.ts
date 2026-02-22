@@ -7,6 +7,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { buildCustomerProfile } from './ai/customer-profile'
 import {
   classifyIntent,
   extractSearchTerms,
@@ -84,10 +85,13 @@ export async function processAIChat(
     chatbotSettings,
   } = ctx
 
-  // --- Parallel: fetch conversation state + busy mode at the same time ---
-  const [state, busyMode] = await Promise.all([
+  // --- Parallel: fetch conversation state + busy mode + customer profile ---
+  const [state, busyMode, customerProfile] = await Promise.all([
     readState(supabase, conversationId),
     checkStoreBusyMode(supabase, storeId),
+    customerId
+      ? buildCustomerProfile(supabase, customerId, storeId).catch(() => null)
+      : Promise.resolve(null),
   ])
 
   const followUp = resolveFollowUp(customerMessage, state)
@@ -231,7 +235,8 @@ export async function processAIChat(
         ])
         products = refProducts
         responseText = await generateAIResponse(
-          intent, products, orders, storeName, followUp.refinedQuery!, chatbotSettings, refHistory
+          intent, products, orders, storeName, followUp.refinedQuery!, chatbotSettings, refHistory,
+          undefined, undefined, customerProfile
         )
         break
       }
@@ -256,7 +261,8 @@ export async function processAIChat(
         products = llmProducts.length > 0 ? llmProducts : products
         orders = llmOrders
         responseText = await generateAIResponse(
-          intent, products, orders, storeName, customerMessage, chatbotSettings, llmHistory
+          intent, products, orders, storeName, customerMessage, chatbotSettings, llmHistory,
+          undefined, undefined, customerProfile
         )
         break
       }
@@ -305,11 +311,24 @@ export async function processAIChat(
       responseText = await generateAIResponse(
         intent, products, orders, storeName, customerMessage, chatbotSettings, history,
         undefined,
-        { availableTables: tables, busyMode }
+        { availableTables: tables, busyMode },
+        customerProfile
       )
 
       // If the message contains order intent, start order flow.
-      if (hasOrderIntent(customerMessage)) {
+      // Skip if already classified as order_status or complaint —
+      // "захиалга маань ирэхгүй" is a complaint, not a new order request.
+      // Also skip if the message is a recommendation/exploration query —
+      // "авмаар байна. Юу санал болгох вэ?" = browsing, not ready-to-buy.
+      const RECOMMENDATION_SIGNALS = [
+        'санал болг', 'юу авбал', 'юу авах вэ', 'юу захиалах вэ',
+        'зөвлө', 'юу санал', 'аль нь дээр', 'юу вэ', 'юу болох',
+        'бэлэг', // gift context — almost always exploring, not ready-to-buy
+      ]
+      const isRecommendationQuery = RECOMMENDATION_SIGNALS.some(
+        (sig) => normalizeText(customerMessage).includes(normalizeText(sig))
+      )
+      if (!isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && hasOrderIntent(customerMessage)) {
         // Check if message has meaningful non-order words that identify a product.
         // If message is ONLY order words (e.g. "zahialu"), products from search are
         // likely coincidental matches (description contains "захиал*") — show catalog.
@@ -381,10 +400,6 @@ export async function processAIChat(
       .select('id, created_at')
       .single(),
     writeState(supabase, conversationId, nextState),
-    supabase
-      .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId),
   ])
 
   return {

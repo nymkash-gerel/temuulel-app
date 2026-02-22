@@ -143,6 +143,7 @@ export async function writeState(
         ...existing,
         conversation_state: toJson(state),
       },
+      updated_at: new Date().toISOString(),
     })
     .eq('id', conversationId)
 }
@@ -333,6 +334,30 @@ export function resolveFollowUp(
       return { type: 'order_cancel' as FollowUpType }
     }
 
+    // Complaint/frustration signals ALWAYS interrupt the order flow.
+    // A frustrated customer shouldn't be asked for their address — they need help.
+    const COMPLAINT_INTERRUPT = [
+      // Delivery issues
+      'ирэхгүй', 'ирсэнгүй', 'хүрэхгүй', 'хүрсэнгүй',
+      'хэзээ ирэх', 'хэдэн хоног', 'хоног болсон', 'хоног өнгөрсөн',
+      'удаан', 'хоцорсон', 'алга болсон',
+      // Complaint/frustration words
+      'гомдол', 'асуудал', 'муу', 'буруу', 'алдаа',
+      'сэтгэл ханамжгүй', 'чанар муу', 'эвдэрсэн', 'гэмтсэн',
+      'хуурамч', 'луйвар', 'тохиромжгүй', 'залилсан', 'хуурсан',
+      'уурласан', 'бухимдсан', 'ичмээр',
+      // Return/refund
+      'буцаах', 'буцаалт', 'мөнгө буцаах', 'буцааж өгөх',
+      'солих', 'солилцох',
+      // Payment dispute
+      'төлбөр буруу', 'давхар төлсөн', 'мөнгө ирээгүй', 'төлбөр төлсөн',
+    ]
+    const isComplaint = COMPLAINT_INTERRUPT.some((kw) => normalized.includes(normalizeText(kw)))
+    if (isComplaint) {
+      // Return null → handler clears draft, routes to normal complaint classification
+      return null
+    }
+
     // Detect off-topic: message looks like a product query or browsing request
     // If message has 3+ words and contains browsing keywords, escape the order flow
     const words = normalized.split(/\s+/)
@@ -349,6 +374,9 @@ export function resolveFollowUp(
       // Off-topic — cancel draft and process as normal message
       return null
     }
+
+    // Suppress unused variable warning
+    void words
 
     return { type: 'order_step_input' }
   }

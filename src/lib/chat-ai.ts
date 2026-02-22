@@ -1146,7 +1146,8 @@ export async function generateAIResponse(
   settings?: ChatbotSettings,
   history?: MessageHistoryEntry[],
   activeVouchers?: ActiveVoucherInfo[],
-  restaurantContext?: RestaurantContext
+  restaurantContext?: RestaurantContext,
+  customerProfile?: import('./ai/customer-profile').CustomerProfile | null
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history
   if (history && history.length > 0) {
@@ -1187,6 +1188,7 @@ export async function generateAIResponse(
           location: t.location,
         })),
         busyMode: restaurantContext?.busyMode,
+        customerProfile: customerProfile ?? null,
       })
       if (contextResult) return contextResult
     } catch {

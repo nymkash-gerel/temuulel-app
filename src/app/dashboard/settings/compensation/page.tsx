@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -18,16 +18,19 @@ interface Policy {
   is_active: boolean
 }
 
-const CATEGORIES = [
-  { key: 'food_quality', label: 'Хоолны чанар', desc: 'Хүйтэн хоол, амтгүй, чанаргүй' },
-  { key: 'wrong_item', label: 'Буруу бараа', desc: 'Буруу захиалга, андуурсан' },
-  { key: 'delivery_delay', label: 'Хүргэлт удсан', desc: 'Удсан, хоцорсон, ирээгүй' },
-  { key: 'service_quality', label: 'Үйлчилгээний чанар', desc: 'Муу үйлчилгээ, хайхрамжгүй' },
-  { key: 'damaged_item', label: 'Гэмтэлтэй бараа', desc: 'Эвдэрсэн, гэмтсэн' },
-  { key: 'pricing_error', label: 'Үнийн алдаа', desc: 'Буруу үнэ, илүү авсан' },
-  { key: 'staff_behavior', label: 'Ажилтны зан', desc: 'Бүдүүлэг, хүндэтгэлгүй' },
-  { key: 'other', label: 'Бусад', desc: 'Дээрх ангилалд багтахгүй' },
+const ALL_CATEGORIES = [
+  { key: 'food_quality', label: 'Хоолны чанар', desc: 'Хүйтэн хоол, амтгүй, чанаргүй', foodOnly: true },
+  { key: 'wrong_item', label: 'Буруу бараа', desc: 'Буруу захиалга, андуурсан', foodOnly: false },
+  { key: 'delivery_delay', label: 'Хүргэлт удсан', desc: 'Удсан, хоцорсон, ирээгүй', foodOnly: false },
+  { key: 'service_quality', label: 'Үйлчилгээний чанар', desc: 'Муу үйлчилгээ, хайхрамжгүй', foodOnly: false },
+  { key: 'damaged_item', label: 'Гэмтэлтэй бараа', desc: 'Эвдэрсэн, гэмтсэн', foodOnly: false },
+  { key: 'pricing_error', label: 'Үнийн алдаа', desc: 'Буруу үнэ, илүү авсан', foodOnly: false },
+  { key: 'staff_behavior', label: 'Ажилтны зан', desc: 'Бүдүүлэг, хүндэтгэлгүй', foodOnly: false },
+  { key: 'other', label: 'Бусад', desc: 'Дээрх ангилалд багтахгүй', foodOnly: false },
 ]
+
+/** Business types that serve food — show food_quality complaint category */
+const FOOD_BUSINESS_TYPES = new Set(['restaurant', 'coffee_shop', 'cafe', 'qsr', 'bakery', 'boba'])
 
 const COMP_TYPES = [
   { value: 'percent_discount', label: 'Хувийн хөнгөлөлт (%)' },
@@ -43,7 +46,15 @@ export default function CompensationSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [storeId, setStoreId] = useState<string | null>(null)
+  const [businessType, setBusinessType] = useState<string>('ecommerce')
   const [policies, setPolicies] = useState<Map<string, Policy>>(new Map())
+
+  // Filter complaint categories based on business type:
+  // food_quality is only relevant for restaurants/cafes, not e-commerce
+  const CATEGORIES = useMemo(
+    () => ALL_CATEGORIES.filter(cat => !cat.foodOnly || FOOD_BUSINESS_TYPES.has(businessType)),
+    [businessType]
+  )
 
   useEffect(() => {
     async function load() {
@@ -52,12 +63,13 @@ export default function CompensationSettingsPage() {
 
       const { data: store } = await supabase
         .from('stores')
-        .select('id')
+        .select('id, business_type')
         .eq('owner_id', user.id)
         .single()
 
       if (!store) { router.push('/dashboard'); return }
       setStoreId(store.id)
+      setBusinessType((store as { id: string; business_type?: string | null }).business_type || 'ecommerce')
 
       const { data } = await supabase
         .from('compensation_policies')
