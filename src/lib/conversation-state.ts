@@ -195,6 +195,11 @@ const EMOTIONAL_WORDS = [
   // Slang/informal
   'юубэ', 'юу бэ', 'яавал', 'ойлгохгуй', 'ойлгсонгуй',
   'алга болчих', 'хариу өг', 'хариу огоч',
+  // Gift / recommendation queries — need LLM for contextual suggestions
+  'бэлэг', 'санал болг', 'санал болох', 'зөвлөж', 'зөвлөх',
+  'юу авбал', 'юу авах вэ', 'ямар авах', 'юу авмаар',
+  'эхнэрт', 'нөхөрт', 'найздаа', 'ойрын', 'ахдаа', 'эгчдээ', 'дүүдээ',
+  'эцэгт', 'эхэд', 'аавт', 'ээждээ', 'охиндоо', 'хүүдээ',
 ]
 
 /** Color / size refinement words */
@@ -417,7 +422,10 @@ export function resolveFollowUp(
   }
 
   // 1d. Order intent: customer has products in context and wants to order
-  if (products.length > 0) {
+  //     Skip if message is a gift/recommendation query — "бэлэг авъя" ≠ "захиалъя"
+  const GIFT_WORDS = ['бэлэг', 'санал болох', 'санал болго', 'зөвлөж', 'зөвлөх', 'юу авбал', 'юу авах вэ']
+  const isGiftQuery = GIFT_WORDS.some((w) => normalized.includes(normalizeText(w)))
+  if (products.length > 0 && !isGiftQuery) {
     const msgWords = normalized.split(/\s+/)
     const hasOrder = msgWords.some((w) =>
       ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))

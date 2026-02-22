@@ -195,6 +195,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хд',
     // Latin aliases for product category names
     'умд', 'цамц',
+    // Home appliance / furniture terms (commonly searched with "байна уу?")
+    'тавиур', 'телевизор', 'хөргөгч', 'угаалгын', 'зурагт', 'компьютер',
+    'тавилга', 'гэрийн цахилгаан', 'гэрийн хэрэгсэл',
     // Image/photo requests (trigger product cards with images)
     'зураг', 'зургийг', 'зургаа', 'зургыг', 'зурагтай', 'фото',
     'photo', 'picture', 'pic', 'image', 'show photo', 'show picture',
@@ -268,6 +271,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'эвдэрсэн', 'гэмтсэн', 'гэмтэл',
     'уурласан', 'бухимдсан',
     'хариуцлага', 'хариуцлагагүй',
+    // Delivery delay complaints
+    'ирэхгүй', 'хэзээ ирэх', 'хоног болсон', 'хоног өнгөрсөн',
+    'удаан болсон', 'хүрсэнгүй', 'хүрэхгүй', 'захиалга ирсэнгүй',
+    'байхгүй болсон', 'алга болсон', 'олдохгүй',
   ],
   return_exchange: [
     // Core — return/exchange policy questions (moved from complaint)
@@ -500,6 +507,24 @@ export function classifyIntentWithConfidence(message: string): IntentResult {
     if (score > bestScore) {
       bestScore = score
       bestIntent = intent
+    }
+  }
+
+  // Tiebreaker: if greeting ties with product_search, prefer product_search
+  // e.g. "ТВ тавиур байна уу?" — "байна уу" scores 1 for BOTH, but it's a product query
+  if (bestIntent === 'greeting' && bestScore <= 1) {
+    const productScore = (() => {
+      let s = 0
+      const kws = NORMALIZED_INTENT_KEYWORDS['product_search'] || []
+      for (const kw of kws) {
+        if (padded.includes(` ${kw} `) || neutralPadded.includes(` ${neutralizeVowels(kw)} `)) {
+          s += 1
+        }
+      }
+      return s
+    })()
+    if (productScore >= bestScore && normalized.split(/\s+/).length > 2) {
+      bestIntent = 'product_search'
     }
   }
 
@@ -1179,6 +1204,7 @@ export async function generateAIResponse(
           description: p.description,
           base_price: p.base_price,
           sales_script: p.sales_script,
+          variants: p.variants,
         })),
         customer_query: customerQuery,
       })
