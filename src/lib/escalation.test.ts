@@ -117,9 +117,10 @@ describe('evaluateEscalation', () => {
     expect(result.signals).toContain('complaint')
   })
 
-  it('detects frustration language (+20)', () => {
+  it('detects frustration language (+20 base, scales with keyword count)', () => {
     const result = evaluateEscalation(0, 'Яагаад хариулахгүй байна вэ', [], DEFAULT_CONFIG)
-    expect(result.newScore).toBe(20)
+    // "яагаад" + "хариулахгүй" = 2 keywords → 20 + 10 = 30
+    expect(result.newScore).toBe(30)
     expect(result.signals).toContain('frustration')
   })
 
@@ -174,7 +175,9 @@ describe('evaluateEscalation', () => {
   })
 
   it('stacks multiple signals in one message', () => {
-    // complaint (+25) + frustration (+20) = 45
+    // complaint: "муу" + "гомдол" = 2 keywords → 25×2 = 50
+    // frustration: "яагаад" = 1 keyword → 20
+    // Total = 70
     const result = evaluateEscalation(
       0,
       'Яагаад ийм муу бараа байна вэ, гомдол гаргая',
@@ -183,7 +186,7 @@ describe('evaluateEscalation', () => {
     )
     expect(result.signals).toContain('complaint')
     expect(result.signals).toContain('frustration')
-    expect(result.newScore).toBe(45)
+    expect(result.newScore).toBe(70)
   })
 
   it('sets shouldEscalate=true when crossing threshold', () => {

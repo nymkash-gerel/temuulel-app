@@ -4,6 +4,7 @@
  */
 
 import { normalizeText, neutralizeVowels } from './text-normalizer'
+import { stemText, stemKeyword } from './mn-stemmer'
 
 // ---------------------------------------------------------------------------
 // Keyword lists
@@ -305,6 +306,14 @@ const NORMALIZED_INTENT_KEYWORDS: Record<string, string[]> = Object.fromEntries(
   ])
 )
 
+/** Pre-compute stemmed keyword lists for stem-based matching */
+const STEMMED_INTENT_KEYWORDS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(NORMALIZED_INTENT_KEYWORDS).map(([intent, keywords]) => [
+    intent,
+    [...new Set(keywords.map((kw) => stemKeyword(kw)))],
+  ])
+)
+
 // ---------------------------------------------------------------------------
 // Matching helpers
 // ---------------------------------------------------------------------------
@@ -386,6 +395,9 @@ export function classifyIntentWithConfidence(
   let bestScore = 0
 
   const neutralPadded = ` ${neutralizeVowels(normalized)} `
+  // Stem the message once for stem-based matching
+  const stemmedMsg = stemText(normalized)
+  const stemmedPadded = ` ${stemmedMsg} `
 
   for (const [intent, keywords] of Object.entries(NORMALIZED_INTENT_KEYWORDS)) {
     let score = 0
@@ -393,6 +405,7 @@ export function classifyIntentWithConfidence(
     // Prevents prefix inflation: e.g. "размер" fully matching should not
     // also accumulate +0.5 prefix scores from "размераа", "размерийн".
     const fullyMatchedWords = new Set<string>()
+    const stemMatchedWords = new Set<string>()
     for (const kw of keywords) {
       // Word-boundary match: keyword must be surrounded by spaces
       if (padded.includes(` ${kw} `)) {
@@ -405,6 +418,20 @@ export function classifyIntentWithConfidence(
         const matchingWord = prefixMatchWord(normalized, kw)
         if (matchingWord && !fullyMatchedWords.has(matchingWord)) {
           score += 0.5 // Partial/prefix match — half weight (deduped)
+        }
+      }
+    }
+
+    // Stem-based matching: catches inflected forms not in keyword list
+    // (e.g. "хүргэлтийн" stems to "хүргэлт" which matches shipping keyword)
+    const stemmedKws = STEMMED_INTENT_KEYWORDS[intent] || []
+    for (const skw of stemmedKws) {
+      if (stemmedPadded.includes(` ${skw} `)) {
+        // Only count if not already matched by exact/vowel-neutral
+        const alreadyCounted = skw.split(' ').every((w) => fullyMatchedWords.has(w) || stemMatchedWords.has(w))
+        if (!alreadyCounted) {
+          score += 0.75 // Stem match — stronger than prefix, weaker than exact
+          skw.split(' ').forEach((w) => stemMatchedWords.add(w))
         }
       }
     }

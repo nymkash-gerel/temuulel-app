@@ -28,6 +28,9 @@ export type {
 // Text normalization
 export { normalizeText, neutralizeVowels } from './text-normalizer'
 
+// Mongolian stemmer
+export { mnStem, stemText, stemKeyword } from './mn-stemmer'
+
 // Intent classification
 export type { IntentResult } from './intent-classifier'
 export {
