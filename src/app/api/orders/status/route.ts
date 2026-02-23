@@ -140,7 +140,7 @@ export async function PATCH(request: NextRequest) {
               // Get available drivers with stats
               const { data: activeDrivers } = await supabase
                 .from('delivery_drivers')
-                .select('id, name, vehicle_type, current_location, status')
+                .select('id, name, vehicle_type, current_location, status, delivery_zones')
                 .eq('store_id', store.id)
                 .in('status', ['active', 'on_delivery'])
 
@@ -169,7 +169,7 @@ export async function PATCH(request: NextRequest) {
                       active_delivery_count: activeCount || 0,
                       vehicle_type: d.vehicle_type,
                       completion_rate: totalDone && totalDone > 0 ? Math.round(((completedCount || 0) / totalDone) * 100) : 100,
-                      delivery_zones: (d as Record<string, unknown>).delivery_zones as string[] ?? [],
+                      delivery_zones: (d.delivery_zones as string[]) ?? [],
                     }
                   })
                 )
