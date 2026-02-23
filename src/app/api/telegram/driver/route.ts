@@ -146,7 +146,13 @@ export async function POST(request: NextRequest) {
 
     if (lookupError || !driver) {
       console.log(`[DriverBot] NOT FOUND — phone "${phone}" not in DB. Error: ${lookupError?.message}`)
-      await tgSend(chatId, DRIVER_BOT_NOT_FOUND)
+      // Debug: tell the driver exactly what we searched for
+      await tgSend(chatId,
+        `❌ Бүртгэгдээгүй байна.\n\n` +
+        `🔍 Хайсан: <code>${phone}</code>\n` +
+        `📥 Авсан: <code>${rawPhone}</code>\n\n` +
+        `Менежерт мэдэгдэнэ үү.`
+      )
       return NextResponse.json({ ok: true })
     }
 
