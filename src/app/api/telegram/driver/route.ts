@@ -81,6 +81,45 @@ export async function POST(request: NextRequest) {
 
   // ── /start command ───────────────────────────────────────────────────────
   if (text === '/start' || text.startsWith('/start ')) {
+    // Deep-link: /start <driverId> — auto-link without needing phone number
+    const param = text.split(' ')[1]?.trim()
+    if (param && param.length > 10) {
+      // Looks like a UUID-based driver ID — try to link directly
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: driver } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, name, telegram_chat_id')
+        .eq('id', param)
+        .maybeSingle()
+
+      if (!driver) {
+        await tgSend(chatId,
+          `❌ Холбоос хүчингүй байна.\n\nДэлгүүрийн менежерээсээ шинэ холбоос авна уу.`
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      if (driver.telegram_chat_id && driver.telegram_chat_id !== chatId) {
+        // Already linked to a different Telegram account
+        await tgSend(chatId, DRIVER_BOT_ALREADY_LINKED(driver.name))
+        return NextResponse.json({ ok: true })
+      }
+
+      // Link this Telegram chat to the driver
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('delivery_drivers')
+        .update({
+          telegram_chat_id: chatId,
+          telegram_linked_at: new Date().toISOString(),
+        })
+        .eq('id', driver.id)
+
+      await tgSend(chatId, DRIVER_BOT_LINKED(driver.name))
+      return NextResponse.json({ ok: true })
+    }
+
+    // Plain /start with no param → welcome + prompt for phone
     await tgSend(chatId, DRIVER_BOT_WELCOME)
     return NextResponse.json({ ok: true })
   }

@@ -13,6 +13,8 @@ interface Driver {
   vehicle_number: string | null
   status: 'active' | 'inactive' | 'on_delivery'
   user_id: string | null
+  telegram_chat_id: number | null
+  telegram_linked_at: string | null
   created_at: string
 }
 
@@ -50,6 +52,20 @@ export default function DeliveryDriversPage() {
   const [formVehicleNumber, setFormVehicleNumber] = useState('')
   const [formStatus, setFormStatus] = useState<string>('active')
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copiedTgId, setCopiedTgId] = useState<string | null>(null)
+
+  const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? ''
+
+  function copyTelegramInvite(driver: Driver) {
+    if (!BOT_USERNAME) {
+      alert('NEXT_PUBLIC_TELEGRAM_BOT_USERNAME тохируулаагүй байна.\nVercel → Environment Variables-д нэмнэ үү.')
+      return
+    }
+    const link = `https://t.me/${BOT_USERNAME}?start=${driver.id}`
+    navigator.clipboard.writeText(link)
+    setCopiedTgId(driver.id)
+    setTimeout(() => setCopiedTgId(null), 2000)
+  }
 
   useEffect(() => {
     async function load() {
@@ -70,7 +86,7 @@ export default function DeliveryDriversPage() {
           .eq('store_id', store.id)
           .order('created_at', { ascending: false })
 
-        if (data) setDrivers(data as Driver[])
+        if (data) setDrivers(data as unknown as Driver[])
       }
       setLoading(false)
     }
@@ -389,7 +405,25 @@ export default function DeliveryDriversPage() {
                   ) : (
                     <p className="text-yellow-400 text-xs font-medium">Бүртгэлгүй</p>
                   )}
+                  {/* Telegram status */}
+                  {driver.telegram_chat_id ? (
+                    <p className="text-[#29B6F6] text-xs font-medium flex items-center gap-1">
+                      ✈️ Telegram холбогдсон
+                    </p>
+                  ) : (
+                    <p className="text-slate-500 text-xs">Telegram холбогдоогүй</p>
+                  )}
                 </div>
+
+                {/* Telegram invite link button */}
+                {!driver.telegram_chat_id && (
+                  <button
+                    onClick={() => copyTelegramInvite(driver)}
+                    className="w-full mb-2 px-3 py-2 bg-[#229ED9]/10 hover:bg-[#229ED9]/20 text-[#29B6F6] text-sm rounded-lg transition-all border border-[#229ED9]/20 flex items-center justify-center gap-2"
+                  >
+                    {copiedTgId === driver.id ? '✅ Хуулагдлаа!' : '✈️ Telegram холбох линк'}
+                  </button>
+                )}
 
                 {!driver.user_id && storeId && (
                   <button
