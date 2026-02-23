@@ -16,6 +16,10 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   tgSend,
+  tgAnswerCallback,
+  tgRemoveButtons,
+  enRouteKeyboard,
+  issueKeyboard,
   DRIVER_BOT_WELCOME,
   DRIVER_BOT_LINKED,
   DRIVER_BOT_NOT_FOUND,
@@ -39,9 +43,128 @@ interface TgMessage {
   contact?: { phone_number: string; user_id?: number }
 }
 
+interface TgCallbackQuery {
+  id: string
+  from: { id: number; first_name: string }
+  message?: TgMessage
+  data?: string
+}
+
 interface TgUpdate {
   update_id: number
   message?: TgMessage
+  callback_query?: TgCallbackQuery
+}
+
+/** Handle inline button taps from drivers */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleCallbackQuery(
+  supabase: any,
+  cb: TgCallbackQuery
+): Promise<void> {
+  const chatId = cb.message?.chat.id ?? cb.from.id
+  const messageId = cb.message?.message_id
+  const data = cb.data ?? ''
+  const [action, deliveryId] = data.split(':')
+
+  if (!deliveryId) {
+    await tgAnswerCallback(cb.id, '❌ Алдаа гарлаа')
+    return
+  }
+
+  // Look up driver by chat_id
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: driver } = await (supabase as any)
+    .from('delivery_drivers')
+    .select('id, name')
+    .eq('telegram_chat_id', chatId)
+    .maybeSingle()
+
+  if (!driver) {
+    await tgAnswerCallback(cb.id, '❌ Жолооч олдсонгүй')
+    return
+  }
+
+  // Remove buttons from original message
+  if (messageId) await tgRemoveButtons(chatId, messageId)
+
+  switch (action) {
+    case 'picked_up': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({ status: 'picked_up' }).eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
+      await tgSend(chatId,
+        `✅ <b>Авлаа гэж бүртгэгдлээ.</b>\n\nХаягруу явна уу. Хүргэсэн үедээ доорх товчийг дарна уу.`,
+        { replyMarkup: enRouteKeyboard(deliveryId) }
+      )
+      break
+    }
+
+    case 'delivered': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({ status: 'delivered', delivered_at: new Date().toISOString() }).eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, '🎉 Амжилттай!')
+      await tgSend(chatId, `🎉 <b>Хүргэлт амжилттай бүртгэгдлээ!</b>\n\nБаярлалаа, ${driver.name}!`)
+      break
+    }
+
+    case 'unreachable': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({ status: 'delayed', notes: 'Харилцагч утас авсангүй' }).eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId, `📵 <b>Бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдлээ. Удахгүй зааварчилгаа ирнэ.`)
+      break
+    }
+
+    case 'delay': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({ status: 'delayed' }).eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId, `⏰ <b>Хоцрох тухай бүртгэгдлээ.</b>\n\nХарилцагчид мэдэгдэллээ.`, { replyMarkup: enRouteKeyboard(deliveryId) })
+      break
+    }
+
+    case 'issue': {
+      await tgAnswerCallback(cb.id)
+      await tgSend(chatId, `⚠️ <b>Ямар асуудал гарсан бэ?</b>`, { replyMarkup: issueKeyboard(deliveryId) })
+      break
+    }
+
+    case 'wrong_product': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Буруу бараа' }).eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId, `📦 <b>Буруу бараа гэж бүртгэгдлээ.</b>\n\nБарааг агуулахад буцааж өгнө үү.`)
+      break
+    }
+
+    case 'damaged': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Гэмтсэн бараа' }).eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId, `💔 <b>Гэмтсэн бараа гэж бүртгэгдлээ.</b>\n\nЗураг авч, агуулахад буцааж өгнө үү.`)
+      break
+    }
+
+    case 'no_payment': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId, `💰 <b>Мөнгө өгсөнгүй гэж бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдэллээ.`)
+      break
+    }
+
+    case 'reject': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({ status: 'pending', driver_id: null }).eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, 'Татгалзлаа')
+      await tgSend(chatId, `↩️ Захиалгыг татгалзлаа. Дэлгүүр өөр жолооч томилно.`)
+      break
+    }
+
+    default:
+      await tgAnswerCallback(cb.id, '❓ Тодорхойгүй үйлдэл')
+  }
 }
 
 /** Clean a phone number to 8 digits (Mongolian mobile) */
@@ -73,13 +196,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true }) // Telegram retries on non-200, always return 200
   }
 
+  const supabase = getSupabase()
+
+  // ── Inline button callback ───────────────────────────────────────────────
+  if (update.callback_query) {
+    await handleCallbackQuery(supabase, update.callback_query)
+    return NextResponse.json({ ok: true })
+  }
+
   const msg = update.message
   if (!msg?.text && !msg?.contact) return NextResponse.json({ ok: true })
 
   const chatId = msg.chat.id
   const text = msg.text?.trim() ?? ''
-
-  const supabase = getSupabase()
 
   // ── /start command ───────────────────────────────────────────────────────
   if (text === '/start' || text.startsWith('/start ')) {
