@@ -310,6 +310,7 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
           // Show typing indicator (fire-and-forget — visual only)
           void sendTypingIndicator(senderId, true, pageToken).catch(() => {})
 
+          console.log('[Messenger] Starting AI processing for:', messageText, 'store:', store.id, 'customer:', customer.id)
           const aiResult = await processAIChat(supabase, {
             conversationId: conversation.id,
             customerMessage: messageText,
@@ -318,6 +319,7 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
             customerId: customer.id,
             chatbotSettings,
           })
+          console.log('[Messenger] AI completed. Intent:', aiResult.intent, 'Response length:', aiResult.response?.length)
 
           const aiResponse = aiResult.response
           const aiIntent = aiResult.intent
