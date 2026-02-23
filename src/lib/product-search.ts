@@ -41,6 +41,14 @@ function escapeLike(term: string): string {
   return term.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
 }
 
+/**
+ * Escape PostgreSQL array literal characters to prevent injection.
+ * Removes/escapes `{`, `}`, `,`, `"` characters that could break array syntax.
+ */
+function escapeArrayLiteral(term: string): string {
+  return term.replace(/[{},\"]/g, '')
+}
+
 // ---------------------------------------------------------------------------
 // Stop words & Category mapping
 // ---------------------------------------------------------------------------
@@ -233,10 +241,11 @@ export async function searchProducts(
       const conditions = allSearchWords
         .flatMap((w) => {
           const safe = escapeLike(w)
+          const arraySafe = escapeArrayLiteral(w)
           return [
             `name.ilike.%${safe}%`,
             `description.ilike.%${safe}%`,
-            `search_aliases.cs.{${w}}`,
+            `search_aliases.cs.{${arraySafe}}`,
           ]
         })
         .join(',')
