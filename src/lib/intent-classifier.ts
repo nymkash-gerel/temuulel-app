@@ -331,6 +331,31 @@ const SIZE_PATTERNS = [
 ]
 
 // ---------------------------------------------------------------------------
+// Logging
+// ---------------------------------------------------------------------------
+
+/**
+ * Log intent classification results for monitoring.
+ * Logs to console in structured JSON format for serverless environments (Vercel).
+ */
+export function logClassification(
+  message: string,
+  intent: string,
+  confidence: number,
+  processingTimeMs: number
+): void {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    message: message.slice(0, 100), // First 100 chars only
+    intent,
+    confidence,
+    processing_time_ms: processingTimeMs,
+  }
+  
+  console.log(JSON.stringify(logEntry))
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -339,11 +364,20 @@ export interface IntentResult {
   confidence: number  // 0 = no match, 1+ = keyword hits
 }
 
+export interface ClassificationOptions {
+  log?: boolean
+}
+
 /**
  * Classify intent with confidence score.
  * Uses exact substring match (full weight) + prefix match (half weight).
  */
-export function classifyIntentWithConfidence(message: string): IntentResult {
+export function classifyIntentWithConfidence(
+  message: string,
+  options?: ClassificationOptions
+): IntentResult {
+  const startTime = Date.now()
+  
   const normalized = normalizeText(message)
   // Pad with spaces so word-boundary checks work at start/end
   const padded = ` ${normalized} `
@@ -389,6 +423,12 @@ export function classifyIntentWithConfidence(message: string): IntentResult {
       bestScore = score
       bestIntent = intent
     }
+  }
+
+  // Optional logging
+  if (options?.log) {
+    const processingTime = Date.now() - startTime
+    logClassification(message, bestIntent, bestScore, processingTime)
   }
 
   return { intent: bestIntent, confidence: bestScore }
