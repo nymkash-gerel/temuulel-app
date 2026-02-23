@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { dispatchNotification } from '@/lib/notifications'
+import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
 
 /**
  * POST /api/webhook/delivery
@@ -159,6 +160,20 @@ export async function POST(request: NextRequest) {
       failure_reason: failure_reason || '',
       notes: notes || '',
     })
+  }
+
+  // 📱 Telegram: notify driver when external provider marks delivery as failed
+  // (driver needs to know to return the parcel)
+  if (status === 'failed' && delivery.driver_id) {
+    sendToDriverWithLog(
+      supabase,
+      delivery.driver_id,
+      store_id,
+      DRIVER_PROACTIVE_MESSAGES.orderCancelled({
+        orderNumber: delivery.order_number || delivery.delivery_number,
+        cancelReason: failure_reason || 'Хүргэлт амжилтгүй болсон гэж тэмдэглэгдлээ',
+      }),
+    ).catch(() => {}) // Non-blocking
   }
 
   return NextResponse.json({ success: true, delivery_id: delivery.id, status })
