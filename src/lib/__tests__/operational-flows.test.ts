@@ -31,12 +31,10 @@ import { normalizeText } from '../text-normalizer'
 
 function makeState(overrides: Partial<ConversationState> = {}): ConversationState {
   return {
-    last_intent: null,
+    last_intent: '',
     last_products: [],
-    last_orders: [],
-    last_query: null,
+    last_query: '',
     turn_count: 0,
-    created_at: new Date().toISOString(),
     ...overrides,
   }
 }
@@ -44,18 +42,7 @@ function makeState(overrides: Partial<ConversationState> = {}): ConversationStat
 const MOCK_PRODUCT = {
   id: 'prod-1',
   name: 'Кашемир свитер',
-  price: 89000,
-  images: [],
-  category: 'Хувцас',
-  description: 'Монгол кашемир',
-}
-
-const MOCK_ORDER = {
-  id: 'order-1',
-  order_number: 'ORD-001',
-  status: 'delivered',
-  total_amount: 89000,
-  items: [{ product_name: 'Кашемир свитер', quantity: 1 }],
+  base_price: 89000,
 }
 
 // ─────────────────────────────────────────────────────────────────────

@@ -343,7 +343,9 @@ export async function generateAIResponse(
   history?: MessageHistoryEntry[],
   activeVouchers?: ActiveVoucherInfo[],
   restaurantContext?: RestaurantContext,
-  customerProfile?: CustomerProfile | null
+  customerProfile?: CustomerProfile | null,
+  extendedProfile?: string | null,
+  latestPurchaseSummary?: string | null,
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history
   if (history && history.length > 0) {
@@ -382,6 +384,8 @@ export async function generateAIResponse(
           location: t.location,
         })),
         busyMode: restaurantContext?.busyMode,
+        extendedProfile: extendedProfile ?? null,
+        latestPurchaseSummary: latestPurchaseSummary ?? null,
       })
       if (contextResult) return contextResult
     } catch {

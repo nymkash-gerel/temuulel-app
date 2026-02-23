@@ -69,6 +69,8 @@ export interface ContextualInput {
   returnPolicy?: string
   activeVouchers?: ActiveVoucherContext[]
   customerProfile?: CustomerProfile | null
+  extendedProfile?: string | null
+  latestPurchaseSummary?: string | null
   // Restaurant features
   availableTables?: TableContext[]
   busyMode?: BusyModeContext
@@ -122,6 +124,17 @@ function buildSystemPrompt(input: ContextualInput): string {
     prompt += `
 
 ХАРИЛЦАГЧ: ${cp.name} | ${cp.loyaltyTier} | Түүх: ${cp.orderHistorySummary} | Идэвхтэй: ${cp.activeOrderSummary}${cp.openIssuesSummary !== 'Байхгүй' ? ` | Гомдол: ${cp.openIssuesSummary}` : ''}${cp.issueWarning}${cp.vipNote}${cp.newCustomerNote}`
+  }
+
+  // --- Extended profile (demographics, preferences) ---
+  if (input.extendedProfile) {
+    prompt += `\nПРОФИЛ: ${input.extendedProfile}`
+  }
+
+  // --- Latest purchase (for return/complaint auto-lookup) ---
+  if (input.latestPurchaseSummary && (isResolution || input.intent === 'return_exchange')) {
+    prompt += `\n\nСҮҮЛИЙН ЗАХИАЛГА: ${input.latestPurchaseSummary}
+Буцаалт/гомдол ирвэл эхлээд энэ захиалгатай холбоотой эсэхийг асуу.`
   }
 
   // --- Size chart (only for size queries) ---
