@@ -282,18 +282,8 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
         channel,
       })
 
-      // Smart escalation check
+      // Smart escalation check — runs after AI reply, only for complaint/frustration intents
       const chatbotSettings = (store.chatbot_settings || {}) as ChatbotSettings
-      const esc = await processEscalation(
-        supabase, conversation.id, messageText, store.id, chatbotSettings
-      )
-      if (esc.escalated) {
-        // Send escalation message to customer via Messenger
-        if (pageToken && esc.escalationMessage) {
-          await sendTextMessage(senderId, esc.escalationMessage, pageToken)
-        }
-        continue // Skip AI auto-reply for this escalated message
-      }
 
       // AI auto-reply
       if (store.ai_auto_reply && pageToken) {
@@ -377,6 +367,22 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
             }
           } else {
             console.warn('[AI] No response text returned')
+          }
+
+          // Post-reply escalation check — only for complaint/frustration intents
+          const INFORMATIONAL_INTENTS = [
+            'greeting', 'thanks', 'product_search', 'order_status', 'shipping',
+            'payment', 'size_info', 'table_reservation', 'allergen_info',
+            'menu_availability', 'order_collection', 'order_created',
+            'product_detail', 'price_info', 'gift_card_purchase', 'gift_card_redeem',
+          ]
+          if (!INFORMATIONAL_INTENTS.includes(aiIntent)) {
+            const esc = await processEscalation(
+              supabase, conversation.id, messageText, store.id, chatbotSettings
+            )
+            if (esc.escalated && pageToken && esc.escalationMessage) {
+              await sendTextMessage(senderId, esc.escalationMessage, pageToken)
+            }
           }
 
           // Turn off typing (fire-and-forget)

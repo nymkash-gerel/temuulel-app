@@ -145,21 +145,32 @@ export async function POST(request: NextRequest) {
     })
 
     // 6. Smart escalation — evaluate score AFTER AI response is saved
-    const escalationResult = await processEscalation(
-      supabase, conversation_id, customer_message, store_id, chatbotSettings
-    )
+    // Skip escalation for informational intents (customer is just asking questions)
+    const INFORMATIONAL_INTENTS = [
+      'greeting', 'thanks', 'product_search', 'order_status', 'shipping',
+      'payment', 'size_info', 'table_reservation', 'allergen_info',
+      'menu_availability', 'order_collection', 'order_created',
+      'product_detail', 'price_info', 'gift_card_purchase', 'gift_card_redeem',
+    ]
+    const shouldCheckEscalation = !INFORMATIONAL_INTENTS.includes(aiResult.intent)
 
-    if (escalationResult.escalated) {
-      // processEscalation already saved the escalation message to DB —
-      // just return it to the client (don't double-save)
-      return NextResponse.json({
-        response: escalationResult.escalationMessage ||
+    if (shouldCheckEscalation) {
+      const escalationResult = await processEscalation(
+        supabase, conversation_id, customer_message, store_id, chatbotSettings
+      )
+
+      if (escalationResult.escalated) {
+        // Include AI response + escalation notice
+        const escalationNotice = escalationResult.escalationMessage ||
           chatbotSettings.escalation_message ||
-          'Таны хүсэлтийг бид хүлээн авлаа. Манай менежер тантай удахгүй холбогдоно. Түр хүлээнэ үү!',
-        intent: 'escalated',
-        handoff: true,
-        products_found: 0,
-      })
+          'Таны хүсэлтийг бид хүлээн авлаа. Манай менежер тантай удахгүй холбогдоно. Түр хүлээнэ үү!'
+        return NextResponse.json({
+          response: `${aiResult.response}\n\n---\n\n${escalationNotice}`,
+          intent: 'escalated',
+          handoff: true,
+          products_found: aiResult.metadata.products_found,
+        })
+      }
     }
 
     return NextResponse.json({
