@@ -1,0 +1,31 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run
+      - run: npx next build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          OPENAI_API_KEY: placeholder
+          FACEBOOK_APP_SECRET: placeholder
+          FACEBOOK_PAGE_ACCESS_TOKEN: placeholder
+          MESSENGER_VERIFY_TOKEN: placeholder
+          UPSTASH_REDIS_REST_URL: https://placeholder.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: placeholder
+          TELEGRAM_BOT_TOKEN: placeholder
+          SENTRY_DSN: https://placeholder@sentry.io/0
