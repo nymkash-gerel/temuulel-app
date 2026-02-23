@@ -304,7 +304,6 @@ describe('Scenario: Contextual follow-ups', () => {
   })
 
   it('"захиалах" detects as order question', () => {
-    // With 1 product in context, "захиалах" (to order) → direct order intent
     const result = resolveFollowUp('захиалах', state)
     expect(result?.type).toBe('contextual_question')
   })
@@ -505,7 +504,6 @@ describe('Scenario: Mongolian slang and abbreviations', () => {
   })
 
   it('"захиалмаар байна" (want to order) detects as order question', () => {
-    // With 1 product in context, "захиалмаар байна" (want to order) → direct order intent
     const result = resolveFollowUp('захиалмаар байна', state)
     expect(result?.type).toBe('contextual_question')
   })
