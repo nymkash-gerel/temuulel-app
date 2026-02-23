@@ -158,7 +158,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'буцаан', 'буцаагдах',
     'солиулж',
     // Latin transliteration
-    'butsaah', 'butsaalt', 'butsaa',
+    'butsaah', 'butsaalt', 'butsaa', 'butaah', 'butaa', 'butay',
+    // Cyrillic forms of Latin misspellings (normalizer converts Latin→Cyrillic)
+    'бутай', 'бутаах', 'бутаа',
     // Return-specific nouns
     'хураамж',
     // Policy-specific phrases
@@ -452,7 +454,7 @@ export function classifyIntentWithConfidence(
   // Only override for strong return/complaint signals (exact keyword match, not prefix)
   if (bestIntent === 'product_search' && bestScore > 0) {
     const RETURN_SIGNALS = ['буцаах', 'буцаалт', 'буцаан', 'солих', 'солилт', 'солиулах', 'буцааж',
-      'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'solih',
+      'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'butaah', 'butaa', 'butay', 'бутай', 'бутаах', 'бутаа', 'solih',
       'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй', 'эвдэрсэн']
     const COMPLAINT_SIGNALS = ['гомдол', 'муу', 'луйвар', 'хуурамч', 'complaint']
     const normalizedWords = normalized.split(/\s+/)
