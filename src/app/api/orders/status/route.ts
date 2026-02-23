@@ -169,6 +169,7 @@ export async function PATCH(request: NextRequest) {
                       active_delivery_count: activeCount || 0,
                       vehicle_type: d.vehicle_type,
                       completion_rate: totalDone && totalDone > 0 ? Math.round(((completedCount || 0) / totalDone) * 100) : 100,
+                      delivery_zones: (d as Record<string, unknown>).delivery_zones as string[] ?? [],
                     }
                   })
                 )
