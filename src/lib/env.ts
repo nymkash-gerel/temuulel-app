@@ -8,10 +8,10 @@ import { z } from 'zod'
  */
 
 const serverSchema = z.object({
-  // Supabase (using modern API keys)
+  // Supabase
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_KEY: z.string().min(1),
-  SUPABASE_SECRET_KEY: z.string().min(1),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
   // App
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
@@ -71,8 +71,8 @@ function validateEnv(): ServerEnv {
     ...process.env,
     // Provide fallbacks for dev only so the app can still start
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
-    NEXT_PUBLIC_SUPABASE_KEY: process.env.NEXT_PUBLIC_SUPABASE_KEY || 'dev-anon-key',
-    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || 'dev-service-key',
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dev-anon-key',
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'dev-service-key',
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'sk-dev',
   })) as ServerEnv
 }
