@@ -7,7 +7,27 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { normalizeText } from './text-normalizer'
+import { getRedis } from './redis'
 import type { ProductMatch, TableMatch, OrderMatch } from './chat-ai-types'
+
+// ---------------------------------------------------------------------------
+// Cache
+// ---------------------------------------------------------------------------
+
+/** Cache TTL in seconds (5 minutes) */
+const PRODUCT_CACHE_TTL = 300
+
+/**
+ * Build a deterministic cache key from search parameters.
+ */
+function productCacheKey(storeId: string, query: string, opts: SearchProductsOptions): string {
+  const norm = normalizeText(query)
+  const flags = [
+    opts.availableOnly ? 'avail' : '',
+    opts.maxProducts ? `max${opts.maxProducts}` : '',
+  ].filter(Boolean).join(':')
+  return `psearch:${storeId}:${norm}${flags ? ':' + flags : ''}`
+}
 
 // ---------------------------------------------------------------------------
 // Sanitization
@@ -149,6 +169,18 @@ export async function searchProducts(
   options: SearchProductsOptions = {}
 ): Promise<ProductMatch[]> {
   const { maxProducts = 5, availableOnly = false, originalQuery } = options
+
+  // Try Redis cache first
+  const redis = getRedis()
+  const cacheKey = productCacheKey(storeId, query, options)
+  if (redis) {
+    try {
+      const cached = await redis.get<ProductMatch[]>(cacheKey)
+      if (cached) return cached
+    } catch {
+      // Cache miss or error — fall through to DB
+    }
+  }
   const normalizedQuery = normalizeText(query)
   let mappedCategory: string | null = null
   for (const [mn, en] of Object.entries(CATEGORY_MAP)) {
@@ -215,7 +247,7 @@ export async function searchProducts(
   const { data } = await dbQuery.limit(maxProducts)
   if (!data) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[]).map((row: any) => {
+  const results = (data as any[]).map((row: any) => {
     const rawVariants = row.product_variants as { size: string | null; color: string | null; price: number; stock_quantity: number }[] | undefined
     return {
       id: row.id,
@@ -239,6 +271,13 @@ export async function searchProducts(
       dietary_tags: (row.dietary_tags ?? []) as string[],
     } as ProductMatch
   })
+
+  // Write to Redis cache (fire-and-forget)
+  if (redis && results.length > 0) {
+    redis.set(cacheKey, results, { ex: PRODUCT_CACHE_TTL }).catch(() => {})
+  }
+
+  return results
 }
 
 // ---------------------------------------------------------------------------
