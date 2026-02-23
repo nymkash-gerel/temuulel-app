@@ -1,6 +1,9 @@
 /**
  * LLM-tier contextual responder — sends conversation history + product/order
  * facts to GPT-4o-mini for natural multi-turn conversation.
+ *
+ * Optimized prompt: ~2,000 tokens base (down from ~4,500).
+ * Context-dependent sections only included when relevant to the intent.
  */
 
 import { isOpenAIConfigured, chatCompletion } from './openai-client'
@@ -71,229 +74,170 @@ export interface ContextualInput {
   busyMode?: BusyModeContext
 }
 
+// ---------------------------------------------------------------------------
+// Prompt builder — modular, intent-aware, token-efficient
+// ---------------------------------------------------------------------------
+
 function buildSystemPrompt(input: ContextualInput): string {
-  // Determine mode from intent for behavior rules
-  const isResolutionMode = ['complaint', 'escalated'].includes(input.intent)
-  const isCareMode = ['order_status', 'shipping_info'].includes(input.intent)
-  const isAssistMode = ['order_collection', 'order_created'].includes(input.intent)
+  const isResolution = ['complaint', 'escalated'].includes(input.intent)
+  const isCare = ['order_status', 'shipping_info'].includes(input.intent)
+  const isAssist = ['order_collection', 'order_created'].includes(input.intent)
+  const isSizeQuery = input.intent === 'size_info'
+  const isGiftQuery = /бэлэг|санал болг|юу авбал|зөвлө/.test(normalizeText(input.currentMessage))
 
-  let prompt = `Та "${input.storeName}"-ийн найдвартай туслах Temuulel.
-Та бот биш — та командын гишүүн. Та зарж, тусалж, асуудал шийддэг.
-Монгол хэлээр хариулна. Switch to the customer's language if they write in English.
+  // --- Core identity + universal rules (always included) ---
+  let prompt = `Та "${input.storeName}" дэлгүүрийн туслах Temuulel. Монгол хэлээр хариулна. English if they write in English.
 
-════════════════════════════════════
-ДҮРЭМ — ХЭЗЭЭ Ч ЗӨРЧИХГҮЙ
-════════════════════════════════════
-✅ ЗӨВ:
-- Хариулт богино, шууд, байгалийн өгүүлбэрээр
-- Нэг мессежид ЗӨВХӨН НЭГЭН асуулт — хоёр асуулт ХОРИОТОЙ
-- Гомдолд ЭХЛЭЭД сэтгэл хүлээн зөвшөөр, ДАРАА нь шийдэл санал болго
-- Сэтгэлийн тэнхлэгийг мэдэр — гомдолтой хүнд бараа БҮҮҮ санал болго
-- Хэрэглэгчийн нэрийг байгалийн байдлаар хэрэглэ — БҮРТ биш
+ДҮРЭМ:
+- Богино, шууд, байгалийн хариулт. Нэг мессежид нэг асуулт.
+- AI/chatbot/хиймэл оюун гэж ХЭЗЭЭ Ч бүү хэл.
+- "Өөр юугаар тусалах вэ?" гэсэн робот хариулт ХОРИОТОЙ.
+- Мэдэхгүй зүйлийг зохиохгүй.
+- Бүтээгдэхүүн дурдах бүрт үнийг ₮-тэй бич.
+- Зураг Messenger карт-аар автомат илгээнэ. "Зураг харуулах боломжгүй" гэж бүү хэл.
+- Захиалга/хаяг/утас цуглуулахыг СИСТЕМ хийнэ — чи бүү хий. Бараа танилцуулсны дараа "Захиалмаар бол 'захиалъя' гэж бичнэ үү!" гэж нэг удаа хэл.
+- Асуулт асуувал (размер, өнгө, нөөц) шууд хариулна — захиалга руу бүү чигл.`
 
-❌ ХЭЗЭЭ Ч ХОРИОТОЙ:
-- "Би AI / chatbot / хиймэл оюун ухаан" — ХЭЗЭЭ Ч БҮҮҮ ХЭЛ
-- "Танд өөр ямар нэгэн зүйлд туслах уу?" гэсэн робот хариулт БОЛОХГҮЙ
-- Гомдолтой хүнд бараа санал болгох, зарагдах оролдлого хийхгүй
-- Мэдэхгүй зүйлийг зохиох, худлаа мэдээлэл өгөх
-- Нэг мессежид хоёр өөр асуулт тавих
+  // --- Mode-specific rules (only one active at a time) ---
+  if (isResolution) {
+    prompt += `
 
-${isResolutionMode ? `
-════════════════════════════════════
-RESOLUTION ГОРИМ (гомдол / асуудал)
-════════════════════════════════════
-Одоо ТА ГОМДОЛ ХҮЛЭЭН АВАХ ГОРИМД байна.
-ЗААВАЛ дагах дэс дараалал:
-1. ЭХНИЙ ӨГҮҮЛБЭР — сэтгэлийг хүлээн зөвшөөр ("Маш харамсаж байна", "Ойлгомжтой")
-2. ДАРАА НЬ — нэг асуулт тавьж дэлгэрэнгүй авах (эсвэл шийдэл санал болго)
-3. БАРАА ЗАРАХ, САНАЛ БОЛГОХ — ХОРИОТОЙ
-4. "Гайхалтай!", "Баярлалаа!" гэсэн хэт эерэг хариу БОЛОХГҮЙ` : ''}
+ГОМДОЛ ГОРИМ:
+1. Эхлээд сэтгэлийг хүлээн зөвшөөр ("Маш харамсаж байна")
+2. Нэг асуулт тавьж дэлгэрэнгүй ав, эсвэл шийдэл санал болго
+3. Бараа зарах/санал болгох ХОРИОТОЙ. Хэт эерэг хариу БОЛОХГҮЙ.`
+  } else if (isCare) {
+    prompt += `
 
-${isCareMode ? `
-════════════════════════════════════
-CARE ГОРИМ (захиалгын статус)
-════════════════════════════════════
-Тодорхой мэдээлэл өгч тайвшруулна. Бараа санал болгохгүй.` : ''}
+ЗАХИАЛГЫН СТАТУС: Тодорхой мэдээлэл өг, тайвшруул. Бараа санал болгохгүй.`
+  } else if (isAssist) {
+    prompt += `
 
-${isAssistMode ? `
-════════════════════════════════════
-ASSIST ГОРИМ (захиалга хийж байна)
-════════════════════════════════════
-Худалдааны тактик БОЛОХГҮЙ. Захиалгыг хурдан, хялбараар дуусга.` : ''}
-
-${input.customerProfile ? `
-════════════════════════════════════
-ХАРИЛЦАГЧИЙН ПРОФАЙЛ
-════════════════════════════════════
-Нэр:           ${input.customerProfile.formatted.name}
-Зэрэглэл:      ${input.customerProfile.formatted.loyaltyTier}
-Захиалгын түүх: ${input.customerProfile.formatted.orderHistorySummary}
-Идэвхтэй захиалга: ${input.customerProfile.formatted.activeOrderSummary}
-Нээлттэй гомдол: ${input.customerProfile.formatted.openIssuesSummary}
-${input.customerProfile.formatted.issueWarning}${input.customerProfile.formatted.vipNote}${input.customerProfile.formatted.newCustomerNote}` : ''}
-Зөвхөн өгөгдсөн мэдээллийг ашиглана — зохиож болохгүй.
-
-ЧУХАЛ — ЗАХИАЛГЫН ДҮРЭМ:
-- Энэ бол Messenger чатбот. Вэбсайт, сагс (cart), онлайн дэлгүүр БАЙХГҮЙ.
-- Захиалга, хаяг, утас цуглуулах ажлыг СИСТЕМ АВТОМАТААР хийнэ — чи ХЭЗЭЭ Ч БҮҮҮ ХИЙ.
-- ХОРИОТОЙ ХАРИУЛТУУД (эдгээрийг ХЭЗЭЭ Ч БҮҮҮ БИЧЭЭРЭЙ):
-  × "Захиалга үүсгэхийн тулд хаяг, утас хэрэгтэй"
-  × "Хүргэлтийн хаяг бичнэ үү"
-  × "Утасны дугаараа бичнэ үү"
-  × "📦 Бүтээгдэхүүн — Захиалга үүсгэхийн тулд..."
-  × "Захиалга баталгаажлаа / хүлээн авлаа / хүргэгдэнэ"
-  × "Мэдээллээ баталгаажуулна уу"
-- Чиний ажил: ЗӨВХӨН бүтээгдэхүүн танилцуулах, асуултад хариулах.
-- Бүтээгдэхүүн танилцуулсны дараа: "Захиалмаар бол 'захиалъя' гэж бичнэ үү!" гэж нэг удаа хэл.
-- Хэрэглэгч асуулт асуувал (размер, өнгө, нөөц, харьцуулалт) → ШУУД ХАРИУЛНА, захиалга руу БҮҮҮ ЧИГЛ.
-
-АСУУЛТАД ШУУД ХАРИУЛАХ:
-- ТОДОРХОЙ ЗҮЙЛ асуувал (размер, өнгө): Тийм/Үгүй + мэдээлэл.
-  Жишээ: "M улаан байна уу?" → "Үгүй, M/улаан байхгүй. S/Улаан, M/Цагаан гэсэн хувилбар байна."
-  Жишээ: "S багадна, M байна уу?" → "Тийм, M размер байна. M/Цагаан — 189,000₮."
-- ЕРӨНХИЙ асуувал ("юу байна?", "өөр юу байна?", "ямар бараа байна?"): бүтээгдэхүүнүүдийг ЖАГСААЖ харуулна.
-  Жишээ: "Өөр юу байна?" → Бүх бүтээгдэхүүнийг нэр + үнэ-тэй жагсаана.
-- Хариулт богино, шууд, тодорхой байна.
-
-ХЭМЖЭЭ/ӨНГӨ ДҮРЭМ:
-- Бүтээгдэхүүний "Хувилбарууд" хэсэгт ЯГ ямар размер, өнгө, нөөц (ширхэг) байгааг жагсаасан.
-- ЗӨВХӨН тэр жагсаалтад байгаа размер, өнгийг хэл — ШИНЭЭР ЗОХИОХГҮЙ.
-- Жагсаалтад байхгүй размер, өнгийг хэрэглэгч асуувал "Одоогоор тэр хувилбар байхгүй байна" гэж хариулна.
-- Байгаа хувилбаруудыг жагсааж санал болго.
-
-РАЗМЕР ЗӨВЛӨГӨӨ:
-- Хэрэглэгч биеийн хэмжээ (өндөр, жин) бичвэл ЗААВАЛ тохирох размер зөвлө.
-- "Хувилбарууд" дээрх НӨӨЦТЭЙ размеруудаас ЗӨВХӨН сонго — нөөцгүй размер санал БОЛГОХГҮЙ.
-- "size_fit" мэдээлэл байвал түүнийг ашигла. Байхгүй бол ерөнхий стандартаар зөвлө:
-  S: 150-163см, 45-60кг | M: 160-173см, 58-72кг | L: 170-180см, 68-82кг | XL: 178-188см, 78-95кг
-- ЧУХАЛ: Жин нь өндрөөс илүү чухал. Жин нь нэг размерын дээд хязгаараас давсан бол ДАРААГИЙН ТОМ размерыг зөвлө.
-  Жишээ: 160см, 65кг → жин нь S (45-60кг) хязгаараас давсан → M зөвлө.
-- Хариултад: тохирох размер + өнгө + үнэ бичнэ. Нөөцийн ТОО хэрэглэгчид ХАРУУЛАХГҮЙ.
-- Жишээ: "Таны хэмжээнд M размер тохирох магадлалтай. M/Цагаан — 189,000₮"
-- 100% баталгаа өгөхгүй — "тохирох магадлалтай" гэж бич.
-
-ҮНИЙН ДҮРЭМ:
-- Бүтээгдэхүүн дурдах бүрт ЗААВАЛ үнийг хамт бич. Жишээ: "Кашемир цамц — 189,000₮"
-- Үнийг ₮ тэмдэгтэйгээр бич. Үнэгүй хариулт ХЭЗЭЭ Ч БҮҮҮ ӨГ.
-- Хэрэглэгч үнэ асуувал шууд хариулна — "менежерээс лавлана уу" гэж БОЛОХГҮЙ.
-
-ЗУРГИЙН ДҮРЭМ:
-- Бүтээгдэхүүний зургийг Messenger карт (card) хэлбэрээр АВТОМАТААР илгээнэ.
-- "Зураг харуулах боломжгүй" гэж ХЭЗЭЭ Ч БҮҮҮ ХЭЛ.
-- Хэрэглэгч зураг асуувал: "Бүтээгдэхүүний зургийг доор илгээж байна" гэж хариулна.
-- Зураг байхгүй бол: "Одоогоор зураг байхгүй байна, тун удахгүй нэмнэ" гэж хариулна.
-
-ИЖИЛ УТГАТАЙ НЭРШИЛ:
-- "Кашемир" = "Ноолуур" = "Ноолууран" (бүгд cashmere гэсэн утгатай)
-- "Арьсан" = "Leather"
-- Хэрэглэгч эдгээр үгийн аль нэгийг хэрэглэвэл тохирох бүтээгдэхүүнийг ШУУД танилцуул.
-- "Байхгүй" гэж БҮҮҮ ХЭЛ — ижил утгатай бүтээгдэхүүн жагсаалтад байвал түүнийг санал болго.
-
-БЭЛГИЙН ЗӨВЛӨЛТ (хэрэглэгч "бэлэг", "санал болго", "юу авбал", "зөвлөх" гэж асуувал):
-- Хэн рүү бэлэг авах гэж байгааг (эхнэр, нөхөр, найз, гэр бүл) болон ойролцоо төсвийг лавла.
-- Мэдэгдэж байгаа хүлээн авагч, төсвөнд тулгуурлан манай бүтээгдэхүүнүүдээс 2-3 тохирох зүйлийг санал болго.
-- Яагаад тохирч байгааг (хэрэглэгдэх байдал, тусгай онцлог, үнэ) товч тайлбарла.
-- Жишээ: "Эхнэртээ бэлэг авах гэж байна уу? Ойролцоо төсөв хэд вэ? Тиймийн тулд Кашемир цамц (189,000₮) эсвэл Арьсан цүнх (120,000₮) гоё сонголт болж болно — уян зөөлөн, чанартай бэлэг!"
-- Бэлэгт боох, тусгай баглаа тухай асуувал: "Менежерт мэдэгдэж бэлэгний баглаа хийх боломжтой" гэж хариулна.`
-
-  // Busy mode warning (restaurants)
-  if (input.busyMode?.busy_mode) {
-    prompt += '\n\n⚠️ ЗАВГҮЙ ГОРИМ ИДЭВХТЭЙ:\n'
-    prompt += 'Одоогоор захиалга түр хаасан байна.\n'
-    if (input.busyMode.busy_message) {
-      prompt += `Мессеж: ${input.busyMode.busy_message}\n`
-    }
-    if (input.busyMode.estimated_wait_minutes) {
-      prompt += `Хүлээлтийн хугацаа: ${input.busyMode.estimated_wait_minutes} минут\n`
-    }
-    prompt += 'Хэрэглэгч захиалга өгөхийг хүсвэл энэ мэдээллийг хэлж, дараа дахин оролдохыг хүс.\n'
+ЗАХИАЛГА ГОРИМ: Хурдан дуусга. Худалдааны тактик хэрэглэхгүй.`
   }
 
+  // --- Customer profile (if available) ---
+  if (input.customerProfile) {
+    const cp = input.customerProfile.formatted
+    prompt += `
+
+ХАРИЛЦАГЧ: ${cp.name} | ${cp.loyaltyTier} | Түүх: ${cp.orderHistorySummary} | Идэвхтэй: ${cp.activeOrderSummary}${cp.openIssuesSummary !== 'Байхгүй' ? ` | Гомдол: ${cp.openIssuesSummary}` : ''}${cp.issueWarning}${cp.vipNote}${cp.newCustomerNote}`
+  }
+
+  // --- Size chart (only for size queries) ---
+  if (isSizeQuery) {
+    prompt += `
+
+РАЗМЕР ЗӨВЛӨГӨӨ:
+- Биеийн хэмжээ бичвэл тохирох размер зөвлө. Нөөцтэй размераас ЗӨВХӨН сонго.
+- S: 150-163см/45-60кг | M: 160-173см/58-72кг | L: 170-180см/68-82кг | XL: 178-188см/78-95кг
+- Жин өндрөөс чухал. Хязгаараас давсан бол дараагийн том размер зөвлө.
+- "Тохирох магадлалтай" гэж бич (100% баталгаа бүү өг). Нөөцийн тоо бүү харуул.
+- Хувилбаруудад байхгүй размер/өнгийг бүү зохио.`
+  }
+
+  // --- Gift advice (only when gift-related) ---
+  if (isGiftQuery) {
+    prompt += `
+
+БЭЛЭГ: Хэн рүү, төсөв асуу. 2-3 тохирох бараа санал болго. Яагаад тохирохыг товч тайлбарла.`
+  }
+
+  // --- Variant rules (only when products have variants) ---
+  const hasVariants = input.products.some(p => p.variants && p.variants.length > 0)
+  if (hasVariants) {
+    prompt += `
+
+ХУВИЛБАР: Зөвхөн жагсаалтад байгаа размер/өнгийг хэл. Байхгүйг "Одоогоор байхгүй" гэж хариулна.`
+  }
+
+  // --- Busy mode (restaurants) ---
+  if (input.busyMode?.busy_mode) {
+    prompt += `\n\n⚠️ ЗАВГҮЙ: Захиалга түр хаасан.`
+    if (input.busyMode.busy_message) prompt += ` ${input.busyMode.busy_message}`
+    if (input.busyMode.estimated_wait_minutes) prompt += ` Хүлээлт: ${input.busyMode.estimated_wait_minutes} мин.`
+  }
+
+  // --- Products (always structured the same way) ---
   if (input.products.length > 0) {
-    prompt += '\n\nБүтээгдэхүүнүүд:\n'
+    prompt += '\n\nБАРАА:'
     input.products.forEach((p, i) => {
-      prompt += `${i + 1}. ${p.name} — ${p.base_price}₮`
+      prompt += `\n${i + 1}. ${p.name} — ${p.base_price}₮`
       if (p.sold_out) prompt += ' [ДУУССАН]'
-      if (p.description) prompt += ` | ${p.description.slice(0, 150)}`
-      prompt += '\n'
-      // Include allergen/dietary info for restaurants
-      const dietary: string[] = []
-      if (p.is_vegan) dietary.push('🌱 Веган')
-      if (p.is_halal) dietary.push('☪️ Халал')
-      if (p.is_gluten_free) dietary.push('🌾 Глютенгүй')
-      if (p.spicy_level && p.spicy_level > 0) dietary.push(`🌶️ x${p.spicy_level}`)
-      if (dietary.length > 0) {
-        prompt += `   Тэмдэглэгээ: ${dietary.join(', ')}\n`
-      }
-      if (p.allergens && p.allergens.length > 0) {
-        prompt += `   ⚠️ Харшил: ${p.allergens.join(', ')}\n`
-      }
-      // Include variant data (sizes, colors, stock)
+      if (p.description) prompt += ` | ${p.description.slice(0, 120)}`
+      // Dietary tags (compact)
+      const tags: string[] = []
+      if (p.is_vegan) tags.push('веган')
+      if (p.is_halal) tags.push('халал')
+      if (p.is_gluten_free) tags.push('глютенгүй')
+      if (p.spicy_level && p.spicy_level > 0) tags.push(`🌶️×${p.spicy_level}`)
+      if (p.allergens && p.allergens.length > 0) tags.push(`⚠️${p.allergens.join(',')}`)
+      if (tags.length > 0) prompt += ` [${tags.join(', ')}]`
+      // Variants (compact)
       if (p.variants && p.variants.length > 0) {
-        const variantLines = p.variants.map((v) => {
+        const vLines = p.variants.map(v => {
           const parts: string[] = []
           if (v.size) parts.push(v.size)
           if (v.color) parts.push(v.color)
-          parts.push(v.stock_quantity > 0 ? 'нөөцтэй' : 'дууссан')
-          return parts.join(' / ')
+          parts.push(v.stock_quantity > 0 ? '✓' : '✗')
+          return parts.join('/')
         })
-        prompt += `   Хувилбарууд: ${variantLines.join(', ')}\n`
-        prompt += `   ⚠️ ЗӨВХӨН дээрх хувилбарууд байна — өөр размер, өнгө ЗОХИОХГҮЙ.\n`
+        prompt += `\n   Хувилбар: ${vLines.join(', ')}`
       }
-      // Include FAQ data if available
+      // FAQ (compact)
       if (p.product_faqs) {
-        const faqEntries = Object.entries(p.product_faqs).filter(([, v]) => v)
-        if (faqEntries.length > 0) {
-          faqEntries.forEach(([key, value]) => {
-            prompt += `   ${key}: ${value}\n`
-          })
+        const faqs = Object.entries(p.product_faqs).filter(([, v]) => v)
+        if (faqs.length > 0) {
+          faqs.forEach(([k, v]) => { prompt += `\n   ${k}: ${v}` })
         }
       }
-      // Include merchant's AI instructions for this product
-      if (p.ai_context) {
-        prompt += `   📌 Заавар: ${p.ai_context}\n`
-      }
+      if (p.ai_context) prompt += `\n   📌 ${p.ai_context}`
     })
   }
 
-  // Available tables (restaurants)
+  // --- Tables (restaurants) ---
   if (input.availableTables && input.availableTables.length > 0) {
-    prompt += '\n\nБОЛОМЖТОЙ ШИРЭЭНҮҮД:\n'
-    input.availableTables.forEach((t) => {
-      prompt += `• ${t.table_name} — ${t.capacity} хүн`
+    prompt += '\n\nШИРЭЭ:'
+    input.availableTables.forEach(t => {
+      prompt += `\n• ${t.table_name} — ${t.capacity} хүн`
       if (t.location) prompt += ` (${t.location})`
-      prompt += '\n'
     })
-    prompt += 'Ширээ захиалах бол хэрэглэгчээс нэр, утас, хүний тоо, цаг авна.\n'
+    prompt += '\nЗахиалахад нэр, утас, хүний тоо, цаг авна.'
   }
 
+  // --- Orders ---
   if (input.orders.length > 0) {
-    prompt += '\n\nЗахиалгууд:\n'
-    input.orders.forEach((o) => {
-      prompt += `• ${o.order_number} — ${o.status} — ${o.total_amount}₮\n`
+    prompt += '\n\nЗАХИАЛГА:'
+    input.orders.forEach(o => {
+      prompt += `\n• ${o.order_number} — ${o.status} — ${o.total_amount}₮`
     })
   }
 
+  // --- Return policy ---
   if (input.returnPolicy) {
-    prompt += `\n\nБУЦААЛТ/СОЛИЛТЫН БОДЛОГО:\n${input.returnPolicy}\nХэрэглэгч буцаалт, солилт, буцаан олголтын тухай асуувал энэ бодлогоор хариулна.\n`
-  } else {
-    prompt += `\nБуцаалт/солилтын тухай асуувал "менежерээс лавлана уу" гэж хариулна.\n`
+    prompt += `\n\nБУЦААЛТ: ${input.returnPolicy}`
+  } else if (['return_exchange'].includes(input.intent)) {
+    prompt += `\nБуцаалт/солилтын тухай менежерээс лавлана уу.`
   }
 
+  // --- Vouchers ---
   if (input.activeVouchers && input.activeVouchers.length > 0) {
-    prompt += '\n\nХӨНГӨЛӨЛТИЙН ЭРХ:\nЭнэ харилцагч дараах хөнгөлөлтийн эрхтэй:\n'
-    input.activeVouchers.forEach((v) => {
+    prompt += '\n\nХӨНГӨЛӨЛТ:'
+    input.activeVouchers.forEach(v => {
       const label =
-        v.compensation_type === 'percent_discount' ? `${v.compensation_value}% хөнгөлөлт` :
-        v.compensation_type === 'fixed_discount' ? `${v.compensation_value}₮ хөнгөлөлт` :
+        v.compensation_type === 'percent_discount' ? `${v.compensation_value}%` :
+        v.compensation_type === 'fixed_discount' ? `${v.compensation_value}₮` :
         v.compensation_type === 'free_shipping' ? 'Үнэгүй хүргэлт' : 'Үнэгүй бараа'
-      prompt += `• Код: ${v.voucher_code} — ${label} (хүчинтэй: ${new Date(v.valid_until).toLocaleDateString('mn-MN')} хүртэл)\n`
+      prompt += `\n• ${v.voucher_code} — ${label} (${new Date(v.valid_until).toLocaleDateString('mn-MN')} хүртэл)`
     })
-    prompt += 'Захиалга хийх үед энэ хөнгөлөлтийн кодыг ашиглахыг сануулж болно.\n'
   }
 
   return prompt
 }
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 /**
  * Generate a contextual AI response using conversation history.
@@ -305,7 +249,6 @@ export async function contextualAIResponse(input: ContextualInput): Promise<stri
 
   try {
     // Normalize Latin-typed Mongolian to Cyrillic so GPT understands it.
-    // e.g. "nooluuuran tsamts" → "ноолуууран цамц"
     const normalizeMsgContent = (text: string): string => {
       const hasLatin = /[a-zA-Z]{2,}/.test(text)
       return hasLatin ? normalizeText(text) : text
