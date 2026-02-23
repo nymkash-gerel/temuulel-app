@@ -156,6 +156,9 @@ describe('Real-World Mongolian Chat Patterns', () => {
 
       for (const msg of messages) {
         const result = hybridClassify(msg)
+        if (!['order_collection', 'product_search'].includes(result.intent)) {
+          console.log(`FAIL: "${msg}" -> ${result.intent} (expected order_collection or product_search)`)
+        }
         expect(['order_collection', 'product_search']).toContain(result.intent)
       }
     })
@@ -170,6 +173,9 @@ describe('Real-World Mongolian Chat Patterns', () => {
 
       for (const msg of messages) {
         const result = hybridClassify(msg)
+        if (result.intent !== 'complaint') {
+          console.log(`FAIL: "${msg}" -> ${result.intent} (expected complaint)`)
+        }
         expect(result.intent).toBe('complaint')
       }
     })

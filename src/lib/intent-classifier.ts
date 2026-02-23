@@ -552,11 +552,16 @@ export function classifyIntentWithConfidence(
 
   // Additional tiebreaker: complaint beats return_exchange/payment for money refund demands
   if ((bestIntent === 'return_exchange' || bestIntent === 'payment') && bestScore > 0) {
-    const MONEY_COMPLAINT_SIGNALS = ['мөнгө буцаа', 'мөнгөө буцаа', 'мөнгө butaaj', 'mongoo butaaj', 'yaagaad', 'zahirlaa', 'hun heregteii', 'operator']
-    const hasMoneyComplaint = MONEY_COMPLAINT_SIGNALS.some(kw => padded.includes(` ${kw} `))
+    const MONEY_COMPLAINT_SIGNALS = ['мөнгө буцаа', 'мөнгөө буцаа', 'мөнгө butaaj', 'mongoo butaaj', 'yaagaad', 'zahirlaa', 'hun heregteii', 'operator', 'butaaj ug']
+    // Check with both exact match and substring for mixed script (мөнгө butaaj ug)
+    const hasMoneyComplaint = MONEY_COMPLAINT_SIGNALS.some(kw =>
+      padded.includes(` ${kw} `) || normalized.includes(kw) || message.toLowerCase().includes(kw)
+    )
+    // Also check if original message contains "мөнгө" with "butaaj" (money refund in mixed script)
+    const hasMixedMoneyRefund = (message.includes('мөнгө') || message.includes('мунгу')) && message.includes('butaaj')
     // Also check for exclamation marks (angry tone)
     const hasAngryTone = (message.match(/!/g) || []).length >= 3
-    if (hasMoneyComplaint || (hasAngryTone && padded.includes(' буцаа'))) bestIntent = 'complaint'
+    if (hasMoneyComplaint || hasMixedMoneyRefund || (hasAngryTone && padded.includes(' буцаа'))) bestIntent = 'complaint'
   }
 
   // Tiebreaker: return_exchange beats size_info for fit problems
@@ -568,10 +573,15 @@ export function classifyIntentWithConfidence(
 
   // Tiebreaker: product_search/order_collection beats size_info for product/order queries with size
   if (bestIntent === 'size_info' && bestScore > 0) {
-    const ORDER_SIGNALS = ['захиал', 'zahial', 'avmaar', 'avya', 'avii', 'avi', 'avna', 'худалдаж']
-    const PRODUCT_SEARCH_SIGNALS = ['байгаа', 'бга', 'бараа']
-    const hasOrderIntent = ORDER_SIGNALS.some(kw => padded.includes(` ${kw} `))
-    const hasProductSearch = PRODUCT_SEARCH_SIGNALS.some(kw => padded.includes(` ${kw} `))
+    const ORDER_SIGNALS = ['захиал', 'zahial', 'avmaar', 'avya', 'avii', 'avi', 'avna', 'худалдаж', 'авмаар']
+    const PRODUCT_SEARCH_SIGNALS = ['байгаа', 'бга', 'бараа', 'tsunx', 'цүнх', 'ene', 'энэ', 'baina', 'байна', 'kurtka', 'куртка']
+    // Check for order intent with substring matching for Latin keywords (zahialna contains zahial)
+    const hasOrderIntent = ORDER_SIGNALS.some(kw =>
+      padded.includes(` ${kw} `) || normalized.includes(kw)
+    )
+    const hasProductSearch = PRODUCT_SEARCH_SIGNALS.some(kw =>
+      padded.includes(` ${kw} `) || normalized.includes(kw)
+    )
 
     // Keep as size_info if it has size guide/chart/measurement keywords
     const hasSizeGuideWords = (
