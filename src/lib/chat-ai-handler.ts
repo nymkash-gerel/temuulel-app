@@ -29,8 +29,19 @@ import {
   updateState,
   type StoredProduct,
   type OrderDraft,
+  type GiftCardDraft,
 } from '@/lib/conversation-state'
 import { normalizeText } from '@/lib/chat-ai'
+import {
+  purchaseGiftCard,
+  lookupGiftCard,
+  redeemGiftCard,
+  transferGiftCard,
+  extractGiftCardCode,
+  parseGiftCardAmount,
+  formatGiftCardBalance,
+  GIFT_CARD_DENOMINATIONS,
+} from '@/lib/gift-card-engine'
 import { dispatchNotification } from '@/lib/notifications'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
 import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
@@ -93,6 +104,39 @@ export async function processAIChat(
       ? buildCustomerProfile(supabase, customerId, storeId).catch(() => null)
       : Promise.resolve(null),
   ])
+
+  // ── Gift card flow intercept ────────────────────────────────────────────
+  // Runs BEFORE followUp/order flow so gift card steps take priority.
+  const gcResult = await handleGiftCardFlow(supabase, {
+    customerMessage,
+    storeId,
+    customerId,
+    state,
+    conversationId,
+  })
+  if (gcResult) {
+    // Save updated state and return the gift card response
+    await writeState(supabase, conversationId, {
+      ...state,
+      last_intent: gcResult.intent,
+      turn_count: state.turn_count + 1,
+      gift_card_draft: gcResult.giftCardDraft,
+      pending_gift_card_code: gcResult.pendingGiftCardCode,
+    })
+    // Save message to DB
+    await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      content: gcResult.response,
+      is_from_customer: false,
+    })
+    return {
+      response: gcResult.response,
+      intent: gcResult.intent,
+      products: [],
+      metadata: { products_found: 0, orders_found: 0 },
+    }
+  }
+  // ────────────────────────────────────────────────────────────────────────
 
   const followUp = resolveFollowUp(customerMessage, state)
 
@@ -709,4 +753,297 @@ async function createOrderFromChat(
   })
 
   return { order_number: newOrder.order_number, total_amount: totalAmount, delivery_fee: deliveryFee }
+}
+
+// ---------------------------------------------------------------------------
+// Gift Card Flow
+// ---------------------------------------------------------------------------
+
+interface GiftCardFlowInput {
+  customerMessage: string
+  storeId: string
+  customerId: string | null
+  state: Awaited<ReturnType<typeof readState>>
+  conversationId: string
+}
+
+interface GiftCardFlowResult {
+  response: string
+  intent: string
+  giftCardDraft: GiftCardDraft | null
+  pendingGiftCardCode: string | null
+}
+
+/**
+ * Handle all gift card chat flow states.
+ * Returns a result if the gift card flow should intercept this message,
+ * or null to let the normal pipeline handle it.
+ */
+async function handleGiftCardFlow(
+  supabase: SupabaseClient,
+  { customerMessage, storeId, customerId, state }: GiftCardFlowInput
+): Promise<GiftCardFlowResult | null> {
+  const normalized = normalizeText(customerMessage)
+
+  // ── Case 1: Active gift card purchase flow ─────────────────────────────
+  const draft = state.gift_card_draft
+  if (draft && draft.step !== 'done') {
+    return handleGiftCardPurchaseStep(supabase, {
+      customerMessage,
+      normalized,
+      storeId,
+      customerId,
+      draft,
+    })
+  }
+
+  // ── Case 2: Pending redemption confirmation ────────────────────────────
+  const pendingCode = state.pending_gift_card_code
+  if (pendingCode) {
+    if (isAffirmative(customerMessage)) {
+      // Customer confirmed — look up card and show info, mark as pending apply
+      const card = await lookupGiftCard(supabase, { code: pendingCode, storeId })
+      if (!card || card.status !== 'active') {
+        return {
+          response: '⚠️ Бэлгийн карт олдсонгүй эсвэл хүчингүй байна.',
+          intent: 'gift_card_redeem',
+          giftCardDraft: null,
+          pendingGiftCardCode: null,
+        }
+      }
+      return {
+        response: `💳 **${pendingCode}**\nҮлдэгдэл: **${formatGiftCardBalance(card.current_balance)}**\n\nЭнэ захиалгаас хасах уу? Захиалгын дугаараа бичнэ үү, эсвэл "Үгүй" гэж бичнэ үү.`,
+        intent: 'gift_card_redeem',
+        giftCardDraft: null,
+        pendingGiftCardCode: pendingCode,
+      }
+    } else if (isNegative(customerMessage)) {
+      return {
+        response: 'За, бэлгийн карт ашиглахгүй боллоо. Өөр тусалж чадах зүйл байна уу?',
+        intent: 'gift_card_redeem',
+        giftCardDraft: null,
+        pendingGiftCardCode: null,
+      }
+    }
+    // Check if they provided an order number to apply against
+    const orderMatch = customerMessage.match(/ORD-\d+/i)
+    if (orderMatch) {
+      const orderNumber = orderMatch[0].toUpperCase()
+      // Look up order
+      const { data: order } = await supabase
+        .from('orders')
+        .select('id, total_amount, status')
+        .eq('order_number', orderNumber)
+        .eq('store_id', storeId)
+        .single()
+      if (order) {
+        const card = await lookupGiftCard(supabase, { code: pendingCode, storeId })
+        if (card && card.status === 'active' && card.current_balance > 0) {
+          const applyAmount = Math.min(card.current_balance, order.total_amount)
+          const result = await redeemGiftCard(supabase, {
+            code: pendingCode,
+            storeId,
+            amount: applyAmount,
+            orderId: order.id,
+            customerId,
+          })
+          if (result.success) {
+            return {
+              response: `✅ **${formatGiftCardBalance(applyAmount)}** захиалгаас хасагдлаа!\n\nБэлгийн картын үлдэгдэл: ${formatGiftCardBalance(result.remaining)}\n\nБаярлалаа!`,
+              intent: 'gift_card_redeem',
+              giftCardDraft: null,
+              pendingGiftCardCode: null,
+            }
+          }
+        }
+        return {
+          response: `⚠️ Бэлгийн карт ашиглахад алдаа гарлаа. Менежертэй холбогдоно уу.`,
+          intent: 'gift_card_redeem',
+          giftCardDraft: null,
+          pendingGiftCardCode: null,
+        }
+      }
+    }
+    // Still waiting — don't intercept, let normal flow handle
+    return null
+  }
+
+  // ── Case 3: Message contains a GIFT-XXXX-XXXX code ────────────────────
+  const codeInMessage = extractGiftCardCode(customerMessage)
+  if (codeInMessage) {
+    const card = await lookupGiftCard(supabase, { code: codeInMessage, storeId })
+    if (!card) {
+      return {
+        response: `⚠️ **${codeInMessage}** код олдсонгүй. Кодоо дахин шалгана уу.`,
+        intent: 'gift_card_redeem',
+        giftCardDraft: null,
+        pendingGiftCardCode: null,
+      }
+    }
+    if (card.status !== 'active') {
+      const msg = card.status === 'redeemed'
+        ? `💳 **${codeInMessage}** — дууссан (үлдэгдэл 0₮).`
+        : `💳 **${codeInMessage}** — хүчингүй карт.`
+      return {
+        response: msg,
+        intent: 'gift_card_redeem',
+        giftCardDraft: null,
+        pendingGiftCardCode: null,
+      }
+    }
+    return {
+      response: `💳 Бэлгийн карт олдлоо!\n\n**Код:** ${codeInMessage}\n**Үлдэгдэл:** ${formatGiftCardBalance(card.current_balance)}\n\nЭнэ захиалгаас хасах уу? (Тийм / Үгүй)`,
+      intent: 'gift_card_redeem',
+      giftCardDraft: null,
+      pendingGiftCardCode: codeInMessage,
+    }
+  }
+
+  // ── Case 4: Gift card purchase intent ─────────────────────────────────
+  if (classifyIntent(customerMessage) === 'gift_card_purchase') {
+    const denomList = GIFT_CARD_DENOMINATIONS
+      .map((d) => `💳 ${formatGiftCardBalance(d)}`)
+      .join('\n')
+    return {
+      response: `🎁 Бэлгийн карт авмаар байна уу?\n\nДараах дүнгүүдээс сонгоно уу:\n\n${denomList}\n\nДүнгээ бичнэ үү:`,
+      intent: 'gift_card_purchase',
+      giftCardDraft: { step: 'select_amount' },
+      pendingGiftCardCode: null,
+    }
+  }
+
+  // Not a gift card message
+  return null
+}
+
+/**
+ * Handle individual steps of the gift card purchase flow.
+ */
+async function handleGiftCardPurchaseStep(
+  supabase: SupabaseClient,
+  {
+    customerMessage,
+    storeId,
+    customerId,
+    draft,
+  }: {
+    customerMessage: string
+    normalized: string
+    storeId: string
+    customerId: string | null
+    draft: GiftCardDraft
+  }
+): Promise<GiftCardFlowResult> {
+  switch (draft.step) {
+    case 'select_amount': {
+      const amount = parseGiftCardAmount(customerMessage)
+      if (!amount) {
+        const denomList = GIFT_CARD_DENOMINATIONS
+          .map((d) => `💳 ${formatGiftCardBalance(d)}`)
+          .join('\n')
+        return {
+          response: `Уучлаарай, дүнг танихгүй байна. Дараахаас сонгоно уу:\n\n${denomList}`,
+          intent: 'gift_card_purchase',
+          giftCardDraft: draft,
+          pendingGiftCardCode: null,
+        }
+      }
+      return {
+        response: `💳 **${formatGiftCardBalance(amount)}** бэлгийн карт\n\nQPay-аар төлнө үү?\n\n[QPay холбоос — TODO: integrate real QPay]\n\n_(Одоогоор тест горимд автоматаар баталгаажна)_\n\nБаталгаажуулах уу? (Тийм / Үгүй)`,
+        intent: 'gift_card_purchase',
+        giftCardDraft: { ...draft, step: 'confirm', amount },
+        pendingGiftCardCode: null,
+      }
+    }
+
+    case 'confirm': {
+      if (isNegative(customerMessage)) {
+        return {
+          response: '❌ Бэлгийн карт авахаас татгалзлаа. Өөр тусалж чадах зүйл байна уу?',
+          intent: 'gift_card_purchase',
+          giftCardDraft: null,
+          pendingGiftCardCode: null,
+        }
+      }
+      if (!isAffirmative(customerMessage)) {
+        return {
+          response: 'Бэлгийн картыг баталгаажуулах уу? (Тийм / Үгүй)',
+          intent: 'gift_card_purchase',
+          giftCardDraft: draft,
+          pendingGiftCardCode: null,
+        }
+      }
+
+      // Payment confirmed — create the gift card
+      try {
+        const { code } = await purchaseGiftCard(supabase, {
+          storeId,
+          customerId,
+          amount: draft.amount!,
+          purchasedVia: 'chat',
+        })
+        return {
+          response: `✅ Бэлгийн карт үүслээ!\n\n🎁 **Код:** \`${code}\`\n💰 **Дүн:** ${formatGiftCardBalance(draft.amount!)}\n📅 **Хүчинтэй:** 1 жил\n\nХэнд нэгэнд илгээх үү? Утасны дугаар эсвэл нэр бичнэ үү.\n_(Илгээхгүй бол "Үгүй" гэж бичнэ үү)_`,
+          intent: 'gift_card_purchase',
+          giftCardDraft: { ...draft, step: 'send_to', code },
+          pendingGiftCardCode: null,
+        }
+      } catch (err) {
+        console.error('[GiftCard] Purchase failed:', err)
+        return {
+          response: '⚠️ Бэлгийн карт үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.',
+          intent: 'gift_card_purchase',
+          giftCardDraft: null,
+          pendingGiftCardCode: null,
+        }
+      }
+    }
+
+    case 'send_to': {
+      if (isNegative(customerMessage)) {
+        return {
+          response: `✅ Бэлгийн карт таны гарт байна!\n\n🎁 **Код:** \`${draft.code}\`\n\nДараа хэрэглэх үед кодоо бичвэл хэрэглэж болно. Баярлалаа!`,
+          intent: 'gift_card_purchase',
+          giftCardDraft: { ...draft, step: 'done' },
+          pendingGiftCardCode: null,
+        }
+      }
+
+      // Extract phone number or name from message
+      const phone = customerMessage.match(/\d{8,}/)?.[0]
+      const recipientContact = phone ?? customerMessage.trim()
+
+      // Transfer the card
+      try {
+        await transferGiftCard(supabase, {
+          code: draft.code!,
+          storeId,
+          fromCustomerId: customerId,
+          recipientContact,
+        })
+        return {
+          response: `✅ Бэлгийн карт **${recipientContact}**-д илгээлээ!\n\n🎁 **Код:** \`${draft.code}\`\n\nТэд кодыг ашиглан дэлгүүрт захиалга хийж болно. Баярлалаа!`,
+          intent: 'gift_card_purchase',
+          giftCardDraft: { ...draft, step: 'done', recipientContact },
+          pendingGiftCardCode: null,
+        }
+      } catch (err) {
+        console.error('[GiftCard] Transfer failed:', err)
+        return {
+          response: `⚠️ Дамжуулахад алдаа гарлаа. Бэлгийн карт таны гарт байна: \`${draft.code}\``,
+          intent: 'gift_card_purchase',
+          giftCardDraft: { ...draft, step: 'done' },
+          pendingGiftCardCode: null,
+        }
+      }
+    }
+
+    default:
+      return {
+        response: 'Бэлгийн картын алхам алдаатай. Дахин оролдоно уу.',
+        intent: 'gift_card_purchase',
+        giftCardDraft: null,
+        pendingGiftCardCode: null,
+      }
+  }
 }

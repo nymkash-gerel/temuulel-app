@@ -423,6 +423,36 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хоол байна уу', 'ямар хоол', 'юу захиалах',
     'дуусчхсан уу', 'дуусав уу',
   ],
+  gift_card_purchase: [
+    // Core Mongolian
+    'бэлгийн карт', 'бэлэг карт', 'бэлгийн картавах', 'бэлгийн карт авмаар',
+    'гифт карт', 'бэлэглэх', 'бэлэг өгөх',
+    'бэлэглэх карт', 'бэлгийн карт захиалах',
+    // Common gift intent phrases
+    'бэлэг авмаар', 'бэлэг олох', 'бэлэг хайж',
+    'хэнд нэгэнд бэлэглэх', 'бэлэг илгээх',
+    'хайрт хүндээ бэлэг', 'бэлэг болгох',
+    // Inflected forms not caught by stemmer (infinitive + locative)
+    'бэлэглэхэд', 'бэлэглэхдээ', 'бэлэглэх карт', 'бэлэглэх зорилгоор',
+    // English
+    'gift card', 'gift voucher', 'gift', 'gifting',
+    'send gift', 'buy gift',
+    // Abbreviations / short forms
+    'гк', 'gift-card', 'giftcard',
+  ],
+  gift_card_redeem: [
+    // Code format detection (partial — full regex in engine)
+    'gift-', 'GIFT-',
+    // Explicit redemption phrases
+    'бэлгийн карт ашиглах', 'бэлгийн картын код', 'гифт код',
+    'код ашиглах', 'карт ашиглах', 'карт код',
+    'хөнгөлөлтийн код', 'card code', 'gift code', 'redeem',
+    // Balance check
+    'үлдэгдэл шалгах', 'картын үлдэгдэл', 'бэлгийн картын үлдэгдэл',
+    'хэд үлдсэн', 'үлдэгдэл хэд',
+    // Apply to order
+    'картаас хасах', 'захиалгаас хасах', 'картаар төлөх',
+  ],
 }
 
 /** Pre-compute normalized keyword lists (done once at module load) */
