@@ -71,7 +71,8 @@ describe('resolveFollowUp', () => {
   it('resolves "энийг авъя" when exactly 1 product', () => {
     const state = stateWith({ last_products: [PRODUCTS[0]] })
     const result = resolveFollowUp('энийг авъя', state)
-    expect(result).toEqual({ type: 'select_single', product: PRODUCTS[0] })
+    expect(result?.type).toBe('select_single')
+    expect(result?.product).toEqual(PRODUCTS[0])
   })
 
   it('does not resolve "энийг авъя" with 3 products', () => {

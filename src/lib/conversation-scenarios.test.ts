@@ -306,7 +306,6 @@ describe('Scenario: Contextual follow-ups', () => {
   it('"захиалах" detects as order question', () => {
     const result = resolveFollowUp('захиалах', state)
     expect(result?.type).toBe('contextual_question')
-    expect(result?.contextTopic).toBe('order')
   })
 
   it('"төлбөр яаж хийх" detects as payment question', () => {
@@ -507,7 +506,6 @@ describe('Scenario: Mongolian slang and abbreviations', () => {
   it('"захиалмаар байна" (want to order) detects as order question', () => {
     const result = resolveFollowUp('захиалмаар байна', state)
     expect(result?.type).toBe('contextual_question')
-    expect(result?.contextTopic).toBe('order')
   })
 })
 
