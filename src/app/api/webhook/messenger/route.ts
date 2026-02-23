@@ -388,7 +388,13 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
           // Turn off typing (fire-and-forget)
           void sendTypingIndicator(senderId, false, pageToken).catch(() => {})
         } catch (aiErr) {
-          console.error('[AI] Exception:', aiErr instanceof Error ? aiErr.message : aiErr)
+          console.error('[AI] Exception:', aiErr instanceof Error ? aiErr.message : String(aiErr))
+          // Send fallback response so customer isn't left hanging
+          if (pageToken) {
+            try {
+              await sendTextMessage(senderId, 'Уучлаарай, түр алдаа гарлаа. Дахин оролдоно уу!', pageToken)
+            } catch { /* last resort */ }
+          }
         }
       }
     }
