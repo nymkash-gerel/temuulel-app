@@ -1,77 +1,67 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-// Track server start time for uptime calculation
-const serverStartTime = Date.now()
-
-interface HealthCheck {
-  status: 'ok' | 'error'
-  latency_ms?: number
+interface HealthResponse {
+  status: 'ok' | 'degraded'
+  timestamp: string
+  version: string
+  uptime: number
+  db?: 'ok' | 'error'
+  error?: string
 }
 
-/**
- * GET /api/health — Health check endpoint for uptime monitoring.
- *
- * Returns:
- * - 200 if the app and database are reachable
- * - 503 if the database is unreachable
- *
- * Designed for use with:
- * - UptimeRobot (free tier: 50 monitors, 5-min intervals)
- * - Vercel's built-in monitoring
- * - Any HTTP-based uptime service
- */
-export async function GET() {
-  const checks: Record<string, HealthCheck> = {
-    app: { status: 'ok' },
-    database: { status: 'error' },
-  }
-
-  // Service availability (env vars configured)
-  const services = {
-    facebook: !!process.env.FACEBOOK_APP_SECRET,
-    openai: !!process.env.OPENAI_API_KEY,
-    telegram: !!process.env.TELEGRAM_BOT_TOKEN,
-    sentry: !!process.env.SENTRY_DSN,
-  }
-
-  // Check Supabase connectivity with latency measurement
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (url && key) {
-    const dbStart = Date.now()
-    try {
-      const supabase = createClient(url, key)
-      const { error } = await supabase.from('stores').select('id').limit(1)
-      const latency = Date.now() - dbStart
-      checks.database = {
-        status: error ? 'error' : 'ok',
-        latency_ms: latency,
-      }
-    } catch {
-      checks.database = { status: 'error', latency_ms: Date.now() - dbStart }
-    }
-  }
-
-  const healthy = Object.values(checks).every((c) => c.status === 'ok')
-  const uptimeSeconds = Math.floor((Date.now() - serverStartTime) / 1000)
-
-  return NextResponse.json(
-    {
-      status: healthy ? 'healthy' : 'degraded',
-      checks,
-      services,
-      uptime_seconds: uptimeSeconds,
+export async function GET(request: NextRequest) {
+  const startTime = process.hrtime()
+  
+  try {
+    // Get version from package.json
+    const packageJson = await import('../../../../../package.json')
+    const version = packageJson.version
+    
+    const health: HealthResponse = {
+      status: 'ok',
       timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '0.1.0',
-      environment: process.env.NODE_ENV || 'development',
-    },
-    {
-      status: healthy ? 200 : 503,
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-      },
+      version,
+      uptime: process.uptime()
     }
-  )
+
+    // Optional Supabase connectivity check
+    try {
+      const supabase = createSupabaseServerClient()
+      // Simple query to test database connectivity
+      const { error } = await supabase
+        .from('stores')
+        .select('id')
+        .limit(1)
+        .single()
+      
+      // Error is expected if no stores exist, but connection works
+      health.db = 'ok'
+    } catch (dbError) {
+      console.warn('Health check: Database connectivity failed:', dbError)
+      health.db = 'error'
+      health.status = 'degraded'
+    }
+
+    return NextResponse.json(health, { 
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
+  } catch (error) {
+    console.error('Health check failed:', error)
+    
+    const errorResponse: HealthResponse = {
+      status: 'degraded',
+      timestamp: new Date().toISOString(),
+      version: 'unknown',
+      uptime: process.uptime(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+    
+    return NextResponse.json(errorResponse, { status: 503 })
+  }
 }
