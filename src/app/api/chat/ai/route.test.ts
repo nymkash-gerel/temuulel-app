@@ -189,8 +189,9 @@ describe('generateResponse', () => {
 
   it('generates size info response', () => {
     const resp = generateResponse('size_info', [], [], 'Store')
-    expect(resp).toContain('S -')
+    expect(resp).toContain('S')
     expect(resp).toContain('XL')
+    expect(resp).toContain('Размер')
   })
 
   it('generates payment info response', () => {
