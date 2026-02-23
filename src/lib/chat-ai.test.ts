@@ -405,18 +405,20 @@ describe('generateResponse — return_exchange', () => {
     const settings = { return_policy: '14 хоногийн дотор буцаах боломжтой' }
     const response = generateResponse('return_exchange', [], [], 'TestStore', settings)
     expect(response).toContain('14 хоногийн дотор буцаах боломжтой')
-    expect(response).toContain('Буцаалт/Солилтын бодлого')
+    expect(response).toContain('Буцаалтын бодлого')
   })
 
-  it('returns fallback when return_policy is not configured', () => {
+  it('returns step-by-step guide when return_policy is not configured', () => {
     const response = generateResponse('return_exchange', [], [], 'TestStore')
-    expect(response).toContain('менежерээс лавлана уу')
+    expect(response).toContain('Захиалгын дугаар')
+    expect(response).toContain('Буцаах шалтгаан')
   })
 
-  it('returns fallback when return_policy is empty string', () => {
+  it('returns step-by-step guide when return_policy is empty string', () => {
     const settings = { return_policy: '' }
     const response = generateResponse('return_exchange', [], [], 'TestStore', settings)
-    expect(response).toContain('менежерээс лавлана уу')
+    expect(response).toContain('Захиалгын дугаар')
+    expect(response).toContain('Буцаах шалтгаан')
   })
 })
 
