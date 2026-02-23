@@ -470,3 +470,12 @@ export const LOW_CONFIDENCE_THRESHOLD = 0.5
 export function classifyIntent(message: string): string {
   return classifyIntentWithConfidence(message).intent
 }
+
+/**
+ * Hybrid classifier that combines keyword-based and ML-based approaches.
+ * Uses the hybrid classification strategy for potentially better accuracy.
+ */
+export function classifyIntentHybrid(message: string): IntentResult {
+  const { hybridClassify } = require('./ai/hybrid-classifier')
+  return hybridClassify(message)
+}
