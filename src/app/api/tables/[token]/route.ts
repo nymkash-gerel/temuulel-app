@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+
+const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
 
 type RouteContext = { params: Promise<{ token: string }> }
 
@@ -10,6 +13,11 @@ type RouteContext = { params: Promise<{ token: string }> }
  * No authentication required - used for QR code scanning.
  */
 export async function GET(request: NextRequest, { params }: RouteContext) {
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const { token } = await params
 
   // Validate UUID format

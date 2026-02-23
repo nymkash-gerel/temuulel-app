@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
   sendTelegramMessage,
@@ -13,7 +14,14 @@ import {
  * 1. /start STAFF_ID — Auto-link staff member's Telegram account
  * 2. callback_query — Confirm/Reject appointment buttons
  */
+const RATE_LIMIT = { limit: 100, windowSeconds: 60 }
+
 export async function POST(request: NextRequest) {
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) {
     return NextResponse.json({ error: 'Telegram not configured' }, { status: 500 })

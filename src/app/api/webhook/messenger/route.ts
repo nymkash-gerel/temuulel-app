@@ -8,6 +8,7 @@ import {
   sendQuickReplies,
   markSeen,
 } from '@/lib/messenger'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { dispatchNotification } from '@/lib/notifications'
 import { processEscalation } from '@/lib/escalation'
 import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
@@ -39,8 +40,15 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ error: 'Verification failed' }, { status: 403 })
 }
 
+const RATE_LIMIT = { limit: 100, windowSeconds: 60 }
+
 // POST - Receive messages from Messenger
 export async function POST(request: NextRequest) {
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const startTime = Date.now()
 
   const appSecret = process.env.FACEBOOK_APP_SECRET
