@@ -11,6 +11,49 @@ export interface DriverCandidate {
   active_delivery_count: number
   vehicle_type: string | null
   completion_rate: number // 0-100
+  delivery_zones: string[] // e.g. ['БЗД', 'ХУД']
+}
+
+// UB district shorthands → full names (for fuzzy matching)
+const ZONE_ALIASES: Record<string, string[]> = {
+  'БЗД': ['Баянзүрх', 'BZD', 'баянзурх'],
+  'ХУД': ['Хан-Уул', 'HUD', 'хануул', 'хан уул'],
+  'СБД': ['Сүхбаатар', 'SBD', 'сухбаатар'],
+  'ЧД':  ['Чингэлтэй', 'CHD', 'чингэлтэй'],
+  'БГД': ['Баянгол', 'BGD', 'баянгол'],
+  'НД':  ['Налайх', 'ND', 'налайх'],
+  'ЗД':  ['Зайсан', 'ZD', 'зайсан'],
+  'БН':  ['Багануур', 'BN', 'багануур'],
+  'БХ':  ['Багахангай', 'BH', 'багахангай'],
+}
+
+/**
+ * Check if a delivery address is in any of the driver's assigned zones.
+ * Returns true if any zone string (or its alias) appears in the address.
+ */
+export function addressMatchesZones(address: string, zones: string[]): boolean {
+  if (!zones || zones.length === 0) return true // No zones = works everywhere
+  const lower = address.toLowerCase()
+  return zones.some(zone => {
+    const z = zone.trim()
+    if (lower.includes(z.toLowerCase())) return true
+    const aliases = ZONE_ALIASES[z] || []
+    return aliases.some(a => lower.includes(a.toLowerCase()))
+  })
+}
+
+/**
+ * Parse the most likely district from a Mongolian delivery address.
+ * Returns the shorthand (e.g. 'БЗД') or null if not found.
+ */
+export function parseZoneFromAddress(address: string): string | null {
+  const lower = address.toLowerCase()
+  for (const [shorthand, aliases] of Object.entries(ZONE_ALIASES)) {
+    if (lower.includes(shorthand.toLowerCase()) || aliases.some(a => lower.includes(a.toLowerCase()))) {
+      return shorthand
+    }
+  }
+  return null
 }
 
 export interface DeliveryContext {
@@ -83,6 +126,17 @@ function deterministicAssign(
   const scored = eligible.map(driver => {
     let score = 0
     const reasons: string[] = []
+
+    // Zone match — strong bonus if driver covers the delivery district
+    const zoneMatch = addressMatchesZones(delivery.address, driver.delivery_zones)
+    if (!zoneMatch) {
+      // Driver doesn't cover this zone — deprioritize but don't exclude
+      score -= 0.5
+      reasons.push('⚠️ Бүс тохирохгүй')
+    } else if (driver.delivery_zones.length > 0) {
+      score += 0.8
+      reasons.push(`✅ Бүс: ${driver.delivery_zones.join(', ')}`)
+    }
 
     // Least loaded — fewer active deliveries = higher score
     if (priorityWeights['least_loaded']) {
@@ -173,7 +227,8 @@ Reasons should be in Mongolian. Keep them short (2-4 words each).`
       active: d.active_delivery_count,
       vehicle: d.vehicle_type,
       completion_rate: d.completion_rate,
-      has_location: !!d.location,
+      delivery_zones: d.delivery_zones,
+      zone_match: addressMatchesZones(delivery.address, d.delivery_zones),
     })),
   })
 

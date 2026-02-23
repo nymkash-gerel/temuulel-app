@@ -20,12 +20,16 @@ import {
   tgRemoveButtons,
   enRouteKeyboard,
   issueKeyboard,
+  orderAssignedKeyboard,
+  sendToDriver,
   DRIVER_BOT_WELCOME,
   DRIVER_BOT_LINKED,
   DRIVER_BOT_NOT_FOUND,
   DRIVER_BOT_ALREADY_LINKED,
+  DRIVER_PROACTIVE_MESSAGES,
 } from '@/lib/driver-telegram'
 import { processDriverMessage } from '@/lib/driver-chat-engine'
+import { assignDriver, DEFAULT_DELIVERY_SETTINGS } from '@/lib/ai/delivery-assigner'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -155,10 +159,92 @@ async function handleCallbackQuery(
     }
 
     case 'reject': {
+      // Reset delivery to pending
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('deliveries').update({ status: 'pending', driver_id: null }).eq('id', deliveryId)
+      const { data: rejectedDelivery } = await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'pending', driver_id: null })
+        .eq('id', deliveryId)
+        .select('id, delivery_number, delivery_address, customer_name, customer_phone, store_id, order_id')
+        .single()
+
       await tgAnswerCallback(cb.id, 'Татгалзлаа')
-      await tgSend(chatId, `↩️ Захиалгыг татгалзлаа. Дэлгүүр өөр жолооч томилно.`)
+      await tgSend(chatId, `↩️ Татгалзлаа. Баярлалаа — дэлгүүр өөр жолооч томилно.`)
+
+      // Auto-reassign: find next available driver
+      if (rejectedDelivery) {
+        try {
+          // Get other available drivers (excluding the rejecting driver)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: otherDrivers } = await (supabase as any)
+            .from('delivery_drivers')
+            .select('id, name, vehicle_type, current_location, delivery_zones')
+            .eq('store_id', rejectedDelivery.store_id)
+            .neq('id', driver.id)
+            .in('status', ['active', 'on_delivery'])
+
+          if (otherDrivers && otherDrivers.length > 0) {
+            // Build candidates
+            const candidates = await Promise.all(otherDrivers.map(async (d: any) => {
+              const { count } = await supabase
+                .from('deliveries')
+                .select('id', { count: 'exact', head: true })
+                .eq('driver_id', d.id)
+                .in('status', ['assigned', 'picked_up', 'in_transit'])
+              return {
+                id: d.id, name: d.name,
+                location: d.current_location,
+                active_delivery_count: count || 0,
+                vehicle_type: d.vehicle_type,
+                completion_rate: 100,
+                delivery_zones: d.delivery_zones || [],
+              }
+            }))
+
+            const result = await assignDriver(
+              { address: rejectedDelivery.delivery_address },
+              candidates,
+              { ...DEFAULT_DELIVERY_SETTINGS, assignment_mode: 'auto' }
+            )
+
+            if (result.recommended_driver_id) {
+              // Assign new driver
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (supabase as any)
+                .from('deliveries')
+                .update({ status: 'assigned', driver_id: result.recommended_driver_id })
+                .eq('id', deliveryId)
+
+              // Notify new driver via Telegram
+              await sendToDriver(
+                supabase,
+                result.recommended_driver_id,
+                DRIVER_PROACTIVE_MESSAGES.orderAssigned({
+                  orderNumber: rejectedDelivery.delivery_number,
+                  deliveryAddress: rejectedDelivery.delivery_address,
+                  customerName: rejectedDelivery.customer_name,
+                  customerPhone: rejectedDelivery.customer_phone,
+                }),
+                orderAssignedKeyboard(deliveryId)
+              )
+              console.log(`[DriverBot] Auto-reassigned ${deliveryId} to ${result.recommended_driver_id}`)
+            } else {
+              // No driver available — log for store owner
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (supabase as any).from('notifications').insert({
+                store_id: rejectedDelivery.store_id,
+                type: 'delivery_unassigned',
+                title: `Хүргэлт томилогдоогүй — #${rejectedDelivery.delivery_number}`,
+                message: `${driver.name} татгалзсан. Боломжтой жолооч байхгүй байна.`,
+                metadata: { delivery_id: deliveryId },
+              }).catch(() => {})
+              console.log(`[DriverBot] No available driver for ${deliveryId} after rejection`)
+            }
+          }
+        } catch (err) {
+          console.error('[DriverBot] Auto-reassign failed:', err)
+        }
+      }
       break
     }
 

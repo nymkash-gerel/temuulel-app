@@ -71,19 +71,22 @@ export async function POST(request: NextRequest) {
 
   const sharedDriverIds = (assignmentDriverIds || []).map(a => a.driver_id)
 
-  // Fetch drivers from primary store
-  const { data: primaryDrivers } = await supabase
+  // Fetch drivers from primary store (cast to any — delivery_zones pending migration 050)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: primaryDrivers } = await (supabase as any)
     .from('delivery_drivers')
-    .select('id, name, vehicle_type, current_location, status')
+    .select('id, name, vehicle_type, current_location, status, delivery_zones')
     .eq('store_id', store.id)
     .in('status', ['active', 'on_delivery'])
 
   // Fetch shared drivers (if any)
-  let sharedDrivers: typeof primaryDrivers = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let sharedDrivers: any[] = []
   if (sharedDriverIds.length > 0) {
-    const { data } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
       .from('delivery_drivers')
-      .select('id, name, vehicle_type, current_location, status')
+      .select('id, name, vehicle_type, current_location, status, delivery_zones')
       .in('id', sharedDriverIds)
       .in('status', ['active', 'on_delivery'])
     sharedDrivers = data || []
@@ -129,6 +132,8 @@ export async function POST(request: NextRequest) {
         active_delivery_count: count || 0,
         vehicle_type: d.vehicle_type,
         completion_rate: totalDone && totalDone > 0 ? Math.round(((completedCount || 0) / totalDone) * 100) : 100,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delivery_zones: (d as any).delivery_zones || [],
       }
     })
   )

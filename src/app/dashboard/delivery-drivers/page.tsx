@@ -15,8 +15,11 @@ interface Driver {
   user_id: string | null
   telegram_chat_id: number | null
   telegram_linked_at: string | null
+  delivery_zones: string[]
   created_at: string
 }
+
+const UB_ZONES = ['БЗД', 'ХУД', 'СБД', 'ЧД', 'БГД', 'НД', 'ЗД', 'БН', 'БХ']
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   active: { label: 'Идэвхтэй', color: 'bg-green-500/20 text-green-400' },
@@ -51,6 +54,7 @@ export default function DeliveryDriversPage() {
   const [formVehicle, setFormVehicle] = useState<string>('motorcycle')
   const [formVehicleNumber, setFormVehicleNumber] = useState('')
   const [formStatus, setFormStatus] = useState<string>('active')
+  const [formZones, setFormZones] = useState<string[]>([])
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [copiedTgId, setCopiedTgId] = useState<string | null>(null)
 
@@ -114,6 +118,7 @@ export default function DeliveryDriversPage() {
     setFormVehicle('motorcycle')
     setFormVehicleNumber('')
     setFormStatus('active')
+    setFormZones([])
     setEditingDriver(null)
     setShowForm(false)
   }
@@ -125,8 +130,15 @@ export default function DeliveryDriversPage() {
     setFormVehicle(driver.vehicle_type)
     setFormVehicleNumber(driver.vehicle_number || '')
     setFormStatus(driver.status)
+    setFormZones(driver.delivery_zones || [])
     setEditingDriver(driver)
     setShowForm(true)
+  }
+
+  function toggleZone(zone: string) {
+    setFormZones(prev =>
+      prev.includes(zone) ? prev.filter(z => z !== zone) : [...prev, zone]
+    )
   }
 
   async function handleSave() {
@@ -140,6 +152,7 @@ export default function DeliveryDriversPage() {
       vehicle_type: formVehicle,
       vehicle_number: formVehicleNumber.trim() || undefined,
       status: formStatus,
+      delivery_zones: formZones,
     }
 
     try {
@@ -328,6 +341,27 @@ export default function DeliveryDriversPage() {
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">Хүргэлтийн бүс</label>
+                <div className="flex flex-wrap gap-2">
+                  {UB_ZONES.map(zone => (
+                    <button
+                      key={zone}
+                      type="button"
+                      onClick={() => toggleZone(zone)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        formZones.includes(zone)
+                          ? 'bg-blue-600 text-white border border-blue-500'
+                          : 'bg-slate-700/50 text-slate-400 border border-slate-600 hover:border-blue-500'
+                      }`}
+                    >
+                      {zone}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Хоосон = бүх бүс хамарна</p>
+              </div>
+
               {editingDriver && (
                 <div>
                   <label className="block text-sm text-slate-400 mb-1">Төлөв</label>
@@ -404,6 +438,14 @@ export default function DeliveryDriversPage() {
                     <p className="text-green-400 text-xs font-medium">Бүртгэлтэй</p>
                   ) : (
                     <p className="text-yellow-400 text-xs font-medium">Бүртгэлгүй</p>
+                  )}
+                  {/* Delivery zones */}
+                  {driver.delivery_zones?.length > 0 ? (
+                    <p className="text-blue-400 text-xs">
+                      📍 {driver.delivery_zones.join(', ')}
+                    </p>
+                  ) : (
+                    <p className="text-slate-500 text-xs">📍 Бүх бүс</p>
                   )}
                   {/* Telegram status */}
                   {driver.telegram_chat_id ? (
