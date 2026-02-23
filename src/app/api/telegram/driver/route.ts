@@ -131,8 +131,6 @@ export async function POST(request: NextRequest) {
     const rawPhone = msg.contact?.phone_number ?? text
     const phone = normalizePhone(rawPhone) // Always 8 digits e.g. "99112233"
 
-    console.log(`[DriverBot] Phone lookup — raw: "${rawPhone}" → normalized: "${phone}"`)
-
     // Look up driver — phones may be stored in any format (8 digits, +976..., 976...)
     // so we match against the last 8 digits using ilike
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -142,17 +140,9 @@ export async function POST(request: NextRequest) {
       .ilike('phone', `%${phone}`)
       .maybeSingle()
 
-    console.log(`[DriverBot] Lookup result — driver: ${JSON.stringify(driver)}, error: ${JSON.stringify(lookupError)}`)
-
     if (lookupError || !driver) {
-      console.log(`[DriverBot] NOT FOUND — phone "${phone}" not in DB. Error: ${lookupError?.message}`)
-      // Debug: tell the driver exactly what we searched for
-      await tgSend(chatId,
-        `❌ Бүртгэгдээгүй байна.\n\n` +
-        `🔍 Хайсан: <code>${phone}</code>\n` +
-        `📥 Авсан: <code>${rawPhone}</code>\n\n` +
-        `Менежерт мэдэгдэнэ үү.`
-      )
+      console.log(`[DriverBot] NOT FOUND — phone "${phone}" not in DB`)
+      await tgSend(chatId, DRIVER_BOT_NOT_FOUND)
       return NextResponse.json({ ok: true })
     }
 
