@@ -208,7 +208,15 @@ export async function processAIChat(
               orderDraft = null
               if (order) {
                 const productTotal = draft.unit_price * draft.quantity
-                responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Бараа: ${formatPrice(productTotal)}\n🚚 Хүргэлт: ${formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа!`
+                const isIntercityOrder = order.delivery_fee === 0 && draft.address
+                  ? calculateDeliveryFee(draft.address).type === 'intercity'
+                  : false
+
+                if (isIntercityOrder) {
+                  responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Бараа: ${formatPrice(productTotal)}\n🚌 Хүргэлт: Автобус / шуудан\n   ⚠️ Тээврийн үнэ хүлээн авахдаа төлнө\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nАсуулт байвал дэлгүүртэй холбогдоно уу. Баярлалаа! 🙏`
+                } else {
+                  responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Бараа: ${formatPrice(productTotal)}\n🚚 Хүргэлт: ${formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа!`
+                }
                 intent = 'order_created'
               } else {
                 responseText = '⚠️ Захиалга үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.'
@@ -630,7 +638,8 @@ function resolveVariantFromMessage(msg: string, variants: VariantRow[]): Variant
 function buildOrderSummary(draft: OrderDraft): string {
   const productTotal = draft.unit_price * draft.quantity
   const feeResult = draft.address ? calculateDeliveryFee(draft.address) : null
-  const deliveryFee = feeResult?.fee ?? DEFAULT_DELIVERY_FEE
+  const isIntercity = feeResult?.type === 'intercity'
+  const deliveryFee = isIntercity ? 0 : (feeResult?.fee ?? DEFAULT_DELIVERY_FEE)
   const grandTotal = productTotal + deliveryFee
 
   const lines = ['📋 Захиалгын мэдээлэл:\n']
@@ -638,8 +647,16 @@ function buildOrderSummary(draft: OrderDraft): string {
   if (draft.variant_label) lines.push(`   Хувилбар: ${draft.variant_label}`)
   lines.push(`   Тоо: ${draft.quantity} ширхэг`)
   lines.push(`   💰 Бараа: ${formatPrice(productTotal)}`)
-  lines.push(`🚚 Хүргэлт: ${formatPrice(deliveryFee)}`)
-  lines.push(`💰 Нийт: ${formatPrice(grandTotal)}`)
+
+  if (isIntercity) {
+    lines.push(`🚌 Хүргэлт: Автобус / шуудан`)
+    lines.push(`   ⚠️ Тээврийн үнэ хүлээн авахдаа төлнө (жин, хэмжээнээс хамаарна)`)
+    lines.push(`💰 Нийт (барааны үнэ): ${formatPrice(grandTotal)}`)
+  } else {
+    lines.push(`🚚 Хүргэлт: ${formatPrice(deliveryFee)}`)
+    lines.push(`💰 Нийт: ${formatPrice(grandTotal)}`)
+  }
+
   if (draft.address) lines.push(`📍 Хаяг: ${draft.address}`)
   if (draft.phone) lines.push(`📱 Утас: ${draft.phone}`)
   lines.push('\nЗахиалгаа баталгаажуулах уу? (Тийм/Үгүй)')
@@ -739,7 +756,8 @@ async function createOrderFromChat(
 
   // Calculate delivery fee from address
   const feeResult = draft.address ? calculateDeliveryFee(draft.address) : null
-  const deliveryFee = feeResult?.fee ?? DEFAULT_DELIVERY_FEE
+  const isIntercity = feeResult?.type === 'intercity'
+  const deliveryFee = isIntercity ? 0 : (feeResult?.fee ?? DEFAULT_DELIVERY_FEE)
   const totalAmount = productTotal + deliveryFee
 
   const { data: newOrder, error: orderError } = await supabase
@@ -754,7 +772,9 @@ async function createOrderFromChat(
       payment_status: 'pending',
       shipping_address: draft.address || null,
       order_type: 'delivery',
-      notes: `Messenger захиалга | Утас: ${draft.phone || ''}`,
+      notes: isIntercity
+        ? `Messenger захиалга | Утас: ${draft.phone || ''} | Автобус/шуудангаар хүргэх`
+        : `Messenger захиалга | Утас: ${draft.phone || ''}`,
     })
     .select('id, order_number, total_amount')
     .single()
@@ -792,7 +812,7 @@ async function createOrderFromChat(
       order_id: newOrder.id,
       delivery_number: deliveryNumber,
       status: 'pending',
-      delivery_type: 'own_driver',
+      delivery_type: isIntercity ? 'intercity_post' : 'own_driver',
       delivery_address: draft.address || 'Хаяг тодорхойгүй',
       customer_name: customerName,
       customer_phone: draft.phone || null,

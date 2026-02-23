@@ -49,12 +49,13 @@ describe('calculateDeliveryFee', () => {
     expect(result.district).toBe('Сонгинохайрхан')
   })
 
-  // Outer zone tests
-  it('returns 8000 for Налайх district', () => {
+  // Налайх is now intercity (bus/post delivery)
+  it('returns intercity for Налайх (bus/post delivery)', () => {
     const result = calculateDeliveryFee('Налайх дүүрэг, 1-р хороо')
-    expect(result.fee).toBe(8000)
-    expect(result.zone).toBe('Outer')
-    expect(result.district).toBe('Налайх')
+    expect(result.type).toBe('intercity')
+    expect(result.fee).toBe(0)
+    expect(result.zone).toBe('Intercity')
+    expect(result.intercityCity).toBe('Налайх')
   })
 
   it('returns 8000 for Багануур district', () => {
@@ -71,12 +72,13 @@ describe('calculateDeliveryFee', () => {
     expect(result.district).toBe('Багахангай')
   })
 
-  // Default / unknown
-  it('returns default 5000 for unknown district', () => {
+  // Дархан is now intercity (bus/post delivery)
+  it('returns intercity for Дархан (bus/post delivery)', () => {
     const result = calculateDeliveryFee('Дархан хот, 1-р хороолол')
-    expect(result.fee).toBe(5000)
-    expect(result.zone).toBe('Default')
-    expect(result.district).toBeNull()
+    expect(result.type).toBe('intercity')
+    expect(result.fee).toBe(0)
+    expect(result.zone).toBe('Intercity')
+    expect(result.intercityCity).toBe('Дархан')
   })
 
   it('returns default 5000 for empty-like address', () => {

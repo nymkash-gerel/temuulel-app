@@ -1,17 +1,48 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { toJson } from '@/lib/supabase/json'
+import { INTERCITY_CITIES } from '@/lib/delivery-fee-calculator'
 
-interface ShippingZone {
-  name: string
-  price: number
-  estimatedDays: string
+// Leaflet can't SSR — load dynamically
+const DeliveryZoneMap = dynamic(() => import('@/components/DeliveryZoneMap'), { ssr: false })
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface InnerCitySettings {
   enabled: boolean
+  price: number
+  estimated_hours: string
+  districts: string[]
 }
+
+interface IntercitySettings {
+  enabled: boolean
+  cities: string[]
+}
+
+interface FreeShippingSettings {
+  enabled: boolean
+  minimum: number
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export default function ShippingSettingsPage() {
   const router = useRouter()
@@ -22,14 +53,22 @@ export default function ShippingSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const [freeShippingEnabled, setFreeShippingEnabled] = useState(false)
-  const [freeShippingMinimum, setFreeShippingMinimum] = useState(50000)
-  const [zones, setZones] = useState<ShippingZone[]>([
-    { name: 'Улаанбаатар хот (төв)', price: 5000, estimatedDays: '1-2 өдөр', enabled: true },
-    { name: 'Улаанбаатар хот (захын дүүрэг)', price: 7000, estimatedDays: '1-3 өдөр', enabled: true },
-    { name: 'Дархан, Эрдэнэт', price: 10000, estimatedDays: '2-4 өдөр', enabled: true },
-    { name: 'Бусад аймаг', price: 15000, estimatedDays: '3-7 өдөр', enabled: false },
-  ])
+  const [freeShipping, setFreeShipping] = useState<FreeShippingSettings>({
+    enabled: false,
+    minimum: 50000,
+  })
+  const [innerCity, setInnerCity] = useState<InnerCitySettings>({
+    enabled: true,
+    price: 5000,
+    estimated_hours: '2–4 цаг',
+    districts: ['Сүхбаатар', 'Чингэлтэй', 'Баянгол', 'Хан-Уул', 'Баянзүрх', 'Сонгинохайрхан'],
+  })
+  const [intercity, setIntercity] = useState<IntercitySettings>({
+    enabled: true,
+    cities: ['Дархан', 'Эрдэнэт', 'Налайх'],
+  })
+
+  // ---- Load ----
 
   useEffect(() => {
     async function load() {
@@ -45,14 +84,32 @@ export default function ShippingSettingsPage() {
       if (store) {
         setStoreId(store.id)
         const s = (store.shipping_settings || {}) as Record<string, unknown>
-        if (s.free_shipping_enabled !== undefined) setFreeShippingEnabled(s.free_shipping_enabled as boolean)
-        if (s.free_shipping_minimum) setFreeShippingMinimum(s.free_shipping_minimum as number)
-        if (s.zones) setZones(s.zones as ShippingZone[])
+
+        // Load free shipping
+        if (s.free_shipping_enabled !== undefined || s.freeShipping) {
+          const fs = s.freeShipping as Record<string, unknown> | undefined
+          setFreeShipping({
+            enabled: (fs?.enabled ?? s.free_shipping_enabled ?? false) as boolean,
+            minimum: (fs?.minimum ?? s.free_shipping_minimum ?? 50000) as number,
+          })
+        }
+
+        // Load inner city settings (new format)
+        if (s.inner_city) {
+          setInnerCity(s.inner_city as InnerCitySettings)
+        }
+
+        // Load intercity settings (new format)
+        if (s.intercity) {
+          setIntercity(s.intercity as IntercitySettings)
+        }
       }
       setLoading(false)
     }
     load()
   }, [supabase, router])
+
+  // ---- Save ----
 
   async function handleSave() {
     if (!storeId) return
@@ -61,9 +118,12 @@ export default function ShippingSettingsPage() {
 
     await supabase.from('stores').update({
       shipping_settings: toJson({
-        free_shipping_enabled: freeShippingEnabled,
-        free_shipping_minimum: freeShippingMinimum,
-        zones,
+        freeShipping,
+        inner_city: innerCity,
+        intercity,
+        // legacy compat
+        free_shipping_enabled: freeShipping.enabled,
+        free_shipping_minimum: freeShipping.minimum,
       }),
     }).eq('id', storeId)
 
@@ -72,14 +132,17 @@ export default function ShippingSettingsPage() {
     setTimeout(() => setSaved(false), 3000)
   }
 
-  function updateZone(index: number, field: keyof ShippingZone, value: string | number | boolean) {
-    const updated = [...zones]
-    updated[index] = { ...updated[index], [field]: value }
-    setZones(updated)
-  }
+  const handleDistrictsChange = useCallback((districts: string[]) => {
+    setInnerCity((prev) => ({ ...prev, districts }))
+  }, [])
 
-  function formatPrice(price: number) {
-    return new Intl.NumberFormat('mn-MN').format(price) + '₮'
+  function toggleCity(city: string) {
+    setIntercity((prev) => ({
+      ...prev,
+      cities: prev.cities.includes(city)
+        ? prev.cities.filter((c) => c !== city)
+        : [...prev.cities, city],
+    }))
   }
 
   if (loading) {
@@ -92,8 +155,12 @@ export default function ShippingSettingsPage() {
 
   return (
     <div className="max-w-2xl">
+      {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Link href="/dashboard/settings" className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all">
+        <Link
+          href="/dashboard/settings"
+          className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
+        >
           ←
         </Link>
         <div>
@@ -103,29 +170,31 @@ export default function ShippingSettingsPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Free Shipping */}
+
+        {/* ── Free Shipping ───────────────────────────────────────────── */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-white font-medium">Үнэгүй хүргэлт</h3>
-              <p className="text-slate-400 text-sm mt-1">Тодорхой дүнгээс дээш захиалгад үнэгүй хүргэх</p>
+              <p className="text-slate-400 text-sm mt-1">
+                Тодорхой дүнгээс дээш захиалгад үнэгүй хүргэх
+              </p>
             </div>
             <button
-              onClick={() => setFreeShippingEnabled(!freeShippingEnabled)}
-              className={`relative w-12 h-6 rounded-full transition-colors ${freeShippingEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+              onClick={() => setFreeShipping((p) => ({ ...p, enabled: !p.enabled }))}
+              className={`relative w-12 h-6 rounded-full transition-colors ${freeShipping.enabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
             >
-              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${freeShippingEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${freeShipping.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
             </button>
           </div>
-
-          {freeShippingEnabled && (
+          {freeShipping.enabled && (
             <div>
               <label className="block text-sm text-slate-400 mb-1.5">Доод дүн</label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  value={freeShippingMinimum}
-                  onChange={(e) => setFreeShippingMinimum(Number(e.target.value))}
+                  value={freeShipping.minimum}
+                  onChange={(e) => setFreeShipping((p) => ({ ...p, minimum: Number(e.target.value) }))}
                   className="w-40 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 transition-all"
                 />
                 <span className="text-slate-400 text-sm">₮-ээс дээш захиалгад</span>
@@ -134,60 +203,136 @@ export default function ShippingSettingsPage() {
           )}
         </div>
 
-        {/* Shipping Zones */}
+        {/* ── Inner City (UB) ─────────────────────────────────────────── */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-5">
-          <h3 className="text-white font-medium">Хүргэлтийн бүсүүд</h3>
-
-          <div className="space-y-4">
-            {zones.map((zone, i) => (
-              <div key={i} className={`p-4 border rounded-xl transition-all ${zone.enabled ? 'border-slate-600 bg-slate-700/20' : 'border-slate-700 bg-slate-800/30 opacity-60'}`}>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-white font-medium text-sm">{zone.name}</span>
-                  <button
-                    onClick={() => updateZone(i, 'enabled', !zone.enabled)}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${zone.enabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
-                  >
-                    <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${zone.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                  </button>
-                </div>
-                {zone.enabled && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-slate-500 mb-1">Хүргэлтийн үнэ</label>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          value={zone.price}
-                          onChange={(e) => updateZone(i, 'price', Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-all"
-                        />
-                        <span className="text-slate-400 text-xs">₮</span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-500 mb-1">Хугацаа</label>
-                      <input
-                        value={zone.estimatedDays}
-                        onChange={(e) => updateZone(i, 'estimatedDays', e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {freeShippingEnabled && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-              <p className="text-emerald-400 text-sm">
-                {formatPrice(freeShippingMinimum)}-ээс дээш захиалгад бүх бүсэд үнэгүй хүргэлт хийгдэнэ
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-white font-medium">🏙️ Хотын хүргэлт (УБ)</h3>
+              <p className="text-slate-400 text-sm mt-1">
+                Жолооч хүргэнэ — хаяг дүүрэг сонгоно
               </p>
             </div>
+            <button
+              onClick={() => setInnerCity((p) => ({ ...p, enabled: !p.enabled }))}
+              className={`relative w-12 h-6 rounded-full transition-colors ${innerCity.enabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${innerCity.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {innerCity.enabled && (
+            <>
+              {/* Price + Hours */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1.5">Хүргэлтийн үнэ</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={innerCity.price}
+                      onChange={(e) => setInnerCity((p) => ({ ...p, price: Number(e.target.value) }))}
+                      className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-all"
+                    />
+                    <span className="text-slate-400 text-xs">₮</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1.5">Хугацаа</label>
+                  <input
+                    value={innerCity.estimated_hours}
+                    onChange={(e) => setInnerCity((p) => ({ ...p, estimated_hours: e.target.value }))}
+                    placeholder="2–4 цаг"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Map */}
+              <div>
+                <label className="block text-sm text-slate-300 mb-3">
+                  Хамрах дүүрэг{' '}
+                  <span className="text-slate-500 font-normal">
+                    ({innerCity.districts.length} сонгогдсон)
+                  </span>
+                </label>
+                <DeliveryZoneMap
+                  selected={innerCity.districts}
+                  onChange={handleDistrictsChange}
+                />
+              </div>
+
+              {/* Info box */}
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                <p className="text-blue-300 text-sm">
+                  💳 Хэрэглэгч захиалга хийхэд{' '}
+                  <strong>{formatPrice(innerCity.price)}</strong> хүргэлтийн үнэ тооцогдоно
+                </p>
+              </div>
+            </>
           )}
         </div>
 
-        {/* Save */}
+        {/* ── Intercity (Bus / Post) ───────────────────────────────────── */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-white font-medium">🚌 Хотоор хоорондын хүргэлт</h3>
+              <p className="text-slate-400 text-sm mt-1">
+                Жолооч автобус/шуудан руу өгнө — хэрэглэгч хүлээн авахдаа тээврийн үнэ төлнө
+              </p>
+            </div>
+            <button
+              onClick={() => setIntercity((p) => ({ ...p, enabled: !p.enabled }))}
+              className={`relative w-12 h-6 rounded-full transition-colors ${intercity.enabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${intercity.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {intercity.enabled && (
+            <>
+              <div>
+                <label className="block text-sm text-slate-300 mb-3">
+                  Хүргэх хотууд{' '}
+                  <span className="text-slate-500 font-normal">
+                    ({intercity.cities.length} сонгогдсон)
+                  </span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {INTERCITY_CITIES.map((city) => {
+                    const on = intercity.cities.includes(city)
+                    return (
+                      <button
+                        key={city}
+                        type="button"
+                        onClick={() => toggleCity(city)}
+                        className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
+                          on
+                            ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                            : 'bg-slate-700 text-slate-400 border-slate-600 hover:bg-slate-600'
+                        }`}
+                      >
+                        {city}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Info box */}
+              <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl space-y-1">
+                <p className="text-orange-300 text-sm font-medium">
+                  📦 Тээврийн үнэ шуудангийн газраас тогтоогдоно (жин, хэмжээнээс хамаарна)
+                </p>
+                <p className="text-orange-200/70 text-xs">
+                  Chatbot-д харуулах мессеж: &ldquo;Тээврийн үнэ хүлээн авахдаа төлнө. Асуулт байвал дэлгүүртэй холбогдоно уу.&rdquo;
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ── Save ────────────────────────────────────────────────────── */}
         <div className="flex items-center gap-4">
           <button
             onClick={handleSave}
@@ -196,7 +341,7 @@ export default function ShippingSettingsPage() {
           >
             {saving ? 'Хадгалж байна...' : 'Хадгалах'}
           </button>
-          {saved && <span className="text-emerald-400 text-sm">Амжилттай хадгаллаа</span>}
+          {saved && <span className="text-emerald-400 text-sm">Амжилттай хадгаллаа ✓</span>}
         </div>
       </div>
     </div>

@@ -45,6 +45,8 @@ const COMPLAINT_KEYWORDS = [
   'гомдол', 'асуудал', 'муу', 'буруу', 'алдаа',
   'сэтгэл ханамжгүй', 'чанар муу', 'эвдэрсэн', 'гэмтсэн',
   'хуурамч', 'луйвар', 'тохиромжгүй',
+  // Latin transliterations
+  'muuhay', 'muu uilchilgee', 'gontol', 'asuudal',
 ]
 
 const FRUSTRATION_KEYWORDS = [
@@ -59,6 +61,8 @@ const FRUSTRATION_KEYWORDS = [
   // Delay signals — Note: "хэзээ" alone omitted (neutral "when?"); only "хэзээ ч" (already above)
   'удаан', 'хоцорсон', 'хоног болсон', 'хоног өнгөрсөн',
   'алга болсон', 'байхгүй болсон', 'олдохгүй',
+  // Latin transliterations
+  'yaagaad', 'yaagad', 'yagaad', 'udaan', 'udaan bgan', 'udaan baina', 'udaan yum',
 ]
 
 const RETURN_EXCHANGE_KEYWORDS = [
@@ -72,6 +76,8 @@ const PAYMENT_DISPUTE_KEYWORDS = [
   // Refund demand variants
   'мөнгөө буцааж', 'мөнгоо буцааж', 'мөнгөө буцаа', 'буцааж өг',
   'мөнгө буцаа', 'буцаан өг', 'буцааж ог',
+  // Latin transliterations
+  'mongoo butaaj', 'mongoo butaa', 'mungu butaaj', 'butaaj ug', 'butaaj og',
 ]
 
 const IMMEDIATE_ESCALATION_TRIGGERS = [
@@ -88,6 +94,11 @@ const IMMEDIATE_ESCALATION_TRIGGERS = [
   // English
   'manager', 'supervisor', 'human operator', 'real person',
   'talk to human', 'speak to human', 'not a bot',
+  // Latin transliterations
+  'zahirlaa duudaach', 'zahirlaa duu', 'zahiral hun',
+  'operator duudaach', 'operator duu', 'operator heregteii',
+  'hun heregteii', 'hun yariltsah', 'yariltsah',
+  'mongoo butaaj ug!!!', 'butaaj ug!!!',
 ]
 
 // ---------------------------------------------------------------------------
