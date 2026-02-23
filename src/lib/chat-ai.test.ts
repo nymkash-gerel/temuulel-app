@@ -256,8 +256,9 @@ describe('matchesHandoffKeywords with normalizer', () => {
 // ---------------------------------------------------------------------------
 
 describe('classifyIntent — English keywords', () => {
-  it('detects English product search: "buy"', () => {
-    expect(classifyIntent('I want to buy something')).toBe('product_search')
+  it('detects English order intent: "buy"', () => {
+    // "buy" is now in order_collection keywords (clearer purchase intent)
+    expect(classifyIntent('I want to buy something')).toBe('order_collection')
   })
 
   it('detects English order status: "order"', () => {

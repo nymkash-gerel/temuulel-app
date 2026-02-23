@@ -39,6 +39,9 @@ export {
   LOW_CONFIDENCE_THRESHOLD,
 } from './intent-classifier'
 
+// Hybrid classifier (ML + keyword)
+export { hybridClassify } from './ai/hybrid-classifier'
+
 // Product/order/table search
 export {
   extractSearchTerms,

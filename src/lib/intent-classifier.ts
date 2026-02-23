@@ -155,8 +155,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Core — return/exchange policy questions (moved from complaint)
     'буцаах', 'буцаалт', 'солих', 'солилт', 'солиулах',
     // stemmer handles: буцааж→буцаа, буцаагдсан→буцаа, буцаалтын→буцаалт, солилтын→солилт, солиулж→солиул
-    'буцаан', 'буцаагдах',
-    'солиулж',
+    'буцаан', 'буцаагдах', 'буцааж',
+    'солиулж', 'солилцох', 'солицох',
     // Latin transliteration
     'butsaah', 'butsaalt', 'butsaa', 'butaah', 'butaa', 'butay',
     // Cyrillic forms of Latin misspellings (normalizer converts Latin→Cyrillic)
@@ -167,14 +167,18 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'буцаах бодлого', 'буцаах нөхцөл', 'буцаалтын нөхцөл',
     'солих боломж', 'буцаах боломж',
     // Fit/size mismatch (common return reason)
-    'тохирохгүй', 'өөр хэмжээ', 'өөр өнгө', 'өөрчлөх',
+    'тохирохгүй', 'тохиргүй', 'тааруухгүй', 'таарахгүй',
+    'өөр хэмжээ', 'өөр өнгө', 'өөрчлөх',
+    'багтахгүй', 'том', 'жижиг', 'бага', 'их',
+    'хэмжээ буруу', 'өнгө буруу', 'загвар буруу',
     // English
     'return', 'return policy', 'exchange', 'refund',
     'can i return', 'exchange policy', 'swap',
-    'want to exchange', 'want to return',
+    'want to exchange', 'want to return', 'wrong size', 'doesnt fit',
     // Informal/aliases (stemmer handles: буцааx→буцаах, солиулаx→солиулах)
     'буцааж болох', 'солиулж болох', 'буцаалт хийх',
     'буцааж өгөх', 'солиулж өгөх',
+    'солиулмаар', 'солихыг хүсч', 'буцаахыг хүсч',
   ],
   size_info: [
     // Core
@@ -210,15 +214,22 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Aliases (stemmer handles: төлбөрөө→төлбөр, дансаар/дансруу→данс, картаар/картаа→карт, зээлээр→зээл)
     'төлье', 'төлъе', 'төлсөн',
     'данс руу',
-    'шилжүүлэх', 'шилжүүлье',
-    'бэлнээр', 'бэлэнээр',
-    'хуваалаа',
+    'шилжүүлэх', 'шилжүүлье', 'шилжүүлэг хийх', 'шилжүүлнэ',
+    'бэлнээр', 'бэлэнээр', 'бэлэн мөнгө', 'кашаар',
+    'хуваалаа', 'хуваа', 'хувааж', 'хуваан',
     'хэрхэн төлөх', 'яаж төлөх',
     'мөнгө', 'мөнгөө',
+    // Installment specific
+    'хуваан төлөх', 'хуваан төлж', 'хуваан төлбөр', 'хуваалттай',
+    'хэсэгчилсэн', 'хэсэгчлэх', 'хэсэгчилж', 'хэсэгч төлбөр',
     // Mongolian payment methods
     'кюпэй', 'сошиал пэй', 'socialpay', 'монпэй', 'monpay',
-    'хипэй', 'hipay', 'лэнд', 'лизинг', 'хуваан төлөх', 'хуваан төлж',
+    'хипэй', 'hipay', 'лэнд', 'лизинг',
     'сторпэй', 'storepay',
+    'голомт', 'хаан', 'хас', 'тиби', 'state bank',
+    // Payment method types
+    'банкны карт', 'картаар', 'картаа', 'visa', 'mastercard',
+    'дансаар', 'дансаа', 'банк шилжүүлэг',
   ],
   shipping: [
     // Core
@@ -298,6 +309,20 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'өнөөдрийн цэс', 'яг одоо', 'одоо байгаа',
     'хоол байна уу', 'ямар хоол', 'юу захиалах',
     'дуусчхсан уу', 'дуусав уу',
+  ],
+  order_collection: [
+    // Core order keywords (moved from product_search for clearer intent separation)
+    'захиалах', 'захиална', 'захиалъя', 'захиалья', 'захиалая',
+    'захиалж', 'захиалаа', 'захиалсан', 'захиалмаар',
+    // Purchase intent
+    'авъя', 'авья', 'авий', 'авии', 'ави',
+    'авна', 'авах', 'авмаар', 'авмааар', 'авбал', 'авлаа', 'авсан',
+    'худалдаж ав', 'худалдаж авна', 'худалдаж авах',
+    // English
+    'order', 'place order', 'want to order', 'will order', 'lets order',
+    'buy', 'purchase', 'will buy', 'want to buy',
+    // Aliases
+    'захялах', 'захялъя', 'захялна',
   ],
 }
 

@@ -49,9 +49,11 @@ function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, '').replace(/^976/, '').slice(-8)
 }
 
-/** Check if a string looks like a Mongolian phone number */
+/** Check if a string looks like a Mongolian phone number (any common format) */
 function looksLikePhone(text: string): boolean {
-  return /^[+]?976?\d{8}$/.test(text.trim()) || /^\d{8}$/.test(text.trim())
+  const digits = text.replace(/\D/g, '')
+  // 8 digits (local), 11 digits (976 + 8), 12 digits (+976 + 8)
+  return digits.length === 8 || digits.length === 11 || digits.length === 12
 }
 
 export async function POST(request: NextRequest) {
@@ -127,14 +129,15 @@ export async function POST(request: NextRequest) {
   // ── Phone number (onboarding) ────────────────────────────────────────────
   if (looksLikePhone(text) || msg.contact) {
     const rawPhone = msg.contact?.phone_number ?? text
-    const phone = normalizePhone(rawPhone)
+    const phone = normalizePhone(rawPhone) // Always 8 digits e.g. "99112233"
 
-    // Look up driver by phone
+    // Look up driver — phones may be stored in any format (8 digits, +976..., 976...)
+    // so we match against the last 8 digits using ilike
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: driver } = await (supabase as any)
       .from('delivery_drivers')
       .select('id, name, telegram_chat_id')
-      .eq('phone', phone)
+      .ilike('phone', `%${phone}`)
       .maybeSingle()
 
     if (!driver) {

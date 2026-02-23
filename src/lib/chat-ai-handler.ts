@@ -10,7 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildCustomerProfile } from './ai/customer-profile'
 import { getLatestPurchase, formatPurchaseConfirmation, getExtendedCustomerInfo, formatExtendedProfileForAI, inferPreferencesFromMessage, savePreference, logInteraction } from './ai/customer-intelligence'
 import {
-  classifyIntent,
+  hybridClassify,
   extractSearchTerms,
   searchProducts,
   searchOrders,
@@ -290,7 +290,7 @@ export async function processAIChat(
       case 'prefer_llm': {
         intent = followUp.type === 'size_question' ? 'size_info'
           : followUp.type === 'contextual_question' ? 'general'
-          : classifyIntent(customerMessage)
+          : hybridClassify(customerMessage).intent
         const searchTerms = extractSearchTerms(customerMessage)
 
         // Parallel: search + history fetch based on intent
@@ -317,7 +317,7 @@ export async function processAIChat(
     }
   } else {
     // Normal classification path
-    intent = classifyIntent(customerMessage)
+    intent = hybridClassify(customerMessage).intent
 
     if (busyMode.busy_mode && ['product_search', 'table_reservation', 'menu_availability'].includes(intent)) {
       const waitMsg = busyMode.estimated_wait_minutes
@@ -956,7 +956,7 @@ async function handleGiftCardFlow(
   }
 
   // ── Case 4: Gift card purchase intent ─────────────────────────────────
-  if (classifyIntent(customerMessage) === 'gift_card_purchase') {
+  if (hybridClassify(customerMessage).intent === 'gift_card_purchase') {
     const denomList = GIFT_CARD_DENOMINATIONS
       .map((d) => `💳 ${formatGiftCardBalance(d)}`)
       .join('\n')

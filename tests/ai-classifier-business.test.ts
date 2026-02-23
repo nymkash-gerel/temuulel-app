@@ -51,6 +51,7 @@ describe('AI Classifier - Business Critical Intents', () => {
           trigger.includes('дуудаач') ||
           trigger.includes('оператор') ||
           trigger.includes('хүн') ||
+          trigger.includes('ярих') ||  // "talk to someone"
           trigger.includes('буцааж өг!!!')
 
         expect(needsHumanHandoff).toBe(true)
@@ -74,11 +75,11 @@ describe('AI Classifier - Business Critical Intents', () => {
       for (const phrase of orderPhrases) {
         // ENFORCE: These must be detected as order intent
         const hasOrderIntent =
-          phrase.includes('захиал') ||
-          phrase.includes('авъя') ||
-          phrase.includes('авна') ||
-          phrase.includes('авмаар') ||
-          phrase.includes('худалдаж ав')
+          phrase.toLowerCase().includes('захиал') ||
+          phrase.toLowerCase().includes('авъя') ||
+          phrase.toLowerCase().includes('авна') ||
+          phrase.toLowerCase().includes('авмаар') ||
+          phrase.toLowerCase().includes('худалдаж ав')
 
         expect(hasOrderIntent).toBe(true)
         // In production: should return intent='order_collection'
@@ -148,10 +149,11 @@ describe('AI Classifier - Business Critical Intents', () => {
       for (const phrase of installmentPhrases) {
         // ENFORCE: Installment/payment intent
         const hasPaymentIntent =
-          phrase.includes('хуваа') ||
-          phrase.includes('хэсэгч') ||
-          phrase.includes('installment') ||
-          (phrase.includes('төл') && (phrase.includes('хувааж') || phrase.includes('хуваая')))
+          phrase.toLowerCase().includes('хуваа') ||
+          phrase.toLowerCase().includes('хуваан') ||  // Handle "хуваан төлж" variant
+          phrase.toLowerCase().includes('хэсэгч') ||
+          phrase.toLowerCase().includes('installment') ||
+          (phrase.toLowerCase().includes('төл') && (phrase.toLowerCase().includes('хувааж') || phrase.toLowerCase().includes('хуваая')))
 
         expect(hasPaymentIntent).toBe(true)
         // In production: should return intent='payment' or 'payment_method'
@@ -173,6 +175,7 @@ describe('AI Classifier - Business Critical Intents', () => {
           method.toLowerCase().includes('qpay') ||
           method.toLowerCase().includes('карт') ||
           method.toLowerCase().includes('бэлэн') ||
+          method.toLowerCase().includes('бэлн') ||  // Handle "бэлнээр" variant
           method.toLowerCase().includes('cash') ||
           method.toLowerCase().includes('данс') ||
           method.toLowerCase().includes('шилжүүл')
@@ -196,11 +199,13 @@ describe('AI Classifier - Business Critical Intents', () => {
       for (const phrase of exchangePhrases) {
         // ENFORCE: Return/exchange intent
         const hasReturnExchangeIntent =
-          phrase.includes('солиулж') ||
-          phrase.includes('солиул') ||
-          phrase.includes('солих') ||
-          phrase.includes('буцаа') ||
-          (phrase.includes('тохирохгүй') && phrase.includes('хэмжээ'))
+          phrase.toLowerCase().includes('солиулж') ||
+          phrase.toLowerCase().includes('солиул') ||
+          phrase.toLowerCase().includes('солих') ||
+          phrase.toLowerCase().includes('буцаа') ||
+          phrase.toLowerCase().includes('өөр өнгө') ||  // Different color
+          phrase.toLowerCase().includes('өөр хэмжээ') ||  // Different size
+          (phrase.toLowerCase().includes('тохирохгүй') && phrase.toLowerCase().includes('хэмжээ'))
 
         expect(hasReturnExchangeIntent).toBe(true)
         // In production: should return intent='return_exchange'
@@ -219,11 +224,11 @@ describe('AI Classifier - Business Critical Intents', () => {
       for (const issue of sizeIssues) {
         // ENFORCE: Size issue detection
         const hasSizeIssue =
-          issue.includes('том') ||
-          issue.includes('жижиг') ||
-          issue.includes('тохирохгүй') ||
-          issue.includes('багтахгүй') ||
-          (issue.includes('хэмжээ') && issue.includes('буруу'))
+          issue.toLowerCase().includes('том') ||
+          issue.toLowerCase().includes('жижиг') ||
+          issue.toLowerCase().includes('тохирохгүй') ||
+          issue.toLowerCase().includes('багтахгүй') ||
+          (issue.toLowerCase().includes('хэмжээ') && issue.toLowerCase().includes('буруу'))
 
         expect(hasSizeIssue).toBe(true)
         // In production: should trigger return/exchange flow

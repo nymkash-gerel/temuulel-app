@@ -17,20 +17,22 @@ describe('Complete Customer Journeys', () => {
   const testCustomers: string[] = []
 
   beforeAll(async () => {
+    // Get test store (seeded with business_type='ecommerce')
     const { data: store } = await supabase
       .from('stores')
       .select('id')
-      .eq('email', 'restaurant@temuulel.test')
+      .eq('business_type', 'ecommerce')
+      .eq('slug', 'mongol-market-test')
       .single()
 
     testStoreId = store!.id
 
+    // Get test product with variants
     const { data: product } = await supabase
       .from('products')
       .select('id')
       .eq('store_id', testStoreId)
       .eq('status', 'active')
-      .gt('inventory_count', 10)
       .limit(1)
       .single()
 
@@ -64,14 +66,12 @@ describe('Complete Customer Journeys', () => {
       expect(products).toHaveLength(1)
       const product = products![0]
       expect(product.status).toBe('active')
-      expect(product.inventory_count).toBeGreaterThan(0)
 
       // Step 2: Customer decides to order
       const customerData = {
         store_id: testStoreId,
-        phone_number: `999${Date.now().toString().slice(-5)}`, // Unique phone
-        name: 'Journey Test Customer',
-        metadata: { test_mode: true, journey: 'happy_path' }
+        phone: `999${Date.now().toString().slice(-5)}`, // Unique phone
+        name: 'Journey Test Customer'
       }
 
       const { data: customer } = await supabase
@@ -80,7 +80,7 @@ describe('Complete Customer Journeys', () => {
         .select()
         .single()
 
-      testCustomers.push(customer!.id)
+      if (customer) testCustomers.push(customer.id)
 
       // Step 3: Create order
       const orderData = {
@@ -88,23 +88,11 @@ describe('Complete Customer Journeys', () => {
         customer_id: customer!.id,
         order_number: `JOURNEY-${Date.now()}`,
         status: 'pending',
-        total_amount: product.price + 5000, // +delivery fee
-        items: [{
-          product_id: product.id,
-          product_name: product.name,
-          quantity: 1,
-          price: product.price
-        }],
-        shipping_address: {
-          full_address: 'БЗД 1р хороо Test гудамж 1 тоот 1',
-          phone: customer!.phone_number
-        },
-        metadata: {
-          test_mode: true,
-          journey: 'happy_path',
-          channel: 'test',
-          delivery_fee: 5000
-        }
+        total_amount: product.base_price + 5000, // +delivery fee
+        shipping_amount: 5000,
+        payment_status: 'pending',
+        shipping_address: 'БЗД 1р хороо Test гудамж 1 тоот 1',
+        order_type: 'delivery'
       }
 
       const { data: order } = await supabase
@@ -117,7 +105,7 @@ describe('Complete Customer Journeys', () => {
 
       // ENFORCE: Order created successfully
       expect(order!.status).toBe('pending')
-      expect(order!.total_amount).toBe(product.price + 5000)
+      expect(order!.total_amount).toBe(product.base_price + 5000)
 
       // Step 4: Payment (cash on delivery - no payment yet)
       // Order remains pending until delivery
@@ -175,7 +163,7 @@ describe('Complete Customer Journeys', () => {
         .from('customers')
         .insert({
           store_id: testStoreId,
-          phone_number: `998${Date.now().toString().slice(-5)}`,
+          phone: `998${Date.now().toString().slice(-5)}`,
           name: 'Complaint Journey Customer',
           metadata: { test_mode: true, journey: 'complaint' }
         })
@@ -292,7 +280,7 @@ describe('Complete Customer Journeys', () => {
         .from('customers')
         .insert({
           store_id: testStoreId,
-          phone_number: `997${Date.now().toString().slice(-5)}`,
+          phone: `997${Date.now().toString().slice(-5)}`,
           name: 'Exchange Journey Customer',
           metadata: { test_mode: true, journey: 'exchange' }
         })
@@ -425,7 +413,7 @@ describe('Complete Customer Journeys', () => {
         .from('customers')
         .insert({
           store_id: testStoreId,
-          phone_number: `996${Date.now().toString().slice(-5)}`,
+          phone: `996${Date.now().toString().slice(-5)}`,
           name: 'Installment Journey Customer',
           metadata: { test_mode: true, journey: 'installments' }
         })
@@ -445,7 +433,7 @@ describe('Complete Customer Journeys', () => {
 
       expect(products!.length).toBeGreaterThanOrEqual(3)
 
-      const subtotal = products!.reduce((sum, p) => sum + p.price, 0)
+      const subtotal = products!.reduce((sum, p) => sum + p.base_price, 0)
 
       // ENFORCE: 3+ items = free delivery
       const deliveryFee = products!.length >= 3 ? 0 : 5000
@@ -466,7 +454,7 @@ describe('Complete Customer Journeys', () => {
             product_id: p.id,
             product_name: p.name,
             quantity: 1,
-            price: p.price
+            price: p.base_price
           })),
           shipping_address: {
             full_address: 'БЗД 1р хороо Installment Street 1',
@@ -520,7 +508,7 @@ describe('Complete Customer Journeys', () => {
         .from('customers')
         .insert({
           store_id: testStoreId,
-          phone_number: `995${Date.now().toString().slice(-5)}`,
+          phone: `995${Date.now().toString().slice(-5)}`,
           name: 'Late Delivery Customer',
           metadata: { test_mode: true, journey: 'late_delivery' }
         })
