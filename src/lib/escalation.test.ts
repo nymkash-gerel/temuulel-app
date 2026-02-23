@@ -117,9 +117,9 @@ describe('evaluateEscalation', () => {
     expect(result.signals).toContain('complaint')
   })
 
-  it('detects frustration language (+20 base, scales with keyword count)', () => {
+  it('detects frustration language (+20)', () => {
+    // "яагаад" + "хариулахгүй" = 2 frustration keywords → 20 + 10 = 30pts
     const result = evaluateEscalation(0, 'Яагаад хариулахгүй байна вэ', [], DEFAULT_CONFIG)
-    // "яагаад" + "хариулахгүй" = 2 keywords → 20 + 10 = 30
     expect(result.newScore).toBe(30)
     expect(result.signals).toContain('frustration')
   })
@@ -137,7 +137,12 @@ describe('evaluateEscalation', () => {
   })
 
   it('detects repeated messages (+15)', () => {
-    const history = [msg('Хариулна уу', true, false)]
+    // recentMessages must include the current message as last entry
+    // (it's already saved to DB before this check runs, per code comment)
+    const history = [
+      msg('Хариулна уу', true, false), // previous message
+      msg('Хариулна уу', true, false), // current message (already in DB)
+    ]
     const result = evaluateEscalation(0, 'Хариулна уу', history, DEFAULT_CONFIG)
     expect(result.signals).toContain('repeated_message')
     expect(result.newScore).toBe(15)
@@ -175,9 +180,9 @@ describe('evaluateEscalation', () => {
   })
 
   it('stacks multiple signals in one message', () => {
-    // complaint: "муу" + "гомдол" = 2 keywords → 25×2 = 50
-    // frustration: "яагаад" = 1 keyword → 20
-    // Total = 70
+    // complaint: "муу" + "гомдол" = 2 keywords → 25×2 = 50pts
+    // frustration: "яагаад" = 1 keyword → 20pts
+    // total: 70pts
     const result = evaluateEscalation(
       0,
       'Яагаад ийм муу бараа байна вэ, гомдол гаргая',

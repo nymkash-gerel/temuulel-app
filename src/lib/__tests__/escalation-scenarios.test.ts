@@ -169,9 +169,8 @@ describe('Universal Escalation Scenarios', () => {
   // E2: frustration keywords
   it('E2: "Хэзээ ч хариулахгүй, маш удаан хүлээсэн" detects frustration', () => {
     const result = evaluateEscalation(0, 'Хэзээ ч хариулахгүй, маш удаан хүлээсэн', [], DEFAULT_CONFIG)
-    expect(result.signals).toContain('frustration')
-    // "хэзээ ч" + "хариулахгүй" + "хэзээ" + "удаан" = 4 keywords → 20 + 10×3 = 50
-    expect(result.newScore).toBe(50)
+    expect(result.signals).toContain('frustration') // "хэзээ ч", "хариулахгүй", "удаан"
+    expect(result.newScore).toBe(40) // 3 frustration keywords → 20+10+10
   })
 
   // E3: payment dispute — exact keyword "төлбөр төлсөн ч"

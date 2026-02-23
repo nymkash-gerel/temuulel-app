@@ -56,8 +56,8 @@ const FRUSTRATION_KEYWORDS = [
   'ирэхгүй', 'хүрэхгүй',
   // Past: didn't arrive / didn't reach (commonly used in complaints)
   'ирсэнгүй', 'ирээгүй', 'хүрсэнгүй', 'хүрээгүй',
-  // Delay signals
-  'хэзээ', 'удаан', 'хоцорсон', 'хоног болсон', 'хоног өнгөрсөн',
+  // Delay signals — Note: "хэзээ" alone omitted (neutral "when?"); only "хэзээ ч" (already above)
+  'удаан', 'хоцорсон', 'хоног болсон', 'хоног өнгөрсөн',
   'алга болсон', 'байхгүй болсон', 'олдохгүй',
 ]
 
@@ -154,17 +154,18 @@ export function detectRepeatedMessage(
 export function countConsecutiveAiOnly(messages: RecentMessage[]): number {
   let customerCount = 0
 
-  // Walk backwards — count customer messages, skip AI responses,
-  // only stop at human agent replies
+  // Walk backwards — count customer messages until a human agent (non-AI) reply.
+  // AI replies don't break the streak; only a human agent reply resets the count.
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
 
     if (msg.is_from_customer) {
       customerCount++
     } else if (!msg.is_ai_response) {
-      break // Human agent reply — stop counting
+      // Human agent reply — conversation was handled, reset
+      break
     }
-    // AI responses are skipped — continue counting
+    // AI reply — keep counting customer messages before it
   }
 
   return customerCount
@@ -228,7 +229,9 @@ export function evaluateEscalation(
   const allCustomerMsgs = recentMessages
     .filter((m) => m.is_from_customer)
     .map((m) => m.content)
-  const recentCustomerMsgs = allCustomerMsgs.slice(-5)
+  // Exclude the last entry — it's the current message (already saved to DB
+  // before this check runs), so comparing against it would always self-match.
+  const recentCustomerMsgs = allCustomerMsgs.slice(0, -1).slice(-5)
 
   if (detectRepeatedMessage(currentMessage, recentCustomerMsgs)) {
     addedScore += WEIGHTS.repeated_message
