@@ -135,15 +135,17 @@ export function detectRepeatedMessage(
 export function countConsecutiveAiOnly(messages: RecentMessage[]): number {
   let customerCount = 0
 
-  // Walk backwards — any response (AI or human) breaks the streak
+  // Walk backwards — count customer messages, skip AI responses,
+  // only stop at human agent replies
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
 
     if (msg.is_from_customer) {
       customerCount++
-    } else {
-      break
+    } else if (!msg.is_ai_response) {
+      break // Human agent reply — stop counting
     }
+    // AI responses are skipped — continue counting
   }
 
   return customerCount
@@ -200,18 +202,16 @@ export function evaluateEscalation(
   const allCustomerMsgs = recentMessages
     .filter((m) => m.is_from_customer)
     .map((m) => m.content)
-  // Exclude the last entry — it's the current message (already saved to DB
-  // before this check runs), so comparing against it would always self-match.
-  const recentCustomerMsgs = allCustomerMsgs.slice(0, -1).slice(-5)
+  const recentCustomerMsgs = allCustomerMsgs.slice(-5)
 
   if (detectRepeatedMessage(currentMessage, recentCustomerMsgs)) {
     addedScore += WEIGHTS.repeated_message
     signals.push('repeated_message')
   }
 
-  // 6. AI fail-to-resolve (5+ customer messages with only AI replies)
+  // 6. AI fail-to-resolve (3+ customer messages with only AI replies)
   const consecutiveCustomer = countConsecutiveAiOnly(recentMessages)
-  if (consecutiveCustomer >= 5) {
+  if (consecutiveCustomer >= 3) {
     addedScore += WEIGHTS.ai_fail_to_resolve
     signals.push('ai_fail_to_resolve')
   }

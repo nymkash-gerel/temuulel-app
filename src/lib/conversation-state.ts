@@ -390,20 +390,8 @@ export function resolveFollowUp(
     }
   }
 
-  // 1d. Order intent: customer saw product (detail or search) and wants to order
-  const orderTriggerIntents = ['product_detail', 'product_search', 'product_suggestions']
-  if (orderTriggerIntents.includes(state.last_intent) && products.length > 0) {
-    const msgWords = normalized.split(/\s+/)
-    const hasOrder = msgWords.some((w) =>
-      ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
-      || ORDER_EXACT_WORDS.some((ew) => paddedIncludes(` ${w} `, ew))
-    )
-    if (hasOrder) {
-      return { type: 'order_intent', product: products[0] }
-    }
-  }
-
-  // 2. "This one" / "I'll take it" — only works with exactly 1 product
+  // 1d. "This one" / "I'll take it" — only works with exactly 1 product
+  // (checked BEFORE order_intent so "энийг авъя" resolves as select, not generic order)
   if (products.length === 1) {
     const padded = ` ${normalized} `
     for (const word of SELECT_WORDS) {
@@ -439,6 +427,20 @@ export function resolveFollowUp(
           return { type: 'contextual_question', products, contextTopic: group.topic }
         }
       }
+    }
+  }
+
+  // 4b. Order intent: customer saw product (detail or search) and wants to order
+  // (checked AFTER select_single and contextual_question to avoid stealing their matches)
+  const orderTriggerIntents = ['product_detail', 'product_search', 'product_suggestions']
+  if (orderTriggerIntents.includes(state.last_intent) && products.length > 0) {
+    const msgWords = normalized.split(/\s+/)
+    const hasOrder = msgWords.some((w) =>
+      ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+      || ORDER_EXACT_WORDS.some((ew) => paddedIncludes(` ${w} `, ew))
+    )
+    if (hasOrder) {
+      return { type: 'order_intent', product: products[0] }
     }
   }
 

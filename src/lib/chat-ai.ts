@@ -218,6 +218,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хэзээ ирэх',
     // Time-based arrival phrases (order tracking, not generic shipping)
     'маргааш ирэх', 'өглөө ирэх', 'өнөөдөр ирэх', 'орой ирэх',
+    // Ready/completion status
+    'бэлэн болох', 'бэлэн болно', 'бэлэн болсон',
   ],
   greeting: [
     // Core
@@ -309,8 +311,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'жин', 'жинтэй', 'өндөр', 'өндөртэй',
     'биеийн', 'бие', 'али нь', 'алинийг',
     'тохирно', 'тохирох уу', 'таарах', 'таарна',
-    // "болох уу" / "тааруу" — common sizing question forms
-    'болох уу', 'болху', 'блху', 'тааруу',
+    // "тааруу" — sizing-specific form ("болох уу" removed — too generic, conflicts with payment/return)
+    'тааруу',
     // Latin-typed (common FB Messenger abbreviations)
     'hemjee', 'razmer', 'saiz',
   ],
@@ -332,7 +334,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'мөнгө', 'мөнгөө',
     // Mongolian payment methods
     'кюпэй', 'сошиал пэй', 'socialpay', 'монпэй', 'monpay',
-    'хипэй', 'hipay', 'лэнд', 'лизинг', 'хуваан төлөх',
+    'хипэй', 'hipay', 'лэнд', 'лизинг', 'хуваан төлөх', 'хуваан төлж',
     'сторпэй', 'storepay',
   ],
   shipping: [
