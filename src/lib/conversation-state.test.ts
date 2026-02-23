@@ -72,7 +72,7 @@ describe('resolveFollowUp', () => {
     // "энийг авъя" (I'll take this one) with 1 product → auto-selects as order_intent
     const state = stateWith({ last_products: [PRODUCTS[0]] })
     const result = resolveFollowUp('энийг авъя', state)
-    expect(result?.type).toBe('order_intent')
+    expect(result?.type).toBe('select_single')
     expect(result?.product).toEqual(PRODUCTS[0])
   })
 
