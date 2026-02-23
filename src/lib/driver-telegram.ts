@@ -22,6 +22,71 @@ function botToken(): string {
   return t
 }
 
+// ---------------------------------------------------------------------------
+// Inline keyboard types
+// ---------------------------------------------------------------------------
+
+export interface TgInlineButton {
+  text: string
+  callback_data?: string
+  url?: string
+}
+
+export interface TgInlineKeyboard {
+  inline_keyboard: TgInlineButton[][]
+}
+
+// ---------------------------------------------------------------------------
+// Inline keyboard builders
+// ---------------------------------------------------------------------------
+
+/** Buttons shown when a new order is assigned */
+export function orderAssignedKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '✅ Авлаа', callback_data: `picked_up:${deliveryId}` },
+        { text: '❌ Татгалзах', callback_data: `reject:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
+/** Buttons shown after driver picks up (en-route) */
+export function enRouteKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '✅ Хүргэлээ', callback_data: `delivered:${deliveryId}` },
+        { text: '📵 Утас авсангүй', callback_data: `unreachable:${deliveryId}` },
+      ],
+      [
+        { text: '⏰ Хоцрох', callback_data: `delay:${deliveryId}` },
+        { text: '⚠️ Асуудал', callback_data: `issue:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
+/** Sub-buttons when driver reports an issue */
+export function issueKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📦 Буруу бараа', callback_data: `wrong_product:${deliveryId}` },
+        { text: '💔 Гэмтсэн', callback_data: `damaged:${deliveryId}` },
+      ],
+      [
+        { text: '💰 Мөнгө өгсөнгүй', callback_data: `no_payment:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Telegram API helpers
+// ---------------------------------------------------------------------------
+
 /** Low-level Telegram sendMessage */
 export async function tgSend(chatId: number | string, text: string, options?: {
   parseMode?: 'HTML' | 'Markdown'
@@ -50,12 +115,63 @@ export async function tgSend(chatId: number | string, text: string, options?: {
   }
 }
 
+/** Send a message with inline keyboard buttons */
+export async function tgSendButtons(
+  chatId: number | string,
+  text: string,
+  keyboard: TgInlineKeyboard
+): Promise<boolean> {
+  return tgSend(chatId, text, { replyMarkup: keyboard })
+}
+
+/** Answer a callback query (dismisses the loading spinner on button) */
+export async function tgAnswerCallback(
+  callbackQueryId: string,
+  text?: string,
+  showAlert = false
+): Promise<void> {
+  try {
+    await fetch(`${TELEGRAM_API}/bot${botToken()}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text,
+        show_alert: showAlert,
+      }),
+    })
+  } catch (err) {
+    console.error('[Telegram] answerCallbackQuery error:', err)
+  }
+}
+
+/** Remove buttons from a message after driver taps one */
+export async function tgRemoveButtons(
+  chatId: number | string,
+  messageId: number
+): Promise<void> {
+  try {
+    await fetch(`${TELEGRAM_API}/bot${botToken()}/editMessageReplyMarkup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        reply_markup: { inline_keyboard: [] },
+      }),
+    })
+  } catch (err) {
+    console.error('[Telegram] editMessageReplyMarkup error:', err)
+  }
+}
+
 /** Send a message to a driver by their DB driver_id. Returns false if no Telegram linked. */
 export async function sendToDriver(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any, any, any>,
   driverId: string,
-  text: string
+  text: string,
+  keyboard?: TgInlineKeyboard
 ): Promise<boolean> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: driver } = await (supabase as any)
@@ -69,7 +185,7 @@ export async function sendToDriver(
     return false
   }
 
-  return tgSend(driver.telegram_chat_id, text)
+  return tgSend(driver.telegram_chat_id, text, keyboard ? { replyMarkup: keyboard } : undefined)
 }
 
 /** Also save the message to driver_messages table for the dashboard */
@@ -116,8 +232,7 @@ export const DRIVER_PROACTIVE_MESSAGES = {
     `📦 Бараа: ${order.items || 'Дэлгэрэнгүй апп-с харна уу'}\n` +
     `📍 Хаяг: ${order.deliveryAddress || 'Тодорхойгүй'}\n` +
     `👤 Хүлээн авагч: ${order.customerName || '—'}\n` +
-    `📞 Утас: ${order.customerPhone || '—'}\n\n` +
-    `Захиалгыг хүлээн авсан бол <b>авлаа</b> гэж бичнэ үү.`,
+    `📞 Утас: ${order.customerPhone || '—'}`,
 
   /** Order cancelled — do NOT deliver */
   orderCancelled: (order: OrderInfo) =>

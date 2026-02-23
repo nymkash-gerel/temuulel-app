@@ -7,7 +7,7 @@ import type { DriverCandidate, AssignmentRules } from '@/lib/ai/delivery-assigne
 import { dispatchNotification } from '@/lib/notifications'
 import { sendPushToUser } from '@/lib/push'
 import { sendDeliveryTrackingSMS } from '@/lib/sms'
-import { sendToDriver, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
+import { sendToDriver, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard } from '@/lib/driver-telegram'
 
 /**
  * POST /api/deliveries/assign
@@ -220,13 +220,18 @@ export async function POST(request: NextRequest) {
           .join(', ')
       }
     }
-    sendToDriver(supabase, result.recommended_driver_id!, DRIVER_PROACTIVE_MESSAGES.orderAssigned({
-      orderNumber: orderNumber || delivery.delivery_number,
-      deliveryAddress: delivery.delivery_address,
-      customerName: delivery.customer_name ?? undefined,
-      customerPhone: delivery.customer_phone ?? undefined,
-      items: itemsSummary,
-    })).catch(() => {}) // Non-blocking — falls back gracefully if no Telegram linked
+    sendToDriver(
+      supabase,
+      result.recommended_driver_id!,
+      DRIVER_PROACTIVE_MESSAGES.orderAssigned({
+        orderNumber: orderNumber || delivery.delivery_number,
+        deliveryAddress: delivery.delivery_address,
+        customerName: delivery.customer_name ?? undefined,
+        customerPhone: delivery.customer_phone ?? undefined,
+        items: itemsSummary,
+      }),
+      orderAssignedKeyboard(delivery.id)
+    ).catch(() => {}) // Non-blocking — falls back gracefully if no Telegram linked
 
     // Send tracking SMS to customer
     if (delivery.customer_phone) {
