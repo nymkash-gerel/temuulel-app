@@ -5,6 +5,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
+import { stemText, stemKeyword } from './mn-stemmer'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -432,6 +433,20 @@ const NORMALIZED_INTENT_KEYWORDS: Record<string, string[]> = Object.fromEntries(
   ])
 )
 
+/**
+ * Pre-compute stemmed keyword sets (done once at module load).
+ * Each keyword is normalized then stemmed, duplicates removed.
+ * Used as a 3rd matching tier: stemmed message word ↔ stemmed keyword.
+ * This lets keyword lists use base forms only — suffix variants are handled
+ * automatically by the stemmer (e.g. "захиалсан"→"захиал" matches "захиал").
+ */
+const STEMMED_INTENT_KEYWORDS: Record<string, Set<string>> = Object.fromEntries(
+  Object.entries(INTENT_KEYWORDS).map(([intent, keywords]) => [
+    intent,
+    new Set(keywords.map((kw) => stemKeyword(normalizeText(kw)))),
+  ])
+)
+
 /** Minimum prefix length for partial matching (trigram) */
 const MIN_PREFIX_LEN = 4
 
@@ -467,6 +482,10 @@ export function classifyIntentWithConfidence(message: string): IntentResult {
   // Pad with spaces so word-boundary checks work at start/end
   const padded = ` ${normalized} `
 
+  // Stemmed version of message for stem-match tier
+  const stemmed = stemText(normalized)
+  const stemmedPadded = ` ${stemmed} `
+
   let bestIntent = 'general'
   let bestScore = 0
 
@@ -478,6 +497,14 @@ export function classifyIntentWithConfidence(message: string): IntentResult {
     // Prevents prefix inflation: e.g. "размер" fully matching should not
     // also accumulate +0.5 prefix scores from "размераа", "размерийн".
     const fullyMatchedWords = new Set<string>()
+    // Message words that scored via prefix match — excluded from stem tier
+    // to prevent the same word accumulating both prefix (0.5) + stem (0.9) scores
+    const prefixMatchedWords = new Set<string>()
+    // Stemmed message words already matched — prevents double-counting
+    const stemMatchedWords = new Set<string>()
+
+    const stemmedKws = STEMMED_INTENT_KEYWORDS[intent] ?? new Set<string>()
+
     for (const kw of keywords) {
       // Word-boundary match: keyword must be surrounded by spaces
       if (padded.includes(` ${kw} `)) {
@@ -488,9 +515,42 @@ export function classifyIntentWithConfidence(message: string): IntentResult {
         neutralizeVowels(kw).split(' ').forEach((w) => fullyMatchedWords.add(w))
       } else {
         const matchingWord = prefixMatchWord(normalized, kw)
-        if (matchingWord && !fullyMatchedWords.has(matchingWord)) {
+        // Guard against both exact-match and prior prefix-match double-counting:
+        // multiple keywords can all prefix-match the same message word (e.g. захиалга
+        // and захиалг both matching захиалгатай) — only score the first hit.
+        if (matchingWord && !fullyMatchedWords.has(matchingWord) && !prefixMatchedWords.has(matchingWord)) {
           score += 0.5 // Partial/prefix match — half weight (deduped)
+          prefixMatchedWords.add(matchingWord)
         }
+      }
+    }
+
+    // ── Stem-match tier ──────────────────────────────────────────────────
+    // Iterate over (originalWord, stemmedWord) pairs so we can check whether
+    // the original word already scored via prefix tier.
+    //
+    // A stem match fires only when:
+    //   1. The stemmed form appears in this intent's stemmed keyword set
+    //   2. The original message word was NOT already counted by exact/vowel/prefix tiers
+    //   3. This stemmed word hasn't been counted yet (dedup)
+    //
+    // Weight: 0.9 (stem match > prefix 0.5, slightly below exact 1.0)
+    const normalizedWords = normalized.split(' ')
+    const stemmedWords = stemmed.split(' ')
+    for (let i = 0; i < normalizedWords.length; i++) {
+      const origWord = normalizedWords[i]
+      const stemWord = stemmedWords[i]
+      if (stemWord.length < 3) continue
+      if (stemMatchedWords.has(stemWord)) continue
+      if (!stemmedKws.has(stemWord)) continue
+      // Skip if already counted by exact/vowel/prefix tier
+      const alreadyCounted =
+        fullyMatchedWords.has(origWord) ||
+        prefixMatchedWords.has(origWord) ||
+        [...fullyMatchedWords].some((fw) => fw.startsWith(origWord) || origWord.startsWith(fw))
+      if (!alreadyCounted) {
+        score += 0.9 // Stem match
+        stemMatchedWords.add(stemWord)
       }
     }
 
