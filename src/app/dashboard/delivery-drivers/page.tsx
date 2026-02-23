@@ -54,7 +54,7 @@ export default function DeliveryDriversPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [copiedTgId, setCopiedTgId] = useState<string | null>(null)
 
-  const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? ''
+  const BOT_USERNAME = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? '').trim()
 
   function copyTelegramInvite(driver: Driver) {
     if (!BOT_USERNAME) {
