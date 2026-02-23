@@ -56,8 +56,8 @@ const FRUSTRATION_KEYWORDS = [
   'ирэхгүй', 'хүрэхгүй',
   // Past: didn't arrive / didn't reach (commonly used in complaints)
   'ирсэнгүй', 'ирээгүй', 'хүрсэнгүй', 'хүрээгүй',
-  // Delay signals
-  'хэзээ', 'удаан', 'хоцорсон', 'хоног болсон', 'хоног өнгөрсөн',
+  // Delay signals — Note: "хэзээ" alone omitted (neutral "when?"); only "хэзээ ч" (already above)
+  'удаан', 'хоцорсон', 'хоног болсон', 'хоног өнгөрсөн',
   'алга болсон', 'байхгүй болсон', 'олдохгүй',
 ]
 
@@ -154,15 +154,18 @@ export function detectRepeatedMessage(
 export function countConsecutiveAiOnly(messages: RecentMessage[]): number {
   let customerCount = 0
 
-  // Walk backwards — any response (AI or human) breaks the streak
+  // Walk backwards — count customer messages until a human agent (non-AI) reply.
+  // AI replies don't break the streak; only a human agent reply resets the count.
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
 
     if (msg.is_from_customer) {
       customerCount++
-    } else {
+    } else if (!msg.is_ai_response) {
+      // Human agent reply — conversation was handled, reset
       break
     }
+    // AI reply — keep counting customer messages before it
   }
 
   return customerCount
@@ -235,9 +238,9 @@ export function evaluateEscalation(
     signals.push('repeated_message')
   }
 
-  // 6. AI fail-to-resolve (5+ customer messages with only AI replies)
+  // 6. AI fail-to-resolve (3+ customer messages with only AI replies)
   const consecutiveCustomer = countConsecutiveAiOnly(recentMessages)
-  if (consecutiveCustomer >= 5) {
+  if (consecutiveCustomer >= 3) {
     addedScore += WEIGHTS.ai_fail_to_resolve
     signals.push('ai_fail_to_resolve')
   }
