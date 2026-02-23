@@ -1,5 +1,8 @@
 import OpenAI from 'openai'
 import { withSpan } from '@/lib/sentry-helpers'
+import { withCircuitBreaker, CircuitOpenError } from './circuit-breaker'
+
+export { CircuitOpenError }
 
 const MODEL = 'gpt-4o-mini'
 const DEFAULT_TEMPERATURE = 0.3
@@ -60,12 +63,12 @@ export async function chatCompletion(req: ChatCompletionRequest): Promise<ChatCo
   return withSpan('openai.chatCompletion', 'ai.completion', async () => {
     const openai = getClient()
 
-    const response = await openai.chat.completions.create({
+    const response = await withCircuitBreaker(() => openai.chat.completions.create({
       model: MODEL,
       temperature: req.temperature ?? DEFAULT_TEMPERATURE,
       max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
       messages: req.messages,
-    })
+    }))
 
     const content = response.choices[0]?.message?.content
     if (!content) throw new Error('Empty response from OpenAI')
@@ -99,7 +102,7 @@ export async function jsonCompletion<T>(req: CompletionRequest): Promise<Complet
   return withSpan('openai.jsonCompletion', 'ai.completion', async () => {
     const openai = getClient()
 
-    const response = await openai.chat.completions.create({
+    const response = await withCircuitBreaker(() => openai.chat.completions.create({
       model: MODEL,
       temperature: req.temperature ?? DEFAULT_TEMPERATURE,
       max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
@@ -108,7 +111,7 @@ export async function jsonCompletion<T>(req: CompletionRequest): Promise<Complet
         { role: 'system', content: req.systemPrompt },
         { role: 'user', content: req.userContent },
       ],
-    })
+    }))
 
     const content = response.choices[0]?.message?.content
     if (!content) throw new Error('Empty response from OpenAI')
