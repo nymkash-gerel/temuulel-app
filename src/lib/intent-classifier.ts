@@ -80,6 +80,13 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'зураг', 'зургаа', 'фото',
     'photo', 'picture', 'pic', 'image', 'show photo', 'show picture',
     'үзүүлээч', 'харуулаач', 'харуулаад',
+    // Questions without proper grammar particles (informal)
+    'үнэ хэд', 'байгаа',
+    // Latin transliterations (common in Messenger)
+    'tsunx', 'tsunh', 'puuz', 'hamt', 'hemjee', 'ongo', 'tsagaan',
+    'baraa', 'bga uu', 'bga yum', 'bgaa', 'bii uu', 'bn uu',
+    'haruulna uu', 'haruu', 'uzuul', 'shine baraa',
+    'hed turgurug', 'hed', 'une', 'yamr',
   ],
   order_status: [
     // Core
@@ -118,6 +125,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'бнау', 'бна уу', 'сбну', 'сайн уу',
     'сн бну', 'сн бнуу', 'сн бн',
     'сайнбну', 'сайнбнуу', 'сн уу',
+    // Latin transliterations (common in Messenger)
+    'sain bn uu', 'sain uu', 'sbnuu', 'sn bn uu',
+    'sn uu', 'bn', 'bna uu', 'bnuu',
+    'sain bna uu', 'sainuu',
   ],
   thanks: [
     // Core
@@ -150,6 +161,17 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'эвдэрсэн', 'гэмтсэн', 'гэмтэл',
     'уурласан', 'бухимдсан',
     'хариуцлага', 'хариуцлагагүй',
+    // Money refund complaints (strong complaint signal)
+    'мөнгө буцаах', 'мөнгөө буцааж өг', 'мөнгө буцаа',
+    // Latin transliterations (common in Messenger complaints)
+    'yaagaad', 'yaagad', 'yagaad',
+    'mongoo butaaj ug', 'mongoo butaaj', 'mongoo butaa', 'mungu butaaj',
+    'muu uilchilgee', 'muu uilchilge', 'muuhay',
+    'zahirlaa duudaach', 'zahirlaa duu', 'zahiral hun',
+    'hun heregteii', 'hun heregteй', 'operator heregteii',
+    'operator duu', 'operator duudaach',
+    'udaan bgan', 'udaan baina', 'udaan yum',
+    'yariltsah', 'yariltsya', 'yarilts',
   ],
   return_exchange: [
     // Core — return/exchange policy questions (moved from complaint)
@@ -179,6 +201,15 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'буцааж болох', 'солиулж болох', 'буцаалт хийх',
     'буцааж өгөх', 'солиулж өгөх',
     'солиулмаар', 'солихыг хүсч', 'буцаахыг хүсч',
+    // Questions without particles
+    'болох',
+    // Cyrillic misspellings (common typos)
+    'бутаах', 'бутай өг', 'солулж болох уу', 'тохирхгүй', 'хэмжэ том',
+    // Latin transliterations for size/fit issues
+    'hemjee tohirohgui', 'tohirohgui', 'tohirhgui',
+    'hemjee tom', 'hemjee jijig', 'tom baina', 'jijig bna',
+    'soliulj boloh uu', 'soliulj', 'solih',
+    'butsaah bolomj', 'butaaj ug', 'butaaj og',
   ],
   size_info: [
     // Core
@@ -230,6 +261,12 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Payment method types
     'банкны карт', 'картаар', 'картаа', 'visa', 'mastercard',
     'дансаар', 'дансаа', 'банк шилжүүлэг',
+    // Latin transliterations (common in Messenger)
+    'huvaaan tuluh', 'huvaaan toloh', 'huvaan tuluh',
+    'huvaj tolno', 'huvaj tuluh', 'huvaaj',
+    'hesgchlen', 'hesgchilen', 'hesgch',
+    'QPay-aar', 'QPay-eer', 'qpayaar',
+    'belneer', 'belnaar', 'belen mungu',
   ],
   shipping: [
     // Core
@@ -323,6 +360,14 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'buy', 'purchase', 'will buy', 'want to buy',
     // Aliases
     'захялах', 'захялъя', 'захялна',
+    // Common misspellings (Cyrillic)
+    'захялна', 'захиалъя', 'худалж ав',
+    // Informal verb forms (emphatic, definite future)
+    'авчхна', 'захиалчихъя', 'захиалчихья', 'үзчихье', 'авъяа',
+    // Latin transliterations (very common in Messenger)
+    'zahialna', 'zahialu', 'zahialya', 'zahialna', 'zahial',
+    'avmaar', 'avya', 'avii', 'avi', 'avna', 'avah',
+    'hudaldaj av', 'hudaldaj avna',
   ],
 }
 
@@ -481,7 +526,8 @@ export function classifyIntentWithConfidence(
     const RETURN_SIGNALS = ['буцаах', 'буцаалт', 'буцаан', 'солих', 'солилт', 'солиулах', 'буцааж',
       'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'butaah', 'butaa', 'butay', 'бутай', 'бутаах', 'бутаа', 'solih',
       'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй', 'эвдэрсэн']
-    const COMPLAINT_SIGNALS = ['гомдол', 'муу', 'луйвар', 'хуурамч', 'complaint']
+    const COMPLAINT_SIGNALS = ['гомдол', 'асуудал', 'муу', 'луйвар', 'хуурамч', 'complaint',
+      'мөнгө буцаа', 'мөнгөө буцаа', 'mongoo butaaj', 'yaagaad', 'zahirlaa', 'hun heregteii', 'operator']
     const normalizedWords = normalized.split(/\s+/)
     const stemmedWords = stemmedMsg.split(/\s+/)
 
@@ -495,6 +541,53 @@ export function classifyIntentWithConfidence(
 
     if (hasReturn) bestIntent = 'return_exchange'
     else if (hasComplaint) bestIntent = 'complaint'
+  }
+
+  // Tiebreaker: complaint beats return_exchange when problem words are present
+  if (bestIntent === 'return_exchange' && bestScore > 0) {
+    const PROBLEM_SIGNALS = ['асуудал', 'гомдол', 'problem']
+    const hasProblem = PROBLEM_SIGNALS.some(kw => padded.includes(` ${kw} `))
+    if (hasProblem) bestIntent = 'complaint'
+  }
+
+  // Additional tiebreaker: complaint beats return_exchange/payment for money refund demands
+  if ((bestIntent === 'return_exchange' || bestIntent === 'payment') && bestScore > 0) {
+    const MONEY_COMPLAINT_SIGNALS = ['мөнгө буцаа', 'мөнгөө буцаа', 'мөнгө butaaj', 'mongoo butaaj', 'yaagaad', 'zahirlaa', 'hun heregteii', 'operator']
+    const hasMoneyComplaint = MONEY_COMPLAINT_SIGNALS.some(kw => padded.includes(` ${kw} `))
+    // Also check for exclamation marks (angry tone)
+    const hasAngryTone = (message.match(/!/g) || []).length >= 3
+    if (hasMoneyComplaint || (hasAngryTone && padded.includes(' буцаа'))) bestIntent = 'complaint'
+  }
+
+  // Tiebreaker: return_exchange beats size_info for fit problems
+  if (bestIntent === 'size_info' && bestScore > 0) {
+    const FIT_PROBLEM_SIGNALS = ['тохирохгүй', 'тохиргүй', 'буцаах', 'солих', 'солиулах', 'буцааж', 'том бай', 'жижиг бн', 'tohirohgui']
+    const hasFitProblem = FIT_PROBLEM_SIGNALS.some(kw => padded.includes(` ${kw} `))
+    if (hasFitProblem) bestIntent = 'return_exchange'
+  }
+
+  // Tiebreaker: product_search/order_collection beats size_info for product/order queries with size
+  if (bestIntent === 'size_info' && bestScore > 0) {
+    const ORDER_SIGNALS = ['захиал', 'zahial', 'avmaar', 'avya', 'avii', 'avi', 'avna', 'худалдаж']
+    const PRODUCT_SEARCH_SIGNALS = ['байгаа', 'бга', 'бараа']
+    const hasOrderIntent = ORDER_SIGNALS.some(kw => padded.includes(` ${kw} `))
+    const hasProductSearch = PRODUCT_SEARCH_SIGNALS.some(kw => padded.includes(` ${kw} `))
+
+    // Keep as size_info if it has size guide/chart/measurement keywords
+    const hasSizeGuideWords = (
+      normalized.includes('chart') ||
+      normalized.includes('guide') ||
+      normalized.includes('хэлбэр') ||
+      normalized.includes('заавар') ||
+      normalized.includes('measurement')
+    )
+
+    // Short messages like "hemjee M" or "size M" are product search, not size guide (but "size chart" stays size_info)
+    const words = normalized.split(/\s+/)
+    const isShortSizeQuery = words.length <= 2 && !hasSizeGuideWords
+
+    if (hasOrderIntent && !hasSizeGuideWords) bestIntent = 'order_collection'
+    else if ((hasProductSearch || isShortSizeQuery) && !hasSizeGuideWords) bestIntent = 'product_search'
   }
 
   // Optional logging
