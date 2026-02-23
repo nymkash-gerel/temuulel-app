@@ -307,8 +307,24 @@ function paddedIncludes(paddedNormalized: string, keyword: string): boolean {
 }
 
 /**
+ * Priority weights for follow-up types (higher = more important)
+ */
+const FOLLOWUP_WEIGHTS: Record<FollowUpType, number> = {
+  order_step_input: 100,
+  number_reference: 90,
+  select_single: 85,
+  size_question: 70,
+  contextual_question: 60,
+  order_intent: 50,
+  price_question: 40,
+  query_refinement: 30,
+  prefer_llm: 20,
+}
+
+/**
  * Detect follow-up patterns in the customer message given prior conversation state.
  * Returns null if this is not a follow-up (should use normal classification).
+ * Uses priority-based scoring to avoid priority inversions.
  */
 export function resolveFollowUp(
   message: string,
@@ -317,13 +333,19 @@ export function resolveFollowUp(
   // No state yet — can't be a follow-up
   if (state.turn_count === 0) return null
 
-  // 0. Active order draft — always intercept until order completes or cancels
-  if (state.order_draft) {
-    return { type: 'order_step_input' }
-  }
-
   const normalized = normalizeText(message).trim()
   const products = state.last_products
+  
+  // Collect all possible matches with their scores
+  const candidates: Array<{ score: number; result: FollowUpResult }> = []
+
+  // 0. Active order draft — always intercept until order completes or cancels
+  if (state.order_draft) {
+    candidates.push({
+      score: FOLLOWUP_WEIGHTS.order_step_input,
+      result: { type: 'order_step_input' }
+    })
+  }
 
   // 1. Number reference: "2 дугаарыг", "2", ordinals
   if (products.length > 0) {
@@ -333,9 +355,12 @@ export function resolveFollowUp(
       if (normalized === pattern) {
         const resolvedIndex = index === -1 ? products.length - 1 : index
         if (resolvedIndex >= 0 && resolvedIndex < products.length) {
-          return { type: 'number_reference', product: products[resolvedIndex] }
+          candidates.push({
+            score: FOLLOWUP_WEIGHTS.number_reference,
+            result: { type: 'number_reference', product: products[resolvedIndex] }
+          })
+          break // Only one ordinal match needed
         }
-        // Out of range — fall through to other checks
       }
     }
 
@@ -348,10 +373,12 @@ export function resolveFollowUp(
       if (isProductSelection) {
         const idx = parseInt(numMatch[1], 10) - 1 // 1-based → 0-based
         if (idx >= 0 && idx < products.length) {
-          return { type: 'number_reference', product: products[idx] }
+          candidates.push({
+            score: FOLLOWUP_WEIGHTS.number_reference,
+            result: { type: 'number_reference', product: products[idx] }
+          })
         }
       }
-      // Not a product selection (e.g. "5 сартай" = 5 months) — fall through to other checks
     }
   }
 
@@ -366,7 +393,10 @@ export function resolveFollowUp(
       return matchCount >= 2 || (nameWords.length === 1 && matchCount === 1)
     })
     if (nameMatch) {
-      return { type: 'number_reference', product: nameMatch }
+      candidates.push({
+        score: FOLLOWUP_WEIGHTS.number_reference,
+        result: { type: 'number_reference', product: nameMatch }
+      })
     }
   }
 
@@ -384,54 +414,72 @@ export function resolveFollowUp(
         const hasContext = /сонирх|авъя|авья|авах|авна|энийг|үүнийг|ийнхийг|ынхийг|инхиг|ийг|₮/i.test(message)
           || /сонирх|авйа|авйа|авах|авна|энийг|үүнийг/i.test(normalized)
         if (hasContext) {
-          return { type: 'number_reference', product: matched }
+          candidates.push({
+            score: FOLLOWUP_WEIGHTS.number_reference,
+            result: { type: 'number_reference', product: matched }
+          })
         }
       }
     }
   }
 
   // 1d. "This one" / "I'll take it" — only works with exactly 1 product
-  // (checked BEFORE order_intent so "энийг авъя" resolves as select, not generic order)
   if (products.length === 1) {
     const padded = ` ${normalized} `
     for (const word of SELECT_WORDS) {
       if (paddedIncludes(padded, word)) {
-        return { type: 'select_single', product: products[0] }
+        candidates.push({
+          score: FOLLOWUP_WEIGHTS.select_single,
+          result: { type: 'select_single', product: products[0] }
+        })
+        break // Only need one match
       }
     }
   }
 
   // 3. Size/fit question — when products exist in state and message has measurement/size context
-  // (checked BEFORE price, because "хэмжээ хэд" = "what size" not "what price")
   if (products.length > 0) {
     // Check for body measurement patterns (60kg, 165cm, etc.)
     if (BODY_MEASUREMENT_RE.test(normalized) || BODY_MEASUREMENT_RE.test(message)) {
-      return { type: 'size_question', products }
-    }
-    // Check for size question keywords
-    const paddedSize = ` ${normalized} `
-    for (const word of SIZE_QUESTION_WORDS) {
-      if (paddedIncludes(paddedSize, word)) {
-        return { type: 'size_question', products }
-      }
-    }
-  }
-
-  // 4. Contextual question — delivery, order, payment, material, etc. when products exist
-  // (checked BEFORE price, because "хүргэлт хэд хоног" = "how many days" not "what price")
-  if (products.length > 0) {
-    const paddedCtx = ` ${normalized} `
-    for (const group of CONTEXT_KEYWORDS) {
-      for (const word of group.words) {
-        if (paddedIncludes(paddedCtx, word)) {
-          return { type: 'contextual_question', products, contextTopic: group.topic }
+      candidates.push({
+        score: FOLLOWUP_WEIGHTS.size_question,
+        result: { type: 'size_question', products }
+      })
+    } else {
+      // Check for size question keywords
+      const paddedSize = ` ${normalized} `
+      for (const word of SIZE_QUESTION_WORDS) {
+        if (paddedIncludes(paddedSize, word)) {
+          candidates.push({
+            score: FOLLOWUP_WEIGHTS.size_question,
+            result: { type: 'size_question', products }
+          })
+          break // Only need one match
         }
       }
     }
   }
 
+  // 4. Contextual question — delivery, order, payment, material, etc. when products exist
+  if (products.length > 0) {
+    const paddedCtx = ` ${normalized} `
+    for (const group of CONTEXT_KEYWORDS) {
+      let found = false
+      for (const word of group.words) {
+        if (paddedIncludes(paddedCtx, word)) {
+          candidates.push({
+            score: FOLLOWUP_WEIGHTS.contextual_question,
+            result: { type: 'contextual_question', products, contextTopic: group.topic }
+          })
+          found = true
+          break
+        }
+      }
+      if (found) break // Only match first context topic
+    }
+  }
+
   // 4b. Order intent: customer saw product (detail or search) and wants to order
-  // (checked AFTER select_single and contextual_question to avoid stealing their matches)
   const orderTriggerIntents = ['product_detail', 'product_search', 'product_suggestions']
   if (orderTriggerIntents.includes(state.last_intent) && products.length > 0) {
     const msgWords = normalized.split(/\s+/)
@@ -440,7 +488,10 @@ export function resolveFollowUp(
       || ORDER_EXACT_WORDS.some((ew) => paddedIncludes(` ${w} `, ew))
     )
     if (hasOrder) {
-      return { type: 'order_intent', product: products[0] }
+      candidates.push({
+        score: FOLLOWUP_WEIGHTS.order_intent,
+        result: { type: 'order_intent', product: products[0] }
+      })
     }
   }
 
@@ -449,7 +500,11 @@ export function resolveFollowUp(
     const paddedPrice = ` ${normalized} `
     for (const word of PRICE_WORDS) {
       if (paddedIncludes(paddedPrice, word)) {
-        return { type: 'price_question', products }
+        candidates.push({
+          score: FOLLOWUP_WEIGHTS.price_question,
+          result: { type: 'price_question', products }
+        })
+        break // Only need one match
       }
     }
   }
@@ -459,10 +514,14 @@ export function resolveFollowUp(
     const padded = ` ${normalized} `
     for (const word of REFINEMENT_WORDS) {
       if (paddedIncludes(padded, word)) {
-        return {
-          type: 'query_refinement',
-          refinedQuery: `${state.last_query} ${normalized}`,
-        }
+        candidates.push({
+          score: FOLLOWUP_WEIGHTS.query_refinement,
+          result: {
+            type: 'query_refinement',
+            refinedQuery: `${state.last_query} ${normalized}`,
+          }
+        })
+        break // Only need one match
       }
     }
   }
@@ -472,17 +531,31 @@ export function resolveFollowUp(
     const padded = ` ${normalized} `
     for (const word of EMOTIONAL_WORDS) {
       if (paddedIncludes(padded, word)) {
-        return { type: 'prefer_llm', reason: 'emotional' }
+        candidates.push({
+          score: FOLLOWUP_WEIGHTS.prefer_llm,
+          result: { type: 'prefer_llm', reason: 'emotional' }
+        })
+        break // Only need one match
       }
     }
   }
 
   // 8. Prefer LLM: repeated low_confidence — user got the "ойлгосонгүй" menu twice
   if (state.last_intent === 'low_confidence') {
-    return { type: 'prefer_llm', reason: 'repeated_low_confidence' }
+    candidates.push({
+      score: FOLLOWUP_WEIGHTS.prefer_llm,
+      result: { type: 'prefer_llm', reason: 'repeated_low_confidence' }
+    })
   }
 
-  return null
+  // Return the highest-scoring match, or null if no matches
+  if (candidates.length === 0) return null
+  
+  const best = candidates.reduce((prev, current) => 
+    prev.score > current.score ? prev : current
+  )
+  
+  return best.result
 }
 
 // ---------------------------------------------------------------------------
