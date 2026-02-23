@@ -1,0 +1,634 @@
+[
+  {
+    "text": "Бараа байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Захиалга хаана байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "Сайн байна уу",
+    "intent": "greeting"
+  },
+  {
+    "text": "Баярлалаа",
+    "intent": "thanks"
+  },
+  {
+    "text": "Гомдол гаргах гэсэн",
+    "intent": "complaint"
+  },
+  {
+    "text": "Размер хэмжээ хэд байна",
+    "intent": "size_info"
+  },
+  {
+    "text": "Төлбөр хэрхэн төлөх вэ",
+    "intent": "payment"
+  },
+  {
+    "text": "Хүргэлт хэдэн хоног",
+    "intent": "shipping"
+  },
+  {
+    "text": "Аав ээж хоёулаа",
+    "intent": "general"
+  },
+  {
+    "text": "Бутээгдэхүүн байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ бараа авъя",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хямдралтай бараа байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Захялга шалгана уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "Трэкинг дугаар өгнө үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "Сайн бн",
+    "intent": "greeting"
+  },
+  {
+    "text": "Баярлаа, гоё байна",
+    "intent": "thanks"
+  },
+  {
+    "text": "Эвдэрсэн гэмтсэн ирсэн",
+    "intent": "complaint"
+  },
+  {
+    "text": "Чанаргүй юм байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "Сайзаа мэдэхгүй байна",
+    "intent": "size_info"
+  },
+  {
+    "text": "Яаж төлөх вэ",
+    "intent": "payment"
+  },
+  {
+    "text": "Хурдан хүргэх боломжтой юу",
+    "intent": "shipping"
+  },
+  {
+    "text": "xүргэлт xаяг өгье",
+    "intent": "shipping"
+  },
+  {
+    "text": "I want to buy something",
+    "intent": "product_search"
+  },
+  {
+    "text": "where is my order",
+    "intent": "order_status"
+  },
+  {
+    "text": "hello",
+    "intent": "greeting"
+  },
+  {
+    "text": "thank you so much",
+    "intent": "thanks"
+  },
+  {
+    "text": "the item is broken and damaged",
+    "intent": "complaint"
+  },
+  {
+    "text": "what size should I get",
+    "intent": "size_info"
+  },
+  {
+    "text": "how to pay for this",
+    "intent": "payment"
+  },
+  {
+    "text": "shipping to countryside",
+    "intent": "shipping"
+  },
+  {
+    "text": "Буцаах боломжтой юу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Солих боломжтой юу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Буцаалт хийж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Солилт хийж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Тохирохгүй байна солих боломж",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Can I return this item",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "I want to exchange",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Can I get a refund",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "What is your return policy",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Чанар муу эвдэрсэн байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "Гэмтсэн эвдэрсэн асуудал байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "Буцаалт хийх боломж",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Өөр хэмжээ солих",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Солих боломж байгаа юу?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Буцаалтын хураамж хэд вэ?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Солилтын нөхцөл юу вэ?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Хэмжээ тохирохгүй, солиулж болох уу?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "I want to exchange this item",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Хар өнгийн А загварын цүнх байна уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "БЗД 3-р хороо, 45-р байр 301 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "QPay-аар төлье",
+    "intent": "payment"
+  },
+  {
+    "text": "Захиалгаа шалгамаар байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "ORD-2026-0142 дугаартай",
+    "intent": "order_status"
+  },
+  {
+    "text": "Латте захиалъя",
+    "intent": "product_search"
+  },
+  {
+    "text": "Том хэмжээтэй, олос сүүгээр",
+    "intent": "size_info"
+  },
+  {
+    "text": "Ямар өнгөтэй байна?",
+    "intent": "product_search"
+  },
+  {
+    "text": "3 цамц 2 өмд хэд вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Балаяж хэд вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Үсний бүтээгдэхүүн зардаг уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Голден ретривер нохойгоо засуулмаар байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "Муур маань хумсаа л авахуулмаар",
+    "intent": "product_search"
+  },
+  {
+    "text": "Гадна угаалга хэд вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Дотор цэвэрлэгээ хийдэг үү?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Сарын гишүүнчлэл байна уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "10 удаагийн багц хэд вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ бараа нөөцөд байна уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хуримын зураг авалт хэд вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Цагаан хоолны сонголт байна уу?",
+    "intent": "menu_availability"
+  },
+  {
+    "text": "Сургалтын төлбөр хэд вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Дэлгэц засвар хэд вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "3 өрөө байрны цэвэрлэгээ хэд вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Захиалга маань хэзээ ирэх вэ?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Захиалгаа цуцлаж болох уу?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Захиалга маань хэзээ бэлэн болох вэ?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Хайрцаг маань хэзээ явах вэ?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Зураг хэзээ бэлэн болох вэ?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Лабораторийн шинжилгээ хэзээ бэлэн болох вэ?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Илгээмж хаана яваа вэ?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Дархан руу хүргэлт хэд вэ?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хүргэлтийн хаягаа солиж болох уу?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хөдөө хүргэлт хийдэг үү?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хүргэлт хэдэн хоног болох вэ?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Яаралтай хүргэлт байна уу?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Баянгол руу хүргэлт хэд вэ?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Яаж төлөх вэ?",
+    "intent": "payment"
+  },
+  {
+    "text": "QPay-аар төлж болох уу?",
+    "intent": "payment"
+  },
+  {
+    "text": "Хуваан төлж болох уу?",
+    "intent": "payment"
+  },
+  {
+    "text": "Буцаалтын бодлого юу вэ?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Баримтгүйгээр буцааж болох уу?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Би 165см 60кг",
+    "intent": "size_info"
+  },
+  {
+    "text": "XL размер байна уу?",
+    "intent": "size_info"
+  },
+  {
+    "text": "Ямар хэмжээтэй вэ?",
+    "intent": "size_info"
+  },
+  {
+    "text": "Өөр размертай болох уу?",
+    "intent": "size_info"
+  },
+  {
+    "text": "Сайн уу",
+    "intent": "greeting"
+  },
+  {
+    "text": "Өглөөний мэнд",
+    "intent": "greeting"
+  },
+  {
+    "text": "Мэндээ",
+    "intent": "greeting"
+  },
+  {
+    "text": "Сн бну",
+    "intent": "greeting"
+  },
+  {
+    "text": "Маш их баярлалаа",
+    "intent": "thanks"
+  },
+  {
+    "text": "Гоё, баярлаа!",
+    "intent": "thanks"
+  },
+  {
+    "text": "Чанар маш муу байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "Асуудалтай байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "Гомдол байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "How much for exterior wash?",
+    "intent": "product_search"
+  },
+  {
+    "text": "How much for balayage?",
+    "intent": "product_search"
+  },
+  {
+    "text": "How much for wedding photography?",
+    "intent": "product_search"
+  },
+  {
+    "text": "How much to fix the screen?",
+    "intent": "product_search"
+  },
+  {
+    "text": "How much for 3-bedroom house?",
+    "intent": "product_search"
+  },
+  {
+    "text": "How much is tuition?",
+    "intent": "product_search"
+  },
+  {
+    "text": "When will my order arrive?",
+    "intent": "order_status"
+  },
+  {
+    "text": "When will my order be ready?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Can I cancel my order?",
+    "intent": "order_status"
+  },
+  {
+    "text": "When will photos be ready?",
+    "intent": "order_status"
+  },
+  {
+    "text": "When will my box ship?",
+    "intent": "order_status"
+  },
+  {
+    "text": "When are my lab results ready?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Can I change my delivery address?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Can you deliver to my office?",
+    "intent": "shipping"
+  },
+  {
+    "text": "How much to deliver to Bayangol?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Express shipping available?",
+    "intent": "shipping"
+  },
+  {
+    "text": "How long does delivery take?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Do you deliver to countryside?",
+    "intent": "shipping"
+  },
+  {
+    "text": "How do I pay?",
+    "intent": "payment"
+  },
+  {
+    "text": "Can I pay by QPay?",
+    "intent": "payment"
+  },
+  {
+    "text": "What payment methods do you accept?",
+    "intent": "payment"
+  },
+  {
+    "text": "Can I pay in installments?",
+    "intent": "payment"
+  },
+  {
+    "text": "I want to return this item",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "I want to return this",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Can I exchange for a different size?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "What is your return policy?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Can I return without receipt?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Do you have this in size M?",
+    "intent": "size_info"
+  },
+  {
+    "text": "What size should I get?",
+    "intent": "size_info"
+  },
+  {
+    "text": "Do you have size XL?",
+    "intent": "size_info"
+  },
+  {
+    "text": "What sizes do you have?",
+    "intent": "size_info"
+  },
+  {
+    "text": "I am 165cm 60kg",
+    "intent": "size_info"
+  },
+  {
+    "text": "Hello",
+    "intent": "greeting"
+  },
+  {
+    "text": "Hi there",
+    "intent": "greeting"
+  },
+  {
+    "text": "Good morning",
+    "intent": "greeting"
+  },
+  {
+    "text": "Thank you",
+    "intent": "thanks"
+  },
+  {
+    "text": "Thanks a lot",
+    "intent": "thanks"
+  },
+  {
+    "text": "Энэ бараа эвдэрсэн байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "Маш сайн",
+    "intent": "greeting"
+  },
+  {
+    "text": "Өөр размертай солиж болох уу?",
+    "intent": "size_info"
+  },
+  {
+    "text": "Ямар размер авах вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ямар төлбөрийн хэлбэр байна?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Кейтеринг цэс юу вэ?",
+    "intent": "menu_availability"
+  },
+  {
+    "text": "This product is broken",
+    "intent": "complaint"
+  },
+  {
+    "text": "This is terrible, I want a refund!",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "цэс харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "хүргэлт хийдэг үү",
+    "intent": "shipping"
+  },
+  {
+    "text": "зээлээр авч болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "сн бну",
+    "intent": "greeting"
+  },
+  {
+    "text": "баярлалаа",
+    "intent": "thanks"
+  },
+  {
+    "text": "thank you",
+    "intent": "thanks"
+  },
+  {
+    "text": "төлбөр хэрхэн төлөх",
+    "intent": "payment"
+  },
+  {
+    "text": "qpay аар төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "how to pay",
+    "intent": "payment"
+  },
+  {
+    "text": "асуудал гарлаа",
+    "intent": "complaint"
+  },
+  {
+    "text": "чанаргүй байна",
+    "intent": "complaint"
+  }
+]
