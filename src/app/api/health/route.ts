@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import '@/lib/env-check' // Import for validation at runtime
 
 interface HealthResponse {
   status: 'ok' | 'degraded'
