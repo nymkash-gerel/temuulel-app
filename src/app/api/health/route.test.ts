@@ -13,6 +13,12 @@ vi.mock('../../../../../package.json', () => ({
   version: '0.1.0'
 }))
 
+// Mock env-check to prevent auto-validation
+vi.mock('@/lib/env-check', () => ({
+  validateEnv: vi.fn(),
+  isProduction: false
+}))
+
 describe('GET /api/health', () => {
   let mockSupabaseClient: any
   let originalProcessUptime: () => number

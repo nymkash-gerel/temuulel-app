@@ -16,6 +16,7 @@ export interface ProductForRecommendation {
   description: string
   base_price: number
   sales_script: string | null
+  variants?: { size: string | null; color: string | null; price: number; stock_quantity: number }[]
 }
 
 export interface RecommendationInput {

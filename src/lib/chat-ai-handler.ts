@@ -7,6 +7,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { buildCustomerProfile } from './ai/customer-profile'
 import {
   classifyIntent,
   extractSearchTerms,
@@ -32,6 +33,9 @@ import {
 import { normalizeText } from '@/lib/chat-ai'
 import { dispatchNotification } from '@/lib/notifications'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
+import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
+
+const DEFAULT_DELIVERY_FEE = 5000
 
 export interface AIProcessingContext {
   conversationId: string
@@ -81,10 +85,13 @@ export async function processAIChat(
     chatbotSettings,
   } = ctx
 
-  // --- Parallel: fetch conversation state + busy mode at the same time ---
-  const [state, busyMode] = await Promise.all([
+  // --- Parallel: fetch conversation state + busy mode + customer profile ---
+  const [state, busyMode, customerProfile] = await Promise.all([
     readState(supabase, conversationId),
     checkStoreBusyMode(supabase, storeId),
+    customerId
+      ? buildCustomerProfile(supabase, customerId, storeId).catch(() => null)
+      : Promise.resolve(null),
   ])
 
   const followUp = resolveFollowUp(customerMessage, state)
@@ -94,7 +101,9 @@ export async function processAIChat(
   let orders: Awaited<ReturnType<typeof searchOrders>> = []
   let tables: TableMatch[] = []
   let responseText: string
-  let orderDraft: OrderDraft | null = state.order_draft ?? null
+  // If resolveFollowUp returned null but there WAS an order draft, it means
+  // the user sent an off-topic message — clear the draft so they can browse freely.
+  let orderDraft: OrderDraft | null = (!followUp && state.order_draft) ? null : (state.order_draft ?? null)
 
   if (followUp) {
     switch (followUp.type) {
@@ -153,7 +162,8 @@ export async function processAIChat(
               const order = await createOrderFromChat(supabase, storeId, customerId, draft)
               orderDraft = null
               if (order) {
-                responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа!`
+                const productTotal = draft.unit_price * draft.quantity
+                responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Бараа: ${formatPrice(productTotal)}\n🚚 Хүргэлт: ${formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа!`
                 intent = 'order_created'
               } else {
                 responseText = '⚠️ Захиалга үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.'
@@ -184,10 +194,24 @@ export async function processAIChat(
         break
       }
 
+      case 'order_cancel': {
+        orderDraft = null
+        responseText = '❌ Захиалга цуцлагдлаа. Өөр асуух зүйл байвал бичнэ үү!'
+        intent = 'general'
+        break
+      }
+
       case 'number_reference':
       case 'select_single': {
         const p = followUp.product!
         intent = 'product_detail'
+        // Fetch full product data (with images) for product card
+        const [detailProducts] = await Promise.all([
+          searchProducts(supabase, p.name, storeId, { maxProducts: 1, originalQuery: p.name }),
+        ])
+        if (detailProducts.length > 0) {
+          products = detailProducts
+        }
         responseText = `**${p.name}**\n💰 ${formatPrice(p.base_price)}\n\nЭнэ бүтээгдэхүүнийг захиалмаар байвал бичнэ үү!`
         break
       }
@@ -211,7 +235,8 @@ export async function processAIChat(
         ])
         products = refProducts
         responseText = await generateAIResponse(
-          intent, products, orders, storeName, followUp.refinedQuery!, chatbotSettings, refHistory
+          intent, products, orders, storeName, followUp.refinedQuery!, chatbotSettings, refHistory,
+          undefined, undefined, customerProfile
         )
         break
       }
@@ -236,7 +261,8 @@ export async function processAIChat(
         products = llmProducts.length > 0 ? llmProducts : products
         orders = llmOrders
         responseText = await generateAIResponse(
-          intent, products, orders, storeName, customerMessage, chatbotSettings, llmHistory
+          intent, products, orders, storeName, customerMessage, chatbotSettings, llmHistory,
+          undefined, undefined, customerProfile
         )
         break
       }
@@ -285,20 +311,43 @@ export async function processAIChat(
       responseText = await generateAIResponse(
         intent, products, orders, storeName, customerMessage, chatbotSettings, history,
         undefined,
-        { availableTables: tables, busyMode }
+        { availableTables: tables, busyMode },
+        customerProfile
       )
 
       // If the message contains order intent, start order flow.
-      if (hasOrderIntent(customerMessage)) {
-        if (products.length > 0) {
-          // Product found — start order draft
+      // Skip if already classified as order_status or complaint —
+      // "захиалга маань ирэхгүй" is a complaint, not a new order request.
+      // Also skip if the message is a recommendation/exploration query —
+      // "авмаар байна. Юу санал болгох вэ?" = browsing, not ready-to-buy.
+      const RECOMMENDATION_SIGNALS = [
+        'санал болг', 'юу авбал', 'юу авах вэ', 'юу захиалах вэ',
+        'зөвлө', 'юу санал', 'аль нь дээр', 'юу вэ', 'юу болох',
+        'бэлэг', // gift context — almost always exploring, not ready-to-buy
+      ]
+      const isRecommendationQuery = RECOMMENDATION_SIGNALS.some(
+        (sig) => normalizeText(customerMessage).includes(normalizeText(sig))
+      )
+      if (!isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && hasOrderIntent(customerMessage)) {
+        // Check if message has meaningful non-order words that identify a product.
+        // If message is ONLY order words (e.g. "zahialu"), products from search are
+        // likely coincidental matches (description contains "захиал*") — show catalog.
+        const msgWords = normalizeText(customerMessage).trim().split(/\s+/)
+        const nonOrderWords = msgWords.filter((w) =>
+          !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+          && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+        )
+        const hasProductIdentifier = nonOrderWords.some((w) => w.length >= 2)
+
+        if (products.length > 0 && hasProductIdentifier) {
+          // Message has product-identifying words + products found — start order draft
           const p = products[0]
           const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
           orderDraft = result.draft
           responseText = result.responseText
           intent = 'order_collection'
         } else {
-          // No product specified — search all and show catalog
+          // Pure order words only or no products — show catalog
           const allProducts = await searchProducts(supabase, '', storeId, {
             maxProducts: chatbotSettings.max_products || 5,
             originalQuery: '',
@@ -351,10 +400,6 @@ export async function processAIChat(
       .select('id, created_at')
       .single(),
     writeState(supabase, conversationId, nextState),
-    supabase
-      .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId),
   ])
 
   return {
@@ -412,8 +457,20 @@ function isNegative(msg: string): boolean {
 }
 
 function extractPhone(msg: string): string | null {
-  const match = msg.replace(/\s+/g, '').match(/(\d{8})/)
-  return match ? match[1] : null
+  // Match standalone 8-digit number (not adjacent to other digits).
+  // Don't strip whitespace first — that merges address numbers with phone,
+  // e.g. "36a 96 91250305" → "9691250305" → wrong phone "96912503".
+  const standalone = msg.match(/(?<!\d)\d{8}(?!\d)/)
+  if (standalone) return standalone[0]
+
+  // Fallback: phone with spaces between groups, e.g. "9125 0305" or "91 25 03 05"
+  const spaced = msg.match(/(?<!\d)(\d{2,4}[\s-]\d{2,4}[\s-]?\d{0,4})(?!\d)/)
+  if (spaced) {
+    const digits = spaced[1].replace(/[\s-]/g, '')
+    if (digits.length === 8) return digits
+  }
+
+  return null
 }
 
 /**
@@ -472,11 +529,18 @@ function resolveVariantFromMessage(msg: string, variants: VariantRow[]): Variant
  * Build a summary message showing ALL order details before confirmation.
  */
 function buildOrderSummary(draft: OrderDraft): string {
+  const productTotal = draft.unit_price * draft.quantity
+  const feeResult = draft.address ? calculateDeliveryFee(draft.address) : null
+  const deliveryFee = feeResult?.fee ?? DEFAULT_DELIVERY_FEE
+  const grandTotal = productTotal + deliveryFee
+
   const lines = ['📋 Захиалгын мэдээлэл:\n']
   lines.push(`📦 ${draft.product_name}`)
   if (draft.variant_label) lines.push(`   Хувилбар: ${draft.variant_label}`)
   lines.push(`   Тоо: ${draft.quantity} ширхэг`)
-  lines.push(`   💰 Үнэ: ${formatPrice(draft.unit_price * draft.quantity)}`)
+  lines.push(`   💰 Бараа: ${formatPrice(productTotal)}`)
+  lines.push(`🚚 Хүргэлт: ${formatPrice(deliveryFee)}`)
+  lines.push(`💰 Нийт: ${formatPrice(grandTotal)}`)
   if (draft.address) lines.push(`📍 Хаяг: ${draft.address}`)
   if (draft.phone) lines.push(`📱 Утас: ${draft.phone}`)
   lines.push('\nЗахиалгаа баталгаажуулах уу? (Тийм/Үгүй)')
@@ -570,9 +634,14 @@ async function createOrderFromChat(
   storeId: string,
   customerId: string | null,
   draft: OrderDraft
-): Promise<{ order_number: string; total_amount: number } | null> {
+): Promise<{ order_number: string; total_amount: number; delivery_fee: number } | null> {
   const orderNumber = `ORD-${Date.now()}`
-  const totalAmount = draft.unit_price * draft.quantity
+  const productTotal = draft.unit_price * draft.quantity
+
+  // Calculate delivery fee from address
+  const feeResult = draft.address ? calculateDeliveryFee(draft.address) : null
+  const deliveryFee = feeResult?.fee ?? DEFAULT_DELIVERY_FEE
+  const totalAmount = productTotal + deliveryFee
 
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
@@ -582,7 +651,7 @@ async function createOrderFromChat(
       order_number: orderNumber,
       status: 'pending',
       total_amount: totalAmount,
-      shipping_amount: 0,
+      shipping_amount: deliveryFee,
       payment_status: 'pending',
       shipping_address: draft.address || null,
       order_type: 'delivery',
@@ -596,14 +665,41 @@ async function createOrderFromChat(
     return null
   }
 
-  await supabase.from('order_items').insert({
-    order_id: newOrder.id,
-    product_id: draft.product_id,
-    variant_id: draft.variant_id || null,
-    quantity: draft.quantity,
-    unit_price: draft.unit_price,
-    variant_label: draft.variant_label || null,
-  })
+  // Create order item + delivery record in parallel
+  const deliveryNumber = `DEL-${Date.now()}`
+
+  // Fetch customer name for delivery record
+  let customerName: string | null = null
+  if (customerId) {
+    const { data: cust } = await supabase
+      .from('customers')
+      .select('name')
+      .eq('id', customerId)
+      .single()
+    customerName = cust?.name ?? null
+  }
+
+  await Promise.all([
+    supabase.from('order_items').insert({
+      order_id: newOrder.id,
+      product_id: draft.product_id,
+      variant_id: draft.variant_id || null,
+      quantity: draft.quantity,
+      unit_price: draft.unit_price,
+      variant_label: draft.variant_label || null,
+    }),
+    supabase.from('deliveries').insert({
+      store_id: storeId,
+      order_id: newOrder.id,
+      delivery_number: deliveryNumber,
+      status: 'pending',
+      delivery_type: 'own_driver',
+      delivery_address: draft.address || 'Хаяг тодорхойгүй',
+      customer_name: customerName,
+      customer_phone: draft.phone || null,
+      delivery_fee: deliveryFee,
+    }),
+  ])
 
   dispatchNotification(storeId, 'new_order', {
     order_id: newOrder.id,
@@ -612,5 +708,5 @@ async function createOrderFromChat(
     payment_method: null,
   })
 
-  return { order_number: newOrder.order_number, total_amount: newOrder.total_amount }
+  return { order_number: newOrder.order_number, total_amount: totalAmount, delivery_fee: deliveryFee }
 }
