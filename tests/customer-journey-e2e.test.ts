@@ -180,13 +180,15 @@ describe('Complete Customer Journeys', () => {
           order_number: `COMPLAINT-${Date.now()}`,
           status: 'shipped',
           total_amount: 50000,
-          items: [{ product_id: testProductId, quantity: 1, price: 50000 }],
-          metadata: { test_mode: true }
+          shipping_amount: 5000,
+          payment_status: 'paid',
+          shipping_address: 'Test Address',
+          order_type: 'delivery'
         })
         .select()
         .single()
 
-      testOrders.push(order!.id)
+      if (order) testOrders.push(order.id)
 
       // Step 2: Customer starts conversation
       const { data: conversation } = await supabase
@@ -194,9 +196,8 @@ describe('Complete Customer Journeys', () => {
         .insert({
           store_id: testStoreId,
           customer_id: customer!.id,
-          channel: 'test',
-          status: 'active',
-          metadata: { test_mode: true, journey: 'complaint' }
+          channel: 'messenger',
+          status: 'active'
         })
         .select()
         .single()
@@ -240,24 +241,19 @@ describe('Complete Customer Journeys', () => {
       })
 
       // Step 6: Escalate conversation
-      const { data: escalatedConversation } = await supabase
+      const { data: escalatedConversation, error: escalationError } = await supabase
         .from('conversations')
         .update({
-          status: 'escalated',
-          metadata: {
-            test_mode: true,
-            journey: 'complaint',
-            escalation_reason: 'customer_demand',
-            escalated_at: new Date().toISOString()
-          }
+          status: 'escalated'
         })
         .eq('id', conversation!.id)
         .select()
         .single()
 
       // ENFORCE: Escalation triggered
+      expect(escalationError).toBeNull()
+      expect(escalatedConversation).toBeDefined()
       expect(escalatedConversation!.status).toBe('escalated')
-      expect(escalatedConversation!.metadata.escalation_reason).toBeDefined()
 
       // ENFORCE: Staff should be notified
       // (In production, this creates in_app_notification)
@@ -297,22 +293,15 @@ describe('Complete Customer Journeys', () => {
           order_number: `EXCHANGE-${Date.now()}`,
           status: 'delivered',
           total_amount: 50000,
-          items: [{
-            product_id: testProductId,
-            quantity: 1,
-            price: 50000,
-            metadata: { size: 'L' } // Customer wanted M, got L
-          }],
-          shipping_address: {
-            full_address: 'БЗД 1р хороо Exchange Street 1',
-            phone: customer!.phone_number
-          },
-          metadata: { test_mode: true, journey: 'exchange' }
+          shipping_amount: 5000,
+          payment_status: 'paid',
+          shipping_address: 'БЗД 1р хороо Exchange Street 1',
+          order_type: 'delivery'
         })
         .select()
         .single()
 
-      testOrders.push(originalOrder!.id)
+      if (originalOrder) testOrders.push(originalOrder.id)
 
       // Step 2: Customer reports issue
       const { data: conversation } = await supabase
@@ -320,9 +309,8 @@ describe('Complete Customer Journeys', () => {
         .insert({
           store_id: testStoreId,
           customer_id: customer!.id,
-          channel: 'test',
-          status: 'active',
-          metadata: { test_mode: true, related_order_id: originalOrder!.id }
+          channel: 'messenger',
+          status: 'active'
         })
         .select()
         .single()
@@ -450,17 +438,11 @@ describe('Complete Customer Journeys', () => {
           order_number: `INSTALL-${Date.now()}`,
           status: 'pending',
           total_amount: total,
-          items: products!.map(p => ({
-            product_id: p.id,
-            product_name: p.name,
-            quantity: 1,
-            price: p.base_price
-          })),
-          shipping_address: {
-            full_address: 'БЗД 1р хороо Installment Street 1',
-            phone: customer!.phone_number
-          },
-          metadata: {
+          shipping_amount: deliveryFee,
+          payment_status: 'pending',
+          shipping_address: 'БЗД 1р хороо Installment Street 1',
+          order_type: 'delivery',
+          notes: JSON.stringify({
             test_mode: true,
             journey: 'installments',
             subtotal,
@@ -476,19 +458,20 @@ describe('Complete Customer Journeys', () => {
                 { due_date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), amount: Math.ceil(total / 3), status: 'pending' }
               ]
             }
-          }
+          })
         })
         .select()
         .single()
 
-      testOrders.push(order!.id)
+      if (order) testOrders.push(order.id)
 
       // ENFORCE: Installment plan created correctly
-      expect(order!.metadata.installment_plan).toBeDefined()
-      expect(order!.metadata.installment_plan.installments).toBe(3)
-      expect(order!.metadata.delivery_fee).toBe(0) // Free delivery
+      const orderNotes = typeof order!.notes === 'string' ? JSON.parse(order!.notes) : order!.notes
+      expect(orderNotes.installment_plan).toBeDefined()
+      expect(orderNotes.installment_plan.installments).toBe(3)
+      expect(orderNotes.delivery_fee).toBe(0) // Free delivery
 
-      const totalFromInstallments = order!.metadata.installment_plan.schedule
+      const totalFromInstallments = orderNotes.installment_plan.schedule
         .reduce((sum: number, inst: any) => sum + inst.amount, 0)
 
       // ENFORCE: Installments sum to total
@@ -520,6 +503,7 @@ describe('Complete Customer Journeys', () => {
       // Create order 3 days ago
       const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
 
+      const expectedDelivery = new Date(threeDaysAgo.getTime() + 48 * 60 * 60 * 1000).toISOString()
       const { data: order } = await supabase
         .from('orders')
         .insert({
@@ -528,22 +512,25 @@ describe('Complete Customer Journeys', () => {
           order_number: `LATE-${Date.now()}`,
           status: 'shipped',
           total_amount: 50000,
-          items: [{ product_id: testProductId, quantity: 1, price: 50000 }],
+          shipping_amount: 5000,
+          payment_status: 'paid',
+          shipping_address: 'Test Address',
+          order_type: 'delivery',
           created_at: threeDaysAgo.toISOString(),
-          metadata: {
+          notes: JSON.stringify({
             test_mode: true,
             journey: 'late_delivery',
-            expected_delivery: new Date(threeDaysAgo.getTime() + 48 * 60 * 60 * 1000).toISOString(),
-            actual_delivery: null // Still not delivered
-          }
+            expected_delivery: expectedDelivery,
+            actual_delivery: null
+          })
         })
         .select()
         .single()
 
-      testOrders.push(order!.id)
+      if (order) testOrders.push(order.id)
 
       // ENFORCE: Order is late
-      const expectedDeliveryTime = new Date(order!.metadata.expected_delivery).getTime()
+      const expectedDeliveryTime = new Date(expectedDelivery).getTime()
       const now = Date.now()
       const isLate = now > expectedDeliveryTime
 
@@ -555,9 +542,8 @@ describe('Complete Customer Journeys', () => {
         .insert({
           store_id: testStoreId,
           customer_id: customer!.id,
-          channel: 'test',
-          status: 'active',
-          metadata: { test_mode: true, related_order_id: order!.id }
+          channel: 'messenger',
+          status: 'active'
         })
         .select()
         .single()

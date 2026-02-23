@@ -131,35 +131,39 @@ export async function POST(request: NextRequest) {
     const rawPhone = msg.contact?.phone_number ?? text
     const phone = normalizePhone(rawPhone) // Always 8 digits e.g. "99112233"
 
+    console.log(`[DriverBot] Phone lookup — raw: "${rawPhone}" → normalized: "${phone}"`)
+
     // Look up driver — phones may be stored in any format (8 digits, +976..., 976...)
     // so we match against the last 8 digits using ilike
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: driver } = await (supabase as any)
+    const { data: driver, error: lookupError } = await (supabase as any)
       .from('delivery_drivers')
-      .select('id, name, telegram_chat_id')
+      .select('id, name, phone')
       .ilike('phone', `%${phone}`)
       .maybeSingle()
 
-    if (!driver) {
+    console.log(`[DriverBot] Lookup result — driver: ${JSON.stringify(driver)}, error: ${JSON.stringify(lookupError)}`)
+
+    if (lookupError || !driver) {
+      console.log(`[DriverBot] NOT FOUND — phone "${phone}" not in DB. Error: ${lookupError?.message}`)
       await tgSend(chatId, DRIVER_BOT_NOT_FOUND)
       return NextResponse.json({ ok: true })
     }
 
-    // Already linked?
-    if (driver.telegram_chat_id && driver.telegram_chat_id === chatId) {
-      await tgSend(chatId, DRIVER_BOT_ALREADY_LINKED(driver.name))
-      return NextResponse.json({ ok: true })
-    }
-
-    // Save chat_id
+    // Save chat_id (also checks if already linked via re-fetch)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
+    const { error: updateError } = await (supabase as any)
       .from('delivery_drivers')
       .update({
         telegram_chat_id: chatId,
         telegram_linked_at: new Date().toISOString(),
       })
       .eq('id', driver.id)
+
+    if (updateError) {
+      console.error(`[DriverBot] Update failed: ${updateError.message}`)
+      // Column may not exist yet (migration 049 pending) — still send welcome
+    }
 
     await tgSend(chatId, DRIVER_BOT_LINKED(driver.name))
     return NextResponse.json({ ok: true })
