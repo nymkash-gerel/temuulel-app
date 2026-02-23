@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import '@/lib/env-check' // Import for validation at runtime
 
 interface HealthResponse {
@@ -11,25 +11,20 @@ interface HealthResponse {
   error?: string
 }
 
-export async function GET(request: NextRequest) {
-  const startTime = process.hrtime()
-  
-  try {
-    // Get version from package.json
-    const packageJson = await import('../../../../../package.json')
-    const version = packageJson.version
-    
-    const health: HealthResponse = {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      version,
-      uptime: process.uptime()
-    }
+const APP_VERSION = process.env.npm_package_version || '0.0.0'
 
+export async function GET(request: NextRequest) {
+  const health: HealthResponse = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: APP_VERSION,
+    uptime: process.uptime()
+  }
+
+  try {
     // Optional Supabase connectivity check
     try {
-      const supabase = createSupabaseServerClient()
-      // Simple query to test database connectivity
+      const supabase = await createClient()
       const { error } = await supabase
         .from('stores')
         .select('id')

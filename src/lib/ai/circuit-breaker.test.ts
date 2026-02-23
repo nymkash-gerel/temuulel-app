@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { withCircuitBreaker, CircuitOpenError, _internal } from './circuit-breaker'
 
 describe('Circuit Breaker', () => {
-  let mockFn: vi.MockedFunction<() => Promise<string>>
+  let mockFn: ReturnType<typeof vi.fn<() => Promise<string>>>
   
   beforeEach(() => {
     mockFn = vi.fn()

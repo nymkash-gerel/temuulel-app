@@ -15,6 +15,7 @@ import type {
   ActiveVoucherInfo,
   RestaurantContext,
 } from './chat-ai-types'
+import type { CustomerProfile } from './ai/customer-profile'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -284,7 +285,8 @@ export async function generateAIResponse(
   settings?: ChatbotSettings,
   history?: MessageHistoryEntry[],
   activeVouchers?: ActiveVoucherInfo[],
-  restaurantContext?: RestaurantContext
+  restaurantContext?: RestaurantContext,
+  customerProfile?: CustomerProfile | null
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history
   if (history && history.length > 0) {

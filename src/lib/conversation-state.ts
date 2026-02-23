@@ -52,6 +52,7 @@ export type FollowUpType =
   | 'contextual_question'
   | 'query_refinement'
   | 'prefer_llm'
+  | 'order_cancel'
 
 export type ContextTopic =
   | 'delivery'
@@ -319,6 +320,7 @@ const FOLLOWUP_WEIGHTS: Record<FollowUpType, number> = {
   price_question: 40,
   query_refinement: 30,
   prefer_llm: 20,
+  order_cancel: 95,
 }
 
 /**

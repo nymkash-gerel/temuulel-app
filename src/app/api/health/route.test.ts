@@ -4,13 +4,7 @@ import { NextRequest } from 'next/server'
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server', () => ({
-  createSupabaseServerClient: vi.fn()
-}))
-
-// Mock package.json import
-vi.mock('../../../../../package.json', () => ({
-  default: { version: '0.1.0' },
-  version: '0.1.0'
+  createClient: vi.fn()
 }))
 
 // Mock env-check to prevent auto-validation
@@ -44,11 +38,10 @@ describe('GET /api/health', () => {
   })
 
   it('returns basic health information', async () => {
-    // Mock successful database query
     mockSupabaseClient.single.mockResolvedValue({ data: null, error: null })
     
-    const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-    vi.mocked(createSupabaseServerClient).mockReturnValue(mockSupabaseClient)
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient)
 
     const request = new NextRequest('http://localhost/api/health')
     const response = await GET(request)
@@ -57,7 +50,6 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(200)
     expect(data).toMatchObject({
       status: 'ok',
-      version: '0.1.0',
       uptime: 3600,
       db: 'ok'
     })
@@ -66,11 +58,10 @@ describe('GET /api/health', () => {
   })
 
   it('returns degraded status when database fails', async () => {
-    // Mock database error
     mockSupabaseClient.single.mockRejectedValue(new Error('Database connection failed'))
     
-    const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-    vi.mocked(createSupabaseServerClient).mockReturnValue(mockSupabaseClient)
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient)
 
     const request = new NextRequest('http://localhost/api/health')
     const response = await GET(request)
@@ -79,18 +70,14 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(200)
     expect(data).toMatchObject({
       status: 'degraded',
-      version: '0.1.0',
       uptime: 3600,
       db: 'error'
     })
   })
 
-  it('handles errors gracefully and returns version as unknown', async () => {
-    // Mock createSupabaseServerClient to throw during creation
-    const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-    vi.mocked(createSupabaseServerClient).mockImplementation(() => {
-      throw new Error('Supabase creation failed')
-    })
+  it('handles errors gracefully', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockRejectedValue(new Error('Supabase creation failed'))
 
     const request = new NextRequest('http://localhost/api/health')
     const response = await GET(request)
@@ -99,14 +86,13 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(200)
     expect(data.status).toBe('degraded')
     expect(data.db).toBe('error')
-    expect(data.version).toBe('0.1.0') // Should still get version from mock
   })
 
   it('includes proper cache headers', async () => {
     mockSupabaseClient.single.mockResolvedValue({ data: null, error: null })
     
-    const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-    vi.mocked(createSupabaseServerClient).mockReturnValue(mockSupabaseClient)
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient)
 
     const request = new NextRequest('http://localhost/api/health')
     const response = await GET(request)
@@ -117,14 +103,13 @@ describe('GET /api/health', () => {
   })
 
   it('handles database query with no results gracefully', async () => {
-    // Mock successful query with no results (expected case)
     mockSupabaseClient.single.mockResolvedValue({ 
       data: null, 
       error: { code: 'PGRST116', message: 'No rows found' }
     })
     
-    const { createSupabaseServerClient } = await import('@/lib/supabase/server')
-    vi.mocked(createSupabaseServerClient).mockReturnValue(mockSupabaseClient)
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockResolvedValue(mockSupabaseClient)
 
     const request = new NextRequest('http://localhost/api/health')
     const response = await GET(request)
