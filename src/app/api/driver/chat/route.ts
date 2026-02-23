@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthenticatedDriver } from '@/lib/driver-auth'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { processDriverMessage } from '@/lib/driver-chat-engine'
 
 /**
  * GET /api/driver/chat
@@ -98,6 +99,13 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Run intent engine (non-blocking) — handles "хүргэлээ", "авлаа", etc.
+  // No telegramChatId here (web app channel — reply goes via driver_messages)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  processDriverMessage(supabase as any, driver.id, message, null).catch((err) => {
+    console.error('[DriverChat] Intent engine error:', err)
+  })
 
   return NextResponse.json({ message: msg })
 }

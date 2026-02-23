@@ -7,6 +7,7 @@ import type { DriverCandidate, AssignmentRules } from '@/lib/ai/delivery-assigne
 import { dispatchNotification } from '@/lib/notifications'
 import { sendPushToUser } from '@/lib/push'
 import { sendDeliveryTrackingSMS } from '@/lib/sms'
+import { sendToDriver, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
 
 /**
  * POST /api/deliveries/assign
@@ -200,6 +201,32 @@ export async function POST(request: NextRequest) {
         tag: 'driver-new-delivery',
       })
     }
+
+    // 📱 Telegram message to driver with full order details
+    // Fetch order items for the message
+    let itemsSummary = 'Дэлгэрэнгүй апп-с харна уу'
+    if (delivery.order_id) {
+      const { data: items } = await supabase
+        .from('order_items')
+        .select('quantity, products(name)')
+        .eq('order_id', delivery.order_id)
+        .limit(3)
+      if (items && items.length > 0) {
+        itemsSummary = items
+          .map((i) => {
+            const name = (i.products as { name?: string } | null)?.name ?? 'Бараа'
+            return `${i.quantity}x ${name}`
+          })
+          .join(', ')
+      }
+    }
+    sendToDriver(supabase, result.recommended_driver_id!, DRIVER_PROACTIVE_MESSAGES.orderAssigned({
+      orderNumber: orderNumber || delivery.delivery_number,
+      deliveryAddress: delivery.delivery_address,
+      customerName: delivery.customer_name ?? undefined,
+      customerPhone: delivery.customer_phone ?? undefined,
+      items: itemsSummary,
+    })).catch(() => {}) // Non-blocking — falls back gracefully if no Telegram linked
 
     // Send tracking SMS to customer
     if (delivery.customer_phone) {
