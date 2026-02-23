@@ -26,8 +26,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'малгай', 'кашемир', 'ноолуур', 'ноолууран',
     'оймс', 'бээлий', 'ороолт', 'цүнхний',
     // Common product terms from real conversations
-    'загвар', 'загварууд', 'өнгө', 'өнгөөр', 'өнгөтэй',
-    'тирко', 'турсик', 'леевчик', 'боолт', 'боолтууд',
+    // (stemmer handles: загварууд→загвар, өнгөтэй→өнгө, боолтууд→боолт)
+    'загвар', 'өнгө', 'өнгөөр',
+    'тирко', 'турсик', 'леевчик', 'боолт',
     'бензэн', 'комд', 'дотортой', 'шилэн', 'гуятай', 'гуягүй',
     // English
     'product', 'products', 'item', 'buy', 'purchase', 'shop', 'catalog',
@@ -43,18 +44,21 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'барааа', 'бараагаа',
     'хувцаас', 'хувцс',
     'гуталаа', 'гутлаа',
-    'цунх', 'цүнхээ',
-    'пууз', 'пүүзээ',
+    // stemmer handles: цүнхээ→цүнх, пүүзээ→пүүз
+    'цунх',
+    'пууз',
     'аксесуар', 'аксесор',
-    'унэ', 'унэтэй', 'үнээ',
-    'хямдхан', 'хямдралтай', 'хямдрал', 'хямдарсан', 'үнэгүй',
+    // stemmer handles: үнээ→үнэ, хямдралтай→хямдрал
+    'унэ', 'унэтэй',
+    'хямдхан', 'хямдрал', 'хямдарсан', 'үнэгүй',
     'шинэхэн', 'шинээр',
     'авах', 'авъя', 'авья', 'авмааар',
     'хайж', 'хайна', 'хайлт',
+    // stemmer handles: үзүүлээд→үзүүл
     'харуул', 'үзүүл', 'үзүүлнэ үү',
     'каталог', 'жагсаалт',
-    // Interest/desire expressions
-    'сонирхож', 'сонирхоод', 'сонирхох', 'сонирхи', 'сонирх',
+    // Interest/desire expressions (stemmer handles: сонирхоод→сонирх, сонирхож→сонирхо)
+    'сонирхож', 'сонирхох', 'сонирхи', 'сонирх',
     // Purchase intent (from real FB conversations)
     'авий', 'авии', 'ави', 'авья',
     'авбал', 'авлаа', 'авсан',
@@ -70,10 +74,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хд',
     // Latin aliases for product category names
     'умд', 'цамц',
-    // Image/photo requests (trigger product cards with images)
-    'зураг', 'зургийг', 'зургаа', 'зургыг', 'зурагтай', 'фото',
+    // Image/photo requests (stemmer handles: зургийг/зургыг→зург, зурагтай→зураг, үзүүлээд→үзүүл)
+    'зураг', 'зургаа', 'фото',
     'photo', 'picture', 'pic', 'image', 'show photo', 'show picture',
-    'үзүүлээч', 'харуулаач', 'харуулаад', 'үзүүлээд',
+    'үзүүлээч', 'харуулаач', 'харуулаад',
   ],
   order_status: [
     // Core
@@ -82,13 +86,12 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'order', 'order status', 'tracking', 'track', 'where is', 'shipped',
     'delivery status', 'when will', 'my order', 'order number',
-    // Aliases
-    'захялга', 'захиалг', 'захиалаа', 'захиалгаа',
+    // Aliases (stemmer handles: захиалгаа→захиалг, дугаараа/дугаарыг→дугаар, хүлээсэн→хүлээ)
+    'захялга', 'захиалг', 'захиалаа',
     'ирэхүү', 'ирэх үү', 'ирэхгүй',
     'илгээсэнүү', 'явуулсан',
     'трэкинг',
-    'дугаараа', 'дугаарыг',
-    'хүлээсэн', 'хүлээлгэ',
+    'хүлээлгэ',
     'шалгах', 'шалгана', 'шалгамаар',
     'хэзээ ирэх',
     // Time-based arrival phrases (order tracking, not generic shipping)
@@ -105,7 +108,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Aliases
     'сайн бн', 'сн бн уу', 'сайн бна', 'сайнуу', 'сайн уу',
     'юу байна', 'сонин юу байна',
-    'мэндээ', 'мэнд хүргэе',
+    // stemmer handles: мэндээ→мэнд
+    'мэнд хүргэе',
     'амар', 'амрагтай',
     'оройн мэнд',
     // Slang/abbreviations (from real FB Messenger conversations)
@@ -119,8 +123,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'thanks', 'thank', 'thank you', 'appreciate', 'great', 'awesome',
     'perfect', 'wonderful',
-    // Aliases
-    'баярлаа', 'баярласан', 'баярлсан', 'баярлж', 'баяртай',
+    // Aliases (stemmer handles: баярласан→баярла, баярлсан/баярлж→баярл, баяртай→баяр)
+    'баярлаа', 'баярлж',
     'гоё', 'гое', 'гое байна',
     'сайн байна лээ', 'зүгээр', 'за',
     'маш гоё', 'маш зөв',
@@ -135,12 +139,11 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'complaint', 'problem', 'issue', 'broken', 'damaged', 'defective',
     'wrong', 'bad', 'terrible',
     'not working', 'disappointed', 'unhappy', 'angry',
-    // Aliases
-    'гомдоллох', 'гомдолтой', 'гомдоол',
-    'асуудалтай', 'асуудал гарсан', 'проблем',
+    // Aliases (stemmer handles: гомдолтой→гомдол, асуудалтай→асуудал, буруутай→буруу, алдаатай→алдаа)
+    'гомдоллох', 'гомдоол',
+    'асуудал гарсан', 'проблем',
     'муухай', 'маш муу', 'хэрэггүй',
-    'буруутай', 'буруугаар',
-    'алдаатай',
+    'буруугаар',
     'чанаргүй', 'чанар муу',
     'эвдэрсэн', 'гэмтсэн', 'гэмтэл',
     'уурласан', 'бухимдсан',
@@ -149,9 +152,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
   return_exchange: [
     // Core — return/exchange policy questions (moved from complaint)
     'буцаах', 'буцаалт', 'солих', 'солилт', 'солиулах',
-    'буцаан', 'буцааж', 'буцаагдах',
-    // Suffixed forms (Mongolian genitive/accusative — prevents prefix-only 0.5 scoring)
-    'буцаалтын', 'солилтын', 'солиулж', 'буцаагдсан',
+    // stemmer handles: буцааж→буцаа, буцаагдсан→буцаа, буцаалтын→буцаалт, солилтын→солилт, солиулж→солиул
+    'буцаан', 'буцаагдах',
+    'солиулж',
     // Return-specific nouns
     'хураамж',
     // Policy-specific phrases
@@ -163,10 +166,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'return', 'return policy', 'exchange', 'refund',
     'can i return', 'exchange policy', 'swap',
     'want to exchange', 'want to return',
-    // Informal/aliases
+    // Informal/aliases (stemmer handles: буцааx→буцаах, солиулаx→солиулах)
     'буцааж болох', 'солиулж болох', 'буцаалт хийх',
     'буцааж өгөх', 'солиулж өгөх',
-    'буцааx', 'солиулаx',
   ],
   size_info: [
     // Core
@@ -175,15 +177,16 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'size chart', 'size guide', 'what size', 'fit', 'measurement',
     'small', 'medium', 'large',
-    // Aliases
-    'размераа', 'размерийн', 'сайз', 'сайзаа',
-    'хэмжээтэй', 'хэмжээний', 'хэмжээгээ',
+    // Aliases (stemmer handles: размераа/размерийн→размер, сайзаа→сайз, хэмжээний/хэмжээгээ→хэмжээ)
+    // Keep хэмжээтэй — needs full-weight match to beat product_search's "ямар"
+    'хэмжээтэй', 'сайз',
     'томхон', 'жижигхэн', 'дундаж',
     'тохирох', 'тохируулах',
     'урт', 'богино', 'өргөн', 'нарийн',
     // Body measurements
     'кг', 'см', 'kg', 'cm',
-    'жин', 'жинтэй', 'өндөр', 'өндөртэй',
+    // stemmer handles: жинтэй→жин, өндөртэй→өндөр
+    'жин', 'өндөр',
     'биеийн', 'бие', 'али нь', 'алинийг',
     'тохирно', 'тохирох уу', 'таарах', 'таарна',
     // "тааруу" — sizing-specific form ("болох уу" removed — too generic, conflicts with payment/return)
@@ -198,13 +201,12 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'payment', 'pay', 'how to pay', 'bank transfer', 'card', 'cash',
     'installment', 'credit', 'invoice',
-    // Aliases
-    'төлбөрөө', 'төлье', 'төлъе', 'төлсөн',
-    'дансаар', 'дансруу', 'данс руу',
+    // Aliases (stemmer handles: төлбөрөө→төлбөр, дансаар/дансруу→данс, картаар/картаа→карт, зээлээр→зээл)
+    'төлье', 'төлъе', 'төлсөн',
+    'данс руу',
     'шилжүүлэх', 'шилжүүлье',
-    'картаар', 'картаа',
     'бэлнээр', 'бэлэнээр',
-    'зээлээр', 'хуваалаа',
+    'хуваалаа',
     'хэрхэн төлөх', 'яаж төлөх',
     'мөнгө', 'мөнгөө',
     // Mongolian payment methods
@@ -219,11 +221,11 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'shipping', 'delivery', 'deliver', 'address', 'express',
     'how long', 'when arrive', 'ship to', 'courier',
-    // Aliases
-    'хүргүүлэх', 'хүргээд', 'хүргэнэ үү', 'хүргэлтийн',
-    'хаягаа', 'хаягийн', 'хаягаар',
+    // Aliases (stemmer handles: хүргэлтийн→хүргэлт, хаягаа/хаягийн/хаягаар→хаяг)
+    'хүргүүлэх', 'хүргээд', 'хүргэнэ үү',
+    // stemmer handles: хөдөөрүү→хөдөө
     'хотруу', 'хот руу',
-    'хөдөөрүү', 'хөдөө рүү',
+    'хөдөө рүү',
     'шууданаар',
     'хэдэн өдөр', 'хэдэн хоног',
     'хурдан', 'яаралтай хүргэлт',
@@ -251,7 +253,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'table', 'reservation', 'reserve', 'book', 'booking',
     'seat', 'seats', 'party', 'dinner', 'lunch',
-    // Aliases
+    // Aliases (stemmer handles: оройн→орой via suffix strip)
     'ширээний', 'ширээ авах', 'ширээ захиалах',
     'суудал авах', 'суудал захиалах',
     'резервлэх', 'броньлох',
@@ -271,9 +273,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'allergy', 'allergies', 'allergen', 'ingredient',
     'gluten', 'gluten-free', 'dairy', 'nuts', 'egg',
     'vegan', 'vegetarian', 'halal', 'spicy',
-    // Aliases
+    // Aliases (stemmer handles: аллергитай→аллерги, харшилтай→харшил)
     'ямар орц', 'юу орсон', 'орц найрлага',
-    'аллергитай', 'харшилтай',
     'глютенгүй юу', 'сүү орсон уу',
   ],
   menu_availability: [
