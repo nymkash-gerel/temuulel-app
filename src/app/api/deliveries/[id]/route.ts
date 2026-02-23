@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { validateBody, updateDeliverySchema } from '@/lib/validations'
 import { dispatchNotification } from '@/lib/notifications'
+import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
 import type { Database } from '@/lib/database.types'
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -252,6 +253,19 @@ export async function PATCH(
         failure_reason: body.failure_reason || '',
         notes: body.notes || '',
       })
+    }
+
+    // 📱 Telegram: notify driver when their delivery is cancelled by the store
+    if (newStatus === 'cancelled' && current.driver_id) {
+      sendToDriverWithLog(
+        supabase,
+        current.driver_id,
+        store.id,
+        DRIVER_PROACTIVE_MESSAGES.orderCancelled({
+          orderNumber: orderNumber || current.delivery_number,
+          cancelReason: body.failure_reason || body.notes || undefined,
+        }),
+      ).catch(() => {}) // Non-blocking
     }
   }
 

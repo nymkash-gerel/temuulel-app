@@ -34,12 +34,28 @@ export interface OrderDraft {
   phone?: string
 }
 
+export type GiftCardStep =
+  | 'select_amount'   // bot asked: which denomination?
+  | 'confirm'         // bot showed amount + QPay prompt
+  | 'send_to'         // purchase done, asking if they want to send to someone
+  | 'done'            // flow complete
+
+export interface GiftCardDraft {
+  step: GiftCardStep
+  amount?: number            // chosen denomination
+  code?: string              // generated code after purchase
+  recipientContact?: string  // phone / messenger handle to forward card to
+}
+
 export interface ConversationState {
   last_intent: string
   last_products: StoredProduct[]
   last_query: string
   turn_count: number
   order_draft?: OrderDraft | null
+  gift_card_draft?: GiftCardDraft | null
+  /** Pending gift card code from customer message — awaiting redeem confirmation */
+  pending_gift_card_code?: string | null
 }
 
 export type FollowUpType =
@@ -82,7 +98,15 @@ export interface FollowUpResult {
 // ---------------------------------------------------------------------------
 
 export function emptyState(): ConversationState {
-  return { last_intent: '', last_products: [], last_query: '', turn_count: 0, order_draft: null }
+  return {
+    last_intent: '',
+    last_products: [],
+    last_query: '',
+    turn_count: 0,
+    order_draft: null,
+    gift_card_draft: null,
+    pending_gift_card_code: null,
+  }
 }
 
 /**
@@ -113,6 +137,10 @@ export async function readState(
     order_draft: (state.order_draft && typeof state.order_draft === 'object' && !Array.isArray(state.order_draft))
       ? state.order_draft as unknown as OrderDraft
       : null,
+    gift_card_draft: (state.gift_card_draft && typeof state.gift_card_draft === 'object' && !Array.isArray(state.gift_card_draft))
+      ? state.gift_card_draft as unknown as GiftCardDraft
+      : null,
+    pending_gift_card_code: typeof state.pending_gift_card_code === 'string' ? state.pending_gift_card_code : null,
   }
 }
 

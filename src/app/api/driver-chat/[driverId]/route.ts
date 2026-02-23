@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { sendToDriver } from '@/lib/driver-telegram'
 
 /**
  * GET /api/driver-chat/:driverId
@@ -111,6 +112,10 @@ export async function POST(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Forward message via Telegram (non-blocking — falls back gracefully if driver not linked)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sendToDriver(supabase as any, driverId, message).catch(() => {})
 
   return NextResponse.json({ message: msg })
 }
