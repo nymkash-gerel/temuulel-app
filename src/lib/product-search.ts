@@ -10,6 +10,18 @@ import { normalizeText } from './text-normalizer'
 import type { ProductMatch, TableMatch, OrderMatch } from './chat-ai-types'
 
 // ---------------------------------------------------------------------------
+// Sanitization
+// ---------------------------------------------------------------------------
+
+/**
+ * Escape Postgres LIKE special characters in user-provided search terms.
+ * Prevents users from injecting `%` or `_` wildcards into `.ilike` filters.
+ */
+function escapeLike(term: string): string {
+  return term.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+}
+
+// ---------------------------------------------------------------------------
 // Stop words & Category mapping
 // ---------------------------------------------------------------------------
 
@@ -187,11 +199,14 @@ export async function searchProducts(
 
     if (allSearchWords.length > 0) {
       const conditions = allSearchWords
-        .flatMap((w) => [
-          `name.ilike.%${w}%`,
-          `description.ilike.%${w}%`,
-          `search_aliases.cs.{${w}}`,
-        ])
+        .flatMap((w) => {
+          const safe = escapeLike(w)
+          return [
+            `name.ilike.%${safe}%`,
+            `description.ilike.%${safe}%`,
+            `search_aliases.cs.{${w}}`,
+          ]
+        })
         .join(',')
       dbQuery = dbQuery.or(conditions)
     }
@@ -337,7 +352,7 @@ export async function searchOrders(
   }
 
   if (query) {
-    dbQuery = dbQuery.or(`order_number.ilike.%${query}%`)
+    dbQuery = dbQuery.or(`order_number.ilike.%${escapeLike(query)}%`)
   }
 
   const { data } = await dbQuery.limit(5)
