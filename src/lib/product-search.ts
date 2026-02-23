@@ -399,8 +399,13 @@ export async function searchOrders(
     dbQuery = dbQuery.eq('customer_id', customerId)
   }
 
+  // Only filter by query if it looks like an order number or tracking code
   if (query) {
-    dbQuery = dbQuery.or(`order_number.ilike.%${escapeLike(query)}%`)
+    const looksLikeOrderRef = /ord[-\s]?\d|del[-\s]?\d|\d{6,}/i.test(query)
+    if (looksLikeOrderRef) {
+      dbQuery = dbQuery.or(`order_number.ilike.%${escapeLike(query)}%,tracking_number.ilike.%${escapeLike(query)}%`)
+    }
+    // Otherwise: just return customer's recent orders (no text filter)
   }
 
   const { data } = await dbQuery.limit(5)

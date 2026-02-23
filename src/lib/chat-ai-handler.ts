@@ -8,6 +8,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildCustomerProfile } from './ai/customer-profile'
+import { getLatestPurchase, formatPurchaseConfirmation, getExtendedCustomerInfo, formatExtendedProfileForAI, inferPreferencesFromMessage, savePreference, logInteraction } from './ai/customer-intelligence'
 import {
   classifyIntent,
   extractSearchTerms,
@@ -352,11 +353,66 @@ export async function processAIChat(
       orders = searchedOrders
       tables = searchedTables
 
+      // Auto-lookup: if order_status/shipping with no specific order found, fetch customer's recent orders
+      if ((intent === 'order_status' || intent === 'shipping') && orders.length === 0 && customerId) {
+        const latestPurchase = await getLatestPurchase(supabase, customerId, storeId)
+        if (latestPurchase) {
+          // Convert to OrderMatch format and use as context
+          orders = [{
+            id: latestPurchase.order_id,
+            order_number: latestPurchase.order_number,
+            status: latestPurchase.status,
+            total_amount: latestPurchase.total_amount,
+            created_at: latestPurchase.created_at,
+            tracking_number: null,
+          }] as typeof orders
+        }
+      }
+
+      // Auto-lookup: for return/complaint, fetch latest purchase for confirmation
+      let latestPurchaseSummary: string | null = null
+      if ((intent === 'return_exchange' || intent === 'complaint') && customerId) {
+        const latestPurchase = await getLatestPurchase(supabase, customerId, storeId)
+        if (latestPurchase) {
+          latestPurchaseSummary = formatPurchaseConfirmation(latestPurchase)
+        }
+        // Log interaction
+        void logInteraction(supabase, customerId, storeId, {
+          type: intent === 'return_exchange' ? 'return_request' : 'complaint',
+          summary: customerMessage,
+        }).catch(() => {})
+      }
+
+      // Build extended profile for AI personalization
+      let extendedProfile: string | null = null
+      if (customerId) {
+        try {
+          const extInfo = await getExtendedCustomerInfo(supabase, customerId, storeId)
+          extendedProfile = formatExtendedProfileForAI(extInfo) || null
+        } catch { /* non-critical */ }
+
+        // Infer and save preferences from message (fire-and-forget)
+        const inferred = inferPreferencesFromMessage(customerMessage)
+        if (inferred.length > 0) {
+          void Promise.all(inferred.map(p =>
+            savePreference(supabase, customerId, storeId, {
+              type: p.type,
+              key: p.key,
+              value: p.value,
+              confidence: 0.5,
+              source: 'inferred',
+            })
+          )).catch(() => {})
+        }
+      }
+
       responseText = await generateAIResponse(
         intent, products, orders, storeName, customerMessage, chatbotSettings, history,
         undefined,
         { availableTables: tables, busyMode },
-        customerProfile
+        customerProfile,
+        extendedProfile,
+        latestPurchaseSummary,
       )
 
       // If the message contains order intent, start order flow.
