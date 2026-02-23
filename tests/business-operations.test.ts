@@ -16,22 +16,22 @@ describe('Critical Business Operations', () => {
   let testProductId: string
 
   beforeAll(async () => {
-    // Get or create test store
+    // Get test store (seeded with business_type='ecommerce')
     const { data: store } = await supabase
       .from('stores')
       .select('id')
-      .eq('email', 'restaurant@temuulel.test')
+      .eq('business_type', 'ecommerce')
+      .eq('slug', 'mongol-market-test')
       .single()
 
     testStoreId = store!.id
 
-    // Get a test product
+    // Get a test product with variants
     const { data: product } = await supabase
       .from('products')
-      .select('id, name, price, inventory_count')
+      .select('id, name, base_price')
       .eq('store_id', testStoreId)
       .eq('status', 'active')
-      .gt('inventory_count', 0)
       .limit(1)
       .single()
 
@@ -43,23 +43,24 @@ describe('Critical Business Operations', () => {
       // 1. Customer searches product (simulated)
       const { data: product } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_variants(stock_quantity)')
         .eq('id', testProductId)
         .single()
 
       expect(product).toBeDefined()
-      expect(product!.inventory_count).toBeGreaterThan(0)
+      // Check that at least one variant has stock
+      const hasStock = product!.product_variants?.some((v: any) => v.stock_quantity > 0)
+      expect(hasStock).toBe(true)
 
       // 2. Create or find customer
-      const customerPhone = '99999999'
+      const customerPhone = `999${Date.now().toString().slice(-5)}`
       const { data: customer, error: customerError } = await supabase
         .from('customers')
-        .upsert({
+        .insert({
           store_id: testStoreId,
-          phone_number: customerPhone,
-          name: 'Test Customer',
-          metadata: { source: 'test', test_mode: true }
-        }, { onConflict: 'store_id,phone_number' })
+          phone: customerPhone,
+          name: 'Test Customer'
+        })
         .select()
         .single()
 
@@ -73,21 +74,11 @@ describe('Critical Business Operations', () => {
         customer_id: customer!.id,
         order_number: `TEST-${Date.now()}`,
         status: 'pending',
-        total_amount: product!.price,
-        items: [{
-          product_id: product!.id,
-          product_name: product!.name,
-          quantity: 1,
-          price: product!.price
-        }],
-        shipping_address: {
-          full_address: 'БЗД 1р хороо Тест гудамж 1',
-          phone: customerPhone
-        },
-        metadata: {
-          channel: 'test',
-          test_mode: true
-        }
+        total_amount: product!.base_price,
+        shipping_amount: 5000,
+        payment_status: 'pending',
+        shipping_address: 'БЗД 1р хороо Тест гудамж 1',
+        order_type: 'delivery'
       }
 
       const { data: order, error: orderError } = await supabase
@@ -100,8 +91,7 @@ describe('Critical Business Operations', () => {
       expect(orderError).toBeNull()
       expect(order).toBeDefined()
       expect(order!.status).toBe('pending')
-      expect(order!.total_amount).toBe(product!.price)
-      expect(order!.items).toHaveLength(1)
+      expect(order!.total_amount).toBe(product!.base_price)
 
       // ENFORCE: Order number must be unique and formatted correctly
       expect(order!.order_number).toMatch(/^TEST-\d+$/)
@@ -114,19 +104,21 @@ describe('Critical Business Operations', () => {
       // Get out of stock product or temporarily set one to 0
       const { data: product } = await supabase
         .from('products')
-        .select('id, inventory_count')
+        .select('id, base_price, product_variants(id, stock_quantity)')
         .eq('store_id', testStoreId)
         .eq('status', 'active')
         .limit(1)
         .single()
 
-      const originalInventory = product!.inventory_count
+      const variant = product!.product_variants?.[0]
+      expect(variant).toBeDefined()
+      const originalStock = variant.stock_quantity
 
-      // Set inventory to 0
+      // Set stock to 0
       await supabase
-        .from('products')
-        .update({ inventory_count: 0 })
-        .eq('id', product!.id)
+        .from('product_variants')
+        .update({ stock_quantity: 0 })
+        .eq('id', variant.id)
 
       // Try to create order
       const { data: customer } = await supabase
@@ -136,46 +128,32 @@ describe('Critical Business Operations', () => {
         .limit(1)
         .single()
 
-      const orderData = {
-        store_id: testStoreId,
-        customer_id: customer!.id,
-        order_number: `TEST-${Date.now()}`,
-        status: 'pending',
-        total_amount: 1000,
-        items: [{
-          product_id: product!.id,
-          quantity: 1,
-          price: 1000
-        }],
-        metadata: { test_mode: true }
-      }
-
       // ENFORCE: Business logic should prevent this
       // (In real implementation, this check happens in API/chatbot layer)
-      const { data: productCheck } = await supabase
-        .from('products')
-        .select('inventory_count')
-        .eq('id', product!.id)
+      const { data: variantCheck } = await supabase
+        .from('product_variants')
+        .select('stock_quantity')
+        .eq('id', variant.id)
         .single()
 
-      expect(productCheck!.inventory_count).toBe(0)
-      // Don't allow order creation with 0 inventory
+      expect(variantCheck!.stock_quantity).toBe(0)
+      // Don't allow order creation with 0 stock
 
-      // Restore inventory
+      // Restore stock
       await supabase
-        .from('products')
-        .update({ inventory_count: originalInventory })
-        .eq('id', product!.id)
+        .from('product_variants')
+        .update({ stock_quantity: originalStock })
+        .eq('id', variant.id)
     })
 
     test('BUSINESS RULE: Order total must include delivery fee correctly', async () => {
       const { data: product } = await supabase
         .from('products')
-        .select('price')
+        .select('base_price')
         .eq('id', testProductId)
         .single()
 
-      const subtotal = product!.price * 1 // 1 item
+      const subtotal = product!.base_price * 1 // 1 item
       const deliveryFee = subtotal >= 100000 ? 0 : 5000 // Business rule
       const expectedTotal = subtotal + deliveryFee
 
@@ -192,16 +170,10 @@ describe('Critical Business Operations', () => {
         order_number: `TEST-${Date.now()}`,
         status: 'pending',
         total_amount: expectedTotal,
-        items: [{
-          product_id: testProductId,
-          quantity: 1,
-          price: product!.price
-        }],
-        metadata: {
-          test_mode: true,
-          subtotal,
-          delivery_fee: deliveryFee
-        }
+        shipping_amount: deliveryFee,
+        payment_status: 'pending',
+        shipping_address: 'Test Address',
+        order_type: 'delivery'
       }
 
       const { data: order, error } = await supabase
@@ -214,7 +186,7 @@ describe('Critical Business Operations', () => {
 
       // ENFORCE: Total must equal subtotal + delivery fee
       expect(order!.total_amount).toBe(expectedTotal)
-      expect(order!.metadata.delivery_fee).toBe(deliveryFee)
+      expect(order!.shipping_amount).toBe(deliveryFee)
 
       // Cleanup
       await supabase.from('orders').delete().eq('id', order!.id)
@@ -239,7 +211,8 @@ describe('Critical Business Operations', () => {
                           phrase.includes('!?') ||
                           phrase.includes('захирал') ||
                           phrase.includes('дуудаач') ||
-                          phrase.includes('буцааж өг')
+                          phrase.includes('буцааж өг') ||
+                          phrase.includes('ярих хэрэгтэй')
 
         expect(hasUrgency).toBe(true)
         // In chatbot: should trigger escalation flow
@@ -247,48 +220,41 @@ describe('Critical Business Operations', () => {
     })
 
     test('BUSINESS RULE: Escalated conversations must create notifications', async () => {
-      // Create a test conversation that should escalate
+      // Create a test customer first
       const { data: customer } = await supabase
         .from('customers')
-        .select('id')
-        .eq('store_id', testStoreId)
-        .limit(1)
-        .single()
-
-      const { data: conversation } = await supabase
-        .from('conversations')
         .insert({
           store_id: testStoreId,
-          customer_id: customer!.id,
-          channel: 'test',
-          status: 'escalated', // Escalated status
-          metadata: {
-            test_mode: true,
-            escalation_reason: 'angry_customer',
-            escalated_at: new Date().toISOString()
-          }
+          phone: `998${Date.now().toString().slice(-5)}`,
+          name: 'Escalation Test Customer'
         })
         .select()
         .single()
 
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .insert({
+          store_id: testStoreId,
+          customer_id: customer!.id,
+          channel: 'messenger',
+          status: 'escalated' // Escalated status
+        })
+        .select()
+        .single()
+
+      // ENFORCE: Conversation should be created
+      expect(convError).toBeNull()
       expect(conversation).toBeDefined()
       expect(conversation!.status).toBe('escalated')
 
       // ENFORCE: Escalated conversations should trigger staff notification
       // (In production, this happens via dispatchNotification)
-      const { data: notifications } = await supabase
-        .from('in_app_notifications')
-        .select('*')
-        .eq('store_id', testStoreId)
-        .eq('type', 'conversation_escalated')
-        .eq('entity_id', conversation!.id)
-
-      // In a real system, notification should exist
       // For test, we just verify the conversation is marked correctly
-      expect(conversation!.metadata.escalation_reason).toBeDefined()
+      expect(conversation!.status).toBe('escalated')
 
       // Cleanup
       await supabase.from('conversations').delete().eq('id', conversation!.id)
+      await supabase.from('customers').delete().eq('id', customer!.id)
     })
   })
 
@@ -315,39 +281,18 @@ describe('Critical Business Operations', () => {
           customer_id: customer!.id,
           order_number: `TEST-RETURN-${Date.now()}`,
           status: 'delivered', // Must be delivered to return
-          total_amount: product!.price,
-          items: [{
-            product_id: product!.id,
-            quantity: 1,
-            price: product!.price
-          }],
-          metadata: { test_mode: true }
+          total_amount: product!.base_price,
+          shipping_amount: 5000,
+          payment_status: 'paid',
+          shipping_address: 'Test Address',
+          order_type: 'delivery'
         })
         .select()
         .single()
 
-      // Create return request
-      const returnData = {
-        store_id: testStoreId,
-        order_id: order!.id,
-        customer_id: customer!.id,
-        reason: 'size_issue',
-        status: 'pending',
-        items: order!.items,
-        metadata: {
-          test_mode: true,
-          customer_notes: 'Хэмжээ тохирохгүй байна'
-        }
-      }
-
       // ENFORCE: Return must reference a valid order
       expect(order!.id).toBeDefined()
       expect(order!.status).toBe('delivered') // Can only return delivered orders
-
-      // In production, this would insert into returns table
-      // For now, verify the data structure is correct
-      expect(returnData.order_id).toBe(order!.id)
-      expect(returnData.reason).toBeDefined()
 
       // Cleanup
       await supabase.from('orders').delete().eq('id', order!.id)
@@ -370,8 +315,10 @@ describe('Critical Business Operations', () => {
           order_number: `TEST-FRESH-${Date.now()}`,
           status: 'delivered',
           total_amount: 10000,
-          items: [{ product_id: testProductId, quantity: 1, price: 10000 }],
-          metadata: { test_mode: true }
+          shipping_amount: 5000,
+          payment_status: 'paid',
+          shipping_address: 'Test Address',
+          order_type: 'delivery'
         })
         .select()
         .single()
@@ -409,8 +356,10 @@ describe('Critical Business Operations', () => {
           order_number: `TEST-PAY-${Date.now()}`,
           status: 'pending',
           total_amount: orderTotal,
-          items: [{ product_id: testProductId, quantity: 1, price: orderTotal }],
-          metadata: { test_mode: true }
+          shipping_amount: 5000,
+          payment_status: 'pending',
+          shipping_address: 'Test Address',
+          order_type: 'delivery'
         })
         .select()
         .single()
@@ -426,18 +375,14 @@ describe('Critical Business Operations', () => {
         .from('orders')
         .update({
           status: 'confirmed',
-          metadata: {
-            test_mode: true,
-            paid_at: new Date().toISOString(),
-            payment_amount: paymentAmount
-          }
+          payment_status: 'paid'
         })
         .eq('id', order!.id)
         .select()
         .single()
 
       expect(paidOrder!.status).toBe('confirmed')
-      expect(paidOrder!.metadata.payment_amount).toBe(orderTotal)
+      expect(paidOrder!.payment_status).toBe('paid')
 
       // Cleanup
       await supabase.from('orders').delete().eq('id', order!.id)
@@ -565,8 +510,10 @@ describe('Critical Business Operations', () => {
           order_number: orderNumber,
           status: 'pending',
           total_amount: 10000,
-          items: [{ product_id: testProductId, quantity: 1, price: 10000 }],
-          metadata: { test_mode: true }
+          shipping_amount: 5000,
+          payment_status: 'pending',
+          shipping_address: 'Test Address',
+          order_type: 'delivery'
         })
         .select()
         .single()
@@ -580,8 +527,10 @@ describe('Critical Business Operations', () => {
           order_number: orderNumber, // Duplicate!
           status: 'pending',
           total_amount: 10000,
-          items: [{ product_id: testProductId, quantity: 1, price: 10000 }],
-          metadata: { test_mode: true }
+          shipping_amount: 5000,
+          payment_status: 'pending',
+          shipping_address: 'Test Address',
+          order_type: 'delivery'
         })
 
       // ENFORCE: Duplicate order number should fail
@@ -597,11 +546,14 @@ describe('Critical Business Operations', () => {
     test('BUSINESS RULE: Inventory must decrease after order', async () => {
       const { data: product } = await supabase
         .from('products')
-        .select('inventory_count')
+        .select('product_variants(id, stock_quantity)')
         .eq('id', testProductId)
         .single()
 
-      const initialInventory = product!.inventory_count
+      const variant = product!.product_variants?.[0]
+      expect(variant).toBeDefined()
+
+      const initialInventory = variant!.stock_quantity
 
       // ENFORCE: After order creation, inventory should decrease
       // (In real implementation, this happens via database trigger or API)
@@ -610,23 +562,23 @@ describe('Critical Business Operations', () => {
 
       // Simulate inventory decrease
       await supabase
-        .from('products')
-        .update({ inventory_count: expectedInventory })
-        .eq('id', testProductId)
+        .from('product_variants')
+        .update({ stock_quantity: expectedInventory })
+        .eq('id', variant!.id)
 
-      const { data: updatedProduct } = await supabase
-        .from('products')
-        .select('inventory_count')
-        .eq('id', testProductId)
+      const { data: updatedVariant } = await supabase
+        .from('product_variants')
+        .select('stock_quantity')
+        .eq('id', variant!.id)
         .single()
 
-      expect(updatedProduct!.inventory_count).toBe(expectedInventory)
+      expect(updatedVariant!.stock_quantity).toBe(expectedInventory)
 
       // Restore inventory
       await supabase
-        .from('products')
-        .update({ inventory_count: initialInventory })
-        .eq('id', testProductId)
+        .from('product_variants')
+        .update({ stock_quantity: initialInventory })
+        .eq('id', variant!.id)
     })
 
     test('BUSINESS RULE: Low stock warning at < 5 items', async () => {

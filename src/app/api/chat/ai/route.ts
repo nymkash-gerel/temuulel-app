@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  classifyIntent,
+  hybridClassify,
   extractSearchTerms,
   searchProducts,
   generateAIResponse,
@@ -124,7 +124,7 @@ async function handleCommentAI(
     ? `[Контекст: ${additionalContext}]\n\n${customerMessage}`
     : customerMessage
 
-  const intent = classifyIntent(customerMessage)
+  const intent = hybridClassify(customerMessage).intent
 
   let products: Awaited<ReturnType<typeof searchProducts>> = []
   if (intent === 'product_search' || intent === 'general' || intent === 'price_info') {

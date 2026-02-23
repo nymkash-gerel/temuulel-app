@@ -6,7 +6,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { normalizeText, classifyIntentWithConfidence } from './chat-ai'
+import { normalizeText, hybridClassify } from './chat-ai'
 import type {
   Flow,
   FlowNode,
@@ -63,7 +63,7 @@ export async function findMatchingFlow(
   // Pre-classify intent so new_conversation triggers can decide
   // whether to intercept or let the AI pipeline handle the question.
   if (!context.classified_intent) {
-    const { intent, confidence } = classifyIntentWithConfidence(message)
+    const { intent, confidence } = hybridClassify(message)
     if (confidence >= 1) {
       context.classified_intent = intent
     } else {

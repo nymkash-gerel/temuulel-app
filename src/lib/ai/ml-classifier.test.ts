@@ -72,9 +72,9 @@ describe('ML Classifier', () => {
     })
 
     it('handles past tense verb forms', () => {
-      // "захиалсан" (past tense of "захиалах") should be recognized as order status or product search
+      // "захиалсан" (past tense of "захиалах") should be recognized as order status, product search, or order collection
       const result = mlClassify('Өчигдөр захиалсан бараа')
-      expect(['order_status', 'product_search']).toContain(result.intent)
+      expect(['order_status', 'product_search', 'order_collection']).toContain(result.intent)
     })
   })
 

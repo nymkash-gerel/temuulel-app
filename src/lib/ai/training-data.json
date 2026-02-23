@@ -630,5 +630,181 @@
   {
     "text": "чанаргүй байна",
     "intent": "complaint"
+  },
+  {
+    "text": "захиалах",
+    "intent": "order_collection"
+  },
+  {
+    "text": "захиална",
+    "intent": "order_collection"
+  },
+  {
+    "text": "захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Энэ бараа авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Захиалах гэж байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Худалдаж авна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Захиалья",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Захиалж болох уу",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Авах гэж байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Үүнийг захиална",
+    "intent": "order_collection"
+  },
+  {
+    "text": "2 ширхэг захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Let me order this",
+    "intent": "order_collection"
+  },
+  {
+    "text": "I want to order",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Place an order",
+    "intent": "order_collection"
+  },
+  {
+    "text": "I'll take this",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Хуваан төлж болох уу?",
+    "intent": "payment"
+  },
+  {
+    "text": "Хэсэгчлэн төлж болох уу?",
+    "intent": "payment"
+  },
+  {
+    "text": "3 хувааж төлнө",
+    "intent": "payment"
+  },
+  {
+    "text": "Төлбөрийг хуваая",
+    "intent": "payment"
+  },
+  {
+    "text": "Installment хийж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "Картаар төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "Бэлэнээр төлнө",
+    "intent": "payment"
+  },
+  {
+    "text": "Данс шилжүүлнэ",
+    "intent": "payment"
+  },
+  {
+    "text": "SocialPay-аар төлнө",
+    "intent": "payment"
+  },
+  {
+    "text": "Банк шилжүүлэг хийнэ",
+    "intent": "payment"
+  },
+  {
+    "text": "Хэмжээ тохирохгүй, солиулж болох уу?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Өөр өнгө авмаар байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Том хэмжээтэй нь солиулна уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Буцаах гэж байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Солих боломжтой юу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Том байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Жижиг байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Тохирохгүй байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Багтахгүй байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Хэмжээ буруу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Өнгө буруу ирсэн",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Захирлаа дуудаач",
+    "intent": "complaint"
+  },
+  {
+    "text": "Хүний оператор хэрэгтэй",
+    "intent": "complaint"
+  },
+  {
+    "text": "Робот биш хүнтэй ярья",
+    "intent": "complaint"
+  },
+  {
+    "text": "Мөнгөө буцааж өг!!!",
+    "intent": "complaint"
+  },
+  {
+    "text": "Яагаад ийм удаан байгаа юм!?",
+    "intent": "complaint"
   }
 ]

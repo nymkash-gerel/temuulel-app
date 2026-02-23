@@ -74,6 +74,22 @@ const PAYMENT_DISPUTE_KEYWORDS = [
   'мөнгө буцаа', 'буцаан өг', 'буцааж ог',
 ]
 
+const IMMEDIATE_ESCALATION_TRIGGERS = [
+  // Urgent refund demands with multiple exclamation marks
+  'мөнгөө буцааж өг!!!',
+  'мөнгоо буцааж өг!!!',
+  'буцааж өг!!!',
+  'буцаан өг!!!',
+  // Request for manager/human operator
+  'захирал', 'захирлаа', 'дуудаач', 'дуудаад',
+  'оператор', 'оператор дуудаач',
+  'хүн', 'хүний', 'хүнтэй ярих', 'хүнтэй ярья',
+  'робот биш', 'ботоос биш',
+  // English
+  'manager', 'supervisor', 'human operator', 'real person',
+  'talk to human', 'speak to human', 'not a bot',
+]
+
 // ---------------------------------------------------------------------------
 // Signal weights
 // ---------------------------------------------------------------------------
@@ -193,6 +209,18 @@ export function evaluateEscalation(
   const lower = currentMessage.toLowerCase()
   let addedScore = 0
   const signals: string[] = []
+
+  // Check for immediate escalation triggers (bypass scoring)
+  for (const trigger of IMMEDIATE_ESCALATION_TRIGGERS) {
+    if (lower.includes(trigger.toLowerCase())) {
+      return {
+        newScore: config.threshold, // Set to threshold to trigger escalation
+        level: 'critical',
+        shouldEscalate: true,
+        signals: ['immediate_escalation', trigger],
+      }
+    }
+  }
 
   // 1. Complaint keywords — scale by number of distinct matches (cap at 3×)
   //    e.g. "гомдол байна, чанар муу, алдаа гарсан" → 3 keywords → 75 pts
