@@ -157,10 +157,6 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // stemmer handles: буцааж→буцаа, буцаагдсан→буцаа, буцаалтын→буцаалт, солилтын→солилт, солиулж→солиул
     'буцаан', 'буцаагдах', 'буцааж',
     'солиулж', 'солилцох', 'солицох',
-    // Latin transliteration
-    'butsaah', 'butsaalt', 'butsaa', 'butaah', 'butaa', 'butay',
-    // Cyrillic forms of Latin misspellings (normalizer converts Latin→Cyrillic)
-    'бутай', 'бутаах', 'бутаа',
     // Return-specific nouns
     'хураамж',
     // Policy-specific phrases
@@ -472,29 +468,6 @@ export function classifyIntentWithConfidence(
       bestScore = score
       bestIntent = intent
     }
-  }
-
-  // Priority tiebreaker: return_exchange/complaint beat product_search when both match
-  // e.g. "бараа буцаах" has "бараа" (product_search) + "буцаах" (return_exchange)
-  // Only override for strong return/complaint signals (exact keyword match, not prefix)
-  if (bestIntent === 'product_search' && bestScore > 0) {
-    const RETURN_SIGNALS = ['буцаах', 'буцаалт', 'буцаан', 'солих', 'солилт', 'солиулах', 'буцааж',
-      'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'butaah', 'butaa', 'butay', 'бутай', 'бутаах', 'бутаа', 'solih',
-      'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй', 'эвдэрсэн']
-    const COMPLAINT_SIGNALS = ['гомдол', 'муу', 'луйвар', 'хуурамч', 'complaint']
-    const normalizedWords = normalized.split(/\s+/)
-    const stemmedWords = stemmedMsg.split(/\s+/)
-
-    const hasReturn = RETURN_SIGNALS.some(kw =>
-      padded.includes(` ${kw} `) || normalizedWords.some(w => w === kw) ||
-      stemmedWords.some(w => w === kw || (kw.length >= 4 && w.startsWith(kw.slice(0, 4))))
-    )
-    const hasComplaint = COMPLAINT_SIGNALS.some(kw =>
-      padded.includes(` ${kw} `) || normalizedWords.some(w => w === kw)
-    )
-
-    if (hasReturn) bestIntent = 'return_exchange'
-    else if (hasComplaint) bestIntent = 'complaint'
   }
 
   // Optional logging
