@@ -94,7 +94,7 @@ export default function ChatWidget({
     }
   }, [])
 
-  // Load existing session and messages
+  // Recover conversation_id for an existing visitor (no history shown — fresh UI each open)
   useEffect(() => {
     if (!isOpen) return
 
@@ -103,27 +103,16 @@ export default function ChatWidget({
 
       try {
         const res = await fetch(
-          `/api/chat?sender_id=${visitorId}&store_id=${storeId}&limit=20`
+          `/api/chat?sender_id=${visitorId}&store_id=${storeId}&limit=1`
         )
         if (res.ok) {
           const data = await res.json()
           if (data.conversation_id) {
             setConversationId(data.conversation_id)
           }
-          if (data.messages?.length > 0) {
-            setMessages(
-              data.messages.map((m: { role: string; content: string; created_at: string; is_ai_response?: boolean }, i: number) => ({
-                id: `loaded-${i}`,
-                content: m.content,
-                is_from_customer: m.role === 'user',
-                is_ai_response: m.is_ai_response || m.role === 'assistant',
-                created_at: m.created_at,
-              }))
-            )
-          }
         }
       } catch {
-        // Failed to load session
+        // Failed to load session — will create fresh conversation on first message
       }
     }
 
