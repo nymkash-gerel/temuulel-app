@@ -22,6 +22,7 @@ interface Delivery {
   delivery_fee: number | null
   failure_reason: string | null
   notes: string | null
+  metadata: { proof_photo_file_id?: string; proof_photo_at?: string; [key: string]: unknown } | null
   ai_assignment: { recommended_driver_id?: string; confidence?: number; ranked_drivers?: { driver_id: string; score: number; reasons: string[] }[] } | null
   created_at: string
   orders: { id: string; order_number: string; total_amount: number; payment_status: string | null } | null
@@ -98,7 +99,7 @@ export default function DeliveriesPage() {
               id, delivery_number, status, delivery_type, provider_name,
               delivery_address, customer_name, customer_phone,
               estimated_delivery_time, actual_delivery_time,
-              delivery_fee, failure_reason, notes, ai_assignment, created_at,
+              delivery_fee, failure_reason, notes, metadata, ai_assignment, created_at,
               orders(id, order_number, total_amount, payment_status),
               delivery_drivers(id, name, phone, vehicle_type)
             `)
@@ -601,7 +602,20 @@ export default function DeliveriesPage() {
                 return (
                   <tr key={del.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-all">
                     <td className="py-3 px-3 md:py-4 md:px-6">
-                      <span className="text-white font-medium">#{del.delivery_number}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">#{del.delivery_number}</span>
+                        {del.metadata?.proof_photo_file_id && (
+                          <a
+                            href={`/api/telegram/driver/photo?file_id=${del.metadata.proof_photo_file_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Хүргэлтийн зураг харах"
+                            className="text-green-400 hover:text-green-300 transition-all"
+                          >
+                            📸
+                          </a>
+                        )}
+                      </div>
                       {del.delivery_fee != null && (
                         <p className="text-slate-400 text-xs mt-0.5">{formatPrice(del.delivery_fee)}</p>
                       )}

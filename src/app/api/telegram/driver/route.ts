@@ -8,7 +8,10 @@
  *
  * Handles:
  *   - /start command → driver onboarding (link Telegram to driver account)
+ *   - /orders        → list active deliveries
+ *   - /help          → command list
  *   - Phone number messages → link by phone
+ *   - Photo messages → delivery proof (auto-marks delivery as confirmed)
  *   - Natural language → driver intent engine (delivered, picked up, etc.)
  */
 
@@ -46,12 +49,23 @@ function getSupabase() {
 }
 
 /** Telegram update shape (only fields we use) */
+interface TgPhotoSize {
+  file_id: string
+  file_unique_id: string
+  width: number
+  height: number
+  file_size?: number
+}
+
 interface TgMessage {
   message_id: number
   from: { id: number; first_name: string; username?: string }
   chat: { id: number; type: string }
   text?: string
   contact?: { phone_number: string; user_id?: number }
+  /** Array of photo sizes (smallest → largest). Last element is highest quality. */
+  photo?: TgPhotoSize[]
+  caption?: string
 }
 
 interface TgCallbackQuery {
@@ -632,7 +646,7 @@ export async function POST(request: NextRequest) {
   }
 
   const msg = update.message
-  if (!msg?.text && !msg?.contact) return NextResponse.json({ ok: true })
+  if (!msg?.text && !msg?.contact && !msg?.photo) return NextResponse.json({ ok: true })
 
   const chatId = msg.chat.id
   const text = msg.text?.trim() ?? ''
@@ -679,6 +693,90 @@ export async function POST(request: NextRequest) {
 
     // Plain /start with no param → welcome + prompt for phone
     await tgSend(chatId, DRIVER_BOT_WELCOME)
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── /help command ───────────────────────────────────────────────────────
+  if (text === '/help') {
+    await tgSend(chatId,
+      `🚚 <b>Жолоочийн бот — тушаалууд</b>\n\n` +
+      `/orders — Миний идэвхтэй захиалгууд\n` +
+      `/help — Тушаалын жагсаалт\n\n` +
+      `<b>Статус шинэчлэх:</b>\n` +
+      `Товч дарах замаар шинэчилнэ үү (товч тогтоогүй бол доорхийг бичнэ үү):\n` +
+      `• "Авлаа" — бараа авсан\n` +
+      `• "Хүргэлээ" — хүргэлт дууссан\n` +
+      `• "Дэлгүүрт ирлээ" — дэлгүүрт очсон\n` +
+      `• "Холбогдохгүй байна" — хэрэглэгч утас аваагүй\n\n` +
+      `📸 <b>Хүргэлтийн зургийг илгээвэл автоматаар бүртгэгдэнэ.</b>`
+    )
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── /orders command ──────────────────────────────────────────────────────
+  if (text === '/orders') {
+    // Look up the driver by Telegram chat ID first
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: ordersDriver } = await (supabase as any)
+      .from('delivery_drivers')
+      .select('id, name')
+      .eq('telegram_chat_id', chatId)
+      .maybeSingle()
+
+    if (!ordersDriver) {
+      await tgSend(chatId, `❓ Таны акаунт холбогдоогүй байна.\nУтасны дугаараа илгээнэ үү.`)
+      return NextResponse.json({ ok: true })
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: deliveries } = await (supabase as any)
+      .from('deliveries')
+      .select(`
+        id, status, delivery_type, created_at,
+        orders!inner(order_number, shipping_address, total_amount),
+        customers(name, phone)
+      `)
+      .eq('driver_id', ordersDriver.id)
+      .in('status', ['assigned', 'at_store', 'picked_up', 'in_transit'])
+      .order('created_at', { ascending: true })
+      .limit(10)
+
+    if (!deliveries || deliveries.length === 0) {
+      await tgSend(chatId, `📭 Одоогоор хуваарилагдсан захиалга байхгүй байна.`)
+      return NextResponse.json({ ok: true })
+    }
+
+    const STATUS_EMOJI: Record<string, string> = {
+      assigned: '🟡 Хуваарилагдсан',
+      at_store: '🏪 Дэлгүүрт ирсэн',
+      picked_up: '📦 Авсан',
+      in_transit: '🚚 Замд яваа',
+    }
+
+    const lines = deliveries.map((d: {
+      id: string
+      status: string
+      delivery_type: string
+      orders: { order_number: string; shipping_address: string; total_amount: number }
+      customers: { name: string; phone: string } | null
+    }, i: number) => {
+      const statusLabel = STATUS_EMOJI[d.status] ?? d.status
+      const orderNum = d.orders?.order_number ?? d.id.slice(0, 8)
+      const address = d.orders?.shipping_address ?? '—'
+      const customer = d.customers?.name ?? '—'
+      const phone = d.customers?.phone ?? ''
+      const tag = d.delivery_type === 'intercity_post' ? ' 🚌 Хот хоорондын' : ''
+      return (
+        `${i + 1}. <b>${orderNum}</b>${tag}\n` +
+        `   ${statusLabel}\n` +
+        `   👤 ${customer}${phone ? ` · ${phone}` : ''}\n` +
+        `   📍 ${address.slice(0, 60)}${address.length > 60 ? '…' : ''}`
+      )
+    })
+
+    await tgSend(chatId,
+      `🚚 <b>Таны захиалгууд (${deliveries.length})</b>\n\n${lines.join('\n\n')}`
+    )
     return NextResponse.json({ ok: true })
   }
 
@@ -817,6 +915,93 @@ export async function POST(request: NextRequest) {
       default:
         break // transport_type step — they should press button, not type
     }
+  }
+
+  // ── Photo proof ─────────────────────────────────────────────────────────
+  // Driver sends a photo → store as delivery confirmation.
+  // If delivery is in picked_up / in_transit state, auto-mark as delivered.
+  if (msg.photo && msg.photo.length > 0) {
+    // Largest photo is the last element
+    const fileId = msg.photo[msg.photo.length - 1].file_id as string
+
+    // Find most recent active delivery for this driver
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: activeDelivery } = await (supabase as any)
+      .from('deliveries')
+      .select('id, status, metadata, order_id, orders!inner(order_number, store_id)')
+      .eq('driver_id', driver.id)
+      .in('status', ['assigned', 'at_store', 'picked_up', 'in_transit'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!activeDelivery) {
+      await tgSend(chatId,
+        `📸 Зураг хүлээн авлаа, гэхдээ идэвхтэй хүргэлт олдсонгүй.\n` +
+        `Хэрэв хүргэлт дууссан бол товч дарах эсвэл "Хүргэлээ" гэж бичнэ үү.`
+      )
+      return NextResponse.json({ ok: true })
+    }
+
+    const existingMeta = (activeDelivery.metadata ?? {}) as Record<string, unknown>
+    const orderNum = activeDelivery.orders?.order_number ?? activeDelivery.id.slice(0, 8)
+    const storeId = activeDelivery.orders?.store_id as string | undefined
+
+    // Save proof photo + timestamp
+    const updatedMeta = {
+      ...existingMeta,
+      proof_photo_file_id: fileId,
+      proof_photo_at: new Date().toISOString(),
+    }
+
+    // Auto-complete delivery if it was in picked_up or in_transit
+    const canComplete = ['picked_up', 'in_transit'].includes(activeDelivery.status)
+    const newStatus = canComplete ? 'delivered' : activeDelivery.status
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from('deliveries')
+      .update({
+        status: newStatus,
+        metadata: updatedMeta,
+        ...(canComplete ? { actual_delivery_time: new Date().toISOString() } : {}),
+      })
+      .eq('id', activeDelivery.id)
+
+    // If we auto-completed the delivery, also update the order status
+    if (canComplete) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('orders')
+        .update({ status: 'delivered' })
+        .eq('id', activeDelivery.order_id)
+        .catch(() => {}) // non-blocking
+    }
+
+    // Write a dashboard notification so the store owner can see the photo
+    if (storeId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('notifications').insert({
+        store_id: storeId,
+        type: 'delivery_photo_proof',
+        title: `📸 Хүргэлтийн зураг — ${orderNum}`,
+        message: canComplete
+          ? `Жолооч зураг илгээж хүргэлтийг баталгаажуулав. Захиалга #${orderNum}.`
+          : `Жолооч хүргэлтийн зураг илгээв. Захиалга #${orderNum}.`,
+        metadata: {
+          delivery_id: activeDelivery.id,
+          proof_photo_file_id: fileId,
+          driver_name: (driver as { id: string; name?: string }).name,
+        },
+      }).catch(() => {}) // non-blocking — don't fail if notifications table schema differs
+    }
+
+    const confirmMsg = canComplete
+      ? `✅ Зураг хүлээн авлаа. Захиалга <b>#${orderNum}</b> хүргэгдсэн гэж бүртгэгдлээ. Баярлалаа! 🙏`
+      : `📸 Зураг хүлээн авлаа. Захиалга <b>#${orderNum}</b>-д хадгалагдлаа.`
+
+    await tgSend(chatId, confirmMsg)
+    return NextResponse.json({ ok: true })
   }
 
   // Run through the driver intent engine
