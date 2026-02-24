@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { exportToFile } from '@/lib/export-utils'
+import BatchDispatchModal from '@/components/BatchDispatchModal'
+import type { BatchPreview } from '@/app/api/deliveries/batch-assign/route'
 
 interface Delivery {
   id: string
@@ -71,6 +73,9 @@ export default function DeliveriesPage() {
   const [formDeliveryFee, setFormDeliveryFee] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [assigning, setAssigning] = useState<string | null>(null)
+  const [batchPreview, setBatchPreview] = useState<BatchPreview | null>(null)
+  const [batchLoading, setBatchLoading] = useState(false)
+  const [batchConfirming, setBatchConfirming] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -242,35 +247,49 @@ export default function DeliveriesPage() {
     } catch { alert('Алдаа гарлаа') }
   }
 
-  async function handleAssignAll() {
-    const pending = deliveries.filter(d => {
-      if (d.status !== 'pending') return false
-      // For intercity, only assign if payment confirmed
-      if (d.delivery_type === 'intercity_post' && d.orders?.payment_status !== 'paid') return false
-      return true
-    })
-    if (pending.length === 0) { alert('Оноох хүргэлт байхгүй байна'); return }
-    if (!confirm(`${pending.length} хүргэлтэд AI жолооч оноох уу?`)) return
+  async function handleOpenBatchDispatch() {
+    setBatchLoading(true)
+    try {
+      const res = await fetch('/api/deliveries/batch-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Алдаа гарлаа'); return }
+      if (data.total === 0) { alert(data.message || 'Оноох хүргэлт байхгүй'); return }
+      setBatchPreview(data as BatchPreview)
+    } catch { alert('Алдаа гарлаа') }
+    finally { setBatchLoading(false) }
+  }
 
-    for (const d of pending) {
-      setAssigning(d.id)
-      try {
-        const res = await fetch('/api/deliveries/assign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ delivery_id: d.id }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setDeliveries(prev => prev.map(del =>
-            del.id === d.id
-              ? { ...del, status: data.delivery?.status || del.status, delivery_drivers: data.delivery?.delivery_drivers || del.delivery_drivers }
-              : del
-          ))
+  async function handleConfirmBatchDispatch() {
+    if (!batchPreview) return
+    setBatchConfirming(true)
+    try {
+      const res = await fetch('/api/deliveries/batch-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: false }),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Алдаа гарлаа'); return }
+
+      // Refresh deliveries list after batch assign
+      const updatedIds = (data.assignments as { delivery_id: string; driver_id: string }[]).map(a => a.delivery_id)
+      setDeliveries(prev => prev.map(d => {
+        const a = (data.assignments as { delivery_id: string; driver_id: string; driver_name: string }[]).find(x => x.delivery_id === d.id)
+        if (!a) return d
+        return {
+          ...d,
+          status: 'assigned' as const,
+          delivery_drivers: { id: a.driver_id, name: a.driver_name, phone: '', vehicle_type: '' },
         }
-      } catch { /* continue */ }
-      setAssigning(null)
-    }
+      }))
+      console.log(`Batch dispatch: ${updatedIds.length} assigned`)
+      setBatchPreview(null)
+    } catch { alert('Алдаа гарлаа') }
+    finally { setBatchConfirming(false) }
   }
 
   const handleExport = (format: 'xlsx' | 'csv') => {
@@ -297,6 +316,16 @@ export default function DeliveriesPage() {
 
   return (
     <div>
+      {/* Batch dispatch modal */}
+      {batchPreview && (
+        <BatchDispatchModal
+          preview={batchPreview}
+          onConfirm={handleConfirmBatchDispatch}
+          onCancel={() => setBatchPreview(null)}
+          confirming={batchConfirming}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -424,11 +453,14 @@ export default function DeliveriesPage() {
             <option value="cancelled">Цуцлагдсан</option>
           </select>
           <button
-            onClick={handleAssignAll}
-            disabled={!!assigning}
+            onClick={handleOpenBatchDispatch}
+            disabled={batchLoading}
             className="px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-xl transition-all flex items-center gap-2 text-sm disabled:opacity-50"
           >
-            <span>🤖</span><span>Бүгдийг оноох</span>
+            {batchLoading
+              ? <><span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /><span>Бэлтгэж байна...</span></>
+              : <><span>🤖</span><span>Ухаалаг хуваарилах</span></>
+            }
           </button>
           <button onClick={() => handleExport('xlsx')} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm">
             <span>📥</span><span>Excel</span>
