@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
           id: conversation_id,
           store_id,
           channel: 'web',
-          status: 'open',
+          status: 'active',
           customer_id: customerId,
         },
         { onConflict: 'id', ignoreDuplicates: true }
