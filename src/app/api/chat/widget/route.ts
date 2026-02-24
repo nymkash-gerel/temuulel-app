@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         {
           id: conversation_id,
           store_id,
-          channel: 'widget',
+          channel: 'web',
           status: 'open',
           customer_id: customerId,
         },
