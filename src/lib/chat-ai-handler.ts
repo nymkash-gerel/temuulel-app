@@ -257,15 +257,22 @@ export async function processAIChat(
       case 'number_reference':
       case 'select_single': {
         const p = followUp.product!
-        intent = 'product_detail'
-        // Fetch full product data (with images) for product card
+        // Directly start order draft — no intermediate "захиалмаар байвал бичнэ үү" step
+        const result = await startOrderDraft(
+          supabase,
+          { id: p.id, name: p.name, base_price: p.base_price },
+          customerMessage
+        )
+        orderDraft = result.draft
+        responseText = result.responseText
+        intent = 'order_collection'
+        // Fetch full product data for cards
         const [detailProducts] = await Promise.all([
           searchProducts(supabase, p.name, storeId, { maxProducts: 1, originalQuery: p.name }),
         ])
         if (detailProducts.length > 0) {
           products = detailProducts
         }
-        responseText = `**${p.name}**\n💰 ${formatPrice(p.base_price)}\n\nЭнэ бүтээгдэхүүнийг захиалмаар байвал бичнэ үү!`
         break
       }
       case 'price_question': {
