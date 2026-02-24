@@ -47,6 +47,9 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   webpack: (config, { webpack }) => {
     // Ignore vitest imports during production build (ESM-only, testing only)
     config.plugins.push(
