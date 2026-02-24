@@ -11,6 +11,21 @@ import type { FlowMessage, TriggerContext } from './flow-types'
 import { readFlowState, writeFlowState } from './flow-state'
 import { findMatchingFlow, rowToFlow } from './flow-trigger'
 import { executeFlowStep, startFlow, completeFlowExecution } from './flow-executor'
+import { normalizeText } from './chat-ai'
+
+/** Keywords that signal the customer wants to start fresh (same set as conversation-state.ts). */
+const FLOW_RESET_KEYWORDS = [
+  'сайн байна', 'сайн уу', 'байна уу', 'мэнд',
+  'hello', 'hi', 'hey',
+  'баярлалаа', 'баярлаа', 'thank', 'thanks',
+  'баяртай', 'goodbye', 'bye',
+]
+
+function isFlowReset(message: string): boolean {
+  const lower = message.toLowerCase()
+  const norm = normalizeText(message)
+  return FLOW_RESET_KEYWORDS.some((kw) => lower.includes(kw) || norm.includes(normalizeText(kw)))
+}
 
 export interface FlowInterceptResult {
   response: string
@@ -37,6 +52,13 @@ export async function interceptWithFlow(
   const flowState = await readFlowState(supabase, conversationId)
 
   if (flowState) {
+    // Greeting / goodbye / thanks → customer wants to start fresh.
+    // Clear the active flow and let the AI pipeline handle the reset.
+    if (isFlowReset(message)) {
+      await writeFlowState(supabase, conversationId, null)
+      return null
+    }
+
     const { data: flowRow } = await supabase
       .from('flows')
       .select('*')
