@@ -186,7 +186,9 @@ export default function ChatWidget({
         }),
       })
 
-      if (aiRes.ok) {
+      if (!aiRes.ok) throw new Error(`widget-api-${aiRes.status}`)
+
+      {
         const aiData = await aiRes.json()
 
         // If AI is disabled or handoff, don't show AI response
