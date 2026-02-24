@@ -45,7 +45,7 @@ export function orderAssignedKeyboard(deliveryId: string): TgInlineKeyboard {
   return {
     inline_keyboard: [
       [
-        { text: '✅ Авлаа', callback_data: `picked_up:${deliveryId}` },
+        { text: '🏪 Дэлгүүрт ирлээ', callback_data: `arrived_at_store:${deliveryId}` },
         { text: '❌ Татгалзах', callback_data: `reject:${deliveryId}` },
       ],
     ],
@@ -119,11 +119,38 @@ export function intercityConfirmKeyboard(deliveryId: string): TgInlineKeyboard {
   }
 }
 
+/** Payment status buttons shown after inner-city delivery */
+export function paymentKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '✅ Төлбөр авлаа', callback_data: `payment_received:${deliveryId}` },
+        { text: '⏳ Дараа төлнө', callback_data: `payment_pending:${deliveryId}` },
+      ],
+      [
+        { text: '❌ Татгалзав', callback_data: `payment_declined:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
+/** Payment confirmation for intercity wizard (was pre-payment collected?) */
+export function intercityPaymentKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '✅ Тийм, авсан', callback_data: `intercity_pay_yes:${deliveryId}` },
+        { text: '❌ Аваагүй / Дараа', callback_data: `intercity_pay_no:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Intercity wizard state (stored in delivery_drivers.metadata)
 // ---------------------------------------------------------------------------
 
-export type IntercityWizardStep = 'transport_type' | 'phone' | 'license' | 'eta' | 'confirm'
+export type IntercityWizardStep = 'transport_type' | 'phone' | 'license' | 'eta' | 'payment' | 'confirm'
 
 export interface IntercityWizard {
   delivery_id: string
@@ -132,6 +159,7 @@ export interface IntercityWizard {
   phone?: string
   license?: string
   eta?: string
+  payment_collected?: boolean  // was prepayment collected before dispatch?
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +171,7 @@ export interface IntercityHandoff {
   phone: string
   license: string
   eta: string
+  payment_collected?: boolean
 }
 
 export function intercityCustomerMessage(
@@ -150,6 +179,9 @@ export function intercityCustomerMessage(
   handoff: IntercityHandoff
 ): string {
   const transportLabel = handoff.transport === 'bus' ? '🚌 Хотын автобус' : '🚗 Хувийн жолооч'
+  const paymentNote = handoff.payment_collected
+    ? `✅ Барааны төлбөр урьдчилж баталгаажсан.\n`
+    : `💳 Тээврийн үнэ хүлээн авахдаа шуудангийн газарт/жолоочид төлнө үү.\n`
   return (
     `📦 Таны захиалга хотоор хоорондын тээврээр илгээгдлээ!\n\n` +
     `🆔 Захиалга: #${orderNumber}\n` +
@@ -157,7 +189,7 @@ export function intercityCustomerMessage(
     `📞 Жолоочийн утас: ${handoff.phone}\n` +
     `🚗 Машины дугаар: ${handoff.license}\n` +
     `⏰ Ойролцоо ирэх хугацаа: ${handoff.eta}\n\n` +
-    `Хүлээн авахдаа тээврийн үнийг шуудангийн газарт/жолоочид төлнө үү.\n` +
+    paymentNote +
     `Асуулт байвал дэлгүүртэй холбогдоно уу. 🙏`
   )
 }

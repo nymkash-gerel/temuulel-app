@@ -21,6 +21,9 @@ export default function PaymentSettingsPage() {
   const [bankAccount, setBankAccount] = useState('')
   const [bankHolder, setBankHolder] = useState('')
   const [cashOnDelivery, setCashOnDelivery] = useState(true)
+  // Delivery payment timing
+  const [innerCityCod, setInnerCityCod] = useState(true)      // true = collect at delivery
+  const [intercityPrepay, setIntercityPrepay] = useState(true) // true = collect before dispatch
 
   useEffect(() => {
     async function load() {
@@ -43,6 +46,8 @@ export default function PaymentSettingsPage() {
         setBankAccount((s.bank_account as string) || '')
         setBankHolder((s.bank_holder as string) || '')
         setCashOnDelivery((s.cash_on_delivery as boolean) ?? true)
+        setInnerCityCod((s.inner_city_cod as boolean) ?? true)
+        setIntercityPrepay((s.intercity_prepay as boolean) ?? true)
       }
       setLoading(false)
     }
@@ -63,6 +68,8 @@ export default function PaymentSettingsPage() {
         bank_account: bankAccount,
         bank_holder: bankHolder,
         cash_on_delivery: cashOnDelivery,
+        inner_city_cod: innerCityCod,
+        intercity_prepay: intercityPrepay,
       },
     }).eq('id', storeId)
 
@@ -204,6 +211,79 @@ export default function PaymentSettingsPage() {
             >
               <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${cashOnDelivery ? 'translate-x-6' : 'translate-x-0.5'}`} />
             </button>
+          </div>
+        </div>
+
+        {/* ── Delivery Payment Timing ──────────────────────────────────── */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-5">
+          <div>
+            <h3 className="text-white font-medium">🚚 Хүргэлтийн төлбөр авах цаг</h3>
+            <p className="text-slate-400 text-sm mt-1">
+              Жолооч хэзээ төлбөр авах вэ? Telegram-д хүргэлт дуусмагц жолоочид мэдэгдэл ирнэ.
+            </p>
+          </div>
+
+          {/* Inner city */}
+          <div className={`p-4 border rounded-xl transition-all ${innerCityCod ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-600 bg-slate-700/20'}`}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-white text-sm font-medium">🏙️ Хотын хүргэлт</p>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  {innerCityCod
+                    ? 'Жолооч хүргэж өгөхдөө төлбөр авна (COD)'
+                    : 'Харилцагч захиалахаасаа өмнө урьдчилж төлнө'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-slate-400">{innerCityCod ? 'Хүргэлт дээр' : 'Урьдчилж'}</span>
+                <button
+                  onClick={() => setInnerCityCod(!innerCityCod)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${innerCityCod ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${innerCityCod ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            </div>
+            {innerCityCod && (
+              <p className="mt-3 text-xs text-emerald-400/80">
+                ✅ Жолооч хүргэсний дараа Telegram-д &ldquo;Төлбөр авлаа / Дараа / Татгалзав&rdquo; товч гарна
+              </p>
+            )}
+          </div>
+
+          {/* Intercity */}
+          <div className={`p-4 border rounded-xl transition-all ${intercityPrepay ? 'border-orange-500/30 bg-orange-500/5' : 'border-slate-600 bg-slate-700/20'}`}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-white text-sm font-medium">🚌 Хотоор хоорондын хүргэлт</p>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  {intercityPrepay
+                    ? 'Жолооч бараа хүлээж авахаасаа өмнө төлбөр авна'
+                    : 'Харилцагч хүлээн авахдаа шуудангийн газарт төлнө'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-slate-400">{intercityPrepay ? 'Урьдчилж' : 'Хүлээн авахад'}</span>
+                <button
+                  onClick={() => setIntercityPrepay(!intercityPrepay)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${intercityPrepay ? 'bg-orange-500' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${intercityPrepay ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            </div>
+            {intercityPrepay && (
+              <p className="mt-3 text-xs text-orange-400/80">
+                ✅ Wizard-д &ldquo;Урьдчилж төлбөр авсан уу?&rdquo; гэсэн алхам гарна
+              </p>
+            )}
+          </div>
+
+          <div className="p-3 bg-slate-700/30 border border-slate-600/50 rounded-xl">
+            <p className="text-slate-400 text-xs leading-relaxed">
+              💡 <strong className="text-slate-300">Зөвлөгөө:</strong> Ихэнх онлайн дэлгүүр хотын хүргэлтэд COD ашигладаг.
+              Хотоор хоорондын хүргэлтэд урьдчилж авах нь алдагдал багасгана — жолооч барааг автобусанд өгсний дараа нэхэхэд хэцүү.
+            </p>
           </div>
         </div>
 

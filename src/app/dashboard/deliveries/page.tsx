@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { exportToFile } from '@/lib/export-utils'
+import BatchDispatchModal from '@/components/BatchDispatchModal'
+import type { BatchPreview } from '@/app/api/deliveries/batch-assign/route'
 
 interface Delivery {
   id: string
   delivery_number: string
-  status: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'cancelled' | 'delayed'
-  delivery_type: 'own_driver' | 'external_provider'
+  status: 'pending' | 'assigned' | 'at_store' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'cancelled' | 'delayed' | 'intercity_post'
+  delivery_type: 'own_driver' | 'external_provider' | 'intercity_post'
   provider_name: string | null
   delivery_address: string
   customer_name: string | null
@@ -22,7 +24,7 @@ interface Delivery {
   notes: string | null
   ai_assignment: { recommended_driver_id?: string; confidence?: number; ranked_drivers?: { driver_id: string; score: number; reasons: string[] }[] } | null
   created_at: string
-  orders: { id: string; order_number: string; total_amount: number } | null
+  orders: { id: string; order_number: string; total_amount: number; payment_status: string | null } | null
   delivery_drivers: { id: string; name: string; phone: string; vehicle_type: string } | null
 }
 
@@ -36,6 +38,7 @@ interface Driver {
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   pending: { label: 'Хүлээгдэж буй', color: 'bg-yellow-500/20 text-yellow-400', icon: '⏳' },
   assigned: { label: 'Оноосон', color: 'bg-blue-500/20 text-blue-400', icon: '👤' },
+  at_store: { label: 'Дэлгүүрт', color: 'bg-cyan-500/20 text-cyan-400', icon: '🏪' },
   picked_up: { label: 'Авсан', color: 'bg-indigo-500/20 text-indigo-400', icon: '📦' },
   in_transit: { label: 'Зам дээр', color: 'bg-purple-500/20 text-purple-400', icon: '🚚' },
   delivered: { label: 'Хүргэсэн', color: 'bg-green-500/20 text-green-400', icon: '✅' },
@@ -70,6 +73,9 @@ export default function DeliveriesPage() {
   const [formDeliveryFee, setFormDeliveryFee] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [assigning, setAssigning] = useState<string | null>(null)
+  const [batchPreview, setBatchPreview] = useState<BatchPreview | null>(null)
+  const [batchLoading, setBatchLoading] = useState(false)
+  const [batchConfirming, setBatchConfirming] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -93,7 +99,7 @@ export default function DeliveriesPage() {
               delivery_address, customer_name, customer_phone,
               estimated_delivery_time, actual_delivery_time,
               delivery_fee, failure_reason, notes, ai_assignment, created_at,
-              orders(id, order_number, total_amount),
+              orders(id, order_number, total_amount, payment_status),
               delivery_drivers(id, name, phone, vehicle_type)
             `)
             .eq('store_id', store.id)
@@ -131,7 +137,11 @@ export default function DeliveriesPage() {
   }, [deliveries, search, statusFilter])
 
   // Active counts
-  const activeCount = deliveries.filter(d => ['assigned', 'picked_up', 'in_transit'].includes(d.status)).length
+  const activeCount = deliveries.filter(d => ['assigned', 'at_store', 'picked_up', 'in_transit'].includes(d.status)).length
+  const atStoreCount = deliveries.filter(d => d.status === 'at_store').length
+  const awaitingPaymentCount = deliveries.filter(d =>
+    d.delivery_type === 'intercity_post' && d.orders?.payment_status !== 'paid' && d.status === 'pending'
+  ).length
   const pendingCount = deliveries.filter(d => d.status === 'pending').length
   const completedCount = deliveries.filter(d => d.status === 'delivered').length
   const failedCount = deliveries.filter(d => ['failed', 'delayed'].includes(d.status)).length
@@ -207,6 +217,81 @@ export default function DeliveriesPage() {
     }
   }
 
+  async function handleConfirmHandoff(deliveryId: string) {
+    try {
+      const res = await fetch(`/api/deliveries/${deliveryId}/confirm-handoff`, { method: 'POST' })
+      if (res.ok) {
+        setDeliveries(prev => prev.map(d =>
+          d.id === deliveryId ? { ...d, status: 'picked_up' as const } : d
+        ))
+      } else {
+        const err = await res.json()
+        alert(err.error || 'Алдаа гарлаа')
+      }
+    } catch { alert('Алдаа гарлаа') }
+  }
+
+  async function handleConfirmPayment(deliveryId: string) {
+    try {
+      const res = await fetch(`/api/deliveries/${deliveryId}/confirm-payment`, { method: 'POST' })
+      if (res.ok) {
+        setDeliveries(prev => prev.map(d =>
+          d.id === deliveryId && d.orders
+            ? { ...d, orders: { ...d.orders, payment_status: 'paid' } }
+            : d
+        ))
+      } else {
+        const err = await res.json()
+        alert(err.error || 'Алдаа гарлаа')
+      }
+    } catch { alert('Алдаа гарлаа') }
+  }
+
+  async function handleOpenBatchDispatch() {
+    setBatchLoading(true)
+    try {
+      const res = await fetch('/api/deliveries/batch-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Алдаа гарлаа'); return }
+      if (data.total === 0) { alert(data.message || 'Оноох хүргэлт байхгүй'); return }
+      setBatchPreview(data as BatchPreview)
+    } catch { alert('Алдаа гарлаа') }
+    finally { setBatchLoading(false) }
+  }
+
+  async function handleConfirmBatchDispatch() {
+    if (!batchPreview) return
+    setBatchConfirming(true)
+    try {
+      const res = await fetch('/api/deliveries/batch-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: false }),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Алдаа гарлаа'); return }
+
+      // Refresh deliveries list after batch assign
+      const updatedIds = (data.assignments as { delivery_id: string; driver_id: string }[]).map(a => a.delivery_id)
+      setDeliveries(prev => prev.map(d => {
+        const a = (data.assignments as { delivery_id: string; driver_id: string; driver_name: string }[]).find(x => x.delivery_id === d.id)
+        if (!a) return d
+        return {
+          ...d,
+          status: 'assigned' as const,
+          delivery_drivers: { id: a.driver_id, name: a.driver_name, phone: '', vehicle_type: '' },
+        }
+      }))
+      console.log(`Batch dispatch: ${updatedIds.length} assigned`)
+      setBatchPreview(null)
+    } catch { alert('Алдаа гарлаа') }
+    finally { setBatchConfirming(false) }
+  }
+
   const handleExport = (format: 'xlsx' | 'csv') => {
     const data = filtered.map(d => ({
       'Дугаар': d.delivery_number,
@@ -231,6 +316,16 @@ export default function DeliveriesPage() {
 
   return (
     <div>
+      {/* Batch dispatch modal */}
+      {batchPreview && (
+        <BatchDispatchModal
+          preview={batchPreview}
+          onConfirm={handleConfirmBatchDispatch}
+          onCancel={() => setBatchPreview(null)}
+          confirming={batchConfirming}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -288,6 +383,44 @@ export default function DeliveriesPage() {
         </div>
       </div>
 
+      {/* Urgent alerts */}
+      {(atStoreCount > 0 || awaitingPaymentCount > 0) && (
+        <div className="space-y-2 mb-4">
+          {atStoreCount > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
+              <div className="flex items-center gap-2">
+                <span>🏪</span>
+                <span className="text-cyan-300 text-sm font-medium">
+                  {atStoreCount} жолооч дэлгүүрт хүлээж байна — бараа өгөх шаардлагатай
+                </span>
+              </div>
+              <button
+                onClick={() => setStatusFilter('at_store')}
+                className="text-xs px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all"
+              >
+                Харах
+              </button>
+            </div>
+          )}
+          {awaitingPaymentCount > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+              <div className="flex items-center gap-2">
+                <span>💳</span>
+                <span className="text-orange-300 text-sm font-medium">
+                  {awaitingPaymentCount} хотоор хоорондын захиалга урьдчилж төлбөр хүлээж байна
+                </span>
+              </div>
+              <button
+                onClick={() => setStatusFilter('pending')}
+                className="text-xs px-3 py-1 bg-orange-500/20 text-orange-400 rounded-lg hover:bg-orange-500/30 transition-all"
+              >
+                Харах
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-4">
@@ -311,6 +444,7 @@ export default function DeliveriesPage() {
             <option value="">Бүх төлөв</option>
             <option value="pending">Хүлээгдэж буй</option>
             <option value="assigned">Оноосон</option>
+            <option value="at_store">🏪 Дэлгүүрт</option>
             <option value="picked_up">Авсан</option>
             <option value="in_transit">Зам дээр</option>
             <option value="delivered">Хүргэсэн</option>
@@ -318,6 +452,16 @@ export default function DeliveriesPage() {
             <option value="delayed">Хоцорсон</option>
             <option value="cancelled">Цуцлагдсан</option>
           </select>
+          <button
+            onClick={handleOpenBatchDispatch}
+            disabled={batchLoading}
+            className="px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-xl transition-all flex items-center gap-2 text-sm disabled:opacity-50"
+          >
+            {batchLoading
+              ? <><span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /><span>Бэлтгэж байна...</span></>
+              : <><span>🤖</span><span>Ухаалаг хуваарилах</span></>
+            }
+          </button>
           <button onClick={() => handleExport('xlsx')} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center gap-2 text-sm">
             <span>📥</span><span>Excel</span>
           </button>
@@ -480,7 +624,23 @@ export default function DeliveriesPage() {
                       </div>
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6">
-                      {del.delivery_drivers ? (
+                      {/* at_store: show "Бараа өгсөн" confirm button */}
+                      {del.status === 'at_store' ? (
+                        <div className="space-y-1">
+                          {del.delivery_drivers && (
+                            <div>
+                              <p className="text-white text-sm">{del.delivery_drivers.name}</p>
+                              <p className="text-slate-400 text-xs">{del.delivery_drivers.phone}</p>
+                            </div>
+                          )}
+                          <button
+                            onClick={(e) => { e.preventDefault(); handleConfirmHandoff(del.id) }}
+                            className="block text-xs px-2 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 rounded transition-all"
+                          >
+                            📦 Бараа өгсөн
+                          </button>
+                        </div>
+                      ) : del.delivery_drivers ? (
                         <div>
                           <p className="text-white text-sm">{del.delivery_drivers.name}</p>
                           <p className="text-slate-400 text-xs">{del.delivery_drivers.phone}</p>
@@ -492,18 +652,30 @@ export default function DeliveriesPage() {
                         </div>
                       ) : del.status === 'pending' ? (
                         <div className="space-y-1">
-                          {del.ai_assignment?.ranked_drivers && del.ai_assignment.ranked_drivers.length > 0 ? (
-                            <span className="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded inline-block">
-                              AI санал: {drivers.find(d => d.id === del.ai_assignment?.ranked_drivers?.[0]?.driver_id)?.name || 'Жолооч'}
-                            </span>
-                          ) : null}
-                          <button
-                            onClick={(e) => { e.preventDefault(); handleAiAssign(del.id) }}
-                            disabled={assigning === del.id}
-                            className="block text-xs px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded transition-all disabled:opacity-50"
-                          >
-                            {assigning === del.id ? 'Оноож байна...' : 'AI оноох'}
-                          </button>
+                          {/* Intercity payment gate */}
+                          {del.delivery_type === 'intercity_post' && del.orders?.payment_status !== 'paid' ? (
+                            <button
+                              onClick={(e) => { e.preventDefault(); handleConfirmPayment(del.id) }}
+                              className="block text-xs px-2 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30 rounded transition-all"
+                            >
+                              💳 Төлбөр баталгаажуулах
+                            </button>
+                          ) : (
+                            <>
+                              {del.ai_assignment?.ranked_drivers && del.ai_assignment.ranked_drivers.length > 0 ? (
+                                <span className="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded inline-block">
+                                  AI санал: {drivers.find(d => d.id === del.ai_assignment?.ranked_drivers?.[0]?.driver_id)?.name || 'Жолооч'}
+                                </span>
+                              ) : null}
+                              <button
+                                onClick={(e) => { e.preventDefault(); handleAiAssign(del.id) }}
+                                disabled={assigning === del.id}
+                                className="block text-xs px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded transition-all disabled:opacity-50"
+                              >
+                                {assigning === del.id ? 'Оноож байна...' : 'AI оноох'}
+                              </button>
+                            </>
+                          )}
                         </div>
                       ) : (
                         <span className="text-slate-500 text-sm">Оноогоогүй</span>
@@ -511,10 +683,21 @@ export default function DeliveriesPage() {
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${
-                        del.delivery_type === 'own_driver' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-orange-500/20 text-orange-400'
+                        del.delivery_type === 'own_driver'
+                          ? 'bg-cyan-500/20 text-cyan-400'
+                          : del.delivery_type === 'intercity_post'
+                          ? 'bg-orange-500/20 text-orange-400'
+                          : 'bg-slate-500/20 text-slate-400'
                       }`}>
-                        {del.delivery_type === 'own_driver' ? 'Өөрийн' : del.provider_name || 'Гадны'}
+                        {del.delivery_type === 'own_driver'
+                          ? '🚗 Өөрийн'
+                          : del.delivery_type === 'intercity_post'
+                          ? '🚌 Хотоор хоорондын'
+                          : del.provider_name || 'Гадны'}
                       </span>
+                      {del.delivery_type === 'intercity_post' && del.orders?.payment_status === 'paid' && (
+                        <span className="block mt-0.5 text-xs text-emerald-400">✅ Төлбөр авсан</span>
+                      )}
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${sc.color}`}>
