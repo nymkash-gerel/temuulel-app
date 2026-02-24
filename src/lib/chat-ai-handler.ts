@@ -195,6 +195,36 @@ export async function processAIChat(
               draft.step = 'confirming'
               orderDraft = draft
               responseText = buildOrderSummary(draft)
+            } else if (!phone && !addr && hasOrderIntent(customerMessage)) {
+              // No contact info found but customer seems to want a different product.
+              // Cancel current draft and start fresh order flow.
+              orderDraft = null
+              const searchTerms = extractSearchTerms(customerMessage)
+              const newProducts = await searchProducts(supabase, searchTerms || customerMessage, storeId, {
+                maxProducts: 5,
+              })
+              if (newProducts.length > 0) {
+                products = newProducts
+                // If specific product identified, start order draft directly
+                const msgWords = normalizeText(customerMessage).trim().split(/\s+/)
+                const nonOrderWords = msgWords.filter((w) =>
+                  !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+                  && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+                )
+                if (nonOrderWords.some((w) => w.length >= 2) && newProducts.length === 1) {
+                  const result = await startOrderDraft(supabase, { id: newProducts[0].id, name: newProducts[0].name, base_price: newProducts[0].base_price }, customerMessage)
+                  orderDraft = result.draft
+                  responseText = result.responseText
+                  intent = 'order_collection'
+                } else {
+                  const productList = newProducts.map((p, i) => `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}`).join('\n')
+                  responseText = `Ямар бүтээгдэхүүн захиалмаар байна?\n\n${productList}\n\nДугаараа бичнэ үү:`
+                  intent = 'product_search'
+                }
+              } else {
+                responseText = buildInfoRequest(draft)
+                orderDraft = draft
+              }
             } else {
               orderDraft = draft
               responseText = buildInfoRequest(draft)
