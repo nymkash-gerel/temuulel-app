@@ -45,7 +45,7 @@ export function orderAssignedKeyboard(deliveryId: string): TgInlineKeyboard {
   return {
     inline_keyboard: [
       [
-        { text: '✅ Авлаа', callback_data: `picked_up:${deliveryId}` },
+        { text: '🏪 Дэлгүүрт ирлээ', callback_data: `arrived_at_store:${deliveryId}` },
         { text: '❌ Татгалзах', callback_data: `reject:${deliveryId}` },
       ],
     ],

@@ -100,7 +100,25 @@ async function handleCallbackQuery(
   if (messageId) await tgRemoveButtons(chatId, messageId)
 
   switch (action) {
+    case 'arrived_at_store': {
+      // Driver tapped "🏪 Дэлгүүрт ирлээ"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'at_store', updated_at: new Date().toISOString() })
+        .eq('id', deliveryId)
+
+      await tgAnswerCallback(cb.id, '🏪 Бүртгэгдлээ!')
+      await tgSend(chatId,
+        `🏪 <b>Дэлгүүрт ирсэн гэж бүртгэгдлээ.</b>\n\n` +
+        `Дэлгүүрийн менежер барааг таньд өгсний дараа "Бараа өгсөн" дарна.\n` +
+        `Та хүлээх шаардлагатай — Telegram-д мэдэгдэл ирнэ.`
+      )
+      break
+    }
+
     case 'picked_up': {
+      // Legacy callback (old messages sent before arrived_at_store flow) — still works
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('deliveries').update({ status: 'picked_up' }).eq('id', deliveryId)
       await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
