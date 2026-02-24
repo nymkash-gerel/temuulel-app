@@ -619,11 +619,6 @@ export function classifyIntent(message: string): string {
   return classifyIntentWithConfidence(message).intent
 }
 
-/**
- * Hybrid classifier that combines keyword-based and ML-based approaches.
- * Uses the hybrid classification strategy for potentially better accuracy.
- */
-export function classifyIntentHybrid(message: string): IntentResult {
-  const { hybridClassify } = require('./ai/hybrid-classifier')
-  return hybridClassify(message)
-}
+// classifyIntentHybrid removed — was creating a Turbopack circular dependency
+// via require('./ai/hybrid-classifier') inside intent-classifier.ts
+// Use hybridClassify directly from '@/lib/ai/hybrid-classifier' instead.
