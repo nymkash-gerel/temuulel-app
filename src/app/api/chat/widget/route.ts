@@ -135,14 +135,20 @@ export async function POST(request: NextRequest) {
       console.error('[Widget] conversation upsert failed:', upsertResult.error.message)
     }
 
-    const aiResult = await processAIChat(supabase, {
-      conversationId: conversation_id,
-      customerMessage: customer_message,
-      storeId: store_id,
-      storeName,
-      customerId,
-      chatbotSettings,
-    })
+    let aiResult: Awaited<ReturnType<typeof processAIChat>>
+    try {
+      aiResult = await processAIChat(supabase, {
+        conversationId: conversation_id,
+        customerMessage: customer_message,
+        storeId: store_id,
+        storeName,
+        customerId,
+        chatbotSettings,
+      })
+    } catch (aiErr) {
+      console.error('[Widget] processAIChat threw:', aiErr instanceof Error ? aiErr.message : String(aiErr))
+      return NextResponse.json({ error: 'AI pipeline failed' }, { status: 500 })
+    }
 
     // 6. Smart escalation — evaluate score AFTER AI response is saved
     // Skip escalation for informational intents (customer is just asking questions)
