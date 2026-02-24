@@ -621,6 +621,14 @@ function extractPhone(msg: string): string | null {
  * Extract address from a message. Removes phone number if found.
  * Returns null if remaining text is too short to be an address.
  */
+// Address keywords that must be present for a message to be considered an address
+const ADDRESS_KEYWORDS = [
+  'дүүрэг', 'хороо', 'байр', 'тоот', 'гудамж', 'хороолол', 'дэнж',
+  'өргөн чөлөө', 'нутгийн', 'баянгол', 'сүхбаатар', 'чингэлтэй',
+  'хан-уул', 'баянзүрх', 'сонгинохайрхан', 'налайх', 'багануур',
+  'багахангай', 'орон сууц', 'гэр хороолол', 'сум', 'аймаг',
+]
+
 function extractAddress(msg: string, phone: string | null): string | null {
   let text = msg.trim()
   // Remove phone digits from text
@@ -631,8 +639,10 @@ function extractAddress(msg: string, phone: string | null): string | null {
   text = text.replace(/утас\s*(нь|:)?\s*/gi, '').replace(/дугаар\s*:?\s*/gi, '').trim()
   // Clean up punctuation at edges
   text = text.replace(/^[,;:\s]+|[,;:\s]+$/g, '').trim()
-  // Must be substantial to be an address (at least 5 chars)
-  return text.length >= 5 ? text : null
+  // Must contain at least one address keyword AND be substantial (10+ chars)
+  const lower = text.toLowerCase()
+  const hasAddressKeyword = ADDRESS_KEYWORDS.some(kw => lower.includes(kw))
+  return (text.length >= 10 && hasAddressKeyword) ? text : null
 }
 
 function resolveVariantFromMessage(msg: string, variants: VariantRow[]): VariantRow | null {
