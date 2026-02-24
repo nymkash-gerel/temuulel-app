@@ -7,7 +7,7 @@ import type { DriverCandidate, AssignmentRules } from '@/lib/ai/delivery-assigne
 import { dispatchNotification } from '@/lib/notifications'
 import { sendPushToUser } from '@/lib/push'
 import { sendDeliveryTrackingSMS } from '@/lib/sms'
-import { sendToDriver, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard } from '@/lib/driver-telegram'
+import { sendToDriver, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard, intercityKeyboard } from '@/lib/driver-telegram'
 
 /**
  * POST /api/deliveries/assign
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   // Fetch the delivery
   const { data: delivery } = await supabase
     .from('deliveries')
-    .select('id, delivery_number, store_id, delivery_address, customer_name, customer_phone, status, driver_id, order_id')
+    .select('id, delivery_number, store_id, delivery_address, customer_name, customer_phone, status, driver_id, order_id, delivery_type')
     .eq('id', body.delivery_id)
     .eq('store_id', store.id)
     .single()
@@ -235,7 +235,9 @@ export async function POST(request: NextRequest) {
         customerPhone: delivery.customer_phone ?? undefined,
         items: itemsSummary,
       }),
-      orderAssignedKeyboard(delivery.id)
+      delivery.delivery_type === 'intercity_post'
+        ? intercityKeyboard(delivery.id)
+        : orderAssignedKeyboard(delivery.id)
     ).catch(() => {}) // Non-blocking — falls back gracefully if no Telegram linked
 
     // Send tracking SMS to customer

@@ -83,6 +83,85 @@ export function issueKeyboard(deliveryId: string): TgInlineKeyboard {
   }
 }
 
+/** Buttons shown when an intercity order is assigned to driver */
+export function intercityKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🚌 Тээвэрт өгсөн', callback_data: `intercity_start:${deliveryId}` },
+        { text: '❌ Татгалзах', callback_data: `reject:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
+/** Transport type selection for intercity wizard */
+export function intercityTransportKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🚌 Хотын автобус', callback_data: `intercity_type:bus:${deliveryId}` },
+        { text: '🚗 Хувийн жолооч', callback_data: `intercity_type:private:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
+/** Confirm / retry buttons shown at the end of the intercity wizard */
+export function intercityConfirmKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '✅ Тийм, илгээ', callback_data: `intercity_confirm:${deliveryId}` },
+        { text: '🔄 Дахин оруулах', callback_data: `intercity_retry:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Intercity wizard state (stored in delivery_drivers.metadata)
+// ---------------------------------------------------------------------------
+
+export type IntercityWizardStep = 'transport_type' | 'phone' | 'license' | 'eta' | 'confirm'
+
+export interface IntercityWizard {
+  delivery_id: string
+  step: IntercityWizardStep
+  transport?: 'bus' | 'private'
+  phone?: string
+  license?: string
+  eta?: string
+}
+
+// ---------------------------------------------------------------------------
+// Intercity customer notification message
+// ---------------------------------------------------------------------------
+
+export interface IntercityHandoff {
+  transport: 'bus' | 'private'
+  phone: string
+  license: string
+  eta: string
+}
+
+export function intercityCustomerMessage(
+  orderNumber: string,
+  handoff: IntercityHandoff
+): string {
+  const transportLabel = handoff.transport === 'bus' ? '🚌 Хотын автобус' : '🚗 Хувийн жолооч'
+  return (
+    `📦 Таны захиалга хотоор хоорондын тээврээр илгээгдлээ!\n\n` +
+    `🆔 Захиалга: #${orderNumber}\n` +
+    `${transportLabel}\n` +
+    `📞 Жолоочийн утас: ${handoff.phone}\n` +
+    `🚗 Машины дугаар: ${handoff.license}\n` +
+    `⏰ Ойролцоо ирэх хугацаа: ${handoff.eta}\n\n` +
+    `Хүлээн авахдаа тээврийн үнийг шуудангийн газарт/жолоочид төлнө үү.\n` +
+    `Асуулт байвал дэлгүүртэй холбогдоно уу. 🙏`
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Telegram API helpers
 // ---------------------------------------------------------------------------

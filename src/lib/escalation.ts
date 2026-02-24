@@ -221,6 +221,18 @@ export function evaluateEscalation(
   let addedScore = 0
   const signals: string[] = []
 
+  // Check for multiple exclamation marks (strong emotional signal)
+  const exclamationCount = (currentMessage.match(/!/g) || []).length
+  if (exclamationCount >= 3) {
+    // 3+ exclamation marks = immediate escalation (customer is very frustrated/angry)
+    return {
+      newScore: config.threshold,
+      level: 'critical',
+      shouldEscalate: true,
+      signals: ['immediate_escalation', 'multiple_exclamations'],
+    }
+  }
+
   // Check for immediate escalation triggers (bypass scoring)
   for (const trigger of IMMEDIATE_ESCALATION_TRIGGERS) {
     if (lower.includes(trigger.toLowerCase())) {

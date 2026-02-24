@@ -21,12 +21,17 @@ import {
   enRouteKeyboard,
   issueKeyboard,
   orderAssignedKeyboard,
+  intercityKeyboard,
+  intercityTransportKeyboard,
+  intercityConfirmKeyboard,
+  intercityCustomerMessage,
   sendToDriver,
   DRIVER_BOT_WELCOME,
   DRIVER_BOT_LINKED,
   DRIVER_BOT_NOT_FOUND,
   DRIVER_BOT_ALREADY_LINKED,
   DRIVER_PROACTIVE_MESSAGES,
+  type IntercityWizard,
 } from '@/lib/driver-telegram'
 import { processDriverMessage } from '@/lib/driver-chat-engine'
 import { assignDriver, DEFAULT_DELIVERY_SETTINGS } from '@/lib/ai/delivery-assigner'
@@ -248,6 +253,198 @@ async function handleCallbackQuery(
       break
     }
 
+    // ── Intercity wizard ─────────────────────────────────────────────────
+
+    case 'intercity_start': {
+      // Driver tapped "🚌 Тээвэрт өгсөн" — start wizard
+      await tgAnswerCallback(cb.id, '📋 Мэдээлэл оруулна уу')
+      // Save wizard state to driver metadata
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: driverRow } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, metadata')
+        .eq('telegram_chat_id', chatId)
+        .maybeSingle()
+      if (!driverRow) { await tgAnswerCallback(cb.id, '❌ Жолооч олдсонгүй'); break }
+
+      const wizard: IntercityWizard = { delivery_id: deliveryId, step: 'transport_type' }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers').update({
+        metadata: { ...(driverRow.metadata as object || {}), intercity_wizard: wizard },
+      }).eq('id', driverRow.id)
+
+      await tgSend(chatId,
+        `🚌 <b>Хотоор хоорондын тээвэр</b>\n\nТээврийн төрлийг сонгоно уу:`,
+        { replyMarkup: intercityTransportKeyboard(deliveryId) }
+      )
+      break
+    }
+
+    case 'intercity_type': {
+      // action = 'intercity_type', deliveryId = 'bus' or 'private', third part = actual id
+      // callback_data format: intercity_type:bus:deliveryId
+      const parts = data.split(':')
+      const transport = parts[1] as 'bus' | 'private'
+      const actualDeliveryId = parts[2]
+      if (!transport || !actualDeliveryId) { await tgAnswerCallback(cb.id, '❌ Алдаа'); break }
+
+      await tgAnswerCallback(cb.id, transport === 'bus' ? '🚌 Автобус' : '🚗 Хувийн жолооч')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: driverRow2 } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, metadata')
+        .eq('telegram_chat_id', chatId)
+        .maybeSingle()
+      if (!driverRow2) break
+
+      const wizard2: IntercityWizard = {
+        delivery_id: actualDeliveryId,
+        step: 'phone',
+        transport,
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers').update({
+        metadata: { ...(driverRow2.metadata as object || {}), intercity_wizard: wizard2 },
+      }).eq('id', driverRow2.id)
+
+      const label = transport === 'bus' ? '🚌 Хотын автобус' : '🚗 Хувийн жолооч'
+      await tgSend(chatId,
+        `${label} сонгогдлоо.\n\n📞 <b>Жолоочийн утасны дугаар</b> оруулна уу:\n(жишээ: 99112233)`
+      )
+      break
+    }
+
+    case 'intercity_confirm': {
+      // Confirm — save to DB + send customer message
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: driverRow3 } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, metadata')
+        .eq('telegram_chat_id', chatId)
+        .maybeSingle()
+      if (!driverRow3) { await tgAnswerCallback(cb.id, '❌ Алдаа'); break }
+
+      const meta3 = driverRow3.metadata as Record<string, unknown> | null
+      const wiz3 = meta3?.intercity_wizard as IntercityWizard | undefined
+      if (!wiz3 || wiz3.step !== 'confirm' || !wiz3.transport || !wiz3.phone || !wiz3.license || !wiz3.eta) {
+        await tgAnswerCallback(cb.id, '❌ Мэдээлэл дутуу — дахин оролдоно уу')
+        break
+      }
+
+      await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
+
+      const handoff = {
+        transport: wiz3.transport,
+        phone: wiz3.phone,
+        license: wiz3.license,
+        eta: wiz3.eta,
+        dispatched_at: new Date().toISOString(),
+      }
+
+      // Update delivery status + store handoff in metadata
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: updatedDelivery } = await (supabase as any)
+        .from('deliveries')
+        .update({
+          status: 'in_transit',
+          estimated_delivery_time: wiz3.eta,
+          metadata: { intercity_handoff: handoff },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', wiz3.delivery_id)
+        .select('id, order_id, delivery_number, store_id')
+        .single()
+
+      // Clear wizard state from driver
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const clearedMeta = { ...(driverRow3.metadata as object || {}) }
+      delete (clearedMeta as Record<string, unknown>).intercity_wizard
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers').update({ metadata: clearedMeta }).eq('id', driverRow3.id)
+
+      // Send customer notification via messages table
+      if (updatedDelivery?.order_id) {
+        try {
+          // Get order number
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: order } = await (supabase as any)
+            .from('orders')
+            .select('order_number, customer_id')
+            .eq('id', updatedDelivery.order_id)
+            .single()
+
+          if (order?.customer_id) {
+            // Find the most recent conversation for this customer + store
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: conversation } = await (supabase as any)
+              .from('conversations')
+              .select('id')
+              .eq('customer_id', order.customer_id)
+              .eq('store_id', updatedDelivery.store_id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+
+            if (conversation) {
+              const customerMsg = intercityCustomerMessage(order.order_number, handoff)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (supabase as any).from('messages').insert({
+                conversation_id: conversation.id,
+                content: customerMsg,
+                is_from_customer: false,
+                is_ai_response: false,
+                metadata: { type: 'intercity_dispatch', handoff },
+              })
+            }
+          }
+        } catch (notifyErr) {
+          console.error('[DriverBot] Customer notify failed:', notifyErr)
+        }
+      }
+
+      // Confirm to driver
+      const transportLabel = wiz3.transport === 'bus' ? '🚌 Хотын автобус' : '🚗 Хувийн жолооч'
+      await tgSend(chatId,
+        `✅ <b>Амжилттай бүртгэгдлээ!</b>\n\n` +
+        `📦 Захиалга: #${updatedDelivery?.delivery_number || wiz3.delivery_id}\n` +
+        `${transportLabel}\n` +
+        `📞 Жолоочийн утас: ${wiz3.phone}\n` +
+        `🚗 Машины дугаар: ${wiz3.license}\n` +
+        `⏰ Ирэх хугацаа: ${wiz3.eta}\n\n` +
+        `Харилцагч руу мэдэгдэл явуулсан. Баярлалаа!`
+      )
+      break
+    }
+
+    case 'intercity_retry': {
+      // Reset wizard back to transport_type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: driverRow4 } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, metadata')
+        .eq('telegram_chat_id', chatId)
+        .maybeSingle()
+      if (!driverRow4) { await tgAnswerCallback(cb.id, '❌ Алдаа'); break }
+
+      const meta4 = driverRow4.metadata as Record<string, unknown> | null
+      const wiz4 = meta4?.intercity_wizard as IntercityWizard | undefined
+      const retryDeliveryId = wiz4?.delivery_id || deliveryId
+
+      const freshWizard: IntercityWizard = { delivery_id: retryDeliveryId, step: 'transport_type' }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers').update({
+        metadata: { ...(driverRow4.metadata as object || {}), intercity_wizard: freshWizard },
+      }).eq('id', driverRow4.id)
+
+      await tgAnswerCallback(cb.id, '🔄 Дахин оруулна уу')
+      await tgSend(chatId,
+        `🔄 <b>Дахин оруулна уу.</b>\n\nТээврийн төрлийг сонгоно уу:`,
+        { replyMarkup: intercityTransportKeyboard(retryDeliveryId) }
+      )
+      break
+    }
+
     default:
       await tgAnswerCallback(cb.id, '❓ Тодорхойгүй үйлдэл')
   }
@@ -341,8 +538,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── Early driver lookup — needed to protect wizard from phone-linking handler ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: earlyDriver } = await (supabase as any)
+    .from('delivery_drivers')
+    .select('id, metadata')
+    .eq('telegram_chat_id', chatId)
+    .maybeSingle()
+
+  const earlyMeta = earlyDriver?.metadata as Record<string, unknown> | null
+  const earlyWizard = earlyMeta?.intercity_wizard as IntercityWizard | undefined
+  const hasActiveWizard = !!earlyWizard
+
   // ── Phone number (onboarding) ────────────────────────────────────────────
-  if (looksLikePhone(text) || msg.contact) {
+  // Skip if driver is already linked AND has an active wizard (their text is wizard input)
+  if (!hasActiveWizard && (looksLikePhone(text) || msg.contact)) {
     const rawPhone = msg.contact?.phone_number ?? text
     const phone = normalizePhone(rawPhone) // Always 8 digits e.g. "99112233"
 
@@ -381,13 +591,8 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Natural language from authenticated driver ───────────────────────────
-  // Look up which driver this chat_id belongs to
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: driver } = await (supabase as any)
-    .from('delivery_drivers')
-    .select('id, name')
-    .eq('telegram_chat_id', chatId)
-    .maybeSingle()
+  // Reuse earlyDriver from above (already fetched by chatId)
+  const driver = earlyDriver as { id: string; name?: string; metadata?: unknown } | null
 
   if (!driver) {
     // Unknown sender — prompt to link first
@@ -396,6 +601,78 @@ export async function POST(request: NextRequest) {
       `❓ Таны акаунт холбогдоогүй байна.\n\nУтасны дугаараа илгээнэ үү (жишээ: 99112233).`
     )
     return NextResponse.json({ ok: true })
+  }
+
+  // ── Intercity wizard text-input handler ─────────────────────────────────
+  // Reuse earlyMeta / earlyWizard from above
+  const driverMetadata = earlyMeta
+  const activeWizard = earlyWizard
+
+  if (activeWizard) {
+    const wiz = activeWizard
+
+    switch (wiz.step) {
+      case 'phone': {
+        // Driver sent phone number for the bus/private driver
+        const updatedWiz: IntercityWizard = { ...wiz, step: 'license', phone: text }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('delivery_drivers').update({
+          metadata: { ...driverMetadata, intercity_wizard: updatedWiz },
+        }).eq('id', driver.id)
+
+        await tgSend(chatId,
+          `📞 Утас: <b>${text}</b> ✅\n\n🚗 <b>Машины дугаар</b> оруулна уу:\n(жишээ: 1234 УНА)`
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      case 'license': {
+        // Driver sent the license plate
+        const updatedWiz: IntercityWizard = { ...wiz, step: 'eta', license: text }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('delivery_drivers').update({
+          metadata: { ...driverMetadata, intercity_wizard: updatedWiz },
+        }).eq('id', driver.id)
+
+        await tgSend(chatId,
+          `🚗 Дугаар: <b>${text}</b> ✅\n\n⏰ <b>Ойролцоо ирэх хугацаа</b> оруулна уу:\n(жишээ: Маргааш 14:00, Ням гарагт 18:00)`
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      case 'eta': {
+        // Driver sent estimated arrival time — show summary for confirmation
+        const updatedWiz: IntercityWizard = { ...wiz, step: 'confirm', eta: text }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('delivery_drivers').update({
+          metadata: { ...driverMetadata, intercity_wizard: updatedWiz },
+        }).eq('id', driver.id)
+
+        const transportLabel = wiz.transport === 'bus' ? '🚌 Хотын автобус' : '🚗 Хувийн жолооч'
+        await tgSend(chatId,
+          `⏰ Хугацаа: <b>${text}</b> ✅\n\n` +
+          `──────────────────\n` +
+          `📋 <b>Дараах мэдээлэл үнэн зөв үү?</b>\n\n` +
+          `${transportLabel}\n` +
+          `📞 Жолоочийн утас: <b>${wiz.phone}</b>\n` +
+          `🚗 Машины дугаар: <b>${wiz.license}</b>\n` +
+          `⏰ Ирэх хугацаа: <b>${text}</b>`,
+          { replyMarkup: intercityConfirmKeyboard(wiz.delivery_id) }
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      case 'confirm': {
+        // They sent text instead of pressing a button — remind
+        await tgSend(chatId,
+          `⬆️ Дээрх товчийг дарна уу: ✅ Тийм, илгээ эсвэл 🔄 Дахин оруулах`
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      default:
+        break // transport_type step — they should press button, not type
+    }
   }
 
   // Run through the driver intent engine
