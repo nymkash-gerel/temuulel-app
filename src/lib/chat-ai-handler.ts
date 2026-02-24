@@ -577,8 +577,8 @@ interface VariantRow {
 }
 
 /** Order intent — prefix stems + exact words for Mongolian verb forms */
-const ORDER_WORD_STEMS = ['захиал', 'авъ', 'авь']
-const ORDER_EXACT_WORDS = ['авна', 'авах', 'авйа', 'ави', 'авмаар']
+const ORDER_WORD_STEMS = ['захиал', 'авъ', 'авь', 'авя']  // авяа/avyaa included via авя
+const ORDER_EXACT_WORDS = ['авна', 'авах', 'авйа', 'ави', 'авмаар', 'авуу', 'авуй']
 
 function hasOrderIntent(msg: string): boolean {
   const words = normalizeText(msg).trim().split(/\s+/)
