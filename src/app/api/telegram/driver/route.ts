@@ -24,7 +24,9 @@ import {
   intercityKeyboard,
   intercityTransportKeyboard,
   intercityConfirmKeyboard,
+  intercityPaymentKeyboard,
   intercityCustomerMessage,
+  paymentKeyboard,
   sendToDriver,
   DRIVER_BOT_WELCOME,
   DRIVER_BOT_LINKED,
@@ -111,9 +113,90 @@ async function handleCallbackQuery(
 
     case 'delivered': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('deliveries').update({ status: 'delivered', delivered_at: new Date().toISOString() }).eq('id', deliveryId)
+      const { data: deliveredRow } = await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'delivered', delivered_at: new Date().toISOString() })
+        .eq('id', deliveryId)
+        .select('id, customer_phone, customer_name')
+        .single()
+
       await tgAnswerCallback(cb.id, '🎉 Амжилттай!')
-      await tgSend(chatId, `🎉 <b>Хүргэлт амжилттай бүртгэгдлээ!</b>\n\nБаярлалаа, ${driver.name}!`)
+
+      const phoneInfo = deliveredRow?.customer_phone
+        ? `\n📞 Харилцагчийн утас: <code>${deliveredRow.customer_phone}</code>`
+        : ''
+      const customerInfo = deliveredRow?.customer_name
+        ? ` — ${deliveredRow.customer_name}` : ''
+
+      await tgSend(chatId,
+        `🎉 <b>Хүргэлт амжилттай!</b>${customerInfo}${phoneInfo}\n\n` +
+        `💳 <b>Төлбөрийн байдал ямар байна?</b>`,
+        { replyMarkup: paymentKeyboard(deliveryId) }
+      )
+      break
+    }
+
+    case 'payment_received': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: paidDelivery } = await (supabase as any)
+        .from('deliveries')
+        .select('order_id')
+        .eq('id', deliveryId)
+        .single()
+      if (paidDelivery?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders')
+          .update({ payment_status: 'paid' })
+          .eq('id', paidDelivery.order_id)
+      }
+      await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
+      await tgSend(chatId, `✅ <b>Төлбөр авсан гэж бүртгэгдлээ.</b>\n\nБаярлалаа, ${driver.name}!`)
+      break
+    }
+
+    case 'payment_pending': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: pendingDelivery } = await (supabase as any)
+        .from('deliveries')
+        .select('order_id, customer_phone, store_id')
+        .eq('id', deliveryId)
+        .single()
+
+      if (pendingDelivery?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders')
+          .update({ payment_status: 'pending', notes: 'Жолооч: дараа төлнө гэсэн' })
+          .eq('id', pendingDelivery.order_id)
+      }
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      const phone = pendingDelivery?.customer_phone
+      await tgSend(chatId,
+        `⏳ <b>Дараа төлнө гэж бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдлээ.` +
+        (phone ? `\n📞 Хэрэв харилцагчтай холбогдох шаардлагатай бол: <code>${phone}</code>` : '')
+      )
+      break
+    }
+
+    case 'payment_declined': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: declinedDelivery } = await (supabase as any)
+        .from('deliveries')
+        .select('order_id, customer_phone, customer_name, store_id')
+        .eq('id', deliveryId)
+        .single()
+
+      if (declinedDelivery?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders')
+          .update({ payment_status: 'failed', notes: 'Жолооч: харилцагч төлбөр татгалзав' })
+          .eq('id', declinedDelivery.order_id)
+      }
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      const declinedPhone = declinedDelivery?.customer_phone
+      await tgSend(chatId,
+        `❌ <b>Татгалзав гэж бүртгэгдлээ.</b>\n\nДэлгүүрт яаралтай мэдэгдлээ.` +
+        (declinedPhone ? `\n📞 Харилцагч: <code>${declinedPhone}</code> — ${declinedDelivery?.customer_name || ''}` : '')
+      )
       break
     }
 
@@ -315,6 +398,46 @@ async function handleCallbackQuery(
       break
     }
 
+    case 'intercity_pay_yes':
+    case 'intercity_pay_no': {
+      const paymentCollected = action === 'intercity_pay_yes'
+      await tgAnswerCallback(cb.id, paymentCollected ? '✅ Баталгаажлаа' : '📋 Бүртгэгдлээ')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: ipDriver } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, metadata')
+        .eq('telegram_chat_id', chatId)
+        .maybeSingle()
+      if (!ipDriver) break
+
+      const ipMeta = ipDriver.metadata as Record<string, unknown> | null
+      const ipWiz = ipMeta?.intercity_wizard as IntercityWizard | undefined
+      if (!ipWiz) break
+
+      const updatedWiz: IntercityWizard = { ...ipWiz, step: 'confirm', payment_collected: paymentCollected }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers').update({
+        metadata: { ...ipMeta, intercity_wizard: updatedWiz },
+      }).eq('id', ipDriver.id)
+
+      // Show summary for confirmation
+      const tLabel = ipWiz.transport === 'bus' ? '🚌 Хотын автобус' : '🚗 Хувийн жолооч'
+      const payLabel = paymentCollected ? '✅ Урьдчилж авсан' : '⏳ Дараа авна'
+      await tgSend(chatId,
+        `💳 Төлбөр: <b>${payLabel}</b> ✅\n\n` +
+        `──────────────────\n` +
+        `📋 <b>Дараах мэдээлэл үнэн зөв үү?</b>\n\n` +
+        `${tLabel}\n` +
+        `📞 Жолоочийн утас: <b>${ipWiz.phone}</b>\n` +
+        `🚗 Машины дугаар: <b>${ipWiz.license}</b>\n` +
+        `⏰ Ирэх хугацаа: <b>${ipWiz.eta}</b>\n` +
+        `💳 Төлбөр: <b>${payLabel}</b>`,
+        { replyMarkup: intercityConfirmKeyboard(ipWiz.delivery_id) }
+      )
+      break
+    }
+
     case 'intercity_confirm': {
       // Confirm — save to DB + send customer message
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -339,6 +462,7 @@ async function handleCallbackQuery(
         phone: wiz3.phone,
         license: wiz3.license,
         eta: wiz3.eta,
+        payment_collected: wiz3.payment_collected ?? false,
         dispatched_at: new Date().toISOString(),
       }
 
@@ -405,13 +529,15 @@ async function handleCallbackQuery(
 
       // Confirm to driver
       const transportLabel = wiz3.transport === 'bus' ? '🚌 Хотын автобус' : '🚗 Хувийн жолооч'
+      const paymentLabel = wiz3.payment_collected ? '✅ Авсан' : '⏳ Дараа'
       await tgSend(chatId,
         `✅ <b>Амжилттай бүртгэгдлээ!</b>\n\n` +
         `📦 Захиалга: #${updatedDelivery?.delivery_number || wiz3.delivery_id}\n` +
         `${transportLabel}\n` +
         `📞 Жолоочийн утас: ${wiz3.phone}\n` +
         `🚗 Машины дугаар: ${wiz3.license}\n` +
-        `⏰ Ирэх хугацаа: ${wiz3.eta}\n\n` +
+        `⏰ Ирэх хугацаа: ${wiz3.eta}\n` +
+        `💳 Төлбөр: ${paymentLabel}\n\n` +
         `Харилцагч руу мэдэгдэл явуулсан. Баярлалаа!`
       )
       break
@@ -641,24 +767,24 @@ export async function POST(request: NextRequest) {
       }
 
       case 'eta': {
-        // Driver sent estimated arrival time — show summary for confirmation
-        const updatedWiz: IntercityWizard = { ...wiz, step: 'confirm', eta: text }
+        // Driver sent estimated arrival time → ask about payment
+        const updatedWiz: IntercityWizard = { ...wiz, step: 'payment', eta: text }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase as any).from('delivery_drivers').update({
           metadata: { ...driverMetadata, intercity_wizard: updatedWiz },
         }).eq('id', driver.id)
 
-        const transportLabel = wiz.transport === 'bus' ? '🚌 Хотын автобус' : '🚗 Хувийн жолооч'
         await tgSend(chatId,
           `⏰ Хугацаа: <b>${text}</b> ✅\n\n` +
-          `──────────────────\n` +
-          `📋 <b>Дараах мэдээлэл үнэн зөв үү?</b>\n\n` +
-          `${transportLabel}\n` +
-          `📞 Жолоочийн утас: <b>${wiz.phone}</b>\n` +
-          `🚗 Машины дугаар: <b>${wiz.license}</b>\n` +
-          `⏰ Ирэх хугацаа: <b>${text}</b>`,
-          { replyMarkup: intercityConfirmKeyboard(wiz.delivery_id) }
+          `💳 <b>Барааны төлбөр урьдчилж авсан уу?</b>`,
+          { replyMarkup: intercityPaymentKeyboard(wiz.delivery_id) }
         )
+        return NextResponse.json({ ok: true })
+      }
+
+      case 'payment': {
+        // They sent text instead of pressing a button on the payment step
+        await tgSend(chatId, `⬆️ Дээрх товчийг дарна уу: ✅ Тийм, авсан эсвэл ❌ Аваагүй / Дараа`)
         return NextResponse.json({ ok: true })
       }
 
