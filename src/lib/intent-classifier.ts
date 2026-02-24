@@ -346,6 +346,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'өнөөдрийн цэс', 'яг одоо', 'одоо байгаа',
     'хоол байна уу', 'ямар хоол', 'юу захиалах',
     'дуусчхсан уу', 'дуусав уу',
+    // Selection/option queries
+    'сонголт', 'сонголт байна уу', 'сонголт бга уу', 'ямар сонголт',
+    // Dietary/cuisine availability
+    'цагаан хоол', 'мах багатай', 'загасны', 'ногоон',
   ],
   order_collection: [
     // Core order keywords (moved from product_search for clearer intent separation)
@@ -525,8 +529,10 @@ export function classifyIntentWithConfidence(
   if (bestIntent === 'product_search' && bestScore > 0) {
     const RETURN_SIGNALS = ['буцаах', 'буцаалт', 'буцаан', 'солих', 'солилт', 'солиулах', 'буцааж',
       'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'butaah', 'butaa', 'butay', 'бутай', 'бутаах', 'бутаа', 'solih',
-      'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй', 'эвдэрсэн']
+      'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй']
+    // Note: 'эвдэрсэн' removed from RETURN_SIGNALS — it belongs to complaint (product is broken = complaint, not return request)
     const COMPLAINT_SIGNALS = ['гомдол', 'асуудал', 'муу', 'луйвар', 'хуурамч', 'complaint',
+      'эвдэрсэн', 'гэмтсэн', 'гэмтэл',
       'мөнгө буцаа', 'мөнгөө буцаа', 'mongoo butaaj', 'yaagaad', 'zahirlaa', 'hun heregteii', 'operator']
     const normalizedWords = normalized.split(/\s+/)
     const stemmedWords = stemmedMsg.split(/\s+/)
@@ -541,6 +547,21 @@ export function classifyIntentWithConfidence(
 
     if (hasReturn) bestIntent = 'return_exchange'
     else if (hasComplaint) bestIntent = 'complaint'
+    else {
+      // Tiebreaker: size_info beats product_search when message is primarily about size vocabulary
+      // e.g. "хэмжее", "размер", "сайз", "size chart" — standalone size queries, not product lookups
+      const STRONG_SIZE_VOCAB = ['хэмж', 'размер', 'сайз', 'сизе чарт', 'сизе гайд']
+      const hasStrongSize = STRONG_SIZE_VOCAB.some(kw => normalized.includes(kw))
+      if (hasStrongSize) {
+        // Don't override when a specific product is being referenced
+        const PRODUCT_NOUNS = ['бараа', 'цүнх', 'хувцас', 'гутал', 'пүүз', 'цамц', 'бүтээгдэхүүн', 'куртка', 'малгай']
+        const hasProductNoun = PRODUCT_NOUNS.some(kw => padded.includes(` ${kw} `) || normalized.includes(kw))
+        // Don't override when there's explicit purchase/order intent
+        const PURCHASE_SIGNALS = ['авмаар', 'авах', 'авъя', 'авья', 'авна', 'захиал', 'zahialna', 'avmaar', 'байгаа уу', 'бга уу', 'бгаа уу']
+        const hasPurchaseIntent = PURCHASE_SIGNALS.some(kw => normalized.includes(kw))
+        if (!hasProductNoun && !hasPurchaseIntent) bestIntent = 'size_info'
+      }
+    }
   }
 
   // Tiebreaker: complaint beats return_exchange when problem words are present
@@ -584,20 +605,37 @@ export function classifyIntentWithConfidence(
     )
 
     // Keep as size_info if it has size guide/chart/measurement keywords
+    // Note: 'chart'/'guide' get normalized to 'чарт'/'гуиде' — check both forms
     const hasSizeGuideWords = (
       normalized.includes('chart') ||
+      normalized.includes('чарт') ||    // normalizeText('chart') = 'чарт'
       normalized.includes('guide') ||
+      normalized.includes('гуиде') ||   // normalizeText('guide') = 'гуиде'
       normalized.includes('хэлбэр') ||
       normalized.includes('заавар') ||
       normalized.includes('measurement')
     )
 
     // Short messages like "hemjee M" or "size M" are product search, not size guide (but "size chart" stays size_info)
+    // But pure size vocabulary words like "хэмжее", "размер", "сайз" stay as size_info
     const words = normalized.split(/\s+/)
-    const isShortSizeQuery = words.length <= 2 && !hasSizeGuideWords
+    const CORE_SIZE_VOCAB = ['хэмж', 'размер', 'сайз', 'hemjee', 'razmer', 'saiz', 'сизе']
+    const hasCoreSize = CORE_SIZE_VOCAB.some(kw => normalized.includes(kw))
+    // Treat core size vocab as size_info only when no purchase/order context
+    const PURCHASE_CTX = ['авмаар', 'авах', 'авъя', 'авна', 'захиал', 'zahialna', 'avmaar', 'байгаа уу', 'бга уу']
+    const hasPurchaseCtx = PURCHASE_CTX.some(kw => normalized.includes(kw))
+    const isSizeVocabOnly = hasCoreSize && !hasPurchaseCtx
+    const isShortSizeQuery = words.length <= 2 && !hasSizeGuideWords && !isSizeVocabOnly
 
-    if (hasOrderIntent && !hasSizeGuideWords) bestIntent = 'order_collection'
-    else if ((hasProductSearch || isShortSizeQuery) && !hasSizeGuideWords) bestIntent = 'product_search'
+    if (hasOrderIntent && !hasSizeGuideWords && !isSizeVocabOnly) bestIntent = 'order_collection'
+    else if ((hasProductSearch || isShortSizeQuery) && !hasSizeGuideWords && !isSizeVocabOnly) bestIntent = 'product_search'
+  }
+
+  // Tiebreaker: causative verb form (-уулмаар/-иулмаар = "to have something done") is NOT order_collection
+  // e.g. "авахуулмаар" = want to get nails/hair done — should be product_search
+  if (bestIntent === 'order_collection' && bestScore <= 1.5) {
+    const hasCausative = /авахуулмаар|авхуулмаар|хийлгэмээр|хийлгэмэр|авч өгмөөр/.test(normalized)
+    if (hasCausative) bestIntent = 'product_search'
   }
 
   // Optional logging

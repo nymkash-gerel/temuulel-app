@@ -237,7 +237,8 @@ describe('Critical Business Operations', () => {
           store_id: testStoreId,
           customer_id: customer!.id,
           channel: 'messenger',
-          status: 'escalated' // Escalated status
+          status: 'active', // DB CHECK allows: active, closed, pending — escalation tracked via metadata
+          metadata: { escalated: true, escalated_at: new Date().toISOString() }
         })
         .select()
         .single()
@@ -245,12 +246,11 @@ describe('Critical Business Operations', () => {
       // ENFORCE: Conversation should be created
       expect(convError).toBeNull()
       expect(conversation).toBeDefined()
-      expect(conversation!.status).toBe('escalated')
+      expect(conversation!.status).toBe('active')
 
-      // ENFORCE: Escalated conversations should trigger staff notification
-      // (In production, this happens via dispatchNotification)
-      // For test, we just verify the conversation is marked correctly
-      expect(conversation!.status).toBe('escalated')
+      // ENFORCE: Escalated conversations should be marked via metadata
+      // (In production, dispatchNotification fires when escalation score ≥ 60)
+      expect(conversation!.metadata?.escalated).toBe(true)
 
       // Cleanup
       await supabase.from('conversations').delete().eq('id', conversation!.id)

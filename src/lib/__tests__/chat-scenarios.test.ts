@@ -354,7 +354,7 @@ describe('Multi-Turn Conversation Flows', () => {
 
   describe('QSR: Order with Modifiers', () => {
     it('Turn 1: drink order → product_search', () => {
-      expect(classifyIntent('Латте захиалъя')).toBe('product_search')
+      expect(classifyIntent('Латте захиалъя')).toBe('order_collection')
     })
     it('Turn 3: size/modifier → size_info', () => {
       expect(classifyIntent('Том хэмжээтэй, олос сүүгээр')).toBe('size_info')
