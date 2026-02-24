@@ -9,8 +9,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildCustomerProfile } from './ai/customer-profile'
 import { getLatestPurchase, formatPurchaseConfirmation, getExtendedCustomerInfo, formatExtendedProfileForAI, inferPreferencesFromMessage, savePreference, logInteraction } from './ai/customer-intelligence'
+import { hybridClassify } from '@/lib/ai/hybrid-classifier'
 import {
-  hybridClassify,
   extractSearchTerms,
   searchProducts,
   searchOrders,
