@@ -6,7 +6,8 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { normalizeText, hybridClassify } from './chat-ai'
+import { normalizeText } from './chat-ai'
+import { hybridClassify } from './ai/hybrid-classifier'
 import type {
   Flow,
   FlowNode,

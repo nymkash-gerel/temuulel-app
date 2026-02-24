@@ -39,8 +39,8 @@ export {
   LOW_CONFIDENCE_THRESHOLD,
 } from './intent-classifier'
 
-// Hybrid classifier (ML + keyword)
-export { hybridClassify } from './ai/hybrid-classifier'
+// Hybrid classifier (ML + keyword) — import directly from '@/lib/ai/hybrid-classifier'
+// (removed from barrel to avoid Turbopack circular dependency with widget route)
 
 // Product/order/table search
 export {
