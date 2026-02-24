@@ -1,14 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import {
-  classifyIntentWithConfidence,
-  searchProducts,
-  generateAIResponse,
-  generateResponse,
-  matchesHandoffKeywords,
-  ChatbotSettings,
-  LOW_CONFIDENCE_THRESHOLD,
-} from '@/lib/chat-ai'
+import { classifyIntentWithConfidence, LOW_CONFIDENCE_THRESHOLD } from '@/lib/intent-classifier'
+import { searchProducts } from '@/lib/product-search'
+import { generateAIResponse, generateResponse, matchesHandoffKeywords } from '@/lib/response-generator'
+import type { ChatbotSettings } from '@/lib/chat-ai-types'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { validateBody, chatWidgetSchema } from '@/lib/validations'
 import { interceptWithFlow } from '@/lib/flow-middleware'
