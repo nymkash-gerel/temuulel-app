@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 interface Driver {
@@ -482,9 +483,15 @@ export default function DeliveryDriversPage() {
                 )}
 
                 <div className="flex gap-2">
+                  <Link
+                    href={`/dashboard/delivery-drivers/${driver.id}`}
+                    className="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-sm rounded-lg transition-all text-center font-medium"
+                  >
+                    Дэлгэрэнгүй →
+                  </Link>
                   <button
                     onClick={() => openEdit(driver)}
-                    className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-all"
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-all"
                   >
                     Засах
                   </button>
