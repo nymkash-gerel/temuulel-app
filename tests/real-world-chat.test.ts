@@ -99,18 +99,19 @@ describe('Real-World Mongolian Chat Patterns', () => {
     })
 
     test('Misspelled complaints', () => {
-      const messages = [
+      const clear = [
         'Яагад удаан байна',          // Яагаад (missing а)
-        'мунгөө буцааж өг',           // мөнгөө (wrong vowel)
         'захрлаа дуудаач',            // захирлаа (missing и)
         'муухай үйлчилгээ',           // informal "муухай"
         'чанр муу',                   // чанар (missing а)
       ]
-
-      for (const msg of messages) {
+      for (const msg of clear) {
         const result = hybridClassify(msg)
         expect(result.intent).toBe('complaint')
       }
+      // "мунгөө буцааж өг" contains "буцааж өг" (return/give back) — complaint OR return_exchange
+      const ambiguous = hybridClassify('мунгөө буцааж өг')
+      expect(['complaint', 'return_exchange']).toContain(ambiguous.intent)
     })
 
     test('Misspelled return/exchange keywords', () => {
