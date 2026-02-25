@@ -352,6 +352,24 @@ const FOLLOWUP_WEIGHTS: Record<FollowUpType, number> = {
 }
 
 /**
+ * Check if a message is a conversation reset signal (greeting, thanks, goodbye).
+ * These messages should NOT resume an active order draft — they signal a fresh start.
+ */
+function isGreetingOrReset(normalized: string): boolean {
+  const resetKeywords = [
+    // Greetings (Mongolian)
+    'сайн байна', 'сайн уу', 'байна уу', 'мэнд', 'өглөөний мэнд',
+    // Greetings (English)
+    'hello', 'hi', 'hey', 'good morning', 'good evening',
+    // Thanks
+    'баярлалаа', 'баярлаа', 'thank', 'thanks',
+    // Goodbye
+    'баяртай', 'сайн байгаарай', 'goodbye', 'bye',
+  ]
+  return resetKeywords.some((kw) => normalized.includes(kw))
+}
+
+/**
  * Detect follow-up patterns in the customer message given prior conversation state.
  * Returns null if this is not a follow-up (should use normal classification).
  * Uses priority-based scoring to avoid priority inversions.
@@ -365,12 +383,17 @@ export function resolveFollowUp(
 
   const normalized = normalizeText(message).trim()
   const products = state.last_products
-  
+
+  // Check if message is a conversation reset signal (greeting, thanks, goodbye)
+  // Check BOTH original message (for English greetings) AND normalized (for Mongolian)
+  const isConversationReset = isGreetingOrReset(message.toLowerCase()) || isGreetingOrReset(normalized)
+
   // Collect all possible matches with their scores
   const candidates: Array<{ score: number; result: FollowUpResult }> = []
 
   // 0. Active order draft — always intercept until order completes or cancels
-  if (state.order_draft) {
+  // UNLESS the user sends a greeting/reset signal (allows starting fresh conversation)
+  if (state.order_draft && !isConversationReset) {
     candidates.push({
       score: FOLLOWUP_WEIGHTS.order_step_input,
       result: { type: 'order_step_input' }

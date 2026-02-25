@@ -211,6 +211,23 @@ describe('Real-World Mongolian Chat Patterns', () => {
       }
     })
 
+    test('English greetings', () => {
+      const messages = [
+        'hi',
+        'hello',
+        'hey',
+        'good morning',
+      ]
+
+      for (const msg of messages) {
+        const result = hybridClassify(msg)
+        if (result.intent !== 'greeting') {
+          console.log(`FAIL: "${msg}" -> ${result.intent} (expected greeting)`)
+        }
+        expect(result.intent).toBe('greeting')
+      }
+    })
+
     test('Informal want/need expressions', () => {
       const messages = [
         'hun heregteii',      // хүн хэрэгтэй (need human)

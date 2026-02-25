@@ -26,10 +26,10 @@ describe('Critical Business Operations', () => {
 
     testStoreId = store!.id
 
-    // Get a test product with variants
+    // Get a test product WITH variants (use !inner to filter out products without variants)
     const { data: product } = await supabase
       .from('products')
-      .select('id, name, base_price')
+      .select('id, name, base_price, product_variants!inner(id)')
       .eq('store_id', testStoreId)
       .eq('status', 'active')
       .limit(1)
@@ -101,10 +101,10 @@ describe('Critical Business Operations', () => {
     })
 
     test('BUSINESS RULE: Cannot create order with out-of-stock product', async () => {
-      // Get out of stock product or temporarily set one to 0
+      // Get a product with variants (use !inner to ensure we only get products with variants)
       const { data: product } = await supabase
         .from('products')
-        .select('id, base_price, product_variants(id, stock_quantity)')
+        .select('id, base_price, product_variants!inner(id, stock_quantity)')
         .eq('store_id', testStoreId)
         .eq('status', 'active')
         .limit(1)

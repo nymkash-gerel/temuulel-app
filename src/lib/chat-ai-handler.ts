@@ -398,6 +398,24 @@ export async function processAIChat(
       orders = searchedOrders
       tables = searchedTables
 
+      // Fallback: if the primary search returned nothing for product-related intents,
+      // try an empty-string search to show all available products.
+      // This handles Latin-typed queries like "buh baraa" (→ "бух бараа" after
+      // normalizeText, which misses "бүх бараа") and generic browse requests
+      // like "жагсаалт", "catalog", "bara uzi".
+      if (
+        products.length === 0 &&
+        (intent === 'product_search' || intent === 'general' || intent === 'low_confidence')
+      ) {
+        const browseAll = await searchProducts(supabase, '', storeId, {
+          maxProducts: chatbotSettings.max_products,
+        })
+        if (browseAll.length > 0) {
+          products = browseAll
+          intent = 'product_search'
+        }
+      }
+
       // ── Customer intelligence (all non-critical, wrapped in try/catch) ──
       let latestPurchaseSummary: string | null = null
       let extendedProfile: string | null = null
@@ -450,59 +468,82 @@ export async function processAIChat(
         // Continue with normal response — intelligence features are optional
       }
 
-      responseText = await generateAIResponse(
-        intent, products, orders, storeName, customerMessage, chatbotSettings, history,
-        undefined,
-        { availableTables: tables, busyMode },
-        customerProfile,
-        extendedProfile,
-        latestPurchaseSummary,
-      )
+      // Guard: standalone 8-digit number in product-search context.
+      // When the bot shows products and says "Бараа дугаараа бичнэ үү (1, 2, 3...):",
+      // users sometimes send their phone number thinking we asked for contact info.
+      // Detect this and start the order draft with the phone pre-filled.
+      const phoneIntercepted = /^\d{8}$/.test(customerMessage.trim())
+        && state.last_intent === 'product_search'
+        && state.last_products.length > 0
 
-      // If the message contains order intent, start order flow.
-      // Skip if already classified as order_status or complaint —
-      // "захиалга маань ирэхгүй" is a complaint, not a new order request.
-      // Also skip if the message is a recommendation/exploration query —
-      // "авмаар байна. Юу санал болгох вэ?" = browsing, not ready-to-buy.
-      const RECOMMENDATION_SIGNALS = [
-        'санал болг', 'юу авбал', 'юу авах вэ', 'юу захиалах вэ',
-        'зөвлө', 'юу санал', 'аль нь дээр', 'юу вэ', 'юу болох',
-        'бэлэг', // gift context — almost always exploring, not ready-to-buy
-      ]
-      const isRecommendationQuery = RECOMMENDATION_SIGNALS.some(
-        (sig) => normalizeText(customerMessage).includes(normalizeText(sig))
-      )
-      if (!isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && hasOrderIntent(customerMessage)) {
-        // Check if message has meaningful non-order words that identify a product.
-        // If message is ONLY order words (e.g. "zahialu"), products from search are
-        // likely coincidental matches (description contains "захиал*") — show catalog.
-        const msgWords = normalizeText(customerMessage).trim().split(/\s+/)
-        const nonOrderWords = msgWords.filter((w) =>
-          !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
-          && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+      if (phoneIntercepted) {
+        const product = state.last_products[0]
+        const startResult = await startOrderDraft(
+          supabase, { id: product.id, name: product.name, base_price: product.base_price }, customerMessage
         )
-        const hasProductIdentifier = nonOrderWords.some((w) => w.length >= 2)
+        startResult.draft.phone = customerMessage.trim()
+        orderDraft = startResult.draft
+        responseText = buildInfoRequest(orderDraft)
+        intent = 'order_collection'
+      } else {
+        responseText = await generateAIResponse(
+          intent, products, orders, storeName, customerMessage, chatbotSettings, history,
+          undefined,
+          { availableTables: tables, busyMode },
+          customerProfile,
+          extendedProfile,
+          latestPurchaseSummary,
+        )
 
-        if (products.length > 0 && hasProductIdentifier) {
-          // Message has product-identifying words + products found — start order draft
-          const p = products[0]
-          const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
-          orderDraft = result.draft
-          responseText = result.responseText
-          intent = 'order_collection'
-        } else {
-          // Pure order words only or no products — show catalog
-          const allProducts = await searchProducts(supabase, '', storeId, {
-            maxProducts: chatbotSettings.max_products || 5,
-            originalQuery: '',
-          })
-          if (allProducts.length > 0) {
-            products = allProducts
-            intent = 'product_search'
-            const productList = allProducts.map((p, i) =>
-              `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}`
-            ).join('\n')
-            responseText = `Ямар бүтээгдэхүүн захиалмаар байна?\n\n${productList}\n\nДугаараа бичнэ үү:`
+        // If the message contains order intent, start order flow.
+        // Skip if already classified as order_status or complaint —
+        // "захиалга маань ирэхгүй" is a complaint, not a new order request.
+        // Also skip if the message is a recommendation/exploration query —
+        // "авмаар байна. Юу санал болгох вэ?" = browsing, not ready-to-buy.
+        const RECOMMENDATION_SIGNALS = [
+          'санал болг', 'юу авбал', 'юу авах вэ', 'юу захиалах вэ',
+          'зөвлө', 'юу санал', 'аль нь дээр', 'юу вэ', 'юу болох',
+          'бэлэг', // gift context — almost always exploring, not ready-to-buy
+        ]
+        const isRecommendationQuery = RECOMMENDATION_SIGNALS.some(
+          (sig) => normalizeText(customerMessage).includes(normalizeText(sig))
+        )
+        if (!isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && hasOrderIntent(customerMessage)) {
+          // Check if message has meaningful non-order words that identify a product.
+          // If message is ONLY order words (e.g. "zahialu"), products from search are
+          // likely coincidental matches (description contains "захиал*") — show catalog.
+          const msgWords = normalizeText(customerMessage).trim().split(/\s+/)
+          const nonOrderWords = msgWords.filter((w) =>
+            !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+            && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+          )
+          const hasProductIdentifier = nonOrderWords.some((w) => w.length >= 2)
+
+          if (products.length > 0 && hasProductIdentifier) {
+            // Message has product-identifying words + products found — start order draft
+            const p = products[0]
+            const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
+            orderDraft = result.draft
+            responseText = result.responseText
+            intent = 'order_collection'
+          } else {
+            // Pure order words only or no products — show catalog
+            const allProducts = await searchProducts(supabase, '', storeId, {
+              maxProducts: chatbotSettings.max_products || 5,
+              originalQuery: '',
+            })
+            if (allProducts.length > 0) {
+              products = allProducts
+              intent = 'product_search'
+              const productList = allProducts.map((p, i) =>
+                `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}`
+              ).join('\n')
+              responseText = `Ямар бүтээгдэхүүн захиалмаар байна?\n\n${productList}\n\nБараа дугаараа бичнэ үү (1, 2, 3...):`
+            } else {
+              // No products at all — override any GPT-generated text with a definitive answer
+              intent = 'product_search'
+              responseText = 'Уучлаарай, одоогоор захиалах боломжтой бараа байхгүй байна. Удахгүй шинэ бараа нэмэх болно.'
+            }
           }
         }
       }
@@ -656,11 +697,23 @@ function resolveVariantFromMessage(msg: string, variants: VariantRow[]): Variant
     if (idx >= 0 && idx < variants.length) return variants[idx]
   }
 
-  // Size/color keyword match (fuzzy: message contains the variant keyword)
-  for (const v of variants) {
-    if (v.size && normalized.includes(normalizeText(v.size))) return v
-    if (v.color && normalized.includes(normalizeText(v.color))) return v
-  }
+  // Size/color keyword match — prefer both matching over either alone
+  const words = normalized.split(/\s+/)
+  // Size must match a whole word (prevents "L" matching inside "XL" / "2XL")
+  const msgMatchesSize = (v: VariantRow) => !!v.size && words.includes(normalizeText(v.size))
+  const msgMatchesColor = (v: VariantRow) => !!v.color && normalized.includes(normalizeText(v.color))
+
+  // 1. Best: variant where both size AND color appear in message
+  const bothMatch = variants.find(v => msgMatchesSize(v) && msgMatchesColor(v))
+  if (bothMatch) return bothMatch
+
+  // 2. Size-only match (e.g. "L авна" when no color mentioned)
+  const sizeOnly = variants.find(v => msgMatchesSize(v))
+  if (sizeOnly) return sizeOnly
+
+  // 3. Color-only match
+  const colorOnly = variants.find(v => msgMatchesColor(v))
+  if (colorOnly) return colorOnly
 
   // Fuzzy color match: "цаганас" contains "цагаан" prefix
   for (const v of variants) {
@@ -668,7 +721,6 @@ function resolveVariantFromMessage(msg: string, variants: VariantRow[]): Variant
       const normColor = normalizeText(v.color)
       // Check if any word in the message starts with the color name (3+ chars)
       if (normColor.length >= 3) {
-        const words = normalized.split(/\s+/)
         if (words.some((w) => w.startsWith(normColor) || normColor.startsWith(w) && w.length >= 3)) {
           return v
         }

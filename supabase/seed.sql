@@ -5,6 +5,7 @@
 -- Password hash for "Test1234" using bcrypt
 INSERT INTO auth.users (
   id,
+  aud,
   instance_id,
   email,
   encrypted_password,
@@ -17,6 +18,7 @@ INSERT INTO auth.users (
   role
 ) VALUES (
   '00000000-0000-0000-0000-000000000001',
+  'authenticated',
   '00000000-0000-0000-0000-000000000000',
   'shop@temuulel.com',
   '$2a$10$5fZ5Z5Z5Z5Z5Z5Z5Z5Z5ZOqK4qK4qK4qK4qK4qK4qK4qK4qK4qK4q', -- Test1234

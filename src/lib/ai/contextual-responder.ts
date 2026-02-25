@@ -88,6 +88,12 @@ function buildSystemPrompt(input: ContextualInput): string {
   const isGiftQuery = /бэлэг|санал болг|юу авбал|зөвлө/.test(normalizeText(input.currentMessage))
 
   // --- Core identity + universal rules (always included) ---
+  // Explicit no-products rule — included in EVERY prompt when catalog is empty.
+  // This prevents GPT from inventing product names/prices even for general queries.
+  const noProductsRule = input.products.length === 0
+    ? '\n- БАРАА БАЙХГҮЙ: Дэлгүүрт одоогоор бараа байхгүй. Бараа нэр, үнэ зохиохгүй. "Уучлаарай, одоогоор бараа байхгүй байна. Удахгүй нэмэх болно." гэж хариулна.'
+    : ''
+
   let prompt = `Та "${input.storeName}" дэлгүүрийн туслах Temuulel. Монгол хэлээр хариулна. English if they write in English.
 
 ДҮРЭМ:
@@ -96,10 +102,11 @@ function buildSystemPrompt(input: ContextualInput): string {
 - "Өөр юугаар тусалах вэ?" гэсэн робот хариулт ХОРИОТОЙ.
 - Мэдэхгүй зүйлийг зохиохгүй.
 - Бүтээгдэхүүн дурдах бүрт үнийг ₮-тэй бич.
-- Зураг Messenger карт-аар автомат илгээнэ. "Зураг харуулах боломжгүй" гэж бүү хэл.
-- Захиалга/хаяг/утас цуглуулахыг СИСТЕМ хийнэ — чи бүү хий. Бараа жагсаалт харуулсны дараа шууд "Аль нэгийг авмаар байна вэ? Дугаараа бичнэ үү:" гэж хэл. "захиалъя" гэж бичихийг шаардахгүй.
+- Зураг автомат илгээнэ. "Зураг харуулах боломжгүй" / "зураг үзүүлэх боломжгүй" гэж ХЭЗЭЭ Ч бүү хэл — ХОРИОТОЙ.
+- Захиалга/хаяг/утас цуглуулахыг СИСТЕМ хийнэ — чи бүү хий. Бараа жагсаалт харуулсны дараа "Аль нэгийг авмаар байна вэ? Бараа дугаараа бичнэ үү (1, 2, 3...):" гэж хэл.
+- Захиалга БАТАЛГААЖУУЛАХ мессеж ХЭЗЭЭ Ч бүү явуул — "Захиалгыг баталгаажуулж байна", "Захиалга амжилттай" гэсэн хариу ХОРИОТОЙ. Систем захиалга үүсгэнэ.
 - Асуулт асуувал (размер, өнгө, нөөц) шууд хариулна — захиалга руу бүү чигл.
-- Мэндчилгээнд дэлгүүрийн нэрийг бүү давт — widget header-т харагдана. "Сайн байна уу! Танд юугаар туслах вэ?" хэлбэрт хариулна.`
+- Мэндчилгээнд дэлгүүрийн нэрийг бүү давт — widget header-т харагдана. "Сайн байна уу! Танд юугаар туслах вэ?" хэлбэрт хариулна.${noProductsRule}`
 
   // --- Mode-specific rules (only one active at a time) ---
   if (isResolution) {
@@ -260,6 +267,17 @@ function buildSystemPrompt(input: ContextualInput): string {
 export async function contextualAIResponse(input: ContextualInput): Promise<string | null> {
   if (!isOpenAIConfigured()) return null
   if (input.history.length === 0) return null
+
+  // Guard: never let GPT generate responses for product queries when the store
+  // has no matching products. Without this, GPT invents product names and prices.
+  // Returning null falls through to the deterministic template which correctly
+  // says "product not found" without hallucinating.
+  if (input.intent === 'product_search' && input.products.length === 0) return null
+
+  // Guard: standalone digits (≥5) look like phone numbers or order numbers.
+  // GPT hallucinates order confirmations when it sees them — let the deterministic
+  // handler deal with digits to prevent "Захиалгыг баталгаажуулж байна" fake responses.
+  if (/^\d{5,}$/.test(input.currentMessage.trim())) return null
 
   try {
     // Normalize Latin-typed Mongolian to Cyrillic so GPT understands it.
