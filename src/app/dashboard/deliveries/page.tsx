@@ -77,6 +77,7 @@ export default function DeliveriesPage() {
   const [batchPreview, setBatchPreview] = useState<BatchPreview | null>(null)
   const [batchLoading, setBatchLoading] = useState(false)
   const [batchConfirming, setBatchConfirming] = useState(false)
+  const [bulkConfirming, setBulkConfirming] = useState<string | null>(null) // driver_id being bulk-confirmed
 
   useEffect(() => {
     async function load() {
@@ -158,6 +159,20 @@ export default function DeliveriesPage() {
   const pendingCount = deliveries.filter(d => d.status === 'pending').length
   const completedCount = deliveries.filter(d => d.status === 'delivered').length
   const failedCount = deliveries.filter(d => ['failed', 'delayed'].includes(d.status)).length
+
+  // Group at_store deliveries by driver — for bulk confirm buttons
+  const atStoreByDriver = useMemo(() => {
+    const map = new Map<string, { driverId: string; driverName: string; count: number }>()
+    deliveries
+      .filter(d => d.status === 'at_store' && d.delivery_drivers)
+      .forEach(d => {
+        const driverId = d.delivery_drivers!.id
+        const existing = map.get(driverId)
+        if (existing) existing.count++
+        else map.set(driverId, { driverId, driverName: d.delivery_drivers!.name, count: 1 })
+      })
+    return [...map.values()]
+  }, [deliveries])
 
   async function handleCreate() {
     if (!formAddress.trim()) return
@@ -242,6 +257,29 @@ export default function DeliveriesPage() {
         alert(err.error || 'Алдаа гарлаа')
       }
     } catch { alert('Алдаа гарлаа') }
+  }
+
+  async function handleBulkConfirmHandoff(driverId: string, driverName: string) {
+    if (!confirm(`${driverName}-д оноогдсон бүх барааг нэгэн зэрэг өгөх үү?`)) return
+    setBulkConfirming(driverId)
+    try {
+      const res = await fetch('/api/deliveries/bulk-confirm-handoff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driver_id: driverId }),
+      })
+      const data = await res.json()
+      if (res.ok && data.confirmed > 0) {
+        // Update all confirmed deliveries to picked_up in local state
+        const confirmedIds = new Set(data.delivery_ids as string[])
+        setDeliveries(prev => prev.map(d =>
+          confirmedIds.has(d.id) ? { ...d, status: 'picked_up' as const } : d
+        ))
+      } else {
+        alert(data.error || 'Алдаа гарлаа')
+      }
+    } catch { alert('Алдаа гарлаа') }
+    finally { setBulkConfirming(null) }
   }
 
   async function handleConfirmPayment(deliveryId: string) {
@@ -399,22 +437,27 @@ export default function DeliveriesPage() {
       {/* Urgent alerts */}
       {(atStoreCount > 0 || awaitingPaymentCount > 0) && (
         <div className="space-y-2 mb-4">
-          {atStoreCount > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
+          {atStoreByDriver.map(({ driverId, driverName, count }) => (
+            <div key={driverId} className="flex items-center justify-between px-4 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
               <div className="flex items-center gap-2">
                 <span>🏪</span>
                 <span className="text-cyan-300 text-sm font-medium">
-                  {atStoreCount} жолооч дэлгүүрт хүлээж байна — бараа өгөх шаардлагатай
+                  <b>{driverName}</b> дэлгүүрт ирсэн —{' '}
+                  <b>{count} бараа</b> хүлээж байна
                 </span>
               </div>
               <button
-                onClick={() => setStatusFilter('at_store')}
-                className="text-xs px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all"
+                onClick={() => handleBulkConfirmHandoff(driverId, driverName)}
+                disabled={bulkConfirming === driverId}
+                className="text-sm px-4 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center gap-1.5"
               >
-                Харах
+                {bulkConfirming === driverId
+                  ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>...</span></>
+                  : <><span>📦</span><span>{count === 1 ? 'Бараа өгсөн' : `${count} бараа өгсөн`}</span></>
+                }
               </button>
             </div>
-          )}
+          ))}
           {awaitingPaymentCount > 0 && (
             <div className="flex items-center justify-between px-4 py-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
               <div className="flex items-center gap-2">
