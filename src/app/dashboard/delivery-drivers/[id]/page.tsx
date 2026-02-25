@@ -38,7 +38,9 @@ interface Delivery {
   actual_delivery_time: string | null
   failure_reason: string | null
   notes: string | null
-  orders: { id: string; order_number: string; total_amount: number } | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata: Record<string, any> | null
+  orders: { id: string; order_number: string; total_amount: number; payment_status: string | null } | null
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -55,6 +57,14 @@ const DELIVERY_STATUS: Record<string, { label: string; color: string; icon: stri
   delayed:    { label: 'Хоцорсон',       color: 'bg-orange-500/20 text-orange-400',  icon: '⚠️' },
 }
 
+const PAYMENT_BADGE: Record<string, { label: string; color: string }> = {
+  paid:    { label: '✅ Төлсөн',    color: 'text-green-400' },
+  pending: { label: '⏳ Хүлээгдэж', color: 'text-orange-400' },
+  partial: { label: '💸 Дутуу',     color: 'text-yellow-400' },
+  failed:  { label: '❌ Татгалзав', color: 'text-red-400' },
+  unpaid:  { label: '💰 Аваагүй',   color: 'text-orange-400' },
+}
+
 const DRIVER_STATUS: Record<string, { label: string; color: string }> = {
   active:      { label: 'Идэвхтэй',       color: 'bg-green-500/20 text-green-400' },
   on_delivery: { label: 'Хүргэлтэнд',     color: 'bg-blue-500/20 text-blue-400' },
@@ -65,13 +75,39 @@ const DRIVER_STATUS: Record<string, { label: string; color: string }> = {
 const ACTIVE_STATUSES = ['assigned', 'at_store', 'picked_up', 'in_transit', 'delayed']
 const TERMINAL_STATUSES = ['delivered', 'cancelled', 'failed']
 
+const TZ = 'Asia/Ulaanbaatar'
+
+function toLocalDay(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ }) // "2026-02-25"
+}
+
 function fmt(d: string | null) {
   if (!d) return '—'
-  return new Date(d).toLocaleString('mn-MN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleString('mn-MN', { timeZone: TZ, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
+
+function fmtDay(iso: string) {
+  // "2026-02-25" → "2/25"
+  const [, m, d] = iso.split('-')
+  return `${parseInt(m)}/${parseInt(d)}`
+}
+
 function fmtPrice(n: number | null) {
-  if (n === null) return '—'
+  if (n === null || n === undefined) return '—'
   return new Intl.NumberFormat('mn-MN').format(n) + '₮'
+}
+
+type QuickFilter = 'delayed' | 'complaint' | 'unpaid' | 'refused' | 'cancelled' | null
+
+function matchesQuick(d: Delivery, qf: QuickFilter): boolean {
+  if (!qf) return true
+  switch (qf) {
+    case 'delayed':   return d.status === 'delayed'
+    case 'complaint': return !!(d.notes?.includes('гомдол') || d.metadata?.refusal_reason || d.metadata?.customer_refused)
+    case 'unpaid':    return d.status === 'delivered' && ['pending', 'unpaid', null].includes(d.orders?.payment_status ?? null)
+    case 'refused':   return !!(d.metadata?.customer_refused || d.notes?.includes('татгалзав'))
+    case 'cancelled': return d.status === 'cancelled' || d.status === 'failed'
+  }
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────
@@ -81,19 +117,24 @@ export default function DriverDetailPage() {
   const driverId = params.id as string
   const supabase = createClient()
 
-  const [driver, setDriver] = useState<Driver | null>(null)
-  const [deliveries, setDeliveries] = useState<Delivery[]>([])
-  const [loading, setLoading] = useState(true)
+  const [driver, setDriver]           = useState<Driver | null>(null)
+  const [deliveries, setDeliveries]   = useState<Delivery[]>([])
+  const [loading, setLoading]         = useState(true)
   const [deliveryLoading, setDeliveryLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]             = useState<string | null>(null)
 
   // Edit profile
   const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState<Record<string, unknown>>({})
-  const [saving, setSaving] = useState(false)
+  const [editData, setEditData]   = useState<Record<string, unknown>>({})
+  const [saving, setSaving]       = useState(false)
+
+  // Filters
+  const [searchQuery, setSearchQuery]   = useState('')
+  const [selectedDay, setSelectedDay]   = useState<string>('') // 'all' | YYYY-MM-DD
+  const [quickFilter, setQuickFilter]   = useState<QuickFilter>(null)
+  const [deliveryTab, setDeliveryTab]   = useState<'all' | 'active' | 'done'>('all')
 
   // Delivery actions
-  const [deliveryFilter, setDeliveryFilter] = useState<'all' | 'active' | 'done'>('all')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   // ── Load driver profile ──────────────────────────────────────────────────
@@ -109,7 +150,7 @@ export default function DriverDetailPage() {
     setLoading(false)
   }, [driverId, supabase])
 
-  // ── Load driver's deliveries ─────────────────────────────────────────────
+  // ── Load deliveries ──────────────────────────────────────────────────────
   const loadDeliveries = useCallback(async () => {
     setDeliveryLoading(true)
     const { data } = await supabase
@@ -118,12 +159,12 @@ export default function DriverDetailPage() {
         id, delivery_number, status, delivery_type,
         delivery_address, customer_name, customer_phone,
         delivery_fee, created_at, estimated_delivery_time,
-        actual_delivery_time, failure_reason, notes,
-        orders(id, order_number, total_amount)
+        actual_delivery_time, failure_reason, notes, metadata,
+        orders(id, order_number, total_amount, payment_status)
       `)
       .eq('driver_id', driverId)
       .order('created_at', { ascending: false })
-      .limit(100)
+      .limit(300)
     setDeliveries((data as Delivery[]) ?? [])
     setDeliveryLoading(false)
   }, [driverId, supabase])
@@ -133,24 +174,86 @@ export default function DriverDetailPage() {
     loadDeliveries()
   }, [loadDriver, loadDeliveries])
 
-  // ── Stats ────────────────────────────────────────────────────────────────
+  // ── All-deliveries stats (ignores active filters) ────────────────────────
   const stats = useMemo(() => {
-    const total     = deliveries.length
-    const active    = deliveries.filter(d => ACTIVE_STATUSES.includes(d.status)).length
-    const delivered = deliveries.filter(d => d.status === 'delivered').length
-    const failed    = deliveries.filter(d => ['failed', 'cancelled'].includes(d.status)).length
-    const earnings  = deliveries
-      .filter(d => d.status === 'delivered')
-      .reduce((s, d) => s + (d.delivery_fee ?? 0), 0)
-    return { total, active, delivered, failed, earnings }
+    const terminal  = deliveries.filter(d => TERMINAL_STATUSES.includes(d.status))
+    const delivered = deliveries.filter(d => d.status === 'delivered')
+    const cancelled = deliveries.filter(d => ['cancelled', 'failed'].includes(d.status))
+    const active    = deliveries.filter(d => ACTIVE_STATUSES.includes(d.status))
+    const delayed   = deliveries.filter(d => d.status === 'delayed')
+    const complained= deliveries.filter(d => d.notes?.includes('гомдол') || d.metadata?.customer_refused)
+    const unpaid    = deliveries.filter(d =>
+      d.status === 'delivered' && ['pending', 'unpaid', null].includes(d.orders?.payment_status ?? null)
+    )
+    const earnings  = delivered.reduce((s, d) => s + (d.delivery_fee ?? 0), 0)
+
+    const successPct = terminal.length > 0
+      ? Math.round((delivered.length / (terminal.length)) * 100) : 0
+    const cancelPct  = terminal.length > 0
+      ? Math.round((cancelled.length / (terminal.length)) * 100) : 0
+
+    // Daily payment breakdown — group delivered by local day
+    const dailyMap: Record<string, { fee: number; count: number }> = {}
+    for (const d of delivered) {
+      const day = toLocalDay(d.created_at)
+      if (!dailyMap[day]) dailyMap[day] = { fee: 0, count: 0 }
+      dailyMap[day].fee   += d.delivery_fee ?? 0
+      dailyMap[day].count += 1
+    }
+    const dailyBreakdown = Object.entries(dailyMap)
+      .sort(([a], [b]) => b.localeCompare(a)) // newest first
+      .slice(0, 14)
+
+    return {
+      total: deliveries.length,
+      active: active.length,
+      delivered: delivered.length,
+      cancelled: cancelled.length,
+      delayed: delayed.length,
+      complained: complained.length,
+      unpaid: unpaid.length,
+      earnings,
+      successPct,
+      cancelPct,
+      dailyBreakdown,
+    }
   }, [deliveries])
+
+  // ── Distinct days (for day picker) ──────────────────────────────────────
+  const distinctDays = useMemo(() => {
+    const days = new Set(deliveries.map(d => toLocalDay(d.created_at)))
+    return [...days].sort((a, b) => b.localeCompare(a)).slice(0, 7)
+  }, [deliveries])
+
+  // ── Today string ────────────────────────────────────────────────────────
+  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: TZ }), [])
 
   // ── Filtered deliveries ──────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    if (deliveryFilter === 'active') return deliveries.filter(d => ACTIVE_STATUSES.includes(d.status))
-    if (deliveryFilter === 'done')   return deliveries.filter(d => TERMINAL_STATUSES.includes(d.status))
-    return deliveries
-  }, [deliveries, deliveryFilter])
+    const q = searchQuery.toLowerCase().trim()
+    return deliveries.filter(d => {
+      // Tab filter
+      if (deliveryTab === 'active' && !ACTIVE_STATUSES.includes(d.status)) return false
+      if (deliveryTab === 'done'   && !TERMINAL_STATUSES.includes(d.status)) return false
+
+      // Day filter
+      if (selectedDay && toLocalDay(d.created_at) !== selectedDay) return false
+
+      // Quick filter
+      if (!matchesQuick(d, quickFilter)) return false
+
+      // Search
+      if (q) {
+        const haystack = [
+          d.customer_name, d.customer_phone,
+          d.delivery_number, d.orders?.order_number,
+        ].join(' ').toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
+
+      return true
+    })
+  }, [deliveries, searchQuery, selectedDay, quickFilter, deliveryTab])
 
   // ── Profile edit ─────────────────────────────────────────────────────────
   function startEdit() {
@@ -196,7 +299,9 @@ export default function DriverDetailPage() {
       body: JSON.stringify(body),
     })
     if (res.ok) {
-      setDeliveries(prev => prev.map(d => d.id === deliveryId ? { ...d, ...body, status: (body.status as string) ?? d.status } : d))
+      setDeliveries(prev => prev.map(d =>
+        d.id === deliveryId ? { ...d, ...body, status: (body.status as string) ?? d.status } : d
+      ))
     } else {
       const e = await res.json().catch(() => ({}))
       alert(e.error || 'Алдаа гарлаа')
@@ -215,13 +320,16 @@ export default function DriverDetailPage() {
     await patchDelivery(deliveryId, { status: 'cancelled' })
   }
 
+  function toggleQuickFilter(qf: QuickFilter) {
+    setQuickFilter(prev => prev === qf ? null : qf)
+  }
+
   // ── Render guards ─────────────────────────────────────────────────────────
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
     </div>
   )
-
   if (error || !driver) return (
     <div className="text-center py-12">
       <p className="text-slate-400">{error || 'Жолооч олдсонгүй'}</p>
@@ -233,7 +341,8 @@ export default function DriverDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── Header ── */}
+
+      {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4">
         <Link href="/dashboard/delivery-drivers" className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
@@ -259,13 +368,17 @@ export default function DriverDetailPage() {
           ? <button onClick={startEdit} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-all">✏️ Засах</button>
           : <div className="flex gap-2">
               <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-xl transition-all">Цуцлах</button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50">{saving ? 'Хадгалж байна...' : '✅ Хадгалах'}</button>
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50">
+                {saving ? 'Хадгалж байна...' : '✅ Хадгалах'}
+              </button>
             </div>
         }
       </div>
 
-      {/* ── Profile card ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* ── Profile + Stats ───────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Profile card */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-5 space-y-3">
           <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Мэдээлэл</h2>
           {isEditing ? (
@@ -291,12 +404,12 @@ export default function DriverDetailPage() {
           ) : (
             <dl className="space-y-2 text-sm">
               {[
-                { label: '📞 Утас',          value: driver.phone },
-                { label: '📧 И-мэйл',        value: driver.email },
+                { label: '📞 Утас',            value: driver.phone },
+                { label: '📧 И-мэйл',          value: driver.email },
                 { label: '🚗 Тээврийн хэрэгсэл', value: driver.vehicle_type },
-                { label: '🔢 Дугаарын тэмдэг', value: driver.vehicle_number },
-                { label: '✈️ Telegram',       value: driver.telegram_chat_id ? `ID: ${driver.telegram_chat_id}` : 'Холбогдоогүй' },
-                { label: '📅 Бүртгэсэн',      value: fmt(driver.created_at) },
+                { label: '🔢 Дугаарын тэмдэг',  value: driver.vehicle_number },
+                { label: '✈️ Telegram',         value: driver.telegram_chat_id ? `ID: ${driver.telegram_chat_id}` : 'Холбогдоогүй' },
+                { label: '📅 Бүртгэсэн',        value: fmt(driver.created_at) },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between">
                   <span className="text-slate-400">{label}</span>
@@ -306,64 +419,192 @@ export default function DriverDetailPage() {
               {driver.delivery_zones.length > 0 && (
                 <div className="flex justify-between">
                   <span className="text-slate-400">📍 Хүргэлтийн бүс</span>
-                  <span className="text-white">{driver.delivery_zones.join(', ')}</span>
+                  <span className="text-white text-right">{driver.delivery_zones.join(', ')}</span>
                 </div>
               )}
             </dl>
           )}
         </div>
 
-        {/* ── Stats ── */}
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: 'Нийт хүргэлт',  value: stats.total,     color: 'text-white',        bg: 'bg-slate-700/50 border-slate-600' },
-            { label: 'Идэвхтэй',       value: stats.active,    color: 'text-blue-400',     bg: 'bg-blue-500/10 border-blue-500/20' },
-            { label: 'Хүргэсэн',       value: stats.delivered, color: 'text-green-400',    bg: 'bg-green-500/10 border-green-500/20' },
-            { label: 'Амжилтгүй',      value: stats.failed,    color: 'text-red-400',      bg: 'bg-red-500/10 border-red-500/20' },
-          ].map(s => (
-            <div key={s.label} className={`border rounded-xl p-4 ${s.bg}`}>
-              <p className="text-slate-400 text-xs">{s.label}</p>
-              <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
+        {/* Stats */}
+        <div className="space-y-3">
+          {/* Performance grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
+              <p className="text-slate-400 text-xs">✅ Амжилттай хүргэлт</p>
+              <p className="text-2xl font-bold text-green-400 mt-1">{stats.delivered}</p>
+              <p className="text-green-300 text-sm">{stats.successPct}%</p>
             </div>
-          ))}
-          <div className="col-span-2 border rounded-xl p-4 bg-yellow-500/10 border-yellow-500/20">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+              <p className="text-slate-400 text-xs">❌ Цуцлагдсан</p>
+              <p className="text-2xl font-bold text-red-400 mt-1">{stats.cancelled}</p>
+              <p className="text-red-300 text-sm">{stats.cancelPct}%</p>
+            </div>
+            <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+              <p className="text-slate-400 text-xs">⚠️ Хоцорсон</p>
+              <p className="text-2xl font-bold text-orange-400 mt-1">{stats.delayed}</p>
+            </div>
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
+              <p className="text-slate-400 text-xs">💰 Төлбөр аваагүй</p>
+              <p className="text-2xl font-bold text-rose-400 mt-1">{stats.unpaid}</p>
+            </div>
+          </div>
+          {/* Total earnings */}
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
             <p className="text-slate-400 text-xs">💰 Нийт орлого (хүргэсэн)</p>
             <p className="text-2xl font-bold text-yellow-400 mt-1">{fmtPrice(stats.earnings)}</p>
           </div>
         </div>
       </div>
 
-      {/* ── Deliveries ── */}
+      {/* ── Daily payment breakdown ────────────────────────────────────────── */}
+      {stats.dailyBreakdown.length > 0 && (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">💵 Өдрийн орлого</h2>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {stats.dailyBreakdown.map(([day, { fee, count }]) => {
+              const isToday     = day === todayStr
+              const isYesterday = day === new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: TZ })
+              const label = isToday ? 'Өнөөдөр' : isYesterday ? 'Өчигдөр' : fmtDay(day)
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(prev => prev === day ? '' : day)}
+                  className={`flex-shrink-0 px-3 py-2 rounded-xl text-sm border transition-all text-center min-w-[80px] ${
+                    selectedDay === day
+                      ? 'bg-blue-600 border-blue-500 text-white'
+                      : isToday
+                        ? 'bg-green-500/10 border-green-500/30 text-green-300 hover:bg-green-500/20'
+                        : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <p className="font-medium">{label}</p>
+                  <p className="text-xs mt-0.5 font-bold">{fmtPrice(fee)}</p>
+                  <p className="text-xs opacity-60">{count} хүргэлт</p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Deliveries section ────────────────────────────────────────────── */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden">
-        {/* Tab bar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">Хүргэлтүүд</h2>
-          <div className="flex gap-1">
-            {([
-              { key: 'all',    label: `Бүгд (${deliveries.length})` },
-              { key: 'active', label: `🚚 Идэвхтэй (${stats.active})` },
-              { key: 'done',   label: `✅ Дууссан (${stats.delivered + stats.failed})` },
-            ] as const).map(tab => (
+
+        {/* Tab bar + search */}
+        <div className="px-5 pt-4 pb-3 border-b border-slate-700 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-lg font-semibold text-white">Хүргэлтүүд</h2>
+            {/* Tab buttons */}
+            <div className="flex gap-1">
+              {([
+                { key: 'all',    label: `Бүгд (${stats.total})` },
+                { key: 'active', label: `🚚 Идэвхтэй (${stats.active})` },
+                { key: 'done',   label: `✅ Дууссан (${stats.delivered + stats.cancelled})` },
+              ] as const).map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setDeliveryTab(tab.key)}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                    deliveryTab === tab.key
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Search + day picker row */}
+          <div className="flex gap-2 flex-wrap items-center">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px]">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input
+                type="text"
+                placeholder="Хайх: нэр, утас, дугаар…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            {/* Day picker */}
+            <div className="flex gap-1 items-center flex-wrap">
               <button
-                key={tab.key}
-                onClick={() => setDeliveryFilter(tab.key)}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${deliveryFilter === tab.key ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                onClick={() => setSelectedDay('')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs transition-all ${!selectedDay ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
               >
-                {tab.label}
+                Бүгд
               </button>
-            ))}
+              {distinctDays.map(day => (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(prev => prev === day ? '' : day)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs transition-all ${
+                    selectedDay === day
+                      ? 'bg-blue-600 text-white'
+                      : day === todayStr
+                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {day === todayStr ? 'Өнөөдөр' : fmtDay(day)}
+                </button>
+              ))}
+              <input
+                type="date"
+                value={selectedDay}
+                onChange={e => setSelectedDay(e.target.value)}
+                className="px-2 py-1 bg-slate-700 border border-slate-600 rounded-lg text-slate-300 text-xs focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Quick filter buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {([
+              { key: 'delayed',   label: '⚠️ Хоцорсон',         count: stats.delayed,    color: 'orange' },
+              { key: 'complaint', label: '💬 Гомдол',            count: stats.complained, color: 'pink' },
+              { key: 'unpaid',    label: '💰 Төлбөр аваагүй',    count: stats.unpaid,     color: 'rose' },
+              { key: 'refused',   label: '🚫 Харилцагч татгалзсан', count: deliveries.filter(d => d.metadata?.customer_refused).length, color: 'purple' },
+              { key: 'cancelled', label: '❌ Цуцлагдсан',        count: stats.cancelled,  color: 'slate' },
+            ] as const).map(({ key, label, count, color }) => {
+              const active = quickFilter === key
+              const colorMap: Record<string, string> = {
+                orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-orange-500/10 text-orange-400 border-orange-500/30 hover:bg-orange-500/20',
+                pink:   active ? 'bg-pink-500 text-white border-pink-500'     : 'bg-pink-500/10 text-pink-400 border-pink-500/30 hover:bg-pink-500/20',
+                rose:   active ? 'bg-rose-500 text-white border-rose-500'     : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20',
+                purple: active ? 'bg-purple-500 text-white border-purple-500' : 'bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20',
+                slate:  active ? 'bg-slate-500 text-white border-slate-500'   : 'bg-slate-700 text-slate-400 border-slate-600 hover:bg-slate-600',
+              }
+              if (count === 0 && !active) return null
+              return (
+                <button
+                  key={key}
+                  onClick={() => toggleQuickFilter(key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs border transition-all font-medium ${colorMap[color]}`}
+                >
+                  {label} {count > 0 && <span className="ml-1 opacity-80">({count})</span>}
+                </button>
+              )
+            })}
           </div>
         </div>
 
+        {/* Table */}
         {deliveryLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">Хүргэлт байхгүй байна</div>
+          <div className="text-center py-12 text-slate-400">
+            {searchQuery || selectedDay || quickFilter ? 'Тохирох хүргэлт байхгүй' : 'Хүргэлт байхгүй байна'}
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px]">
+            <table className="w-full min-w-[820px]">
               <thead>
                 <tr className="border-b border-slate-700 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   <th className="px-5 py-3">Хүргэлт</th>
@@ -378,8 +619,9 @@ export default function DriverDetailPage() {
               <tbody>
                 {filtered.map(del => {
                   const ds = DELIVERY_STATUS[del.status] ?? { label: del.status, color: 'bg-slate-500/20 text-slate-400', icon: '❓' }
-                  const isActive = ACTIVE_STATUSES.includes(del.status)
+                  const isActive  = ACTIVE_STATUSES.includes(del.status)
                   const isLoading = actionLoading === del.id
+                  const payBadge  = del.orders?.payment_status ? PAYMENT_BADGE[del.orders.payment_status] : null
                   return (
                     <tr key={del.id} className="border-b border-slate-700/50 hover:bg-slate-700/20 transition-all">
                       <td className="px-5 py-4">
@@ -389,6 +631,9 @@ export default function DriverDetailPage() {
                         {del.delivery_fee != null && (
                           <p className="text-xs text-slate-400 mt-0.5">{fmtPrice(del.delivery_fee)}</p>
                         )}
+                        {payBadge && (
+                          <p className={`text-xs mt-0.5 ${payBadge.color}`}>{payBadge.label}</p>
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         {del.orders ? (
@@ -396,13 +641,16 @@ export default function DriverDetailPage() {
                             #{del.orders.order_number}
                           </Link>
                         ) : <span className="text-slate-500 text-sm">—</span>}
+                        {del.orders?.total_amount != null && (
+                          <p className="text-xs text-slate-400 mt-0.5">{fmtPrice(del.orders.total_amount)}</p>
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <p className="text-white text-sm">{del.customer_name || '—'}</p>
                         {del.customer_phone && <p className="text-xs text-slate-400">{del.customer_phone}</p>}
                       </td>
-                      <td className="px-5 py-4 max-w-[180px]">
-                        <p className="text-slate-300 text-sm truncate">{del.delivery_address || '—'}</p>
+                      <td className="px-5 py-4 max-w-[160px]">
+                        <p className="text-slate-300 text-sm truncate" title={del.delivery_address ?? ''}>{del.delivery_address || '—'}</p>
                         {del.estimated_delivery_time && (
                           <p className="text-xs text-orange-400 mt-0.5">⏰ {fmt(del.estimated_delivery_time)}</p>
                         )}
@@ -411,8 +659,10 @@ export default function DriverDetailPage() {
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${ds.color}`}>
                           {ds.icon} {ds.label}
                         </span>
-                        {del.failure_reason && (
-                          <p className="text-xs text-red-400 mt-1">{del.failure_reason}</p>
+                        {del.failure_reason && <p className="text-xs text-red-400 mt-1">{del.failure_reason}</p>}
+                        {del.notes && <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[120px]">{del.notes}</p>}
+                        {del.metadata?.customer_refused && (
+                          <p className="text-xs text-purple-400 mt-0.5">🚫 Татгалзсан</p>
                         )}
                       </td>
                       <td className="px-5 py-4">
@@ -422,13 +672,12 @@ export default function DriverDetailPage() {
                         )}
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 flex-wrap">
                           {isActive && (
                             <>
                               <button
                                 onClick={() => handleUnassign(del.id)}
                                 disabled={isLoading}
-                                title="Жолоочийг чөлөөлөх"
                                 className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all disabled:opacity-40"
                               >
                                 {isLoading ? '...' : '👤 Чөлөөлөх'}
@@ -436,7 +685,6 @@ export default function DriverDetailPage() {
                               <button
                                 onClick={() => handleCancel(del.id)}
                                 disabled={isLoading}
-                                title="Хүргэлт цуцлах"
                                 className="px-3 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg transition-all disabled:opacity-40"
                               >
                                 {isLoading ? '...' : '🚫 Цуцлах'}
@@ -447,7 +695,7 @@ export default function DriverDetailPage() {
                             href={`/dashboard/deliveries/${del.id}`}
                             className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all"
                           >
-                            Дэлгэрэнгүй →
+                            →
                           </Link>
                         </div>
                       </td>
@@ -456,6 +704,9 @@ export default function DriverDetailPage() {
                 })}
               </tbody>
             </table>
+            <p className="text-xs text-slate-500 text-center py-3">
+              {filtered.length} / {deliveries.length} хүргэлт харагдаж байна
+            </p>
           </div>
         )}
       </div>

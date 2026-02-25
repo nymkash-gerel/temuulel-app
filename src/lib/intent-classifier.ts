@@ -503,16 +503,20 @@ export function classifyIntentWithConfidence(
     // Without this, a word like "сайн" would score 0.5 × N for every keyword beginning with "сайн",
     // inflating greeting above thanks for messages like "маш сайн".
     const prefixMatchedWords = new Set<string>()
+    const _debug = (normalized === 'цагаан нь байгаа юмуу')
     for (const kw of keywords) {
       if (padded.includes(` ${kw} `)) {
+        if (_debug) console.log(`[DBG ${intent}] exact +1 "${kw}"`)
         score += 1
         kw.split(' ').forEach((w) => fullyMatchedWords.add(w))
       } else if (neutralPadded.includes(` ${neutralizeVowels(kw)} `)) {
+        if (_debug) console.log(`[DBG ${intent}] neutral +1 "${kw}" → "${neutralizeVowels(kw)}"`)
         score += 1
         neutralizeVowels(kw).split(' ').forEach((w) => fullyMatchedWords.add(w))
       } else {
         const matchingWord = prefixMatchWord(normalized, kw)
         if (matchingWord && !fullyMatchedWords.has(matchingWord) && !prefixMatchedWords.has(matchingWord)) {
+          if (_debug) console.log(`[DBG ${intent}] prefix +0.5 "${kw}" → word "${matchingWord}"`)
           score += 0.5
           prefixMatchedWords.add(matchingWord)
         }
@@ -525,6 +529,7 @@ export function classifyIntentWithConfidence(
       if (stemmedPadded.includes(` ${skw} `)) {
         const alreadyCounted = skw.split(' ').every((w) => fullyMatchedWords.has(w) || stemMatchedWords.has(w))
         if (!alreadyCounted) {
+          if (_debug) console.log(`[DBG ${intent}] stem +0.75 "${skw}"`)
           score += 0.75
           skw.split(' ').forEach((w) => stemMatchedWords.add(w))
         }
