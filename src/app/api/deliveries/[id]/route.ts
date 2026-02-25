@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { validateBody, updateDeliverySchema } from '@/lib/validations'
 import { dispatchNotification } from '@/lib/notifications'
-import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
+import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard } from '@/lib/driver-telegram'
 import type { Database } from '@/lib/database.types'
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -117,7 +117,7 @@ export async function PATCH(
       ? supabase.from('delivery_drivers').select('id, name').eq('id', currentRaw.driver_id).single()
       : Promise.resolve({ data: null }),
     currentRaw.order_id
-      ? supabase.from('orders').select('id, order_number').eq('id', currentRaw.order_id).single()
+      ? supabase.from('orders').select('id, order_number, shipping_address, customer_name, customer_phone').eq('id', currentRaw.order_id).single()
       : Promise.resolve({ data: null }),
   ])
 
@@ -172,6 +172,22 @@ export async function PATCH(
       .from('delivery_drivers')
       .update({ status: 'on_delivery', updated_at: now })
       .eq('id', body.driver_id)
+
+    // 📱 Telegram: notify newly assigned driver
+    const orderData = current.orders as { order_number?: string; shipping_address?: string; customer_name?: string; customer_phone?: string } | null
+    const orderNumber = orderData?.order_number || current.delivery_number || id.slice(0, 8)
+    sendToDriverWithLog(
+      supabase,
+      body.driver_id,
+      store.id,
+      DRIVER_PROACTIVE_MESSAGES.orderAssigned({
+        orderNumber,
+        deliveryAddress: current.delivery_address || orderData?.shipping_address || undefined,
+        customerName: current.customer_name || orderData?.customer_name || undefined,
+        customerPhone: current.customer_phone || orderData?.customer_phone || undefined,
+      }),
+      orderAssignedKeyboard(id),
+    ).catch(() => {}) // Non-blocking
   }
 
   // Other field updates

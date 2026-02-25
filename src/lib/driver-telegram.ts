@@ -305,10 +305,11 @@ export async function sendToDriverWithLog(
   supabase: SupabaseClient<any, any, any>,
   driverId: string,
   storeId: string,
-  text: string
+  text: string,
+  keyboard?: TgInlineKeyboard
 ): Promise<void> {
   // Send via Telegram (best-effort)
-  await sendToDriver(supabase, driverId, text)
+  await sendToDriver(supabase, driverId, text, keyboard)
 
   // Always save to DB so dashboard shows it
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
