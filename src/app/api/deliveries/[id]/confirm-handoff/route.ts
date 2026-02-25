@@ -48,9 +48,9 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Notify driver via Telegram
+  // Notify driver via Telegram — must await before returning (serverless: function dies after response)
   if (delivery.driver_id) {
-    sendToDriver(
+    const sent = await sendToDriver(
       supabase,
       delivery.driver_id,
       `✅ <b>Бараа өгсөн баталгаажлаа!</b>\n\n` +
@@ -58,11 +58,11 @@ export async function POST(
       (delivery.customer_name ? `👤 ${delivery.customer_name}\n` : '') +
       `\nХаягруу явна уу. Хүргэсний дараа доорх товчийг дарна уу.`,
       enRouteKeyboard(deliveryId)
-    ).then(sent => {
-      console.log(`[confirm-handoff] TG notify driver=${delivery.driver_id} sent=${sent}`)
-    }).catch(err => {
+    ).catch(err => {
       console.error(`[confirm-handoff] TG notify failed:`, err?.message ?? err)
+      return false
     })
+    console.log(`[confirm-handoff] TG notify driver=${delivery.driver_id} sent=${sent}`)
   }
 
   return NextResponse.json({ ok: true, status: 'picked_up' })

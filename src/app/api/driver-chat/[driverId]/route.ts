@@ -113,9 +113,9 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Forward message via Telegram (non-blocking — falls back gracefully if driver not linked)
+  // Forward message via Telegram — await before returning (serverless: function dies after response)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sendToDriver(supabase as any, driverId, message).catch(() => {})
+  await sendToDriver(supabase as any, driverId, message).catch(() => {})
 
   return NextResponse.json({ message: msg })
 }

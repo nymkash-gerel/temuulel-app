@@ -176,7 +176,7 @@ export async function PATCH(
     // 📱 Telegram: notify newly assigned driver
     const orderData = current.orders as { order_number?: string; shipping_address?: string; customer_name?: string; customer_phone?: string } | null
     const orderNumber = orderData?.order_number || current.delivery_number || id.slice(0, 8)
-    sendToDriverWithLog(
+    await sendToDriverWithLog(
       supabase,
       body.driver_id,
       store.id,
@@ -187,7 +187,7 @@ export async function PATCH(
         customerPhone: current.customer_phone || orderData?.customer_phone || undefined,
       }),
       orderAssignedKeyboard(id),
-    ).catch(() => {}) // Non-blocking
+    ).catch(() => {})
   }
 
   // Other field updates
@@ -272,8 +272,9 @@ export async function PATCH(
     }
 
     // 📱 Telegram: notify driver when their delivery is cancelled by the store
+    // Must await — serverless function is killed after response, fire-and-forget won't complete
     if (newStatus === 'cancelled' && current.driver_id) {
-      sendToDriverWithLog(
+      await sendToDriverWithLog(
         supabase,
         current.driver_id,
         store.id,
@@ -281,7 +282,7 @@ export async function PATCH(
           orderNumber: orderNumber || current.delivery_number,
           cancelReason: body.failure_reason || body.notes || undefined,
         }),
-      ).catch(() => {}) // Non-blocking
+      ).catch(() => {})
     }
   }
 

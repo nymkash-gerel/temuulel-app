@@ -225,7 +225,8 @@ export async function POST(request: NextRequest) {
           .join(', ')
       }
     }
-    sendToDriver(
+    // Must await before returning — serverless function is killed after response
+    await sendToDriver(
       supabase,
       result.recommended_driver_id!,
       DRIVER_PROACTIVE_MESSAGES.orderAssigned({
@@ -238,15 +239,15 @@ export async function POST(request: NextRequest) {
       delivery.delivery_type === 'intercity_post'
         ? intercityKeyboard(delivery.id)
         : orderAssignedKeyboard(delivery.id)
-    ).catch(() => {}) // Non-blocking — falls back gracefully if no Telegram linked
+    ).catch(() => {})
 
     // Send tracking SMS to customer
     if (delivery.customer_phone) {
-      sendDeliveryTrackingSMS(
+      await sendDeliveryTrackingSMS(
         delivery.customer_phone,
         delivery.delivery_number,
         delivery.customer_name,
-      ).catch(() => {}) // Non-blocking
+      ).catch(() => {})
     }
   }
 
