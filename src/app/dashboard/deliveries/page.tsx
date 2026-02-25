@@ -133,7 +133,19 @@ export default function DeliveriesPage() {
         d.delivery_drivers?.name?.toLowerCase().includes(q)
       )
     }
-    if (statusFilter) result = result.filter(d => d.status === statusFilter)
+    // Tab-based group filtering
+    if (statusFilter === 'needs_action') {
+      result = result.filter(d => ['pending', 'at_store'].includes(d.status))
+      // at_store (awaiting handoff) first, then pending (needs driver)
+      const order: Record<string, number> = { at_store: 0, pending: 1 }
+      result = [...result].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9))
+    } else if (statusFilter === 'active') {
+      result = result.filter(d => ['assigned', 'picked_up', 'in_transit', 'delayed'].includes(d.status))
+    } else if (statusFilter === 'done') {
+      result = result.filter(d => ['delivered', 'cancelled', 'failed'].includes(d.status))
+    } else if (statusFilter) {
+      result = result.filter(d => d.status === statusFilter)
+    }
     return result
   }, [deliveries, search, statusFilter])
 
@@ -422,9 +434,58 @@ export default function DeliveriesPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
+      {/* Workflow tabs + search */}
+      <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-4 mb-6 space-y-3">
+        {/* Tab buttons — one click to jump to the right stage */}
+        <div className="flex flex-wrap gap-2">
+          {[
+            { value: '', label: 'Бүгд', count: deliveries.length, color: 'slate' },
+            {
+              value: 'needs_action',
+              label: '🔴 Шаардлагатай',
+              count: deliveries.filter(d => ['pending', 'at_store'].includes(d.status)).length,
+              color: 'red',
+              urgent: deliveries.filter(d => d.status === 'at_store').length > 0,
+            },
+            {
+              value: 'active',
+              label: '🚚 Замдаа',
+              count: deliveries.filter(d => ['assigned', 'picked_up', 'in_transit', 'delayed'].includes(d.status)).length,
+              color: 'blue',
+            },
+            {
+              value: 'done',
+              label: '✅ Дууссан',
+              count: deliveries.filter(d => ['delivered', 'cancelled', 'failed'].includes(d.status)).length,
+              color: 'green',
+            },
+          ].map(tab => {
+            const isActive = statusFilter === tab.value
+            const colorMap: Record<string, string> = {
+              slate: isActive ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-700/40 text-slate-400 border-slate-600 hover:bg-slate-700',
+              red: isActive ? 'bg-red-500/30 text-red-300 border-red-500/50' : `${tab.urgent ? 'bg-red-500/10 border-red-500/40 text-red-400 animate-pulse' : 'bg-slate-700/40 text-slate-400 border-slate-600'} hover:bg-red-500/20`,
+              blue: isActive ? 'bg-blue-500/30 text-blue-300 border-blue-500/50' : 'bg-slate-700/40 text-slate-400 border-slate-600 hover:bg-blue-500/10',
+              green: isActive ? 'bg-green-500/30 text-green-300 border-green-500/50' : 'bg-slate-700/40 text-slate-400 border-slate-600 hover:bg-green-500/10',
+            }
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setStatusFilter(tab.value)}
+                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all flex items-center gap-2 ${colorMap[tab.color]}`}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isActive ? 'bg-white/20' : 'bg-slate-600'}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Search + actions row */}
+        <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1">
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
@@ -437,22 +498,6 @@ export default function DeliveriesPage() {
               />
             </div>
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all"
-          >
-            <option value="">Бүх төлөв</option>
-            <option value="pending">Хүлээгдэж буй</option>
-            <option value="assigned">Оноосон</option>
-            <option value="at_store">🏪 Дэлгүүрт</option>
-            <option value="picked_up">Авсан</option>
-            <option value="in_transit">Зам дээр</option>
-            <option value="delivered">Хүргэсэн</option>
-            <option value="failed">Амжилтгүй</option>
-            <option value="delayed">Хоцорсон</option>
-            <option value="cancelled">Цуцлагдсан</option>
-          </select>
           <button
             onClick={handleOpenBatchDispatch}
             disabled={batchLoading}
