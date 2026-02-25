@@ -79,6 +79,66 @@ export default function DeliveriesPage() {
   const [batchConfirming, setBatchConfirming] = useState(false)
   const [bulkConfirming, setBulkConfirming] = useState<string | null>(null) // driver_id being bulk-confirmed
 
+  // Multi-select for bulk assign / unassign
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDriverId, setBulkDriverId] = useState('')
+  const [bulkActionLoading, setBulkActionLoading] = useState(false)
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map(d => d.id)))
+    }
+  }
+  function clearSelection() { setSelectedIds(new Set()) }
+
+  async function handleBulkAssign() {
+    if (!bulkDriverId || selectedIds.size === 0) return
+    setBulkActionLoading(true)
+    const ids = [...selectedIds]
+    await Promise.all(ids.map(id =>
+      fetch(`/api/deliveries/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driver_id: bulkDriverId }),
+      })
+    ))
+    const driverObj = drivers.find(d => d.id === bulkDriverId)
+    setDeliveries(prev => prev.map(d =>
+      selectedIds.has(d.id)
+        ? { ...d, status: 'assigned' as const, delivery_drivers: driverObj ? { id: driverObj.id, name: driverObj.name, phone: driverObj.phone, vehicle_type: driverObj.status } : d.delivery_drivers }
+        : d
+    ))
+    clearSelection()
+    setBulkActionLoading(false)
+  }
+
+  async function handleBulkUnassign() {
+    if (selectedIds.size === 0) return
+    setBulkActionLoading(true)
+    const ids = [...selectedIds]
+    await Promise.all(ids.map(id =>
+      fetch(`/api/deliveries/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driver_id: null, status: 'pending' }),
+      })
+    ))
+    setDeliveries(prev => prev.map(d =>
+      selectedIds.has(d.id) ? { ...d, status: 'pending' as const, delivery_drivers: null } : d
+    ))
+    clearSelection()
+    setBulkActionLoading(false)
+  }
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -668,12 +728,58 @@ export default function DeliveriesPage() {
         </div>
       )}
 
+      {/* Bulk action bar — shown when rows are selected */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 mb-3 bg-blue-500/10 border border-blue-500/30 rounded-2xl">
+          <span className="text-blue-300 text-sm font-medium">
+            ✅ {selectedIds.size} хүргэлт сонгогдсон
+          </span>
+          <div className="flex flex-1 items-center gap-2 min-w-[220px]">
+            <select
+              value={bulkDriverId}
+              onChange={e => setBulkDriverId(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+            >
+              <option value="">— Жолооч сонгох —</option>
+              {drivers.map(d => (
+                <option key={d.id} value={d.id}>{d.name} ({d.phone})</option>
+              ))}
+            </select>
+            <button
+              onClick={handleBulkAssign}
+              disabled={!bulkDriverId || bulkActionLoading}
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-40 whitespace-nowrap"
+            >
+              {bulkActionLoading ? '...' : `👤 Оноох`}
+            </button>
+          </div>
+          <button
+            onClick={handleBulkUnassign}
+            disabled={bulkActionLoading}
+            className="px-4 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-sm font-medium rounded-lg transition-all disabled:opacity-40 whitespace-nowrap"
+          >
+            {bulkActionLoading ? '...' : '❌ Чөлөөлөх'}
+          </button>
+          <button onClick={clearSelection} className="text-slate-400 hover:text-white text-sm transition-all">
+            Цуцлах
+          </button>
+        </div>
+      )}
+
       {/* Deliveries Table */}
       {filtered.length > 0 ? (
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-x-auto">
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-slate-700">
+                <th className="py-3 px-3 md:py-4 md:px-4 w-10">
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded accent-blue-500 cursor-pointer"
+                  />
+                </th>
                 <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Хүргэлт</th>
                 <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Захиалга</th>
                 <th className="text-left py-3 px-3 md:py-4 md:px-6 text-sm font-medium text-slate-400">Хүлээн авагч</th>
@@ -688,7 +794,19 @@ export default function DeliveriesPage() {
               {filtered.map((del) => {
                 const sc = STATUS_CONFIG[del.status] || STATUS_CONFIG.pending
                 return (
-                  <tr key={del.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-all">
+                  <tr
+                    key={del.id}
+                    className={`border-b border-slate-700/50 transition-all ${selectedIds.has(del.id) ? 'bg-blue-500/10' : 'hover:bg-slate-700/30'}`}
+                  >
+                    <td className="py-3 px-3 md:py-4 md:px-4 w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(del.id)}
+                        onChange={() => toggleSelect(del.id)}
+                        onClick={e => e.stopPropagation()}
+                        className="w-4 h-4 rounded accent-blue-500 cursor-pointer"
+                      />
+                    </td>
                     <td className="py-3 px-3 md:py-4 md:px-6">
                       <div className="flex items-center gap-2">
                         <span className="text-white font-medium">#{del.delivery_number}</span>

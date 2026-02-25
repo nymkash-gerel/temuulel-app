@@ -190,6 +190,24 @@ export async function PATCH(
     ).catch(() => {})
   }
 
+  // Handle driver UNASSIGN (driver_id explicitly set to null)
+  if (body.driver_id === null && current.driver_id) {
+    updateData.driver_id = null
+    if (!body.status && current.status === 'assigned') {
+      updateData.status = 'pending' // revert to pending when unassigned
+    }
+    // Free driver if they have no other active deliveries
+    const { count } = await supabase
+      .from('deliveries')
+      .select('id', { count: 'exact', head: true })
+      .eq('driver_id', current.driver_id)
+      .in('status', ['assigned', 'picked_up', 'in_transit'])
+      .neq('id', id)
+    if (!count || count === 0) {
+      await supabase.from('delivery_drivers').update({ status: 'active', updated_at: now }).eq('id', current.driver_id)
+    }
+  }
+
   // Other field updates
   if (body.proof_photo_url) updateData.proof_photo_url = body.proof_photo_url
   if (body.notes !== undefined) updateData.notes = body.notes
