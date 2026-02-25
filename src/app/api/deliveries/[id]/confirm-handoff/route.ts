@@ -58,7 +58,11 @@ export async function POST(
       (delivery.customer_name ? `👤 ${delivery.customer_name}\n` : '') +
       `\nХаягруу явна уу. Хүргэсний дараа доорх товчийг дарна уу.`,
       enRouteKeyboard(deliveryId)
-    ).catch(() => {}) // Non-blocking
+    ).then(sent => {
+      console.log(`[confirm-handoff] TG notify driver=${delivery.driver_id} sent=${sent}`)
+    }).catch(err => {
+      console.error(`[confirm-handoff] TG notify failed:`, err?.message ?? err)
+    })
   }
 
   return NextResponse.json({ ok: true, status: 'picked_up' })

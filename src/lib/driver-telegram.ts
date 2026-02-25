@@ -216,9 +216,10 @@ export async function tgSend(chatId: number | string, text: string, options?: {
     })
     if (!res.ok) {
       const err = await res.text()
-      console.error(`[Telegram] sendMessage failed for chat ${chatId}:`, err)
+      console.error(`[Telegram] sendMessage FAILED chat=${chatId} status=${res.status}:`, err)
       return false
     }
+    console.log(`[Telegram] sendMessage OK chat=${chatId}`)
     return true
   } catch (err) {
     console.error('[Telegram] sendMessage error:', err)
