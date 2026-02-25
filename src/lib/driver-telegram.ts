@@ -61,7 +61,11 @@ export function enRouteKeyboard(deliveryId: string): TgInlineKeyboard {
         { text: '📵 Утас авсангүй', callback_data: `unreachable:${deliveryId}` },
       ],
       [
-        { text: '⏰ Хоцрох', callback_data: `delay:${deliveryId}` },
+        { text: '📞 Харилцагчийн мэдээлэл', callback_data: `customer_info:${deliveryId}` },
+        { text: '💬 Гомдол мэдэгдэх', callback_data: `receiver_complaint:${deliveryId}` },
+      ],
+      [
+        { text: '💳 Төлбөр баталгаажуулах', callback_data: `confirm_cod:${deliveryId}` },
         { text: '⚠️ Асуудал', callback_data: `issue:${deliveryId}` },
       ],
     ],

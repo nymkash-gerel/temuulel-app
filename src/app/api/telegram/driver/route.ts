@@ -37,6 +37,7 @@ import {
   DRIVER_BOT_ALREADY_LINKED,
   DRIVER_PROACTIVE_MESSAGES,
   type IntercityWizard,
+  type TgInlineKeyboard,
 } from '@/lib/driver-telegram'
 import { processDriverMessage } from '@/lib/driver-chat-engine'
 import { assignDriver, DEFAULT_DELIVERY_SETTINGS } from '@/lib/ai/delivery-assigner'
@@ -275,6 +276,70 @@ async function handleCallbackQuery(
       await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId)
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       await tgSend(chatId, `💰 <b>Мөнгө өгсөнгүй гэж бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдэллээ.`)
+      break
+    }
+
+    case 'confirm_cod': {
+      // Driver confirms COD payment collected — show payment keyboard
+      await tgAnswerCallback(cb.id)
+      await tgSend(chatId,
+        `💳 <b>Төлбөрийн байдал?</b>\n\nХарилцагч мөнгийг өгсөн эсэхийг сонгоно уу.`,
+        { replyMarkup: paymentKeyboard(deliveryId) }
+      )
+      break
+    }
+
+    case 'customer_info': {
+      // Show customer contact details so driver can call directly
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: infoDelivery } = await (supabase as any)
+        .from('deliveries')
+        .select('customer_name, customer_phone, delivery_address, delivery_number')
+        .eq('id', deliveryId)
+        .single()
+      await tgAnswerCallback(cb.id)
+      if (!infoDelivery) {
+        await tgSend(chatId, `❓ Захиалгын мэдээлэл олдсонгүй.`)
+        break
+      }
+      await tgSend(chatId,
+        `📋 <b>Харилцагчийн мэдээлэл — #${infoDelivery.delivery_number}</b>\n\n` +
+        `👤 Нэр: ${infoDelivery.customer_name || '—'}\n` +
+        `📞 Утас: ${infoDelivery.customer_phone ? `<code>${infoDelivery.customer_phone}</code>` : '—'}\n` +
+        `📍 Хаяг: ${infoDelivery.delivery_address || '—'}`
+      )
+      break
+    }
+
+    case 'receiver_complaint': {
+      // Receiver has a complaint — mark delayed, notify store
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'delayed', notes: 'Хүлээн авагч гомдол мэдэгдлээ' })
+        .eq('id', deliveryId)
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId,
+        `💬 <b>Гомдол бүртгэгдлээ.</b>\n\n` +
+        `Дэлгүүрийн менежерт мэдэгдлээ. Удахгүй холбогдох болно.\n` +
+        `Барааг хэвийнээр хүргэх эсэхийг хүлээгээрэй.`
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: complaintDelivery } = await (supabase as any)
+        .from('deliveries')
+        .select('delivery_number, store_id')
+        .eq('id', deliveryId)
+        .single()
+      if (complaintDelivery) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          store_id: complaintDelivery.store_id,
+          type: 'delivery_delayed',
+          title: 'Хүлээн авагч гомдол мэдэгдлээ',
+          body: `${driver.name} — Захиалга #${complaintDelivery.delivery_number}: хүлээн авагч гомдол мэдэгдлээ. Холбогдоно уу.`,
+          metadata: { delivery_id: deliveryId, reason: 'receiver_complaint' },
+        }).catch(() => {})
+      }
       break
     }
 
@@ -746,37 +811,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const STATUS_EMOJI: Record<string, string> = {
+    const STATUS_LABEL: Record<string, string> = {
       assigned: '🟡 Хуваарилагдсан',
-      at_store: '🏪 Дэлгүүрт ирсэн',
-      picked_up: '📦 Авсан',
+      at_store: '🏪 Дэлгүүрт хүлээж байна',
+      picked_up: '📦 Авсан — хүргэж байна',
       in_transit: '🚚 Замд яваа',
+      delayed: '⏰ Хоцорсон',
     }
 
-    const lines = deliveries.map((d: {
-      id: string
-      status: string
-      delivery_type: string
-      orders: { order_number: string; shipping_address: string; total_amount: number }
-      customers: { name: string; phone: string } | null
-    }, i: number) => {
-      const statusLabel = STATUS_EMOJI[d.status] ?? d.status
-      const orderNum = d.orders?.order_number ?? d.id.slice(0, 8)
-      const address = d.orders?.shipping_address ?? '—'
-      const customer = d.customers?.name ?? '—'
-      const phone = d.customers?.phone ?? ''
-      const tag = d.delivery_type === 'intercity_post' ? ' 🚌 Хот хоорондын' : ''
-      return (
-        `${i + 1}. <b>${orderNum}</b>${tag}\n` +
-        `   ${statusLabel}\n` +
-        `   👤 ${customer}${phone ? ` · ${phone}` : ''}\n` +
-        `   📍 ${address.slice(0, 60)}${address.length > 60 ? '…' : ''}`
-      )
-    })
+    // Send a header first
+    await tgSend(chatId, `🚚 <b>Таны захиалгууд (${deliveries.length})</b>\nДоорх захиалга тус бүрд шаардлагатай үйлдлийг сонгоно уу:`)
 
-    await tgSend(chatId,
-      `🚚 <b>Таны захиалгууд (${deliveries.length})</b>\n\n${lines.join('\n\n')}`
-    )
+    // Send each delivery as a separate card with action buttons
+    for (const d of deliveries as {
+      id: string; status: string; delivery_type: string
+      delivery_number?: string; customer_name?: string; customer_phone?: string; delivery_address?: string
+      orders: { order_number: string; shipping_address: string; total_amount: number } | null
+    }[]) {
+      const statusLabel = STATUS_LABEL[d.status] ?? d.status
+      const orderNum = d.delivery_number ?? d.orders?.order_number ?? d.id.slice(0, 8)
+      const address = d.delivery_address ?? d.orders?.shipping_address ?? '—'
+      const customer = d.customer_name ?? '—'
+      const phone = d.customer_phone ?? ''
+      const tag = d.delivery_type === 'intercity_post' ? ' 🚌' : ''
+
+      const cardText =
+        `📋 <b>${orderNum}${tag}</b> — ${statusLabel}\n` +
+        `👤 ${customer}${phone ? ` · <code>${phone}</code>` : ''}\n` +
+        `📍 ${address.slice(0, 80)}${address.length > 80 ? '…' : ''}`
+
+      // Choose keyboard based on current status
+      let keyboard: TgInlineKeyboard | undefined
+      if (d.status === 'assigned' || d.status === 'at_store') {
+        keyboard = orderAssignedKeyboard(d.id)
+      } else if (['picked_up', 'in_transit', 'delayed'].includes(d.status)) {
+        keyboard = enRouteKeyboard(d.id)
+      }
+
+      await tgSend(chatId, cardText, keyboard ? { replyMarkup: keyboard } : undefined)
+    }
+
     return NextResponse.json({ ok: true })
   }
 
