@@ -72,6 +72,22 @@ export function enRouteKeyboard(deliveryId: string): TgInlineKeyboard {
   }
 }
 
+/** Time-choice buttons when driver taps "Хоцрох" */
+export function delayKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🕐 Өнөөдөр дараа', callback_data: `delay_time:today:${deliveryId}` },
+        { text: '📅 Маргааш', callback_data: `delay_time:tomorrow:${deliveryId}` },
+      ],
+      [
+        { text: '🗓️ Энэ долоо хоногт', callback_data: `delay_time:week:${deliveryId}` },
+        { text: '✏️ Өөр цаг оруулах', callback_data: `delay_time:custom:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
 /** Sub-buttons when driver reports an issue */
 export function issueKeyboard(deliveryId: string): TgInlineKeyboard {
   return {

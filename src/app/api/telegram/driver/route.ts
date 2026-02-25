@@ -22,6 +22,7 @@ import {
   tgAnswerCallback,
   tgRemoveButtons,
   enRouteKeyboard,
+  delayKeyboard,
   issueKeyboard,
   orderAssignedKeyboard,
   intercityKeyboard,
@@ -242,10 +243,75 @@ async function handleCallbackQuery(
     }
 
     case 'delay': {
+      // Show time-choice menu instead of immediately setting delayed
+      await tgAnswerCallback(cb.id)
+      await tgSend(chatId,
+        `⏰ <b>Хэзээ хүргэх боломжтой вэ?</b>\nДоорхоос сонгоно уу:`,
+        { replyMarkup: delayKeyboard(deliveryId) }
+      )
+      break
+    }
+
+    case 'delay_time': {
+      // callback_data format: delay_time:<choice>:<deliveryId>
+      const dtParts = data.split(':')
+      const delayChoice = dtParts[1]     // today | tomorrow | week | custom
+      const dtDeliveryId = dtParts[2]    // actual delivery UUID
+
+      if (delayChoice === 'custom') {
+        // Save awaiting state in driver metadata — next text will be the custom time
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: drvMeta } = await (supabase as any).from('delivery_drivers').select('metadata').eq('telegram_chat_id', chatId).single()
+        const newMeta = { ...(drvMeta?.metadata ?? {}), awaiting_delay_time: dtDeliveryId }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('delivery_drivers').update({ metadata: newMeta }).eq('telegram_chat_id', chatId)
+        await tgAnswerCallback(cb.id)
+        await tgSend(chatId, `✏️ <b>Хүргэх цагийг бичнэ үү.</b>\n\nЖишээ нь:\n• "Өнөөдөр 18:00"\n• "Маргааш 10-11 цаг"\n• "Гаригт 14:00"`)
+        break
+      }
+
+      const now = new Date()
+      let etaLabel = ''
+      let etaIso = ''
+      if (delayChoice === 'today') {
+        now.setHours(now.getHours() + 3)
+        etaIso = now.toISOString()
+        etaLabel = 'Өнөөдөр дараа (~3 цаг)'
+      } else if (delayChoice === 'tomorrow') {
+        now.setDate(now.getDate() + 1)
+        now.setHours(12, 0, 0, 0)
+        etaIso = now.toISOString()
+        etaLabel = 'Маргааш'
+      } else if (delayChoice === 'week') {
+        const daysToSat = (6 - now.getDay() + 7) % 7 || 7
+        now.setDate(now.getDate() + daysToSat)
+        now.setHours(12, 0, 0, 0)
+        etaIso = now.toISOString()
+        etaLabel = 'Энэ долоо хоногт'
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('deliveries').update({ status: 'delayed' }).eq('id', deliveryId)
+      const { data: delayedDel } = await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'delayed', estimated_delivery_time: etaIso || null })
+        .eq('id', dtDeliveryId)
+        .select('delivery_number, store_id')
+        .single()
+
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
-      await tgSend(chatId, `⏰ <b>Хоцрох тухай бүртгэгдлээ.</b>\n\nХарилцагчид мэдэгдэллээ.`, { replyMarkup: enRouteKeyboard(deliveryId) })
+      await tgSend(chatId,
+        `⏰ <b>Хоцрох тухай бүртгэгдлээ.</b>\n\n📅 Шинэ хугацаа: ${etaLabel}\nДэлгүүрт мэдэгдлээ.`,
+        { replyMarkup: enRouteKeyboard(dtDeliveryId) }
+      )
+      if (delayedDel) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          store_id: delayedDel.store_id, type: 'delivery_delayed',
+          title: '⏰ Хүргэлт хоцорлоо',
+          body: `${driver.name} — #${delayedDel.delivery_number}: ${etaLabel} хүргэнэ.`,
+          metadata: { delivery_id: dtDeliveryId, eta: etaIso },
+        }).catch(() => {})
+      }
       break
     }
 
@@ -257,25 +323,37 @@ async function handleCallbackQuery(
 
     case 'wrong_product': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Буруу бараа' }).eq('id', deliveryId)
+      const { data: wpDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Буруу бараа' }).eq('id', deliveryId).select('delivery_number, store_id').single()
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       await tgSend(chatId, `📦 <b>Буруу бараа гэж бүртгэгдлээ.</b>\n\nБарааг агуулахад буцааж өгнө үү.`)
+      if (wpDel) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({ store_id: wpDel.store_id, type: 'delivery_failed', title: '📦 Буруу бараа', body: `${driver.name} — #${wpDel.delivery_number}: буруу бараа.`, metadata: { delivery_id: deliveryId, reason: 'wrong_product' } }).catch(() => {})
+      }
       break
     }
 
     case 'damaged': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Гэмтсэн бараа' }).eq('id', deliveryId)
+      const { data: dmDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Гэмтсэн бараа' }).eq('id', deliveryId).select('delivery_number, store_id').single()
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       await tgSend(chatId, `💔 <b>Гэмтсэн бараа гэж бүртгэгдлээ.</b>\n\nЗураг авч, агуулахад буцааж өгнө үү.`)
+      if (dmDel) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({ store_id: dmDel.store_id, type: 'delivery_failed', title: '💔 Гэмтсэн бараа', body: `${driver.name} — #${dmDel.delivery_number}: гэмтсэн бараа. Зураг авсан.`, metadata: { delivery_id: deliveryId, reason: 'damaged' } }).catch(() => {})
+      }
       break
     }
 
     case 'no_payment': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId)
+      const { data: npDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId).select('delivery_number, store_id').single()
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       await tgSend(chatId, `💰 <b>Мөнгө өгсөнгүй гэж бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдэллээ.`)
+      if (npDel) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({ store_id: npDel.store_id, type: 'delivery_failed', title: '💰 Мөнгө өгсөнгүй', body: `${driver.name} — #${npDel.delivery_number}: харилцагч мөнгө өгсөнгүй.`, metadata: { delivery_id: deliveryId, reason: 'no_payment' } }).catch(() => {})
+      }
       break
     }
 
@@ -865,6 +943,41 @@ export async function POST(request: NextRequest) {
   const earlyMeta = earlyDriver?.metadata as Record<string, unknown> | null
   const earlyWizard = earlyMeta?.intercity_wizard as IntercityWizard | undefined
   const hasActiveWizard = !!earlyWizard
+
+  // ── Custom delay time input ───────────────────────────────────────────────
+  // Driver typed a custom delivery time after clicking "✏️ Өөр цаг оруулах"
+  const awaitingDelayDeliveryId = earlyMeta?.awaiting_delay_time as string | undefined
+  if (awaitingDelayDeliveryId && text && !text.startsWith('/')) {
+    // Save the custom ETA text as a note + mark delayed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: customDelDel } = await (supabase as any)
+      .from('deliveries')
+      .update({ status: 'delayed', notes: `Хоцрох: ${text}` })
+      .eq('id', awaitingDelayDeliveryId)
+      .select('delivery_number, store_id')
+      .single()
+
+    // Clear the awaiting flag
+    const clearedMeta = { ...earlyMeta }
+    delete clearedMeta.awaiting_delay_time
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('delivery_drivers').update({ metadata: clearedMeta }).eq('telegram_chat_id', chatId)
+
+    await tgSend(chatId,
+      `⏰ <b>Бүртгэгдлээ.</b>\n\n📅 Шинэ хугацаа: "${text}"\nДэлгүүрт мэдэгдлээ.`,
+      { replyMarkup: enRouteKeyboard(awaitingDelayDeliveryId) }
+    )
+    if (customDelDel) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('notifications').insert({
+        store_id: customDelDel.store_id, type: 'delivery_delayed',
+        title: '⏰ Хүргэлт хоцорлоо',
+        body: `${earlyDriver?.name ?? 'Жолооч'} — #${customDelDel.delivery_number}: "${text}" хүргэнэ.`,
+        metadata: { delivery_id: awaitingDelayDeliveryId, eta_text: text },
+      }).catch(() => {})
+    }
+    return NextResponse.json({ ok: true })
+  }
 
   // ── Phone number (onboarding) ────────────────────────────────────────────
   // Skip if driver is already linked AND has an active wizard (their text is wizard input)
