@@ -8,6 +8,11 @@ import { exportToFile } from '@/lib/export-utils'
 import BatchDispatchModal from '@/components/BatchDispatchModal'
 import type { BatchPreview } from '@/app/api/deliveries/batch-assign/route'
 
+interface OrderItem {
+  quantity: number
+  products: { name: string } | null
+}
+
 interface Delivery {
   id: string
   delivery_number: string
@@ -25,7 +30,7 @@ interface Delivery {
   metadata: { proof_photo_file_id?: string; proof_photo_at?: string; [key: string]: unknown } | null
   ai_assignment: { recommended_driver_id?: string; confidence?: number; ranked_drivers?: { driver_id: string; score: number; reasons: string[] }[] } | null
   created_at: string
-  orders: { id: string; order_number: string; total_amount: number; payment_status: string | null } | null
+  orders: { id: string; order_number: string; total_amount: number; payment_status: string | null; order_items: OrderItem[] } | null
   delivery_drivers: { id: string; name: string; phone: string; vehicle_type: string } | null
 }
 
@@ -161,7 +166,7 @@ export default function DeliveriesPage() {
               delivery_address, customer_name, customer_phone,
               estimated_delivery_time, actual_delivery_time,
               delivery_fee, failure_reason, notes, metadata, ai_assignment, created_at,
-              orders(id, order_number, total_amount, payment_status),
+              orders(id, order_number, total_amount, payment_status, order_items(quantity, products(name))),
               delivery_drivers(id, name, phone, vehicle_type)
             `)
             .eq('store_id', store.id)
@@ -820,6 +825,21 @@ export default function DeliveriesPage() {
                           >
                             📸
                           </a>
+                        )}
+                      </div>
+                      {/* Secondary info: phone, address, products */}
+                      <div className="text-slate-400 text-xs mt-1 space-y-0.5">
+                        {del.customer_phone && (
+                          <p>📞 {del.customer_phone}</p>
+                        )}
+                        {del.delivery_address && (
+                          <p title={del.delivery_address} className="truncate max-w-[180px]">📍 {del.delivery_address}</p>
+                        )}
+                        {del.orders?.order_items && del.orders.order_items.length > 0 && (
+                          <p className="text-slate-500">
+                            🛍️ {del.orders.order_items[0]?.products?.name || 'Бараа'}
+                            {del.orders.order_items.length > 1 && ` +${del.orders.order_items.length - 1}`}
+                          </p>
                         )}
                       </div>
                       {del.delivery_fee != null && (

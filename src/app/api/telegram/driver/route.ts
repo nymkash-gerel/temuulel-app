@@ -19,6 +19,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   tgSend,
+  tgSendButtons,
   tgAnswerCallback,
   tgRemoveButtons,
   enRouteKeyboard,
@@ -31,6 +32,8 @@ import {
   intercityPaymentKeyboard,
   intercityCustomerMessage,
   paymentKeyboard,
+  paymentOptionsKeyboard,
+  handoffReadyKeyboard,
   sendToDriver,
   DRIVER_BOT_WELCOME,
   DRIVER_BOT_LINKED,
@@ -112,8 +115,19 @@ async function handleCallbackQuery(
     return
   }
 
-  // Remove buttons from original message
-  if (messageId) await tgRemoveButtons(chatId, messageId)
+  // Actions that trigger terminal state — remove buttons from the ORIGINAL delivery card
+  // Intermediate actions (delivered, delay, issue, etc.) keep the card alive and send NEW messages
+  // Note: payment_custom removes buttons in its handler because it waits for text input
+  const terminalActions = [
+    'payment_full', 'payment_received', 'payment_declined', // payment terminal states
+    'payment_delayed', // also terminal for payment flow (marks delivered + notifies store)
+    'reject', 'reject_handoff', // rejection terminal states
+    'arrived_at_store', // transitions to handoff flow - removes assignment card
+    'accept_handoff', // transitions to en-route flow
+  ]
+  if (messageId && terminalActions.includes(action)) {
+    await tgRemoveButtons(chatId, messageId)
+  }
 
   switch (action) {
     case 'arrived_at_store': {
@@ -146,27 +160,168 @@ async function handleCallbackQuery(
     }
 
     case 'delivered': {
+      // NEW PAYMENT FLOW: Do NOT update delivery status yet — show payment options first
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: deliveredRow } = await (supabase as any)
+      const { data: deliveryInfo } = await (supabase as any)
+        .from('deliveries')
+        .select('id, order_id, delivery_fee, delivery_number, customer_name, customer_phone')
+        .eq('id', deliveryId)
+        .single()
+
+      if (!deliveryInfo) {
+        await tgAnswerCallback(cb.id, '❌ Хүргэлт олдсонгүй')
+        break
+      }
+
+      // Fetch order total amount
+      let totalAmount = 0
+      const deliveryFee = deliveryInfo.delivery_fee || 0
+      if (deliveryInfo.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: orderData } = await (supabase as any)
+          .from('orders')
+          .select('total_amount')
+          .eq('id', deliveryInfo.order_id)
+          .single()
+        totalAmount = orderData?.total_amount || 0
+      }
+
+      const grandTotal = totalAmount + deliveryFee
+      const formattedOrder = totalAmount ? new Intl.NumberFormat('mn-MN').format(totalAmount) : '0'
+      const formattedDelivery = deliveryFee ? new Intl.NumberFormat('mn-MN').format(deliveryFee) : '0'
+      const formattedTotal = new Intl.NumberFormat('mn-MN').format(grandTotal)
+
+      await tgAnswerCallback(cb.id, '💰 Төлбөрийн мэдээлэл')
+
+      // Send NEW message with payment options (don't edit old card)
+      await tgSendButtons(chatId,
+        `💰 <b>Төлбөрийн мэдээлэл</b>\n\n` +
+        `📦 Захиалга: #${deliveryInfo.delivery_number}\n` +
+        (deliveryInfo.customer_name ? `👤 ${deliveryInfo.customer_name}\n` : '') +
+        `\nЗахиалгын дүн: ${formattedOrder}₮\n` +
+        `Хүргэлтийн үнэ: ${formattedDelivery}₮\n` +
+        `<b>Нийт: ${formattedTotal}₮</b>\n\n` +
+        `Төлбөрийн байдлыг сонгоно уу:`,
+        paymentOptionsKeyboard(deliveryId, grandTotal)
+      )
+      break
+    }
+
+    case 'payment_full': {
+      // Full payment received — mark delivered + paid
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: fullPayDelivery } = await (supabase as any)
         .from('deliveries')
         .update({ status: 'delivered', delivered_at: new Date().toISOString() })
         .eq('id', deliveryId)
-        .select('id, customer_phone, customer_name')
+        .select('id, order_id, delivery_number, delivery_fee, store_id')
         .single()
 
-      await tgAnswerCallback(cb.id, '🎉 Амжилттай!')
+      let paidAmount = 0
+      if (fullPayDelivery?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: orderData } = await (supabase as any)
+          .from('orders')
+          .select('total_amount')
+          .eq('id', fullPayDelivery.order_id)
+          .single()
+        paidAmount = (orderData?.total_amount || 0) + (fullPayDelivery.delivery_fee || 0)
 
-      const phoneInfo = deliveredRow?.customer_phone
-        ? `\n📞 Харилцагчийн утас: <code>${deliveredRow.customer_phone}</code>`
-        : ''
-      const customerInfo = deliveredRow?.customer_name
-        ? ` — ${deliveredRow.customer_name}` : ''
+        // Mark order as paid
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders')
+          .update({ payment_status: 'paid' })
+          .eq('id', fullPayDelivery.order_id)
+      }
 
+      // Remove buttons from the payment message
+      if (messageId) await tgRemoveButtons(chatId, messageId)
+
+      const formattedAmount = new Intl.NumberFormat('mn-MN').format(paidAmount)
+      await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
       await tgSend(chatId,
-        `🎉 <b>Хүргэлт амжилттай!</b>${customerInfo}${phoneInfo}\n\n` +
-        `💳 <b>Төлбөрийн байдал ямар байна?</b>`,
-        { replyMarkup: paymentKeyboard(deliveryId) }
+        `✅ <b>Хүргэлт + бүрэн төлбөр ${formattedAmount}₮ амжилттай бүртгэгдлээ.</b>\n\nБаярлалаа, ${driver.name}!`
       )
+
+      // Notify store
+      if (fullPayDelivery?.store_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          store_id: fullPayDelivery.store_id,
+          type: 'delivery_completed',
+          title: `✅ Хүргэлт амжилттай`,
+          body: `#${fullPayDelivery.delivery_number} хүргэгдэж, ${formattedAmount}₮ авлаа.`,
+          metadata: { delivery_id: deliveryId, amount: paidAmount },
+        }).catch(() => {})
+      }
+      break
+    }
+
+    case 'payment_custom': {
+      // Custom payment — set awaiting state in driver metadata
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: customDriver } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, metadata')
+        .eq('telegram_chat_id', chatId)
+        .single()
+
+      const existingMeta = (customDriver?.metadata ?? {}) as Record<string, unknown>
+      const newMeta = {
+        ...existingMeta,
+        awaiting_custom_payment: { deliveryId, step: 'amount' },
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers')
+        .update({ metadata: newMeta })
+        .eq('telegram_chat_id', chatId)
+
+      // Remove buttons from the payment message
+      if (messageId) await tgRemoveButtons(chatId, messageId)
+
+      await tgAnswerCallback(cb.id)
+      await tgSend(chatId, `💸 <b>Хэдэн төгрөг авсан бэ?</b>\n\nТоо оруулна уу (жишээ: 25000)`)
+      break
+    }
+
+    case 'payment_delayed': {
+      // Payment delayed — mark delivered but payment pending
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: delayedPayDelivery } = await (supabase as any)
+        .from('deliveries')
+        .update({
+          status: 'delivered',
+          delivered_at: new Date().toISOString(),
+          metadata: { payment_followup: true },
+        })
+        .eq('id', deliveryId)
+        .select('id, order_id, delivery_number, store_id')
+        .single()
+
+      if (delayedPayDelivery?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders')
+          .update({ payment_status: 'pending', notes: 'Жолооч: хүргэгдсэн боловч төлбөр аваагүй' })
+          .eq('id', delayedPayDelivery.order_id)
+      }
+
+      // Remove buttons from the payment message
+      if (messageId) await tgRemoveButtons(chatId, messageId)
+
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId, `🕐 <b>Бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдлээ.`)
+
+      // Notify store urgently
+      if (delayedPayDelivery?.store_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          store_id: delayedPayDelivery.store_id,
+          type: 'payment_pending',
+          title: `⚠️ Төлбөр аваагүй`,
+          body: `#${delayedPayDelivery.delivery_number} хүргэгдсэн боловч төлбөр аваагүй — харилцагчтай холбогдоно уу.`,
+          metadata: { delivery_id: deliveryId, payment_followup: true },
+        }).catch(() => {})
+      }
       break
     }
 
@@ -746,6 +901,88 @@ async function handleCallbackQuery(
       break
     }
 
+    // ── Handoff accept/reject (Feature 3) ────────────────────────────────────
+
+    case 'accept_handoff': {
+      // Driver accepts handoff → transition to picked_up
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: acceptedDelivery } = await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'picked_up', updated_at: new Date().toISOString() })
+        .eq('id', deliveryId)
+        .select('id, delivery_number, delivery_address, customer_name, customer_phone, store_id')
+        .single()
+
+      await tgAnswerCallback(cb.id, '✅ Хүлээж авлаа!')
+
+      // Send en-route keyboard
+      await tgSend(chatId,
+        `🚚 <b>Амжилт хүргэе!</b>\n\n` +
+        `📦 Захиалга: #${acceptedDelivery?.delivery_number || ''}\n` +
+        (acceptedDelivery?.customer_name ? `👤 ${acceptedDelivery.customer_name}\n` : '') +
+        `📍 Хаяг: ${acceptedDelivery?.delivery_address || 'Тодорхойгүй'}\n` +
+        (acceptedDelivery?.customer_phone ? `📞 <code>${acceptedDelivery.customer_phone}</code>\n` : ''),
+        { replyMarkup: enRouteKeyboard(deliveryId) }
+      )
+      break
+    }
+
+    case 'reject_handoff': {
+      // Driver rejects handoff → revert to assigned, notify store
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rejectedHandoff } = await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'assigned', updated_at: new Date().toISOString() })
+        .eq('id', deliveryId)
+        .select('id, delivery_number, store_id, driver_id')
+        .single()
+
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId, `❌ <b>Бүртгэгдлээ.</b>\n\nМенежертэй холбогдоно уу.`)
+
+      // Notify store manager
+      if (rejectedHandoff?.store_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          store_id: rejectedHandoff.store_id,
+          type: 'handoff_rejected',
+          title: `❌ Жолооч татгалзлаа`,
+          body: `${driver.name} #${rejectedHandoff.delivery_number} барааг хүлээж авахаас татгалзлаа.`,
+          metadata: { delivery_id: deliveryId, driver_id: rejectedHandoff.driver_id },
+        }).catch(() => {})
+      }
+      break
+    }
+
+    // ── Customer Refusal (Feature 7) ─────────────────────────────────────────
+
+    case 'customer_refused': {
+      // Customer refused to accept delivery — driver will enter reason
+      // Do NOT remove delivery card buttons (keep alive like other intermediate actions)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: refusalDriver } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, metadata')
+        .eq('telegram_chat_id', chatId)
+        .single()
+
+      if (refusalDriver) {
+        const existingMeta = (refusalDriver.metadata ?? {}) as Record<string, unknown>
+        const newMeta = {
+          ...existingMeta,
+          awaiting_refusal_reason: { deliveryId },
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('delivery_drivers')
+          .update({ metadata: newMeta })
+          .eq('telegram_chat_id', chatId)
+      }
+
+      await tgAnswerCallback(cb.id)
+      await tgSend(chatId, `🚫 <b>Татгалзсан шалтгааныг бичнэ үү:</b>`)
+      break
+    }
+
     default:
       await tgAnswerCallback(cb.id, '❓ Тодорхойгүй үйлдэл')
   }
@@ -932,6 +1169,110 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── /find command — search delivery by number (Feature 4) ───────────────────
+  if (text.startsWith('/find')) {
+    // Parse the search query: /find ORD-12345 or /find 12345 or /find ORD12345
+    const searchQuery = text.replace(/^\/find\s*/i, '').trim()
+
+    if (!searchQuery) {
+      await tgSend(chatId, `❓ <b>Хүргэлтийн дугаар оруулна уу.</b>\n\nЖишээ:\n• /find ORD-12345\n• /find 12345`)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Look up driver first
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: findDriver } = await (supabase as any)
+      .from('delivery_drivers')
+      .select('id, name')
+      .eq('telegram_chat_id', chatId)
+      .maybeSingle()
+
+    if (!findDriver) {
+      await tgSend(chatId, `❓ Таны акаунт холбогдоогүй байна.\nУтасны дугаараа илгээнэ үү.`)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Normalize search: strip "ORD-" prefix, spaces
+    const normalizedSearch = searchQuery.replace(/^ORD-?/i, '').replace(/\s/g, '')
+
+    // Search deliveries by number (must belong to this driver)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: foundDeliveries } = await (supabase as any)
+      .from('deliveries')
+      .select(`
+        id, delivery_number, status, delivery_address, customer_name, customer_phone,
+        delivery_fee, order_id,
+        orders(order_number, total_amount, order_items(quantity, products(name)))
+      `)
+      .eq('driver_id', findDriver.id)
+      .ilike('delivery_number', `%${normalizedSearch}%`)
+      .limit(3)
+
+    if (!foundDeliveries || foundDeliveries.length === 0) {
+      await tgSend(chatId, `❌ <b>Хүргэлт олдсонгүй:</b> "${searchQuery}"\n\nДугаараа шалгаж дахин оролдоно уу.`)
+      return NextResponse.json({ ok: true })
+    }
+
+    const FIND_STATUS_LABEL: Record<string, string> = {
+      pending: '⏳ Хүлээгдэж буй',
+      assigned: '🟡 Оноосон',
+      at_store: '🏪 Дэлгүүрт',
+      picked_up: '📦 Авсан',
+      in_transit: '🚚 Замд',
+      delivered: '✅ Хүргэсэн',
+      failed: '❌ Амжилтгүй',
+      cancelled: '🚫 Цуцлагдсан',
+      delayed: '⚠️ Хоцорсон',
+    }
+
+    // Send each found delivery as a card
+    for (const del of foundDeliveries as {
+      id: string
+      delivery_number: string
+      status: string
+      delivery_address: string
+      customer_name: string | null
+      customer_phone: string | null
+      delivery_fee: number | null
+      order_id: string | null
+      orders: { order_number: string; total_amount: number; order_items: { quantity: number; products: { name: string } | null }[] } | null
+    }[]) {
+      const statusLabel = FIND_STATUS_LABEL[del.status] || del.status
+
+      // Build product list
+      let productList = ''
+      if (del.orders?.order_items && del.orders.order_items.length > 0) {
+        productList = del.orders.order_items
+          .map(item => `• ${item.products?.name || 'Бараа'} x${item.quantity}`)
+          .join('\n')
+      }
+
+      const totalAmount = del.orders?.total_amount || 0
+      const deliveryFee = del.delivery_fee || 0
+      const grandTotal = totalAmount + deliveryFee
+
+      const cardText =
+        `📦 <b>#${del.delivery_number}</b> — ${statusLabel}\n\n` +
+        `👤 ${del.customer_name || '—'} | 📞 ${del.customer_phone ? `<code>${del.customer_phone}</code>` : '—'}\n` +
+        `📍 ${del.delivery_address || '—'}\n` +
+        (productList ? `\n🛍️ <b>Бараа:</b>\n${productList}\n` : '') +
+        `\n💰 Нийт: ${new Intl.NumberFormat('mn-MN').format(grandTotal)}₮` +
+        (deliveryFee > 0 ? ` (+${new Intl.NumberFormat('mn-MN').format(deliveryFee)}₮ хүргэлт)` : '')
+
+      // Choose keyboard based on status
+      let keyboard: TgInlineKeyboard | undefined
+      if (del.status === 'assigned' || del.status === 'at_store') {
+        keyboard = orderAssignedKeyboard(del.id)
+      } else if (['picked_up', 'in_transit', 'delayed'].includes(del.status)) {
+        keyboard = enRouteKeyboard(del.id)
+      }
+
+      await tgSend(chatId, cardText, keyboard ? { replyMarkup: keyboard } : undefined)
+    }
+
+    return NextResponse.json({ ok: true })
+  }
+
   // ── Early driver lookup — needed to protect wizard from phone-linking handler ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: earlyDriver } = await (supabase as any)
@@ -976,6 +1317,184 @@ export async function POST(request: NextRequest) {
         metadata: { delivery_id: awaitingDelayDeliveryId, eta_text: text },
       }).catch(() => {})
     }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── Custom payment amount input ─────────────────────────────────────────────
+  // Driver is entering a custom payment amount or reason
+  const awaitingCustomPayment = earlyMeta?.awaiting_custom_payment as { deliveryId: string; step: 'amount' | 'reason'; amount?: number } | undefined
+  if (awaitingCustomPayment && text && !text.startsWith('/')) {
+    if (awaitingCustomPayment.step === 'amount') {
+      // Parse the amount from text
+      const amount = parseInt(text.replace(/[^\d]/g, ''), 10)
+      if (isNaN(amount) || amount <= 0) {
+        await tgSend(chatId, `❌ Зөв тоо оруулна уу (жишээ: 25000)`)
+        return NextResponse.json({ ok: true })
+      }
+
+      // Update awaiting state to ask for reason
+      const updatedMeta = {
+        ...earlyMeta,
+        awaiting_custom_payment: { ...awaitingCustomPayment, step: 'reason', amount },
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers').update({ metadata: updatedMeta }).eq('telegram_chat_id', chatId)
+
+      await tgSend(chatId, `💰 Дүн: <b>${new Intl.NumberFormat('mn-MN').format(amount)}₮</b>\n\n📝 <b>Шалтгааныг тайлбарлана уу:</b>`)
+      return NextResponse.json({ ok: true })
+    }
+
+    if (awaitingCustomPayment.step === 'reason') {
+      const reason = text
+      const amount = awaitingCustomPayment.amount || 0
+      const delId = awaitingCustomPayment.deliveryId
+
+      // Mark delivery as delivered with custom payment info
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: customPayDelivery } = await (supabase as any)
+        .from('deliveries')
+        .update({
+          status: 'delivered',
+          delivered_at: new Date().toISOString(),
+          metadata: { custom_payment: { amount, reason, recorded_at: new Date().toISOString() } },
+        })
+        .eq('id', delId)
+        .select('id, order_id, delivery_number, store_id')
+        .single()
+
+      // Mark order as partially paid or pending
+      if (customPayDelivery?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders')
+          .update({ payment_status: 'partial', notes: `Жолооч: ${amount}₮ авсан. Шалтгаан: ${reason}` })
+          .eq('id', customPayDelivery.order_id)
+      }
+
+      // Clear the awaiting flag
+      const clearedMeta = { ...earlyMeta }
+      delete clearedMeta.awaiting_custom_payment
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers').update({ metadata: clearedMeta }).eq('telegram_chat_id', chatId)
+
+      const formattedAmount = new Intl.NumberFormat('mn-MN').format(amount)
+      await tgSend(chatId, `✅ <b>Бүртгэгдлээ.</b>\n\n💸 ${formattedAmount}₮ авсан\n📝 Шалтгаан: ${reason}\n\nБаярлалаа!`)
+
+      // Notify store
+      if (customPayDelivery?.store_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          store_id: customPayDelivery.store_id,
+          type: 'delivery_completed',
+          title: `💸 Дутуу төлбөр`,
+          body: `#${customPayDelivery.delivery_number} хүргэгдэж, ${formattedAmount}₮ авлаа. Шалтгаан: ${reason}`,
+          metadata: { delivery_id: delId, amount, reason },
+        }).catch(() => {})
+      }
+
+      return NextResponse.json({ ok: true })
+    }
+  }
+
+  // ── Customer refusal reason input (Feature 7) ───────────────────────────────
+  // Driver is entering the reason why customer refused the delivery
+  const awaitingRefusalReason = earlyMeta?.awaiting_refusal_reason as { deliveryId: string } | undefined
+  if (awaitingRefusalReason && text && !text.startsWith('/')) {
+    const reason = text
+    const delId = awaitingRefusalReason.deliveryId
+
+    // Clear the awaiting flag first
+    const clearedMeta = { ...earlyMeta }
+    delete clearedMeta.awaiting_refusal_reason
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('delivery_drivers').update({ metadata: clearedMeta }).eq('telegram_chat_id', chatId)
+
+    // Fetch delivery info for notifications
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: refusedDelivery } = await (supabase as any)
+      .from('deliveries')
+      .update({
+        status: 'failed',
+        metadata: { refusal_reason: reason, customer_refused: true },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', delId)
+      .select('id, order_id, delivery_number, store_id')
+      .single()
+
+    // Update order status to cancelled
+    let orderNumber = ''
+    let customerId = ''
+    if (refusedDelivery?.order_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: orderData } = await (supabase as any)
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          notes: `Харилцагч хүлээж аваагүй: ${reason}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', refusedDelivery.order_id)
+        .select('order_number, customer_id')
+        .single()
+
+      orderNumber = orderData?.order_number || ''
+      customerId = orderData?.customer_id || ''
+    }
+
+    // Notify store
+    if (refusedDelivery?.store_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('notifications').insert({
+        store_id: refusedDelivery.store_id,
+        type: 'delivery_failed',
+        title: `🚫 Харилцагч татгалзлаа`,
+        body: `#${refusedDelivery.delivery_number} — харилцагч авахаас татгалзлаа. Шалтгаан: ${reason}`,
+        metadata: { delivery_id: delId, reason, customer_refused: true },
+      }).catch(() => {})
+    }
+
+    // Send AI follow-up message to customer conversation
+    if (customerId && refusedDelivery?.store_id) {
+      try {
+        // Find the most recent conversation for this customer + store
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: conversation } = await (supabase as any)
+          .from('conversations')
+          .select('id')
+          .eq('customer_id', customerId)
+          .eq('store_id', refusedDelivery.store_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (conversation) {
+          const orderRef = orderNumber ? `#${orderNumber}` : `#${refusedDelivery.delivery_number}`
+          const followUpMsg =
+            `Таны ${orderRef} захиалга хүргэгдэх гэсэн боловч хүлээж аваагүй байна. ` +
+            `Шалтгаан: ${reason}. ` +
+            `Дахин хүргүүлэх үү? Хэрэв тийм бол бид удахгүй хүргэлтийг дахин зохион байгуулна.`
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from('messages').insert({
+            conversation_id: conversation.id,
+            content: followUpMsg,
+            is_from_customer: false,
+            is_ai_response: true, // Mark as AI to trigger follow-up flow
+            metadata: { type: 'customer_refusal_followup', delivery_id: delId, reason },
+          })
+
+          // Also mark delivery metadata for tracking
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from('deliveries').update({
+            metadata: { refusal_reason: reason, customer_refused: true, customer_refusal_followup: true },
+          }).eq('id', delId)
+        }
+      } catch (followUpErr) {
+        console.error('[DriverBot] Customer refusal follow-up failed:', followUpErr)
+      }
+    }
+
+    await tgSend(chatId, `✅ <b>Бүртгэгдлээ.</b>\n\nХарилцагчид AI агентаар мэдэгдлээ.`)
     return NextResponse.json({ ok: true })
   }
 

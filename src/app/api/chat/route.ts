@@ -2,9 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { dispatchNotification } from '@/lib/notifications'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { processEscalation } from '@/lib/escalation'
 import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
-import type { ChatbotSettings } from '@/lib/chat-ai'
 import { validateBody, chatMessageSchema } from '@/lib/validations'
 
 const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
@@ -325,17 +323,9 @@ export async function POST(request: NextRequest) {
         channel: channel,
       })
 
-      // Smart escalation — evaluate and update score
-      const { data: storeData } = await supabase
-        .from('stores')
-        .select('chatbot_settings')
-        .eq('id', store_id)
-        .single()
-
-      const chatbotSettings = (storeData?.chatbot_settings || {}) as ChatbotSettings
-      await processEscalation(
-        supabase, conversationId, content, store_id, chatbotSettings
-      )
+      // Note: escalation is handled by /api/chat/widget and the Messenger webhook
+      // after AI processing with intent filtering. Running it here (without intent
+      // context) causes false positives from the ai_fail_to_resolve signal.
     }
 
     return NextResponse.json({

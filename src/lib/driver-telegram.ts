@@ -58,15 +58,19 @@ export function enRouteKeyboard(deliveryId: string): TgInlineKeyboard {
     inline_keyboard: [
       [
         { text: '✅ Хүргэлээ', callback_data: `delivered:${deliveryId}` },
-        { text: '📵 Утас авсангүй', callback_data: `unreachable:${deliveryId}` },
+        { text: '⏰ Хоцрох', callback_data: `delay:${deliveryId}` },
       ],
       [
         { text: '📞 Харилцагчийн мэдээлэл', callback_data: `customer_info:${deliveryId}` },
+        { text: '📵 Утас авсангүй', callback_data: `unreachable:${deliveryId}` },
+      ],
+      [
         { text: '💬 Гомдол мэдэгдэх', callback_data: `receiver_complaint:${deliveryId}` },
+        { text: '⚠️ Асуудал', callback_data: `issue:${deliveryId}` },
       ],
       [
         { text: '💳 Төлбөр баталгаажуулах', callback_data: `confirm_cod:${deliveryId}` },
-        { text: '⚠️ Асуудал', callback_data: `issue:${deliveryId}` },
+        { text: '🚫 Авахаас татгалзав', callback_data: `customer_refused:${deliveryId}` },
       ],
     ],
   }
@@ -161,6 +165,30 @@ export function intercityPaymentKeyboard(deliveryId: string): TgInlineKeyboard {
       [
         { text: '✅ Тийм, авсан', callback_data: `intercity_pay_yes:${deliveryId}` },
         { text: '❌ Аваагүй / Дараа', callback_data: `intercity_pay_no:${deliveryId}` },
+      ],
+    ],
+  }
+}
+
+/** Payment options keyboard shown after driver taps "Хүргэлээ" — Full | Custom | Delayed */
+export function paymentOptionsKeyboard(deliveryId: string, totalAmount: number): TgInlineKeyboard {
+  const formattedTotal = new Intl.NumberFormat('mn-MN').format(totalAmount)
+  return {
+    inline_keyboard: [
+      [{ text: `💰 Бүрэн дүн (${formattedTotal}₮)`, callback_data: `payment_full:${deliveryId}` }],
+      [{ text: '💸 Өөр дүн оруулах', callback_data: `payment_custom:${deliveryId}` }],
+      [{ text: '🕐 Төлбөр хойшлуулах', callback_data: `payment_delayed:${deliveryId}` }],
+    ],
+  }
+}
+
+/** Handoff ready keyboard — driver can accept or reject the handoff */
+export function handoffReadyKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '✅ Хүлээж авлаа', callback_data: `accept_handoff:${deliveryId}` },
+        { text: '❌ Татгалзав', callback_data: `reject_handoff:${deliveryId}` },
       ],
     ],
   }

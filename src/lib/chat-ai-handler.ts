@@ -225,6 +225,21 @@ export async function processAIChat(
                 responseText = buildInfoRequest(draft)
                 orderDraft = draft
               }
+            } else if (!phone && !addr && isProductQuestion(customerMessage)) {
+              // User is asking about the product (color, variant, size) mid-order flow.
+              // Answer via GPT with current product context, then remind them to complete.
+              orderDraft = draft  // keep the draft alive
+              const [infoProducts, infoHistory] = await Promise.all([
+                searchProducts(supabase, draft.product_name, storeId, { maxProducts: 1 }),
+                isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId) : Promise.resolve(undefined),
+              ])
+              products = infoProducts
+              const answer = await generateAIResponse(
+                'product_detail', infoProducts, [], storeName, customerMessage,
+                chatbotSettings, infoHistory, undefined, undefined, customerProfile
+              )
+              responseText = `${answer}\n\nЗахиалгаа үргэлжлүүлэхийн тулд:\n${buildInfoRequest(draft)}`
+              intent = 'order_collection'
             } else {
               orderDraft = draft
               responseText = buildInfoRequest(draft)
@@ -620,6 +635,23 @@ interface VariantRow {
 /** Order intent — prefix stems + exact words for Mongolian verb forms */
 const ORDER_WORD_STEMS = ['захиал', 'авъ', 'авь', 'авя']  // авяа/avyaa included via авя
 const ORDER_EXACT_WORDS = ['авна', 'авах', 'авйа', 'ави', 'авмаар', 'авуу', 'авуй']
+
+/**
+ * Detect if the user is asking a question about a product's colors, variants,
+ * availability, or specs — typically mid-order when they want more info before
+ * giving their address/phone.
+ */
+function isProductQuestion(msg: string): boolean {
+  const n = normalizeText(msg).toLowerCase()
+  const questionWords = ['ямар', 'юу', 'ямар өнгө', 'өнгө', 'хэдэн', 'яагаад', 'хэрхэн', 'байна уу', 'bn', 'bnu', 'baina uu',
+    'харуул', 'үзүүл', 'харуулна уу', 'үзүүлнэ үү']  // imperative photo/info requests
+  const productInfoWords = ['өнгө', 'унгу', 'хэмжээ', 'размер', 'хувилбар', 'нөөц', 'байна', 'бн', 'bn', 'ungu', 'size', 'color', 'variant', 'stock', 'ямар',
+    'зураг', 'фото', 'photo', 'pic', 'зургаа', 'zurag', 'зургийг',  // photo/image
+    'материал', 'чанар', 'дэлгэрэнгүй']                              // detail requests
+  const hasQuestion = questionWords.some(w => n.includes(w)) || msg.includes('?')
+  const hasProductTopic = productInfoWords.some(w => n.includes(w))
+  return hasQuestion && hasProductTopic
+}
 
 function hasOrderIntent(msg: string): boolean {
   const words = normalizeText(msg).trim().split(/\s+/)

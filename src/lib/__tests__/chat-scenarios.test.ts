@@ -267,8 +267,8 @@ describe('Known Classifier Gaps & Ambiguities', () => {
   const ambiguousMN = [
     // "бараа" matches product_search first, even though "эвдэрсэн" is complaint-adjacent
     ['Энэ бараа эвдэрсэн байна', 'complaint'],  // Fixed: stemmer now matches эвдэрсэн → complaint
-    // "сайн" matches greeting; no explicit thanks keyword
-    ['Маш сайн', 'greeting'],                            // "маш сайн" overlaps with greeting - сайн
+    // "маш сайн" is an exact thanks keyword — correctly classified as thanks
+    ['Маш сайн', 'thanks'],                              // "маш сайн" = "very good" = thanks/feedback
     // "размер" matches size_info; "солиж" (conjugated) doesn't match "солих"
     ['Өөр размертай солиж болох уу?', 'size_info'],    // Ideal: return_exchange
     // "авах" matches product_search; "размер" size_info loses priority

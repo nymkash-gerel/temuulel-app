@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   verifyWebhookSignature,
@@ -64,29 +65,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
   }
 
-  try {
-    const result = await handleWebhookEvents(JSON.parse(rawBody))
-    console.log('[Webhook] Processed:', {
-      duration_ms: Date.now() - startTime,
-      timestamp: new Date().toISOString(),
-    })
-    return result
-  } catch (error) {
-    console.error('[Webhook] Failed:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      duration_ms: Date.now() - startTime,
-      timestamp: new Date().toISOString(),
-    })
-    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
-  }
+  // Return 200 to Facebook immediately — Facebook times out after 5 seconds.
+  // Process messages in the background after the response is sent.
+  const body = JSON.parse(rawBody) as Record<string, unknown>
+  after(async () => {
+    try {
+      await handleWebhookEvents(body)
+      console.log('[Webhook] Processed:', {
+        duration_ms: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+      })
+    } catch (error) {
+      console.error('[Webhook] Failed:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        duration_ms: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+      })
+    }
+  })
+
+  return NextResponse.json({ status: 'ok' })
 }
 
-async function handleWebhookEvents(body: Record<string, unknown>) {
+async function handleWebhookEvents(body: Record<string, unknown>): Promise<void> {
   const supabase = getSupabase()
 
   // Meta sends both Messenger and Instagram DMs with object='page' or 'instagram'
   if (body.object !== 'page' && body.object !== 'instagram') {
-    return NextResponse.json({ status: 'ignored' })
+    return
   }
 
   const isInstagram = body.object === 'instagram'
@@ -401,8 +407,6 @@ async function handleWebhookEvents(body: Record<string, unknown>) {
       }
     }
   }
-
-  return NextResponse.json({ status: 'ok' })
 }
 
 /**

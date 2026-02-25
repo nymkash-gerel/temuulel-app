@@ -173,19 +173,49 @@ export async function PATCH(
       .update({ status: 'on_delivery', updated_at: now })
       .eq('id', body.driver_id)
 
-    // 📱 Telegram: notify newly assigned driver
+    // 📱 Telegram: notify newly assigned driver with full delivery info
     const orderData = current.orders as { order_number?: string; shipping_address?: string; customer_name?: string; customer_phone?: string } | null
     const orderNumber = orderData?.order_number || current.delivery_number || id.slice(0, 8)
+
+    // Fetch order items for full product list
+    let productList = ''
+    let totalAmount = 0
+    if (current.order_id) {
+      const { data: orderDetails } = await supabase
+        .from('orders')
+        .select('total_amount, order_items(quantity, unit_price, products(name))')
+        .eq('id', current.order_id)
+        .single()
+
+      if (orderDetails) {
+        totalAmount = (orderDetails as { total_amount: number | null }).total_amount || 0
+        const items = (orderDetails as { order_items: { quantity: number; unit_price: number; products: { name: string } | null }[] }).order_items || []
+        if (items.length > 0) {
+          productList = items.map(item =>
+            `• ${item.products?.name || 'Бараа'} x${item.quantity} — ${new Intl.NumberFormat('mn-MN').format(item.unit_price)}₮`
+          ).join('\n')
+        }
+      }
+    }
+
+    const deliveryFee = current.delivery_fee || 0
+    const grandTotal = totalAmount + deliveryFee
+
+    // Build rich assignment message
+    const assignmentMessage =
+      `🆕 <b>ШИНЭ ЗАХИАЛГА — #${orderNumber}</b>\n\n` +
+      (productList ? `📦 <b>Бараа:</b>\n${productList}\n\n` : `📦 Бараа: Дэлгэрэнгүй апп-с харна уу\n\n`) +
+      `📍 Хаяг: ${current.delivery_address || orderData?.shipping_address || 'Тодорхойгүй'}\n` +
+      `👤 Хүлээн авагч: ${current.customer_name || orderData?.customer_name || '—'}\n` +
+      `📞 Утас: ${current.customer_phone || orderData?.customer_phone || '—'}\n\n` +
+      `💰 Нийт: ${new Intl.NumberFormat('mn-MN').format(grandTotal)}₮` +
+      (deliveryFee > 0 ? ` (+${new Intl.NumberFormat('mn-MN').format(deliveryFee)}₮ хүргэлт)` : '')
+
     await sendToDriverWithLog(
       supabase,
       body.driver_id,
       store.id,
-      DRIVER_PROACTIVE_MESSAGES.orderAssigned({
-        orderNumber,
-        deliveryAddress: current.delivery_address || orderData?.shipping_address || undefined,
-        customerName: current.customer_name || orderData?.customer_name || undefined,
-        customerPhone: current.customer_phone || orderData?.customer_phone || undefined,
-      }),
+      assignmentMessage,
       orderAssignedKeyboard(id),
     ).catch(() => {})
   }

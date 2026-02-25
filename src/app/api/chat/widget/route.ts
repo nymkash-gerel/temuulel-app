@@ -152,6 +152,10 @@ export async function POST(request: NextRequest) {
       'payment', 'size_info', 'table_reservation', 'allergen_info',
       'menu_availability', 'order_collection', 'order_created',
       'product_detail', 'price_info', 'gift_card_purchase', 'gift_card_redeem',
+      // return_exchange is a normal policy question ("can I return this?").
+      // Escalation fires through complaint scoring when distress language is present.
+      // Without this, any return/exchange question triggers escalation incorrectly.
+      'return_exchange',
     ]
     const shouldCheckEscalation = !INFORMATIONAL_INTENTS.includes(aiResult.intent)
 

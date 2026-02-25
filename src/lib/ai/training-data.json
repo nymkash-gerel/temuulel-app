@@ -806,5 +806,93 @@
   {
     "text": "Яагаад ийм удаан байгаа юм!?",
     "intent": "complaint"
+  },
+  {
+    "text": "маш сайн",
+    "intent": "thanks"
+  },
+  {
+    "text": "маш гоё байна",
+    "intent": "thanks"
+  },
+  {
+    "text": "маш зөв байна",
+    "intent": "thanks"
+  },
+  {
+    "text": "super sain",
+    "intent": "thanks"
+  },
+  {
+    "text": "сайхан байна",
+    "intent": "thanks"
+  },
+  {
+    "text": "хүргэлтийн үнэ хэд вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлтийн үнэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлт үнэ хэд",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлтийн зардал хэд вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "delivery fee хэд вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлт хэд",
+    "intent": "shipping"
+  },
+  {
+    "text": "барааны ирэхгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "baraa irehgui",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүнтэй ярих уу",
+    "intent": "complaint"
+  },
+  {
+    "text": "minii zahialga yamar baina",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга ирэхгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "захиалга хаана байна вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга хэзээ ирэх вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "Барааний үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "энэ барааны үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "бараа хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "үнэ хэд вэ",
+    "intent": "product_search"
   }
 ]

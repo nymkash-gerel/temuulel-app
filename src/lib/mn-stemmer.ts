@@ -39,18 +39,17 @@ const MIN_STEM_LEN = 4
 const SUFFIXES: readonly string[] = [
   // ── 6-char ──────────────────────────────────────────────────────────────
   'чихсан', 'чихлаа', 'чихлоо', 'чихлөө', // "already did" (аваачихсан)
+  'аасаа', 'ээсээ',                         // ablative + possessive (аасаа = а+а+с+а+а, 5-char but check before аас)
 
   // ── 5-char ──────────────────────────────────────────────────────────────
   'гдсан', 'гдсэн', 'гдсон', 'гдсөн',      // passive past (буцаагдсан)
-  'жааd', 'жоод',                           // converb sequence (явж ааd)
 
   // ── 4-char ──────────────────────────────────────────────────────────────
   'хгүй', 'хгуй',                           // neg. infinitive (явахгүй)
-  'аасаа', 'ээсээ',                         // ablative + possessive
+  'жаад', 'жоод',                           // converb sequence (явжаад, ирж оод)
+  'маар', 'мээр',                           // desiderative mood (-маар/-мээр = "want to X")
 
   // ── 3-char ──────────────────────────────────────────────────────────────
-  // Desiderative mood (-маар/-мээр = "want to X")
-  'маар', 'мээр',
   // Past participle
   'сан', 'сэн', 'сон', 'сөн',
   // Spoken past tense
@@ -72,11 +71,11 @@ const SUFFIXES: readonly string[] = [
   'ийн',
   // Accusative (front-vowel stem)
   'ийг',
+  // Converb continuation (явж оод, ирж аад in spoken form)
+  'оод', 'аад', 'ээд',
   // NOTE: -гаа/-гээ/-гоо/-гөө removed — ambiguous with root-final г.
   //   e.g. захиалгаа (захиалга + аа) would wrongly stem to захиал via -гаа.
   //   Plain -аа (2-char) handles this correctly with MIN_STEM_LEN protection.
-  // Converb + continuation (явж ааd, ирж оод in spoken form)
-  'оод', 'ааd', 'ээд',
 
   // ── 2-char ──────────────────────────────────────────────────────────────
   // Genitive (back-vowel stem)

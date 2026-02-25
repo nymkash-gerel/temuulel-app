@@ -107,6 +107,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'маргааш ирэх', 'өглөө ирэх', 'өнөөдөр ирэх', 'орой ирэх',
     // Ready/completion status
     'бэлэн болох', 'бэлэн болно', 'бэлэн болсон',
+    // Latin transliterations for order status queries (e.g. "minii zahialga yamar baina")
+    'zahialga', 'zahialgaa', 'zahialgiin', 'minii zahialga',
   ],
   greeting: [
     // Core
@@ -172,6 +174,13 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'operator duu', 'operator duudaach',
     'udaan bgan', 'udaan baina', 'udaan yum',
     'yariltsah', 'yariltsya', 'yarilts',
+    // Human agent requests (Cyrillic) — customer wants to speak to a real person
+    'хүнтэй ярих', 'хүн дуудах', 'хүн хэрэгтэй', 'хүнтэй холбогдох',
+    'амьд хүн', 'оператор дуудах', 'менежер дуудах', 'менежер хэрэгтэй',
+    'ярих уу', 'яриад болох уу', 'хүнтэй харилцах',
+    // Non-delivery complaints — Latin transliterations
+    'irehgui', 'ireegui', 'ireedgui',
+    'baraa irehgui', 'baraa ireegui',
   ],
   return_exchange: [
     // Core — return/exchange policy questions (moved from complaint)
@@ -187,7 +196,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Fit/size mismatch (common return reason)
     'тохирохгүй', 'тохиргүй', 'тааруухгүй', 'таарахгүй',
     'өөр хэмжээ', 'өөр өнгө', 'өөрчлөх',
-    'багтахгүй', 'том', 'жижиг', 'бага', 'их',
+    'багтахгүй',  // "doesn't fit" — specific return signal (unlike 'том'/'жижиг' which are size_info)
     'хэмжээ буруу', 'өнгө буруу', 'загвар буруу',
     // English
     'return', 'return policy', 'exchange', 'refund',
@@ -201,6 +210,11 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'болох',
     // Latin transliteration
     'butsaah', 'butsaalt', 'butsaa', 'butaah', 'butaa', 'butay',
+    // "butsay" → normalizeText → "буцай" (ts→ц digraph, y→й): colloquial imperative "return it!"
+    // e.g. "bara butsay" = "baraa butsaah" = "return the product"
+    'буцай', 'буцаж', 'буцааж',
+    // Latin: keep "butsay" raw so it also matches if normalization doesn't run
+    'butsay',
     // Cyrillic forms of Latin misspellings (normalizer converts Latin→Cyrillic)
     'бутай', 'бутаах', 'бутаа',
     // Cyrillic misspellings (common typos)
@@ -284,6 +298,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хэдэн өдөр', 'хэдэн хоног',
     'хурдан', 'яаралтай хүргэлт',
     'өнөөдөр хүргэх', 'маргааш',
+    // Delivery price / cost queries (compound keywords so shipping beats product_search's "үнэ")
+    'хүргэлтийн үнэ', 'хүргэлт үнэ', 'хүргэлтийн зардал', 'хүргэлтийн хөлс',
+    'хүргэлт хэд', 'хүргэлт хэдэн',
+    'delivery cost', 'delivery fee', 'delivery price',
     // Latin transliterations (from real FB conversations)
     'хургелт', 'хургэлт',
     // Mongolian geography-specific
@@ -302,8 +320,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Table-specific
     'сул', 'чөлөөтэй', 'байна уу', 'бий юу',
     'суух', 'суудлын',
-    // Time expressions
-    'цагт', 'цаг', 'орой',
+    // Time expressions ('орой' already listed above — no duplicate)
+    'цагт', 'цаг',
     // English
     'table', 'reservation', 'reserve', 'book', 'booking',
     'seat', 'seats', 'party', 'dinner', 'lunch',
@@ -481,6 +499,10 @@ export function classifyIntentWithConfidence(
     let score = 0
     const fullyMatchedWords = new Set<string>()
     const stemMatchedWords = new Set<string>()
+    // Prevent the same message word from contributing prefix score more than once per intent.
+    // Without this, a word like "сайн" would score 0.5 × N for every keyword beginning with "сайн",
+    // inflating greeting above thanks for messages like "маш сайн".
+    const prefixMatchedWords = new Set<string>()
     for (const kw of keywords) {
       if (padded.includes(` ${kw} `)) {
         score += 1
@@ -490,8 +512,9 @@ export function classifyIntentWithConfidence(
         neutralizeVowels(kw).split(' ').forEach((w) => fullyMatchedWords.add(w))
       } else {
         const matchingWord = prefixMatchWord(normalized, kw)
-        if (matchingWord && !fullyMatchedWords.has(matchingWord)) {
+        if (matchingWord && !fullyMatchedWords.has(matchingWord) && !prefixMatchedWords.has(matchingWord)) {
           score += 0.5
+          prefixMatchedWords.add(matchingWord)
         }
       }
     }
@@ -528,12 +551,17 @@ export function classifyIntentWithConfidence(
   // Only override for strong return/complaint signals (exact keyword match, not prefix)
   if (bestIntent === 'product_search' && bestScore > 0) {
     const RETURN_SIGNALS = ['буцаах', 'буцаалт', 'буцаан', 'солих', 'солилт', 'солиулах', 'буцааж',
-      'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'butaah', 'butaa', 'butay', 'бутай', 'бутаах', 'бутаа', 'solih',
+      'буцай', 'буцаж',  // colloquial/imperative: "буцай" = "return it!" (e.g. "bara butsay")
+      'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'butaah', 'butaa', 'butay', 'butsay', 'бутай', 'бутаах', 'бутаа', 'solih',
       'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй']
     // Note: 'эвдэрсэн' removed from RETURN_SIGNALS — it belongs to complaint (product is broken = complaint, not return request)
     const COMPLAINT_SIGNALS = ['гомдол', 'асуудал', 'муу', 'луйвар', 'хуурамч', 'complaint',
       'эвдэрсэн', 'гэмтсэн', 'гэмтэл',
-      'мөнгө буцаа', 'мөнгөө буцаа', 'mongoo butaaj', 'yaagaad', 'zahirlaa', 'hun heregteii', 'operator']
+      'мөнгө буцаа', 'мөнгөө буцаа', 'mongoo butaaj', 'yaagaad', 'zahirlaa', 'hun heregteii', 'operator',
+      // Non-delivery complaint — normalized forms of 'irehgui'/'ireegui' (product didn't arrive)
+      'ирехгуи', 'иреегуи',
+      // Human agent request
+      'хүнтэй ярих', 'хүн хэрэгтэй', 'хүн дуудах', 'оператор дуудах', 'менежер дуудах']
     const normalizedWords = normalized.split(/\s+/)
     const stemmedWords = stemmedMsg.split(/\s+/)
 
@@ -542,10 +570,17 @@ export function classifyIntentWithConfidence(
       stemmedWords.some(w => w === kw || (kw.length >= 4 && w.startsWith(kw.slice(0, 4))))
     )
     const hasComplaint = COMPLAINT_SIGNALS.some(kw =>
-      padded.includes(` ${kw} `) || normalizedWords.some(w => w === kw)
+      padded.includes(` ${kw} `) || normalizedWords.some(w => w === kw) || message.toLowerCase().includes(kw)
     )
 
-    if (hasReturn) bestIntent = 'return_exchange'
+    // Shipping tiebreaker: "хүргэлт*" + price keyword = delivery price query, not product search
+    // e.g. "хүргэлтийн үнэ" has "үнэ" (product_search) but is really asking about delivery cost
+    const DELIVERY_STEMS = ['хүргэлт', 'хургэлт', 'хургелт', 'хүргэх', 'delivery', 'shipping']
+    const PRICE_WORDS = ['үнэ', 'хэд', 'хэдэн', 'зардал', 'хөлс', 'price', 'cost', 'fee', 'уне']
+    const hasDelivery = DELIVERY_STEMS.some(kw => normalized.includes(kw))
+    const hasPriceWord = PRICE_WORDS.some(kw => padded.includes(` ${kw} `) || normalized.endsWith(kw))
+    if (hasDelivery && hasPriceWord) bestIntent = 'shipping'
+    else if (hasReturn) bestIntent = 'return_exchange'
     else if (hasComplaint) bestIntent = 'complaint'
     else {
       // Tiebreaker: size_info beats product_search when message is primarily about size vocabulary
@@ -578,8 +613,11 @@ export function classifyIntentWithConfidence(
     const hasMoneyComplaint = MONEY_COMPLAINT_SIGNALS.some(kw =>
       padded.includes(` ${kw} `) || normalized.includes(kw) || message.toLowerCase().includes(kw)
     )
-    // Also check if original message contains "мөнгө" with "butaaj" (money refund in mixed script)
-    const hasMixedMoneyRefund = (message.includes('мөнгө') || message.includes('мунгу')) && message.includes('butaaj')
+    // Also check if original message contains a money word with a return word
+    // Catches misspellings: мунгөө (мөнгөө), мунгу (мөнгө), and Cyrillic буцааж alongside Latin butaaj
+    const MONEY_WORDS = ['мөнгө', 'мунгу', 'мунгөө', 'мунго', 'мунгуу']
+    const RETURN_DEMAND_WORDS = ['butaaj', 'буцааж', 'буцаа', 'butsaa']
+    const hasMixedMoneyRefund = MONEY_WORDS.some(w => message.includes(w)) && RETURN_DEMAND_WORDS.some(w => message.includes(w))
     // Also check for exclamation marks (angry tone)
     const hasAngryTone = (message.match(/!/g) || []).length >= 3
     if (hasMoneyComplaint || hasMixedMoneyRefund || (hasAngryTone && padded.includes(' буцаа'))) bestIntent = 'complaint'
@@ -587,7 +625,13 @@ export function classifyIntentWithConfidence(
 
   // Tiebreaker: return_exchange beats size_info for fit problems
   if (bestIntent === 'size_info' && bestScore > 0) {
-    const FIT_PROBLEM_SIGNALS = ['тохирохгүй', 'тохиргүй', 'буцаах', 'солих', 'солиулах', 'буцааж', 'том бай', 'жижиг бн', 'tohirohgui']
+    const FIT_PROBLEM_SIGNALS = [
+      'тохирохгүй', 'тохиргүй', 'буцаах', 'солих', 'солиулах', 'буцааж', 'том бай', 'жижиг бн', 'tohirohgui',
+      // "hemjee tom baina" = "size is too big" — Latin 'i'→'и' so normalized has 'баина' not 'байна'
+      'том баина', 'том бна',
+      // "хемжее том" (Latin 'e'→'е', 'hemjee') — covers "hemjee tom baina" and "hemjee tom"
+      'хемжее том', 'хэмжэ том',
+    ]
     const hasFitProblem = FIT_PROBLEM_SIGNALS.some(kw => padded.includes(` ${kw} `))
     if (hasFitProblem) bestIntent = 'return_exchange'
   }
@@ -631,11 +675,53 @@ export function classifyIntentWithConfidence(
     else if ((hasProductSearch || isShortSizeQuery) && !hasSizeGuideWords && !isSizeVocabOnly) bestIntent = 'product_search'
   }
 
-  // Tiebreaker: causative verb form (-уулмаар/-иулмаар = "to have something done") is NOT order_collection
+  // Tiebreaker: causative verb form (-уулмаар/-иулмаар = "to have something done") is NOT order_collection/complaint
   // e.g. "авахуулмаар" = want to get nails/hair done — should be product_search
-  if (bestIntent === 'order_collection' && bestScore <= 1.5) {
+  // e.g. "Муур маань хумсаа л авахуулмаар" = "I want my cat's nails done" = product_search
+  if ((bestIntent === 'order_collection' || bestIntent === 'complaint') && bestScore <= 1.5) {
     const hasCausative = /авахуулмаар|авхуулмаар|хийлгэмээр|хийлгэмэр|авч өгмөөр/.test(normalized)
     if (hasCausative) bestIntent = 'product_search'
+  }
+
+  // Tiebreaker: order_collection → order_status when the message is asking about status
+  // e.g. "minii zahialga yamar baina" = "what's my order status?" not "place an order"
+  if (bestIntent === 'order_collection' && bestScore > 0) {
+    const STATUS_QUERY_SIGNALS = [
+      'йамар баина',   // yamar baina → normalized (what's the status)
+      'ямар байна',
+      'йамар бн',      // yamar bn
+      'ямар бн',
+      'минии захиалга', // minii zahialga → normalized (my order)
+      'захиалга шалга', // check order
+      'хаана байна',
+      'статус',
+    ]
+    const hasStatusQuery = STATUS_QUERY_SIGNALS.some(kw => normalized.includes(kw))
+    if (hasStatusQuery) bestIntent = 'order_status'
+  }
+
+  // Tiebreaker: table_reservation → shipping when message contains delivery words
+  // "oroi 9 iin uyd hurgeed uguurei" = "please deliver by 9pm" hits 'орой' twice (vowel-neutral),
+  // scoring 2.0 for table_reservation. If delivery intent is present, override to shipping.
+  if (bestIntent === 'table_reservation' && bestScore > 0) {
+    const DELIVERY_VOCAB = ['хүргэлт', 'хүргэх', 'хүргэнэ', 'хүргээд', 'хүргэгч', 'хургэлт', 'хургелт',
+      'шуудан', 'delivery', 'deliver', 'хаяг', 'хороо', 'байр', 'тоот', 'давхар']
+    const hasDelivery = DELIVERY_VOCAB.some(kw =>
+      padded.includes(` ${kw} `) || normalized.includes(kw)
+    )
+    // Also catch Latin "hurgeed / hurgelt" variants that didn't fully normalize
+    const hasLatinDelivery = /hur[g|г]e/.test(normalized)
+    if (hasDelivery || hasLatinDelivery) bestIntent = 'shipping'
+  }
+
+  // Tiebreaker: shipping → order_collection when message contains a phone number + address words
+  // Customers providing their delivery address+phone during checkout classify as shipping
+  // due to 'хороо'/'байр'/'тоот' being address-structure keywords — override to order_collection.
+  if (bestIntent === 'shipping' && bestScore > 0) {
+    const hasPhone = /\b\d{8}\b/.test(message)
+    const ADDRESS_WORDS = ['хороо', 'байр', 'тоот', 'давхар', 'орц', 'horoo', 'bair', 'toot']
+    const hasAddressWord = ADDRESS_WORDS.some(kw => normalized.includes(kw))
+    if (hasPhone && hasAddressWord) bestIntent = 'order_collection'
   }
 
   // Optional logging
