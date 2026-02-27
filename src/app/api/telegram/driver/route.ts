@@ -1126,6 +1126,7 @@ export async function POST(request: NextRequest) {
     await tgSend(chatId,
       `🚚 <b>Жолоочийн бот — тушаалууд</b>\n\n` +
       `/orders — Миний идэвхтэй захиалгууд\n` +
+      `/unlink — Энэ аккаунтаас салгах\n` +
       `/help — Тушаалын жагсаалт\n\n` +
       `<b>Статус шинэчлэх:</b>\n` +
       `Товч дарах замаар шинэчилнэ үү (товч тогтоогүй бол доорхийг бичнэ үү):\n` +
@@ -1134,6 +1135,34 @@ export async function POST(request: NextRequest) {
       `• "Дэлгүүрт ирлээ" — дэлгүүрт очсон\n` +
       `• "Холбогдохгүй байна" — хэрэглэгч утас аваагүй\n\n` +
       `📸 <b>Хүргэлтийн зургийг илгээвэл автоматаар бүртгэгдэнэ.</b>`
+    )
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── /unlink command ──────────────────────────────────────────────────────
+  if (text === '/unlink') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: unlinkDriver } = await (supabase as any)
+      .from('delivery_drivers')
+      .select('id, name')
+      .eq('telegram_chat_id', chatId)
+      .maybeSingle()
+
+    if (!unlinkDriver) {
+      await tgSend(chatId, `❓ Энэ аккаунт ямар ч жолоочтой холбогдоогүй байна.`)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Clear telegram_chat_id — history stays intact
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from('delivery_drivers')
+      .update({ telegram_chat_id: null, telegram_linked_at: null })
+      .eq('id', unlinkDriver.id)
+
+    await tgSend(chatId,
+      `✅ <b>${unlinkDriver.name}</b> — амжилттай салгалаа.\n\n` +
+      `Дахин холбогдохын тулд утасны дугаараа илгээнэ үү.`
     )
     return NextResponse.json({ ok: true })
   }
