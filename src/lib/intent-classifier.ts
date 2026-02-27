@@ -336,9 +336,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // ('цагт' removed — "4n tsagt awtobus" bus schedule, not restaurant reservation)
     'зочин', 'өглөө',
     'хоол', 'зоогийн',
-    // Table-specific
-    'сул', 'чөлөөтэй', 'байна уу', 'бий юу',
+    // Table-specific (compound forms only — 'сул'/'чөлөөтэй' standalone too generic)
+    'байна уу', 'бий юу',
     'суух', 'суудлын',
+    'сул ширээ', 'чөлөөтэй ширээ',
     // English
     'table', 'reservation', 'reserve', 'book', 'booking',
     'seat', 'seats', 'party', 'dinner', 'lunch',

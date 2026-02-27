@@ -510,7 +510,6 @@ export default function DriverDetailPage() {
             <div className="space-y-2">
               {entries.map((entry, idx) => {
                 const isCurrent = entry.chat_id === driver.telegram_chat_id
-                const displayName = [entry.first_name, entry.last_name].filter(Boolean).join(' ')
                 const isLoading = switchingTg === entry.chat_id
                 return (
                   <div
@@ -525,14 +524,17 @@ export default function DriverDetailPage() {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
                       isCurrent ? 'bg-sky-500/30 text-sky-300' : 'bg-slate-700 text-slate-400'
                     }`}>
-                      {displayName.charAt(0).toUpperCase() || '?'}
+                      {(entry.first_name && entry.first_name !== 'Unknown') ? entry.first_name.charAt(0).toUpperCase() : '?'}
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className={`text-sm font-medium truncate ${isCurrent ? 'text-sky-300' : 'text-slate-300'}`}>
-                          {displayName || `Chat ${entry.chat_id}`}
+                          {entry.first_name && entry.first_name !== 'Unknown'
+                            ? [entry.first_name, entry.last_name].filter(Boolean).join(' ')
+                            : <span className="text-slate-500 italic">Нэр тодорхойгүй — 🔄 Sync дарна уу</span>
+                          }
                         </p>
                         {entry.username && (
                           <span className="text-xs text-slate-500">@{entry.username}</span>
