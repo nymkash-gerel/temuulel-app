@@ -351,7 +351,12 @@ export async function processAIChat(
         intent = followUp.type === 'size_question' ? 'size_info'
           : followUp.type === 'contextual_question' ? 'general'
           : hybridClassify(customerMessage).intent
-        const searchTerms = extractSearchTerms(customerMessage)
+        // Anchor to selected product for informational follow-ups (size, material, care, etc.)
+        // product_search stays as a fresh search — user is explicitly looking for something new.
+        const isInfoFollowUp = (intent === 'size_info' || intent === 'general') && state.last_products.length > 0
+        const searchTerms = isInfoFollowUp
+          ? state.last_products[0].name
+          : extractSearchTerms(customerMessage)
 
         // Parallel: search + history fetch based on intent
         const [llmProducts, llmOrders, llmHistory] = await Promise.all([
@@ -387,7 +392,12 @@ export async function processAIChat(
         || `⚠️ Одоогоор захиалга түр хаасан байна.${waitMsg} Тун удахгүй дахин оролдоно уу!`
       intent = 'busy_mode'
     } else {
-      const searchTerms = extractSearchTerms(customerMessage)
+      // Anchor to selected product for informational follow-ups (size, material, care, etc.)
+      // product_search stays as a fresh search — user is explicitly looking for something new.
+      const isInfoFollowUp = (intent === 'size_info' || intent === 'general') && state.last_products.length > 0
+      const searchTerms = isInfoFollowUp
+        ? state.last_products[0].name
+        : extractSearchTerms(customerMessage)
 
       // Parallel: all DB fetches + history in one batch
       const [searchedProducts, searchedOrders, searchedTables, history] = await Promise.all([

@@ -66,8 +66,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'авбал', 'авлаа', 'авсан',
     'захиалъя', 'захиалья', 'захиалах', 'захиалая',
     // Availability check (very common in FB Messenger)
+    // ('авч болох' removed — overlaps with "зээлээр авч болох уу" = payment intent)
     'байгаа юу', 'бий юу', 'бга юу', 'бгаа юу',
-    'байна уу', 'болох уу', 'авч болох',
+    'байна уу', 'болох уу',
     // Short forms from Latin typing
     'бга ю', 'бгаа', 'бга', 'бий', 'плаж',
     // Price inquiry (common in product search context)
@@ -334,8 +335,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'ширээ', 'резерв', 'бронь',
     // ('орой'/'үдийн'/'оройн' standalone removed — delivery messages also say "орой хүргэнэ үү")
     // ('цагт' removed — "4n tsagt awtobus" bus schedule, not restaurant reservation)
-    'зочин', 'өглөө',
+    // ('өглөө' standalone removed — "өглөө 11 цагт ажилладаг уу" = business hours, not reservation)
+    'зочин',
     'хоол', 'зоогийн',
+    'өглөөний хоол',
     // Table-specific (compound forms only — 'сул'/'чөлөөтэй' standalone too generic)
     'байна уу', 'бий юу',
     'суух', 'суудлын',

@@ -388,4 +388,78 @@ describe('2. E2E Widget Response Quality', () => {
     expect(['product_search', 'product_detail', 'order_collection', 'general']).toContain(r3.intent)
     expect(r3.response).toBeTruthy()
   })
+
+  // ── Product selected → size question stays on that product ────────────────
+  test('Size question after selecting product — no product list re-shown', { timeout: 60000 }, async () => {
+    const cid = await newConv(storeId)
+
+    // Step 1: search
+    const s1 = await chat(storeId, cid, 'арьсан цүнх авна')
+    expect(s1.intent).toMatch(/product_search|order_collection/)
+
+    // Step 2: select product
+    const s2 = await chat(storeId, cid, '1')
+    expect(s2.orderStep).toBe('info')
+
+    // Step 3: ask size — must NOT re-show numbered product list
+    const s3 = await chat(storeId, cid, 'bi ya tomtoi sulduu bvl zuger bh')
+    expect(s3.response).toBeTruthy()
+    // Must NOT show numbered product selection list
+    expect(s3.response).not.toMatch(/Бараа дугаараа бичнэ үү/i)
+    expect(s3.response).not.toMatch(/Ямар бүтээгдэхүүн захиалмаар байна/i)
+  })
+
+  // ── Product selected → material/general question stays on that product ────
+  test('Material question after product selection — answers about selected product', { timeout: 60000 }, async () => {
+    const cid = await newConv(storeId)
+
+    // Step 1: select a product
+    await chat(storeId, cid, 'арьсан цүнх байгаа юу')
+    const s2 = await chat(storeId, cid, '1')
+    expect(s2.orderStep).toBe('info')
+
+    // Step 2: ask about material — should answer about the product, not reset
+    const s3 = await chat(storeId, cid, 'материал нь юу вэ')
+    expect(s3.response).toBeTruthy()
+    // Must NOT show catalog/numbered list — product is already selected
+    expect(s3.response).not.toMatch(/Бараа дугаараа бичнэ үү/i)
+    expect(s3.response).not.toMatch(/Ямар бүтээгдэхүүн захиалмаар байна/i)
+    // Must NOT be empty or fallback
+    expect(s3.response.length).toBeGreaterThan(20)
+  })
+
+  // ── Availability question should NOT go to table_reservation ─────────────
+  test('"сул умсвут бна" — availability question, not table reservation', { timeout: 30000 }, async () => {
+    const cid = await newConv(storeId)
+    const r = await chat(storeId, cid, 'сул умсвут бна')
+    expect(r.intent).not.toBe('table_reservation')
+    expect(r.response).toBeTruthy()
+    // Must NOT respond with restaurant table messaging
+    expect(r.response).not.toMatch(/ширээ|резерв|бронь/i)
+  })
+
+  // ── Product context preserved across multiple follow-up questions ──────────
+  test('Multiple follow-up questions all answered about selected product', { timeout: 90000 }, async () => {
+    const cid = await newConv(storeId)
+
+    // Select product
+    await chat(storeId, cid, 'арьсан цүнх авна')
+    const s2 = await chat(storeId, cid, '1')
+    expect(s2.orderStep).toBe('info')
+
+    // Q1: size
+    const q1 = await chat(storeId, cid, '60кг 170см размер аль вэ')
+    expect(q1.response).toBeTruthy()
+    expect(q1.response).not.toMatch(/Бараа дугаараа бичнэ үү/i)
+
+    // Q2: color availability
+    const q2 = await chat(storeId, cid, 'хар өнгөтэй байдаг уу')
+    expect(q2.response).toBeTruthy()
+    expect(q2.response).not.toMatch(/Ямар бүтээгдэхүүн захиалмаар байна/i)
+
+    // Q3: care instructions
+    const q3 = await chat(storeId, cid, 'яаж угаах вэ')
+    expect(q3.response).toBeTruthy()
+    expect(q3.response).not.toMatch(/Бараа дугаараа бичнэ үү/i)
+  })
 })

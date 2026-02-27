@@ -85,6 +85,8 @@ function buildSystemPrompt(input: ContextualInput): string {
   const isCare = ['order_status', 'shipping_info'].includes(input.intent)
   const isAssist = ['order_collection', 'order_created'].includes(input.intent)
   const isSizeQuery = input.intent === 'size_info'
+  // product_detail = mid-order product question (color, material, etc.) — product already selected
+  const isProductDetail = input.intent === 'product_detail'
   const isGiftQuery = /бэлэг|санал болг|юу авбал|зөвлө/.test(normalizeText(input.currentMessage))
 
   // --- Core identity + universal rules (always included) ---
@@ -156,7 +158,13 @@ function buildSystemPrompt(input: ContextualInput): string {
 - S: 150-163см/45-60кг | M: 160-173см/58-72кг | L: 170-180см/68-82кг | XL: 178-188см/78-95кг
 - Жин өндрөөс чухал. Хязгаараас давсан бол дараагийн том размер зөвлө.
 - "Тохирох магадлалтай" гэж бич (100% баталгаа бүү өг). Нөөцийн тоо бүү харуул.
-- Хувилбаруудад байхгүй размер/өнгийг бүү зохио.`
+- Хувилбаруудад байхгүй размер/өнгийг бүү зохио.
+- ЧУХАЛ: Размер зөвлөсний дараа "Бараа дугаараа бичнэ үү (1, 2, 3...)" гэх мэт бараа сонгох хүсэлт БҮҮБИЧ — хэрэглэгч аль хэдийн бараа сонгосон байна.`
+  }
+
+  // --- Mid-order product detail (color, material, etc.) — product already selected ---
+  if (isProductDetail) {
+    prompt += `\n- ЧУХАЛ: Хэрэглэгч бараа аль хэдийн сонгосон. "Бараа дугаараа бичнэ үү" эсвэл "Аль нэгийг авмаар байна уу?" гэж ХЭЗЭЭ Ч бүү хэл.`
   }
 
   // --- Gift advice (only when gift-related) ---
