@@ -67,7 +67,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'захиалъя', 'захиалья', 'захиалах', 'захиалая',
     // Availability check (very common in FB Messenger)
     'байгаа юу', 'бий юу', 'бга юу', 'бгаа юу',
-    'байна уу',
+    'байна уу', 'болох уу',
     // Short forms from Latin typing
     'бга ю', 'бгаа', 'бга', 'бий', 'плаж',
     // Price inquiry (common in product search context)
@@ -77,9 +77,16 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Latin aliases for product category names
     'умд', 'цамц',
     // Image/photo requests (stemmer handles: зургийг/зургыг→зург, зурагтай→зураг, үзүүлээд→үзүүл)
-    'зураг', 'зургаа', 'фото',
+    // 'зургиин' added: Latin 'ii'→'ии' doesn't normalize to 'ий', so "zurgiin"→"зургиин" won't stem to "зург"
+    'зураг', 'зургаа', 'фото', 'зургиин',
     'photo', 'picture', 'pic', 'image', 'show photo', 'show picture',
     'үзүүлээч', 'харуулаач', 'харуулаад',
+    // Product composition/material questions (common in clothing/textile stores)
+    'материал', 'даавуу', 'бүтэц',
+    // Product selection/option queries (beats menu_availability's 'сонголт' compound prefix match)
+    'сонголт',
+    // Inventory status — "is it sold out?" (applies to products, not just menu items)
+    'дууссан', 'дуусав', 'дуусчихсан',
     // Questions without proper grammar particles (informal)
     'үнэ хэд', 'байгаа',
     // Latin transliterations (common in Messenger)
@@ -107,6 +114,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'маргааш ирэх', 'өглөө ирэх', 'өнөөдөр ирэх', 'орой ирэх',
     // Ready/completion status
     'бэлэн болох', 'бэлэн болно', 'бэлэн болсон',
+    // Elapsed time complaints — "X hours/days have passed, where is my order?"
+    'цаг боллоо', 'өдөр боллоо', 'хоног боллоо',
+    'цаг болж', 'өдөр болж', 'хоног болж',
     // Latin transliterations for order status queries (e.g. "minii zahialga yamar baina")
     'zahialga', 'zahialgaa', 'zahialgiin', 'minii zahialga',
   ],
@@ -206,8 +216,6 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'буцааж болох', 'солиулж болох', 'буцаалт хийх',
     'буцааж өгөх', 'солиулж өгөх',
     'солиулмаар', 'солихыг хүсч', 'буцаахыг хүсч',
-    // Questions without particles
-    'болох',
     // Latin transliteration
     'butsaah', 'butsaalt', 'butsaa', 'butaah', 'butaa', 'butay',
     // "butsay" → normalizeText → "буцай" (ts→ц digraph, y→й): colloquial imperative "return it!"
@@ -304,6 +312,11 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'delivery cost', 'delivery fee', 'delivery price',
     // Latin transliterations (from real FB conversations)
     'хургелт', 'хургэлт',
+    // хүргүүлэх verb forms (have it delivered) — Latin 'hurguul*' prefix-matches all typo variants
+    // e.g. "hurguuleeed" → norm "хургуулееед" → prefixMatch with 'хургуул' → +0.5
+    'хургуул', 'хургуулэх', 'хургуулнэ',
+    // Delivery timing — "before X o'clock" (өнөөдөр 3 цагаас өмнө хүргэж болох уу)
+    'цагаас өмнө', 'цагийн өмнө',
     // Mongolian geography-specific
     'аймаг', 'сум', 'дүүрэг', 'хороо', 'орон нутаг',
     'хан уул', 'баянгол', 'сүхбаатар', 'чингэлтэй', 'баянзүрх',
@@ -313,15 +326,19 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
   ],
   // Restaurant-specific intents
   table_reservation: [
-    // Core
-    'ширээ', 'суудал', 'захиал', 'захиалах', 'резерв', 'бронь',
-    'хүн', 'хүний', 'зочин', 'орой', 'оройн', 'өглөө',
-    'үдийн', 'хоол', 'зоогийн',
+    // Core — compound/specific forms preferred to avoid generic false positives
+    // ('захиал'/'захиалах' removed — too generic, order_collection handles e-commerce orders)
+    // ('хүн'/'хүний' removed — too generic, 'хүнтэй ярих' in complaint covers human agent requests)
+    // ('цаг' removed — too generic, "72 цаг боллоо" = "72 hours passed" ≠ reservation)
+    'ширээ', 'суудал', 'резерв', 'бронь',
+    // ('орой'/'үдийн' standalone removed — delivery messages also say "орой хүргэнэ үү" / "үдийн хойно гарна")
+    'зочин', 'оройн', 'өглөө',
+    'хоол', 'зоогийн',
     // Table-specific
     'сул', 'чөлөөтэй', 'байна уу', 'бий юу',
     'суух', 'суудлын',
-    // Time expressions ('орой' already listed above — no duplicate)
-    'цагт', 'цаг',
+    // Time expressions ('цагт' kept for "N цагт ширээ авах" patterns)
+    'цагт',
     // English
     'table', 'reservation', 'reserve', 'book', 'booking',
     'seat', 'seats', 'party', 'dinner', 'lunch',
@@ -339,8 +356,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Dietary preferences
     'вега', 'веган', 'вегетари', 'халал', 'халяль',
     'цэвэр', 'органик',
-    // Spicy level
-    'халуун', 'халуунтай', 'ногоон чинжүү', 'амт',
+    // Spicy level — 'халуун'/'ногоон' standalone removed (common in product descriptions: "халуун бараа", "ногоон цамц")
+    'халуун чинжүү', 'халуунтай хоол', 'ногоон чинжүү', 'амт',
     // English
     'allergy', 'allergies', 'allergen', 'ingredient',
     'gluten', 'gluten-free', 'dairy', 'nuts', 'egg',
@@ -351,7 +368,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
   ],
   menu_availability: [
     // Core
-    'цэс', 'меню', 'өнөөдөр', 'өнөөдрийн', 'бэлэн',
+    'цэс', 'меню', 'өнөөдрийн', 'бэлэн',
     'дууссан', 'үлдсэн', 'байна уу', 'идэж',
     // Food items
     'хоол', 'хоолны', 'уух', 'ундаа',
@@ -360,14 +377,14 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'menu', 'available', 'today', 'sold out',
     'in stock', 'can order',
-    // Aliases
-    'өнөөдрийн цэс', 'яг одоо', 'одоо байгаа',
+    // Aliases ('өнөөдөр' standalone removed — delivery timing also says "өнөөдөр"; 'одоо байгаа' removed — 'одоо' prefix-matches compound)
+    'өнөөдрийн цэс', 'яг одоо',
     'хоол байна уу', 'ямар хоол', 'юу захиалах',
     'дуусчхсан уу', 'дуусав уу',
-    // Selection/option queries
-    'сонголт', 'сонголт байна уу', 'сонголт бга уу', 'ямар сонголт',
-    // Dietary/cuisine availability
-    'цагаан хоол', 'мах багатай', 'загасны', 'ногоон',
+    // Selection/option queries — compound forms only ('сонголт' alone catches product color/size selections)
+    'сонголт байна уу', 'сонголт бга уу', 'ямар сонголт',
+    // Dietary/cuisine availability ('ногоон' removed — it's a product color in e-commerce)
+    'цагаан хоол', 'мах багатай', 'загасны',
   ],
   order_collection: [
     // Core order keywords (moved from product_search for clearer intent separation)
@@ -503,20 +520,16 @@ export function classifyIntentWithConfidence(
     // Without this, a word like "сайн" would score 0.5 × N for every keyword beginning with "сайн",
     // inflating greeting above thanks for messages like "маш сайн".
     const prefixMatchedWords = new Set<string>()
-    const _debug = (normalized === 'цагаан нь байгаа юмуу')
     for (const kw of keywords) {
       if (padded.includes(` ${kw} `)) {
-        if (_debug) console.log(`[DBG ${intent}] exact +1 "${kw}"`)
         score += 1
         kw.split(' ').forEach((w) => fullyMatchedWords.add(w))
       } else if (neutralPadded.includes(` ${neutralizeVowels(kw)} `)) {
-        if (_debug) console.log(`[DBG ${intent}] neutral +1 "${kw}" → "${neutralizeVowels(kw)}"`)
         score += 1
         neutralizeVowels(kw).split(' ').forEach((w) => fullyMatchedWords.add(w))
       } else {
         const matchingWord = prefixMatchWord(normalized, kw)
         if (matchingWord && !fullyMatchedWords.has(matchingWord) && !prefixMatchedWords.has(matchingWord)) {
-          if (_debug) console.log(`[DBG ${intent}] prefix +0.5 "${kw}" → word "${matchingWord}"`)
           score += 0.5
           prefixMatchedWords.add(matchingWord)
         }
@@ -529,7 +542,6 @@ export function classifyIntentWithConfidence(
       if (stemmedPadded.includes(` ${skw} `)) {
         const alreadyCounted = skw.split(' ').every((w) => fullyMatchedWords.has(w) || stemMatchedWords.has(w))
         if (!alreadyCounted) {
-          if (_debug) console.log(`[DBG ${intent}] stem +0.75 "${skw}"`)
           score += 0.75
           skw.split(' ').forEach((w) => stemMatchedWords.add(w))
         }
@@ -574,9 +586,15 @@ export function classifyIntentWithConfidence(
       padded.includes(` ${kw} `) || normalizedWords.some(w => w === kw) ||
       stemmedWords.some(w => w === kw || (kw.length >= 4 && w.startsWith(kw.slice(0, 4))))
     )
-    const hasComplaint = COMPLAINT_SIGNALS.some(kw =>
-      padded.includes(` ${kw} `) || normalizedWords.some(w => w === kw) || message.toLowerCase().includes(kw)
-    )
+    // Word-split the raw message for Latin keyword matching (avoids 'муу' matching inside 'юмуу')
+    const rawMsgWords = new Set(message.toLowerCase().split(/[\s.,!?;:'"()[\]{}<>\\/|@#$%^&*+=~`]+/).filter(w => w))
+    const hasComplaint = COMPLAINT_SIGNALS.some(kw => {
+      if (padded.includes(` ${kw} `) || normalizedWords.some(w => w === kw)) return true
+      // For multi-word Latin signals: substring check is OK (they won't accidentally match short words)
+      // For single-word signals: only match whole word against raw message
+      if (kw.includes(' ')) return message.toLowerCase().includes(kw)
+      return rawMsgWords.has(kw)
+    })
 
     // Shipping tiebreaker: "хүргэлт*" + price keyword = delivery price query, not product search
     // e.g. "хүргэлтийн үнэ" has "үнэ" (product_search) but is really asking about delivery cost
