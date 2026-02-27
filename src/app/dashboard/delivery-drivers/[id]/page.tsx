@@ -166,6 +166,7 @@ export default function DriverDetailPage() {
   const [tableTab, setTableTab]       = useState<'all' | 'active' | 'done'>('all')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [switchingTg, setSwitchingTg] = useState<number | null>(null)
+  const [syncingTg, setSyncingTg]   = useState(false)
 
   // load
   const loadDriver = useCallback(async () => {
@@ -302,6 +303,14 @@ export default function DriverDetailPage() {
       body: JSON.stringify({ chat_id: chatId }),
     })
     setSwitchingTg(null)
+    if (res.ok) { loadDriver() }
+    else { const e = await res.json().catch(() => ({})); alert(e.error || 'Алдаа') }
+  }
+
+  async function handleSyncTelegram() {
+    setSyncingTg(true)
+    const res = await fetch(`/api/delivery-drivers/${driverId}/sync-telegram`, { method: 'POST' })
+    setSyncingTg(false)
     if (res.ok) { loadDriver() }
     else { const e = await res.json().catch(() => ({})); alert(e.error || 'Алдаа') }
   }
@@ -488,7 +497,15 @@ export default function DriverDetailPage() {
             <div className="flex items-center gap-2 mb-4">
               <span className="text-sky-400 text-lg">✈️</span>
               <p className="text-slate-300 text-sm font-semibold">Telegram Холбогдсон Аккаунтууд</p>
-              <span className="ml-auto text-xs text-slate-500">{entries.length} аккаунт</span>
+              <span className="text-xs text-slate-500">{entries.length} аккаунт</span>
+              <button
+                onClick={handleSyncTelegram}
+                disabled={syncingTg}
+                className="ml-auto px-2.5 py-1 text-xs rounded-lg bg-slate-700 hover:bg-sky-700/50 text-slate-400 hover:text-sky-300 transition-all disabled:opacity-40"
+                title="Telegram-аас нэр, username татах"
+              >
+                {syncingTg ? '⏳ Sync...' : '🔄 Sync'}
+              </button>
             </div>
             <div className="space-y-2">
               {entries.map((entry, idx) => {

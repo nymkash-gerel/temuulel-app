@@ -330,19 +330,19 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // ('захиал'/'захиалах' removed — too generic, order_collection handles e-commerce orders)
     // ('хүн'/'хүний' removed — too generic, 'хүнтэй ярих' in complaint covers human agent requests)
     // ('цаг' removed — too generic, "72 цаг боллоо" = "72 hours passed" ≠ reservation)
-    'ширээ', 'суудал', 'резерв', 'бронь',
-    // ('орой'/'үдийн' standalone removed — delivery messages also say "орой хүргэнэ үү" / "үдийн хойно гарна")
-    'зочин', 'оройн', 'өглөө',
+    // ('суудал' standalone removed — catches clothing/product "суудал авах" questions unrelated to tables)
+    'ширээ', 'резерв', 'бронь',
+    // ('орой'/'үдийн'/'оройн' standalone removed — delivery messages also say "орой хүргэнэ үү")
+    // ('цагт' removed — "4n tsagt awtobus" bus schedule, not restaurant reservation)
+    'зочин', 'өглөө',
     'хоол', 'зоогийн',
     // Table-specific
     'сул', 'чөлөөтэй', 'байна уу', 'бий юу',
     'суух', 'суудлын',
-    // Time expressions ('цагт' kept for "N цагт ширээ авах" patterns)
-    'цагт',
     // English
     'table', 'reservation', 'reserve', 'book', 'booking',
     'seat', 'seats', 'party', 'dinner', 'lunch',
-    // Aliases (stemmer handles: оройн→орой via suffix strip)
+    // Aliases — compound forms only (avoid false positives from prefix matching)
     'ширээний', 'ширээ авах', 'ширээ захиалах',
     'суудал авах', 'суудал захиалах',
     'резервлэх', 'броньлох',
@@ -375,7 +375,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Availability check
     'байгаа юу', 'бий юу', 'авч болох',
     // English
-    'menu', 'available', 'today', 'sold out',
+    // ('today' removed — "today ipeh bl uu" = delivery timing, not restaurant menu)
+    'menu', 'available', 'sold out',
     'in stock', 'can order',
     // Aliases ('өнөөдөр' standalone removed — delivery timing also says "өнөөдөр"; 'одоо байгаа' removed — 'одоо' prefix-matches compound)
     'өнөөдрийн цэс', 'яг одоо',

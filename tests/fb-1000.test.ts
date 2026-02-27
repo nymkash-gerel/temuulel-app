@@ -12,9 +12,11 @@ const messages: string[] = JSON.parse(
 )
 
 // Known false-positive patterns: (regex on normalized message, wrongly-expected intent)
-const FALSE_POSITIVE_PATTERNS: Array<{ pattern: RegExp; wrongIntent: string; note: string }> = [
-  // 'юмуу' should not trigger complaint via 'муу' substring
-  { pattern: /юмуу/, wrongIntent: 'complaint', note: '"юмуу" question particle contains "муу"' },
+// maxConfidence: only flag if classified confidence is <= this value (undefined = always flag)
+const FALSE_POSITIVE_PATTERNS: Array<{ pattern: RegExp; wrongIntent: string; note: string; maxConfidence?: number }> = [
+  // 'юмуу' should not trigger complaint via 'муу' substring — but genuine complaints can
+  // contain 'юмуу' AND real complaint signals (irehgui, udaan, etc.) scoring ≥ 2.0
+  { pattern: /юмуу/, wrongIntent: 'complaint', maxConfidence: 1.9, note: '"юмуу" question particle contains "муу"' },
   // Short availability questions should not be complaint
   { pattern: /^(байгаа|бга|бгаа|бий)\s*(юу|уу|үү)?$/i, wrongIntent: 'complaint', note: 'Short availability question' },
   // Color/size questions should not be complaint or return_exchange
@@ -41,8 +43,9 @@ it('classify 1000 real FB messages — report suspicious results', () => {
 
     // Flag known false-positive patterns
     const norm = normalizeText(msg)
-    for (const { pattern, wrongIntent, note } of FALSE_POSITIVE_PATTERNS) {
-      if (intent === wrongIntent && (pattern.test(msg) || pattern.test(norm))) {
+    for (const { pattern, wrongIntent, note, maxConfidence } of FALSE_POSITIVE_PATTERNS) {
+      const confidenceOk = maxConfidence === undefined || confidence <= maxConfidence
+      if (intent === wrongIntent && confidenceOk && (pattern.test(msg) || pattern.test(norm))) {
         suspicious.push({ msg, intent, confidence, note })
       }
     }
@@ -54,8 +57,9 @@ it('classify 1000 real FB messages — report suspicious results', () => {
 
     // Flag return_exchange with no obvious return/size word
     // Note: "Аймар том байна" = "it's way too big" — this IS a valid return_exchange (size issue)
+    // Latin forms: soliulah=солиулах (exchange), buru/буруу=wrong (wrong item), haruljad=харуулжад (returned)
     if (intent === 'return_exchange' && confidence <= 1.0) {
-      const hasReturnOrSizeWord = /буцаа|солиул|солих|return|exchange|refund|butsaa|solih|тохирохгүй|том|жижиг|hemjee|хэмжээ/i.test(msg)
+      const hasReturnOrSizeWord = /буцаа|солиул|солих|return|exchange|refund|butsaa|solih|soliulah|soliol|тохирохгүй|taarahgui|тааралдахгүй|таарахгүй|том|жижиг|hemjee|хэмжээ|buru|буруу|харул|harul/i.test(msg)
       if (!hasReturnOrSizeWord) {
         suspicious.push({ msg, intent, confidence, note: 'return_exchange with no return/size keyword' })
       }
@@ -106,7 +110,10 @@ it('classify 1000 real FB messages — report suspicious results', () => {
   expect(menuAvailability.length).toBeLessThan(20)
   expect(allergenInfo.length).toBeLessThan(10)
   // Known false positives should be zero
-  const knownFP = suspicious.filter(s => s.note !== 'Low-confidence complaint — possible false positive' && s.note !== 'return_exchange with no return keyword')
+  const knownFP = suspicious.filter(s =>
+    s.note !== 'Low-confidence complaint — possible false positive' &&
+    s.note !== 'return_exchange with no return/size keyword'
+  )
   expect(knownFP.length).toBe(0)
 })
 
