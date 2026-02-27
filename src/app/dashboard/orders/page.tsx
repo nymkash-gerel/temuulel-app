@@ -83,6 +83,12 @@ function initEdit(order: Order): EditState {
   }
 }
 
+function getEditMode(status: string): 'full' | 'address_only' | 'locked' {
+  if (['picked_up', 'in_transit', 'delivered', 'failed', 'cancelled'].includes(status)) return 'locked'
+  if (['assigned', 'at_store'].includes(status)) return 'address_only'
+  return 'full'
+}
+
 // ─── Single Order Card ────────────────────────────────────────────────────────
 
 function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order) => void }) {
@@ -95,6 +101,7 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
 
   async function saveEdit() {
     setSaving(true)
+    const currentEditMode = getEditMode(order.status)
     const res = await fetch(`/api/orders/${order.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -103,8 +110,10 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
         customer_phone:   edit.customerPhone,
         shipping_address: edit.shippingAddress,
         notes:            edit.notes,
-        shipping_amount:  edit.shippingAmount,
-        items: edit.items.map(i => ({ id: i.id, quantity: i.quantity, unit_price: i.unit_price })),
+        ...(currentEditMode === 'full' ? {
+          shipping_amount: edit.shippingAmount,
+          items: edit.items.map(i => ({ id: i.id, quantity: i.quantity, unit_price: i.unit_price })),
+        } : {}),
       }),
     })
     setSaving(false)
@@ -115,18 +124,21 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
       ...order,
       notes:           edit.notes || null,
       shipping_address: edit.shippingAddress || null,
-      shipping_amount: edit.shippingAmount,
-      total_amount:    edit.items.reduce((s, i) => s + i.quantity * i.unit_price, 0) + edit.shippingAmount,
+      ...(currentEditMode === 'full' ? {
+        shipping_amount: edit.shippingAmount,
+        total_amount:    edit.items.reduce((s, i) => s + i.quantity * i.unit_price, 0) + edit.shippingAmount,
+        order_items: order.order_items.map(oi => {
+          const ei = edit.items.find(e => e.id === oi.id)
+          return ei ? { ...oi, quantity: ei.quantity } : oi
+        }),
+      } : {}),
       customers: order.customers ? { ...order.customers, name: edit.customerName, phone: edit.customerPhone } : null,
-      order_items: order.order_items.map(oi => {
-        const ei = edit.items.find(e => e.id === oi.id)
-        return ei ? { ...oi, quantity: ei.quantity } : oi
-      }),
     })
     setIsEditing(false)
   }
 
   const sc = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
+  const editMode = getEditMode(order.status)
   const editSubtotal = edit.items.reduce((s, i) => s + i.quantity * i.unit_price, 0)
 
   return (
@@ -147,9 +159,11 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
               {saving ? '⏳...' : '✅ Хадгалах'}
             </button>
           </div>
+        ) : editMode === 'locked' ? (
+          <span className="ml-2 px-3 py-1 text-xs text-slate-600 border border-slate-700 rounded-lg">🔒</span>
         ) : (
           <button onClick={startEdit} className="ml-2 px-3 py-1 text-xs bg-slate-700 hover:bg-amber-600/30 text-slate-300 hover:text-amber-300 border border-slate-600 hover:border-amber-500/50 rounded-lg transition-all">
-            ✏️ Засах
+            ✏️ {editMode === 'address_only' ? 'Хаяг' : 'Засах'}
           </button>
         )}
       </div>
@@ -187,7 +201,7 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
         <div className="px-5 py-4">
           <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Бүтээгдэхүүн</p>
           <div className="space-y-1.5">
-            {isEditing ? (
+            {isEditing && editMode === 'full' ? (
               edit.items.map((item, idx) => (
                 <div key={item.id} className="flex items-center gap-2">
                   <span className="text-slate-400 text-xs truncate flex-1">{item.name}</span>

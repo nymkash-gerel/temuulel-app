@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -88,7 +88,8 @@ function formatPrice(price: number) {
 export default function OrderDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  // Stable client — useMemo prevents re-creating on every render (avoids useEffect dep loop)
+  const supabase = useMemo(() => createClient(), [])
   const orderId = params.id as string
 
   const [order, setOrder] = useState<Order | null>(null)
@@ -161,7 +162,7 @@ export default function OrderDetailPage() {
       setLoading(false)
     }
     load()
-  }, [orderId, supabase, router])
+  }, [orderId, supabase])
 
   async function updateStatus(newStatus: string) {
     if (!order) return
@@ -365,6 +366,12 @@ export default function OrderDetailPage() {
     setPaymentLoading(false)
   }
 
+  function getEditMode(status: string): 'full' | 'address_only' | 'locked' {
+    if (['picked_up', 'in_transit', 'delivered', 'failed', 'cancelled'].includes(status)) return 'locked'
+    if (['assigned', 'at_store'].includes(status)) return 'address_only'
+    return 'full'
+  }
+
   function getNextStatus(): string | null {
     if (!order) return null
     const idx = STATUS_FLOW.indexOf(order.status)
@@ -399,6 +406,7 @@ export default function OrderDetailPage() {
 
   const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending
   const nextStatus = getNextStatus()
+  const editMode = getEditMode(order.status)
   const subtotal = order.order_items?.reduce((sum, item) => sum + item.quantity * item.unit_price, 0) || 0
 
   return (
@@ -436,9 +444,15 @@ export default function OrderDetailPage() {
             </>
           ) : (
             <>
-              <button onClick={startEdit} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 rounded-xl text-sm transition-all flex items-center gap-1.5">
-                ✏️ Засах
-              </button>
+              {editMode === 'locked' ? (
+                <span className="px-3 py-2 text-xs text-slate-500 border border-slate-700 rounded-xl flex items-center gap-1.5">
+                  🔒 Засварлах боломжгүй
+                </span>
+              ) : (
+                <button onClick={startEdit} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 rounded-xl text-sm transition-all flex items-center gap-1.5">
+                  ✏️ {editMode === 'address_only' ? 'Хаяг засах' : 'Засах'}
+                </button>
+              )}
               {order.status !== 'cancelled' && order.status !== 'delivered' && (
                 <button
                   onClick={cancelOrder}
@@ -508,10 +522,11 @@ export default function OrderDetailPage() {
           <div className={`bg-slate-800/50 border rounded-2xl p-6 ${isEditing ? 'border-amber-500/40' : 'border-slate-700'}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-medium">Бүтээгдэхүүнүүд</h3>
-              {isEditing && <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">✏️ Засварлаж байна</span>}
+              {isEditing && editMode === 'full' && <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">✏️ Засварлаж байна</span>}
+              {isEditing && editMode === 'address_only' && <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded-full">🔒 Тоо ширхэг засварлах боломжгүй</span>}
             </div>
             <div className="space-y-3">
-              {isEditing ? (
+              {isEditing && editMode === 'full' ? (
                 editItems.map((item, idx) => (
                   <div key={item.id} className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-xl border border-slate-600/50">
                     <span className="text-xl">📦</span>
@@ -584,7 +599,7 @@ export default function OrderDetailPage() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-400">Хүргэлт</span>
-                {isEditing ? (
+                {isEditing && editMode === 'full' ? (
                   <input
                     type="number" min={0}
                     value={editData.shippingAmount}
@@ -592,13 +607,13 @@ export default function OrderDetailPage() {
                     className="w-32 text-right bg-slate-700 border border-amber-500/50 rounded-lg text-white text-sm px-2 py-1 focus:outline-none focus:border-amber-400"
                   />
                 ) : (
-                  <span className="text-white">{formatPrice(order.shipping_amount || 0)}</span>
+                  <span className="text-white">{formatPrice(isEditing ? editData.shippingAmount : (order.shipping_amount || 0))}</span>
                 )}
               </div>
               <div className="flex items-center justify-between text-base font-medium pt-2 border-t border-slate-700">
                 <span className="text-white">Нийт дүн</span>
-                <span className={`text-lg font-bold ${isEditing ? 'text-amber-400' : 'text-white'}`}>
-                  {isEditing
+                <span className={`text-lg font-bold ${isEditing && editMode === 'full' ? 'text-amber-400' : 'text-white'}`}>
+                  {isEditing && editMode === 'full'
                     ? formatPrice(editItems.reduce((s, i) => s + i.quantity * i.unit_price, 0) + editData.shippingAmount)
                     : formatPrice(order.total_amount)}
                 </span>

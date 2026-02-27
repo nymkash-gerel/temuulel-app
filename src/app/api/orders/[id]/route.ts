@@ -46,7 +46,29 @@ export async function PATCH(
 
   if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
+  // ── Status-based edit gating ──────────────────────────────────────────────
+  const LOCKED_STATUSES   = ['picked_up', 'in_transit', 'delivered', 'failed', 'cancelled']
+  const ADDRESS_ONLY_STATUSES = ['assigned', 'at_store']
+
+  if (LOCKED_STATUSES.includes(order.status)) {
+    return NextResponse.json(
+      { error: 'Захиалга засварлах боломжгүй — жолооч аль хэдийн авсан эсвэл дууссан байна' },
+      { status: 403 }
+    )
+  }
+
   const body = await request.json() as EditOrderBody
+
+  if (ADDRESS_ONLY_STATUSES.includes(order.status)) {
+    // Partial edit only: reject item quantity or shipping amount changes
+    if (body.items !== undefined || body.shipping_amount !== undefined) {
+      return NextResponse.json(
+        { error: 'Жолооч оноосны дараа зөвхөн хаяг болон харилцагчийн мэдээлэл засварлах боломжтой' },
+        { status: 403 }
+      )
+    }
+  }
+
   const now = new Date().toISOString()
   const errors: string[] = []
 
