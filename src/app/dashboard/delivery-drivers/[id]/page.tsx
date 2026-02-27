@@ -7,6 +7,14 @@ import { createClient } from '@/lib/supabase/client'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+interface TgAccountEntry {
+  chat_id: number
+  first_name: string
+  last_name?: string
+  username?: string
+  linked_at: string
+}
+
 interface Driver {
   id: string
   name: string
@@ -17,6 +25,8 @@ interface Driver {
   status: string
   telegram_chat_id: number | null
   telegram_linked_at: string | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata: Record<string, any> | null
   delivery_zones: string[]
   avg_rating: number
   rating_count: number
@@ -155,6 +165,7 @@ export default function DriverDetailPage() {
   const [quickFilter, setQuickFilter] = useState<QuickFilter>(null)
   const [tableTab, setTableTab]       = useState<'all' | 'active' | 'done'>('all')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [switchingTg, setSwitchingTg] = useState<number | null>(null)
 
   // load
   const loadDriver = useCallback(async () => {
@@ -281,6 +292,17 @@ export default function DriverDetailPage() {
     })
     setSaving(false)
     if (res.ok) { setIsEditing(false); loadDriver() }
+    else { const e = await res.json().catch(() => ({})); alert(e.error || 'Алдаа') }
+  }
+
+  async function handleSwitchTelegram(chatId: number) {
+    setSwitchingTg(chatId)
+    const res = await fetch(`/api/delivery-drivers/${driverId}/switch-telegram`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId }),
+    })
+    setSwitchingTg(null)
+    if (res.ok) { loadDriver() }
     else { const e = await res.json().catch(() => ({})); alert(e.error || 'Алдаа') }
   }
 
@@ -450,6 +472,84 @@ export default function DriverDetailPage() {
           </div>
         )}
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          TELEGRAM ACCOUNT HISTORY
+      ═══════════════════════════════════════════════════════════════════ */}
+      {(() => {
+        const tgHistory: TgAccountEntry[] = driver.metadata?.telegram_history ?? []
+        if (tgHistory.length === 0 && !driver.telegram_chat_id) return null
+        // If no history but chat_id exists (old driver), synthesize one entry
+        const entries: TgAccountEntry[] = tgHistory.length > 0
+          ? tgHistory
+          : [{ chat_id: driver.telegram_chat_id!, first_name: 'Unknown', linked_at: driver.telegram_linked_at ?? '' }]
+        return (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sky-400 text-lg">✈️</span>
+              <p className="text-slate-300 text-sm font-semibold">Telegram Холбогдсон Аккаунтууд</p>
+              <span className="ml-auto text-xs text-slate-500">{entries.length} аккаунт</span>
+            </div>
+            <div className="space-y-2">
+              {entries.map((entry, idx) => {
+                const isCurrent = entry.chat_id === driver.telegram_chat_id
+                const displayName = [entry.first_name, entry.last_name].filter(Boolean).join(' ')
+                const isLoading = switchingTg === entry.chat_id
+                return (
+                  <div
+                    key={entry.chat_id}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${
+                      isCurrent
+                        ? 'bg-sky-500/10 border-sky-500/30'
+                        : 'bg-slate-800/60 border-slate-700/50'
+                    }`}
+                  >
+                    {/* Avatar placeholder */}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                      isCurrent ? 'bg-sky-500/30 text-sky-300' : 'bg-slate-700 text-slate-400'
+                    }`}>
+                      {displayName.charAt(0).toUpperCase() || '?'}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm font-medium truncate ${isCurrent ? 'text-sky-300' : 'text-slate-300'}`}>
+                          {displayName || `Chat ${entry.chat_id}`}
+                        </p>
+                        {entry.username && (
+                          <span className="text-xs text-slate-500">@{entry.username}</span>
+                        )}
+                        {isCurrent && (
+                          <span className="px-1.5 py-0.5 rounded text-xs bg-sky-500/20 text-sky-400 font-medium">Идэвхтэй</span>
+                        )}
+                        {idx === 0 && !isCurrent && (
+                          <span className="px-1.5 py-0.5 rounded text-xs bg-orange-500/20 text-orange-400">Хамгийн сүүлийн</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        ID: {entry.chat_id} · {entry.linked_at ? fmt(entry.linked_at) : '—'}
+                      </p>
+                    </div>
+
+                    {/* Switch button */}
+                    {!isCurrent && (
+                      <button
+                        onClick={() => handleSwitchTelegram(entry.chat_id)}
+                        disabled={!!switchingTg}
+                        className="px-2.5 py-1 text-xs rounded-lg bg-slate-700 hover:bg-sky-600/60 text-slate-300 hover:text-white transition-all disabled:opacity-40 flex-shrink-0"
+                      >
+                        {isLoading ? '...' : '↩ Ашиглах'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-xs text-slate-600 mt-3">Жолооч шинэ Telegram аккаунтаас холбогдох бүрт энд харагдана.</p>
+          </div>
+        )
+      })()}
 
       {/* ══════════════════════════════════════════════════════════════════
           PERFORMANCE OVERVIEW  — 3 columns

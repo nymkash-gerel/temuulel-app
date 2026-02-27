@@ -109,3 +109,4 @@ it('classify 1000 real FB messages — report suspicious results', () => {
   const knownFP = suspicious.filter(s => s.note !== 'Low-confidence complaint — possible false positive' && s.note !== 'return_exchange with no return keyword')
   expect(knownFP.length).toBe(0)
 })
+

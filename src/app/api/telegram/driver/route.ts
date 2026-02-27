@@ -993,6 +993,64 @@ function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, '').replace(/^976/, '').slice(-8)
 }
 
+// ─── TG Account History ─────────────────────────────────────────────────────
+
+interface TgAccountEntry {
+  chat_id: number
+  first_name: string
+  last_name?: string
+  username?: string
+  linked_at: string
+}
+
+/**
+ * Record a Telegram account link into driver metadata.telegram_history.
+ * Always saves the new chat_id as current; old one gets pushed to history.
+ */
+async function recordTgHistory(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: ReturnType<typeof import('@supabase/supabase-js').createClient<any>>,
+  driverId: string,
+  newChatId: number,
+  from: { id: number; first_name?: string; last_name?: string; username?: string }
+): Promise<void> {
+  // Fetch current driver metadata + existing chat_id
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: drv } = await (supabase as any)
+    .from('delivery_drivers')
+    .select('telegram_chat_id, metadata')
+    .eq('id', driverId)
+    .single()
+
+  const now = new Date().toISOString()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const meta: Record<string, any> = drv?.metadata ?? {}
+  const history: TgAccountEntry[] = meta.telegram_history ?? []
+
+  // Add the new account at the front (most recent first)
+  const newEntry: TgAccountEntry = {
+    chat_id: newChatId,
+    first_name: from.first_name ?? 'Unknown',
+    ...(from.last_name ? { last_name: from.last_name } : {}),
+    ...(from.username ? { username: from.username } : {}),
+    linked_at: now,
+  }
+
+  // Deduplicate: remove previous entry for this chat_id (if re-linking)
+  const filtered = history.filter((h) => h.chat_id !== newChatId)
+  const updatedHistory = [newEntry, ...filtered].slice(0, 20) // keep last 20
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('delivery_drivers')
+    .update({
+      telegram_chat_id: newChatId,
+      telegram_linked_at: now,
+      metadata: { ...meta, telegram_history: updatedHistory },
+    })
+    .eq('id', driverId)
+}
+
 /** Check if a string looks like a Mongolian phone number (any common format) */
 function looksLikePhone(text: string): boolean {
   const digits = text.replace(/\D/g, '')
@@ -1051,21 +1109,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      if (driver.telegram_chat_id && driver.telegram_chat_id !== chatId) {
-        // Already linked to a different Telegram account
-        await tgSend(chatId, DRIVER_BOT_ALREADY_LINKED(driver.name))
-        return NextResponse.json({ ok: true })
-      }
-
-      // Link this Telegram chat to the driver
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from('delivery_drivers')
-        .update({
-          telegram_chat_id: chatId,
-          telegram_linked_at: new Date().toISOString(),
-        })
-        .eq('id', driver.id)
+      // Link this Telegram chat to the driver (record full history)
+      await recordTgHistory(supabase, driver.id, chatId, msg.from ?? { id: chatId })
 
       await tgSend(chatId, DRIVER_BOT_LINKED(driver.name))
       return NextResponse.json({ ok: true })
@@ -1519,20 +1564,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Save chat_id (also checks if already linked via re-fetch)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: updateError } = await (supabase as any)
-      .from('delivery_drivers')
-      .update({
-        telegram_chat_id: chatId,
-        telegram_linked_at: new Date().toISOString(),
-      })
-      .eq('id', driver.id)
-
-    if (updateError) {
-      console.error(`[DriverBot] Update failed: ${updateError.message}`)
-      // Column may not exist yet (migration 049 pending) — still send welcome
-    }
+    // Save chat_id with full history
+    await recordTgHistory(supabase, driver.id, chatId, msg.from ?? { id: chatId })
 
     await tgSend(chatId, DRIVER_BOT_LINKED(driver.name))
     return NextResponse.json({ ok: true })
