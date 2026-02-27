@@ -98,6 +98,14 @@ export default function OrderDetailPage() {
   const [notes, setNotes] = useState('')
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null)
+
+  // ── Edit mode ─────────────────────────────────────────────────────────────
+  const [isEditing, setIsEditing]     = useState(false)
+  const [editSaving, setEditSaving]   = useState(false)
+  const [editData, setEditData]       = useState({
+    customerName: '', customerPhone: '', shippingAddress: '', notes: '', shippingAmount: 0,
+  })
+  const [editItems, setEditItems]     = useState<{ id: string; quantity: number; unit_price: number; name: string }[]>([])
   const [qrData, setQrData] = useState<{ qr_image?: string; short_url?: string; deeplinks?: { name: string; link: string; logo: string }[] } | null>(null)
   const [bankInfo, setBankInfo] = useState<{ bank_name?: string; bank_account?: string; bank_holder?: string; note?: string } | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
@@ -197,6 +205,68 @@ export default function OrderDetailPage() {
   async function cancelOrder() {
     if (!order || !confirm('Захиалга цуцлах уу? Энэ үйлдлийг буцаах боломжгүй.')) return
     await updateStatus('cancelled')
+  }
+
+  function startEdit() {
+    if (!order) return
+    setEditData({
+      customerName:    order.customers?.name    ?? '',
+      customerPhone:   order.customers?.phone   ?? '',
+      shippingAddress: order.shipping_address   ?? '',
+      notes:           order.notes              ?? '',
+      shippingAmount:  order.shipping_amount    ?? 0,
+    })
+    setEditItems(
+      (order.order_items ?? []).map(item => ({
+        id:         item.id,
+        quantity:   item.quantity,
+        unit_price: item.unit_price,
+        name:       item.products?.name || item.product_variants?.products?.name || 'Бараа',
+      }))
+    )
+    setIsEditing(true)
+  }
+
+  function cancelEdit() { setIsEditing(false) }
+
+  async function saveEdit() {
+    if (!order) return
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name:    editData.customerName,
+          customer_phone:   editData.customerPhone,
+          shipping_address: editData.shippingAddress,
+          notes:            editData.notes,
+          shipping_amount:  editData.shippingAmount,
+          items:            editItems.map(i => ({ id: i.id, quantity: i.quantity, unit_price: i.unit_price })),
+        }),
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        alert(e.error || 'Алдаа гарлаа')
+        setEditSaving(false)
+        return
+      }
+      // Refresh order data
+      const { data } = await supabase
+        .from('orders')
+        .select(`*, customers(id, name, phone, email, messenger_id),
+          order_items(id, quantity, unit_price, variant_label,
+            products(id, name, images),
+            product_variants(size, color, products(id, name, images))),
+          return_requests(id, return_number, return_type, status, refund_amount, handled_by, created_at)`)
+        .eq('id', order.id)
+        .single()
+      if (data) { setOrder(data); setNotes(data.notes || '') }
+      setIsEditing(false)
+    } catch {
+      alert('Алдаа гарлаа')
+    }
+    setEditSaving(false)
   }
 
   async function handleCreatePayment(method: string) {
@@ -355,22 +425,38 @@ export default function OrderDetailPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {order.status !== 'cancelled' && order.status !== 'delivered' && (
-            <button
-              onClick={cancelOrder}
-              className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-xl text-sm transition-all"
-            >
-              Цуцлах
-            </button>
-          )}
-          {nextStatus && (
-            <button
-              onClick={() => updateStatus(nextStatus)}
-              disabled={updating}
-              className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50"
-            >
-              {updating ? '...' : `${STATUS_CONFIG[nextStatus]?.icon} ${STATUS_CONFIG[nextStatus]?.label} болгох`}
-            </button>
+          {isEditing ? (
+            <>
+              <button onClick={cancelEdit} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm transition-all">
+                Цуцлах
+              </button>
+              <button onClick={saveEdit} disabled={editSaving} className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50">
+                {editSaving ? '⏳ Хадгалж байна...' : '✅ Хадгалах'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={startEdit} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 rounded-xl text-sm transition-all flex items-center gap-1.5">
+                ✏️ Засах
+              </button>
+              {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                <button
+                  onClick={cancelOrder}
+                  className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-xl text-sm transition-all"
+                >
+                  Цуцлах
+                </button>
+              )}
+              {nextStatus && (
+                <button
+                  onClick={() => updateStatus(nextStatus)}
+                  disabled={updating}
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                >
+                  {updating ? '...' : `${STATUS_CONFIG[nextStatus]?.icon} ${STATUS_CONFIG[nextStatus]?.label} болгох`}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -419,54 +505,103 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Order Items */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
-            <h3 className="text-white font-medium mb-4">Бүтээгдэхүүнүүд</h3>
-            <div className="space-y-4">
-              {order.order_items?.map((item) => {
-                const variant = getItemVariant(item)
-                return (
-                  <div key={item.id} className="flex items-center gap-4 p-3 bg-slate-700/20 rounded-xl">
-                    <div className="w-14 h-14 bg-slate-700 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {((item.products?.images as string[])?.[0] || (item.product_variants?.products?.images as string[])?.[0]) ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={(item.products?.images as string[])?.[0] || (item.product_variants?.products?.images as string[])?.[0]}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-2xl">📦</span>
-                      )}
+          <div className={`bg-slate-800/50 border rounded-2xl p-6 ${isEditing ? 'border-amber-500/40' : 'border-slate-700'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-medium">Бүтээгдэхүүнүүд</h3>
+              {isEditing && <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">✏️ Засварлаж байна</span>}
+            </div>
+            <div className="space-y-3">
+              {isEditing ? (
+                editItems.map((item, idx) => (
+                  <div key={item.id} className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-xl border border-slate-600/50">
+                    <span className="text-xl">📦</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{item.name}</p>
+                      <p className="text-slate-400 text-xs">{formatPrice(item.unit_price)} / ширхэг</p>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{getItemName(item)}</p>
-                      {variant && <p className="text-slate-400 text-sm">{variant}</p>}
+                    {/* Quantity stepper */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEditItems(p => p.map((it, i) => i === idx ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it))}
+                        className="w-7 h-7 rounded-lg bg-slate-600 hover:bg-slate-500 text-white flex items-center justify-center text-sm"
+                      >−</button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.quantity}
+                        onChange={e => setEditItems(p => p.map((it, i) => i === idx ? { ...it, quantity: Math.max(1, parseInt(e.target.value) || 1) } : it))}
+                        className="w-12 text-center bg-slate-700 border border-slate-500 rounded-lg text-white text-sm py-1 focus:outline-none focus:border-amber-500"
+                      />
+                      <button
+                        onClick={() => setEditItems(p => p.map((it, i) => i === idx ? { ...it, quantity: it.quantity + 1 } : it))}
+                        className="w-7 h-7 rounded-lg bg-slate-600 hover:bg-slate-500 text-white flex items-center justify-center text-sm"
+                      >+</button>
                     </div>
-                    <div className="text-right">
-                      <p className="text-white">{formatPrice(item.unit_price)}</p>
-                      <p className="text-slate-400 text-sm">x{item.quantity}</p>
-                    </div>
-                    <div className="text-right w-28">
-                      <p className="text-white font-medium">{formatPrice(item.unit_price * item.quantity)}</p>
+                    <div className="w-24 text-right">
+                      <p className="text-white text-sm font-medium">{formatPrice(item.unit_price * item.quantity)}</p>
                     </div>
                   </div>
-                )
-              })}
+                ))
+              ) : (
+                order.order_items?.map((item) => {
+                  const variant = getItemVariant(item)
+                  return (
+                    <div key={item.id} className="flex items-center gap-4 p-3 bg-slate-700/20 rounded-xl">
+                      <div className="w-14 h-14 bg-slate-700 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {((item.products?.images as string[])?.[0] || (item.product_variants?.products?.images as string[])?.[0]) ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={(item.products?.images as string[])?.[0] || (item.product_variants?.products?.images as string[])?.[0]} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-2xl">📦</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-medium">{getItemName(item)}</p>
+                        {variant && <p className="text-slate-400 text-sm">{variant}</p>}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white">{formatPrice(item.unit_price)}</p>
+                        <p className="text-slate-400 text-sm">x{item.quantity}</p>
+                      </div>
+                      <div className="text-right w-28">
+                        <p className="text-white font-medium">{formatPrice(item.unit_price * item.quantity)}</p>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
 
             {/* Totals */}
             <div className="mt-6 pt-4 border-t border-slate-700 space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-400">Дэд дүн</span>
-                <span className="text-white">{formatPrice(subtotal)}</span>
+                <span className="text-white">
+                  {isEditing
+                    ? formatPrice(editItems.reduce((s, i) => s + i.quantity * i.unit_price, 0))
+                    : formatPrice(subtotal)}
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-400">Хүргэлт</span>
-                <span className="text-white">{formatPrice(order.shipping_amount || 0)}</span>
+                {isEditing ? (
+                  <input
+                    type="number" min={0}
+                    value={editData.shippingAmount}
+                    onChange={e => setEditData(p => ({ ...p, shippingAmount: parseFloat(e.target.value) || 0 }))}
+                    className="w-32 text-right bg-slate-700 border border-amber-500/50 rounded-lg text-white text-sm px-2 py-1 focus:outline-none focus:border-amber-400"
+                  />
+                ) : (
+                  <span className="text-white">{formatPrice(order.shipping_amount || 0)}</span>
+                )}
               </div>
               <div className="flex items-center justify-between text-base font-medium pt-2 border-t border-slate-700">
                 <span className="text-white">Нийт дүн</span>
-                <span className="text-white text-lg">{formatPrice(order.total_amount)}</span>
+                <span className={`text-lg font-bold ${isEditing ? 'text-amber-400' : 'text-white'}`}>
+                  {isEditing
+                    ? formatPrice(editItems.reduce((s, i) => s + i.quantity * i.unit_price, 0) + editData.shippingAmount)
+                    : formatPrice(order.total_amount)}
+                </span>
               </div>
             </div>
           </div>
@@ -499,14 +634,16 @@ export default function OrderDetailPage() {
           )}
 
           {/* Notes */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+          <div className={`bg-slate-800/50 border rounded-2xl p-6 ${isEditing ? 'border-amber-500/40' : 'border-slate-700'}`}>
             <h3 className="text-white font-medium mb-4">Тэмдэглэл</h3>
             <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              onBlur={saveNotes}
+              value={isEditing ? editData.notes : notes}
+              onChange={e => isEditing
+                ? setEditData(p => ({ ...p, notes: e.target.value }))
+                : setNotes(e.target.value)}
+              onBlur={isEditing ? undefined : saveNotes}
               rows={3}
-              className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 resize-none transition-all"
+              className={`w-full px-4 py-3 bg-slate-700/50 border rounded-xl text-white text-sm focus:outline-none resize-none transition-all ${isEditing ? 'border-amber-500/50 focus:border-amber-400' : 'border-slate-600 focus:border-blue-500'}`}
               placeholder="Захиалгын тэмдэглэл..."
             />
           </div>
@@ -515,53 +652,71 @@ export default function OrderDetailPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Customer */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+          <div className={`bg-slate-800/50 border rounded-2xl p-6 ${isEditing ? 'border-amber-500/40' : 'border-slate-700'}`}>
             <h3 className="text-white font-medium mb-4">Харилцагч</h3>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">
-                  {order.customers?.name?.charAt(0)?.toUpperCase() || '?'}
-                </span>
-              </div>
-              <div>
-                <p className="text-white font-medium">{order.customers?.name || 'Нэргүй'}</p>
-                {order.customers?.messenger_id && (
-                  <span className="text-xs text-blue-400">Messenger</span>
-                )}
-              </div>
-            </div>
 
-            <div className="space-y-2 text-sm">
-              {order.customers?.phone && (
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">📱</span>
-                  <span className="text-slate-300">{order.customers.phone}</span>
+            {isEditing ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">FB нэр / Нэр</label>
+                  <input
+                    value={editData.customerName}
+                    onChange={e => setEditData(p => ({ ...p, customerName: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-700 border border-amber-500/50 rounded-lg text-white text-sm focus:outline-none focus:border-amber-400"
+                    placeholder="Харилцагчийн нэр"
+                  />
                 </div>
-              )}
-              {order.customers?.email && (
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">📧</span>
-                  <span className="text-slate-300">{order.customers.email}</span>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Утасны дугаар</label>
+                  <input
+                    value={editData.customerPhone}
+                    onChange={e => setEditData(p => ({ ...p, customerPhone: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-700 border border-amber-500/50 rounded-lg text-white text-sm focus:outline-none focus:border-amber-400"
+                    placeholder="99001122"
+                  />
                 </div>
-              )}
-            </div>
-
-            <div className="mt-4 flex gap-2">
-              {order.customers?.id && (
-                <Link
-                  href={`/dashboard/customers/${order.customers.id}`}
-                  className="flex-1 py-2 text-center text-sm text-blue-400 border border-blue-500/30 hover:border-blue-500/50 rounded-lg transition-all"
-                >
-                  Дэлгэрэнгүй
-                </Link>
-              )}
-              <Link
-                href={`/dashboard/chat?customer=${order.customers?.id}`}
-                className="flex-1 py-2 text-center text-sm text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-all"
-              >
-                💬 Чат
-              </Link>
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">
+                      {order.customers?.name?.charAt(0)?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">{order.customers?.name || 'Нэргүй'}</p>
+                    {order.customers?.messenger_id && (
+                      <span className="text-xs text-blue-400">Messenger</span>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  {order.customers?.phone && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500">📱</span>
+                      <span className="text-slate-300">{order.customers.phone}</span>
+                    </div>
+                  )}
+                  {order.customers?.email && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500">📧</span>
+                      <span className="text-slate-300">{order.customers.email}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 flex gap-2">
+                  {order.customers?.id && (
+                    <Link href={`/dashboard/customers/${order.customers.id}`} className="flex-1 py-2 text-center text-sm text-blue-400 border border-blue-500/30 hover:border-blue-500/50 rounded-lg transition-all">
+                      Дэлгэрэнгүй
+                    </Link>
+                  )}
+                  <Link href={`/dashboard/chat?customer=${order.customers?.id}`} className="flex-1 py-2 text-center text-sm text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-all">
+                    💬 Чат
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Payment */}
@@ -831,14 +986,22 @@ export default function OrderDetailPage() {
           )}
 
           {/* Shipping Address */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+          <div className={`bg-slate-800/50 border rounded-2xl p-6 ${isEditing ? 'border-amber-500/40' : 'border-slate-700'}`}>
             <h3 className="text-white font-medium mb-4">Хүргэлтийн хаяг</h3>
-            {order.shipping_address ? (
+            {isEditing ? (
+              <textarea
+                value={editData.shippingAddress}
+                onChange={e => setEditData(p => ({ ...p, shippingAddress: e.target.value }))}
+                rows={3}
+                className="w-full px-3 py-2 bg-slate-700 border border-amber-500/50 rounded-lg text-white text-sm focus:outline-none focus:border-amber-400 resize-none"
+                placeholder="Хүргэлтийн хаяг..."
+              />
+            ) : order.shipping_address ? (
               <p className="text-slate-300 text-sm">{order.shipping_address}</p>
             ) : (
               <p className="text-slate-500 text-sm">Хаяг оруулаагүй</p>
             )}
-            {order.tracking_number && (
+            {!isEditing && order.tracking_number && (
               <div className="mt-3 pt-3 border-t border-slate-700">
                 <p className="text-slate-400 text-xs mb-1">Трэкинг</p>
                 <p className="text-white text-sm font-mono">{order.tracking_number}</p>

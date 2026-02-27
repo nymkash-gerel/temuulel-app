@@ -67,7 +67,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'захиалъя', 'захиалья', 'захиалах', 'захиалая',
     // Availability check (very common in FB Messenger)
     'байгаа юу', 'бий юу', 'бга юу', 'бгаа юу',
-    'байна уу', 'болох уу',
+    'байна уу', 'болох уу', 'авч болох',
     // Short forms from Latin typing
     'бга ю', 'бгаа', 'бга', 'бий', 'плаж',
     // Price inquiry (common in product search context)
@@ -373,8 +373,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'дууссан', 'үлдсэн', 'байна уу', 'идэж',
     // Food items
     'хоол', 'хоолны', 'уух', 'ундаа',
-    // Availability check
-    'байгаа юу', 'бий юу', 'авч болох',
+    // Availability check (restaurant-specific)
+    // ('авч болох' moved to product_search — too generic, applies to any product not just menu)
+    'байгаа юу', 'бий юу',
     // English
     // ('today' removed — "today ipeh bl uu" = delivery timing, not restaurant menu)
     'menu', 'available', 'sold out',
