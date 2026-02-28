@@ -147,6 +147,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: itemsError.message }, { status: 500 })
   }
 
+  // Auto-create delivery record for delivery orders
+  if ((order_type || 'delivery') === 'delivery') {
+    let customerName: string | null = null
+    let customerPhone: string | null = null
+
+    if (customer_id) {
+      const { data: cust } = await supabase
+        .from('customers')
+        .select('name, phone')
+        .eq('id', customer_id)
+        .single()
+      customerName = cust?.name ?? null
+      customerPhone = cust?.phone ?? null
+    }
+
+    const deliveryNumber = `DEL-${Date.now()}`
+    await supabase.from('deliveries').insert({
+      store_id,
+      order_id: newOrder.id,
+      delivery_number: deliveryNumber,
+      status: 'pending',
+      delivery_type: 'own_driver',
+      delivery_address: shipping_address || 'Хаяг тодорхойгүй',
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      delivery_fee: shippingAmount,
+      notes: notes || null,
+    })
+  }
+
   // Dispatch new_order notification (non-blocking)
   dispatchNotification(store_id, 'new_order', {
     order_id: newOrder.id,
