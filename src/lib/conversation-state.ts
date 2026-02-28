@@ -358,7 +358,11 @@ const FOLLOWUP_WEIGHTS: Record<FollowUpType, number> = {
 function isGreetingOrReset(normalized: string): boolean {
   const resetKeywords = [
     // Greetings (Mongolian)
-    'сайн байна', 'сайн уу', 'байна уу', 'мэнд', 'өглөөний мэнд',
+    // NOTE: 'байна уу' intentionally removed — it's a generic availability question
+    // particle that appears in every product query ("Малгай байна уу?", "Хар өнгө
+    // байна уу?"). Including it here drops order drafts on any availability question.
+    // 'сайн байна' already substring-matches "Сайн байна уу?" so it's not needed.
+    'сайн байна', 'сайн уу', 'мэнд', 'өглөөний мэнд',
     // Greetings (English)
     'hello', 'hi', 'hey', 'good morning', 'good evening',
     // Thanks
@@ -648,5 +652,7 @@ export function updateState(
     last_query: nextQuery,
     turn_count: current.turn_count + 1,
     order_draft: current.order_draft ?? null,
+    gift_card_draft: current.gift_card_draft ?? null,
+    pending_gift_card_code: current.pending_gift_card_code ?? null,
   }
 }

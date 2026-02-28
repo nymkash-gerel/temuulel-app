@@ -59,17 +59,12 @@ export async function POST(request: NextRequest) {
       .eq('id', conversation_id)
       .single()
 
-    if (conv?.status === 'escalated') {
-      const escalationMessage =
-        chatbotSettings.escalation_message ||
-        'Таны хүсэлтийг бид хүлээн авлаа. Манай менежер тантай удахгүй холбогдоно. Түр хүлээнэ үү!'
-      return NextResponse.json({
-        response: escalationMessage,
-        intent: 'escalated',
-        handoff: true,
-        escalation_level: conv.escalation_level,
-      })
-    }
+    // NOTE: we intentionally do NOT early-return when conv.status === 'escalated'.
+    // The human agent was already notified when escalation first fired.
+    // The bot should still answer product/shipping/etc. questions so the customer
+    // isn't completely ignored while waiting for the agent. If the customer sends
+    // another complaint, processEscalation below won't re-notify (score already
+    // above threshold → shouldEscalate = wasBelow && isAbove = false).
   }
 
   // 3. If AI auto-reply is disabled, return early

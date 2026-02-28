@@ -89,7 +89,11 @@ const IMMEDIATE_ESCALATION_TRIGGERS = [
   // Request for manager/human operator
   'захирал', 'захирлаа', 'дуудаач', 'дуудаад',
   'оператор', 'оператор дуудаач',
-  'хүн', 'хүний', 'хүнтэй ярих', 'хүнтэй ярья',
+  // NOTE: bare 'хүн' and 'хүний' intentionally removed — they substring-match
+  // unrelated words like 'хүнд' (heavy) and cause false-positive escalations.
+  // The phrases below ('хүнтэй ярих', etc.) + 'дуудаач' already cover
+  // legitimate "I want a human" requests.
+  'хүнтэй ярих', 'хүнтэй ярья',
   'робот биш', 'ботоос биш',
   // English
   'manager', 'supervisor', 'human operator', 'real person',
