@@ -29,6 +29,7 @@ interface Delivery {
   notes: string | null
   metadata: { proof_photo_file_id?: string; proof_photo_at?: string; [key: string]: unknown } | null
   ai_assignment: { recommended_driver_id?: string; confidence?: number; ranked_drivers?: { driver_id: string; score: number; reasons: string[] }[] } | null
+  denial_info: { driver_id?: string; driver_name: string; reason: string; reason_label: string; denied_at: string } | null
   created_at: string
   orders: { id: string; order_number: string; total_amount: number; payment_status: string | null; order_items: OrderItem[] } | null
   delivery_drivers: { id: string; name: string; phone: string; vehicle_type: string } | null
@@ -88,6 +89,7 @@ export default function DeliveriesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDriverId, setBulkDriverId] = useState('')
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const [reassigningId, setReassigningId] = useState<string | null>(null)
 
   function toggleSelect(id: string) {
     setSelectedIds(prev => {
@@ -165,7 +167,7 @@ export default function DeliveriesPage() {
               id, delivery_number, status, delivery_type, provider_name,
               delivery_address, customer_name, customer_phone,
               estimated_delivery_time, actual_delivery_time,
-              delivery_fee, failure_reason, notes, metadata, ai_assignment, created_at,
+              delivery_fee, failure_reason, notes, metadata, ai_assignment, denial_info, created_at,
               orders(id, order_number, total_amount, payment_status, order_items(quantity, products(name))),
               delivery_drivers(id, name, phone, vehicle_type)
             `)
@@ -209,6 +211,9 @@ export default function DeliveriesPage() {
       result = result.filter(d => ['assigned', 'picked_up', 'in_transit', 'delayed'].includes(d.status))
     } else if (statusFilter === 'done') {
       result = result.filter(d => ['delivered', 'cancelled', 'failed'].includes(d.status))
+    } else if (statusFilter === 'denied') {
+      // Filter for deliveries that were denied by a driver — pending with denial_info
+      result = result.filter(d => d.denial_info !== null && d.status === 'pending')
     } else if (statusFilter) {
       result = result.filter(d => d.status === statusFilter)
     }
@@ -224,6 +229,7 @@ export default function DeliveriesPage() {
   const pendingCount = deliveries.filter(d => d.status === 'pending').length
   const completedCount = deliveries.filter(d => d.status === 'delivered').length
   const failedCount = deliveries.filter(d => ['failed', 'delayed'].includes(d.status)).length
+  const deniedCount = deliveries.filter(d => d.denial_info !== null && d.status === 'pending').length
 
   // Group at_store deliveries by driver — for bulk confirm buttons
   const atStoreByDriver = useMemo(() => {
@@ -361,6 +367,27 @@ export default function DeliveriesPage() {
         alert(err.error || 'Алдаа гарлаа')
       }
     } catch { alert('Алдаа гарлаа') }
+  }
+
+  async function handleReassign(deliveryId: string) {
+    setReassigningId(deliveryId)
+    try {
+      const res = await fetch(`/api/deliveries/${deliveryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ denial_info: null }),
+      })
+      if (res.ok) {
+        // Update local state — clear denial_info
+        setDeliveries(prev => prev.map(d =>
+          d.id === deliveryId ? { ...d, denial_info: null } : d
+        ))
+      } else {
+        const err = await res.json()
+        alert(err.error || 'Алдаа гарлаа')
+      }
+    } catch { alert('Алдаа гарлаа') }
+    finally { setReassigningId(null) }
   }
 
   async function handleOpenBatchDispatch() {
@@ -556,6 +583,13 @@ export default function DeliveriesPage() {
               urgent: deliveries.filter(d => d.status === 'at_store').length > 0,
             },
             {
+              value: 'denied',
+              label: '❌ Татгалзсан',
+              count: deniedCount,
+              color: 'orange',
+              urgent: deniedCount > 0,
+            },
+            {
               value: 'active',
               label: '🚚 Замдаа',
               count: deliveries.filter(d => ['assigned', 'picked_up', 'in_transit', 'delayed'].includes(d.status)).length,
@@ -572,6 +606,7 @@ export default function DeliveriesPage() {
             const colorMap: Record<string, string> = {
               slate: isActive ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-700/40 text-slate-400 border-slate-600 hover:bg-slate-700',
               red: isActive ? 'bg-red-500/30 text-red-300 border-red-500/50' : `${tab.urgent ? 'bg-red-500/10 border-red-500/40 text-red-400 animate-pulse' : 'bg-slate-700/40 text-slate-400 border-slate-600'} hover:bg-red-500/20`,
+              orange: isActive ? 'bg-orange-500/30 text-orange-300 border-orange-500/50' : `${tab.urgent ? 'bg-orange-500/10 border-orange-500/40 text-orange-400' : 'bg-slate-700/40 text-slate-400 border-slate-600'} hover:bg-orange-500/20`,
               blue: isActive ? 'bg-blue-500/30 text-blue-300 border-blue-500/50' : 'bg-slate-700/40 text-slate-400 border-slate-600 hover:bg-blue-500/10',
               green: isActive ? 'bg-green-500/30 text-green-300 border-green-500/50' : 'bg-slate-700/40 text-slate-400 border-slate-600 hover:bg-green-500/10',
             }
@@ -889,6 +924,24 @@ export default function DeliveriesPage() {
                               AI оноосон
                             </span>
                           )}
+                        </div>
+                      ) : del.status === 'pending' && del.denial_info ? (
+                        // Denied delivery — show denial info and reassign button
+                        <div className="space-y-1">
+                          <div className="text-xs">
+                            <p className="text-orange-400 font-medium">❌ {del.denial_info.reason_label}</p>
+                            <p className="text-slate-400 mt-0.5">
+                              {del.denial_info.driver_name}
+                              {del.denial_info.denied_at && ` · ${new Date(del.denial_info.denied_at).toLocaleTimeString('mn-MN', { hour: '2-digit', minute: '2-digit' })}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.preventDefault(); handleReassign(del.id) }}
+                            disabled={reassigningId === del.id}
+                            className="block text-xs px-2 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded transition-all disabled:opacity-50"
+                          >
+                            {reassigningId === del.id ? '...' : '🔄 Дахин хуваарилах'}
+                          </button>
                         </div>
                       ) : del.status === 'pending' ? (
                         <div className="space-y-1">

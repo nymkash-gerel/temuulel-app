@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { addressMatchesZones } from '@/lib/ai/delivery-assigner'
-import { sendToDriver, DRIVER_PROACTIVE_MESSAGES, intercityKeyboard, orderAssignedKeyboard } from '@/lib/driver-telegram'
+import { sendBatchAssignmentNotification } from '@/lib/driver-telegram'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 interface PendingDelivery {
@@ -221,8 +221,8 @@ export async function POST(request: NextRequest) {
     executed.push(a.delivery_id)
   }
 
-  // ── 7. Send Telegram notifications (batch, non-blocking) ────────────────
-  // Group by driver and send one summary + per-delivery keyboards
+  // ── 7. Send Telegram notifications (batch summary per driver) ────────────
+  // Group by driver and send ONE batch summary instead of N individual messages
   const driverAssignments = assignments.filter(a => executed.includes(a.delivery_id))
   const grouped: Record<string, BatchAssignment[]> = {}
   driverAssignments.forEach(a => {
@@ -231,23 +231,19 @@ export async function POST(request: NextRequest) {
   })
 
   for (const [driverId, delivs] of Object.entries(grouped)) {
-    // Send one notification per delivery (with individual keyboards)
-    for (const a of delivs) {
-      const keyboard = a.delivery_type === 'intercity_post'
-        ? intercityKeyboard(a.delivery_id)
-        : orderAssignedKeyboard(a.delivery_id)
-
-      sendToDriver(
-        supabase,
-        driverId,
-        DRIVER_PROACTIVE_MESSAGES.orderAssigned({
-          orderNumber: a.delivery_number,
-          deliveryAddress: a.delivery_address,
-          customerName: a.customer_name ?? undefined,
-        }),
-        keyboard
-      ).catch(() => {})
-    }
+    // Send ONE batch notification per driver (not N separate cards)
+    sendBatchAssignmentNotification(
+      supabase,
+      driverId,
+      store.id,
+      delivs.map(a => ({
+        id: a.delivery_id,
+        delivery_number: a.delivery_number,
+        delivery_address: a.delivery_address,
+        customer_name: a.customer_name,
+        customer_phone: null, // Not available in BatchAssignment, will be fetched later if needed
+      }))
+    ).catch(() => {})
   }
 
   return NextResponse.json({

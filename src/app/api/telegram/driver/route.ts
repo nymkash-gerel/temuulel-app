@@ -40,6 +40,11 @@ import {
   DRIVER_BOT_NOT_FOUND,
   DRIVER_BOT_ALREADY_LINKED,
   DRIVER_PROACTIVE_MESSAGES,
+  // Batch assignment flow keyboards
+  batchReadyKeyboard,
+  deliveryDenyKeyboard,
+  denyReasonKeyboard,
+  batchConfirmKeyboard,
   type IntercityWizard,
   type TgInlineKeyboard,
 } from '@/lib/driver-telegram'
@@ -954,6 +959,197 @@ async function handleCallbackQuery(
       break
     }
 
+    // ── Batch assignment flow (batch_ready, deny, deny_reason, batch_confirm) ────
+
+    case 'batch_ready': {
+      // Driver tapped "✅ Бэлэн байна — хүргэлтүүдийг харах"
+      // deliveryId here is actually the batchKey
+      const batchKey = deliveryId
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: batchDriver } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, name, metadata')
+        .eq('telegram_chat_id', chatId)
+        .maybeSingle()
+
+      if (!batchDriver) {
+        await tgAnswerCallback(cb.id, '❌ Жолооч олдсонгүй')
+        break
+      }
+
+      const bMeta = batchDriver.metadata as Record<string, unknown> | null
+      const pendingBatch = bMeta?.pending_batch as { batchKey: string; deliveryIds: string[]; storeId?: string } | undefined
+      if (!pendingBatch || pendingBatch.batchKey !== batchKey) {
+        await tgAnswerCallback(cb.id, '❌ Хуучин мэдэгдэл')
+        break
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: batchDeliveries } = await (supabase as any)
+        .from('deliveries')
+        .select('id, delivery_number, delivery_address, customer_name, customer_phone')
+        .in('id', pendingBatch.deliveryIds)
+        .eq('driver_id', batchDriver.id)
+        .eq('status', 'assigned')
+
+      if (!batchDeliveries || batchDeliveries.length === 0) {
+        await tgAnswerCallback(cb.id, 'Захиалга байхгүй')
+        await tgSend(chatId, '📭 Хуваарилагдсан захиалга байхгүй байна.')
+        break
+      }
+
+      if (messageId) await tgRemoveButtons(chatId, messageId)
+      await tgAnswerCallback(cb.id, `${batchDeliveries.length} хүргэлт`)
+
+      // Send each delivery as a review card with deny button
+      for (const d of batchDeliveries as { id: string; delivery_number: string; delivery_address: string; customer_name: string | null; customer_phone: string | null }[]) {
+        await tgSend(chatId,
+          `📋 <b>#${d.delivery_number}</b>\n📍 ${d.delivery_address}\n👤 ${d.customer_name || '—'}${d.customer_phone ? ` · <code>${d.customer_phone}</code>` : ''}`,
+          { replyMarkup: deliveryDenyKeyboard(d.id) }
+        )
+      }
+
+      // Final confirm button
+      await tgSend(chatId,
+        `✅ Татгалзах гэснийг дарна уу. Үлдсэнийг автоматаар зөвшөөрнө.`,
+        { replyMarkup: batchConfirmKeyboard(batchKey) }
+      )
+      break
+    }
+
+    case 'deny': {
+      // Driver wants to deny a specific delivery — show reason options
+      await tgAnswerCallback(cb.id)
+      await tgSend(chatId, '❌ Татгалзах шалтгааныг сонгоно уу:', { replyMarkup: denyReasonKeyboard(deliveryId) })
+      break
+    }
+
+    case 'deny_reason': {
+      // callback_data format: deny_reason:area:UUID → split(':') gives ['deny_reason','area','UUID']
+      const drParts = data.split(':')
+      const drReason = drParts[1]
+      const drDeliveryId = drParts[2]
+      if (!drReason || !drDeliveryId) {
+        await tgAnswerCallback(cb.id, '❌ Алдаа')
+        break
+      }
+
+      const DENY_LABELS: Record<string, string> = {
+        area: 'Бүсэд биш',
+        far: 'Хэт алс',
+        heavy: 'Хэт их ачаа',
+        busy: 'Цаг гаргахгүй',
+        other: 'Бусад',
+      }
+      const reasonLabel = DENY_LABELS[drReason] ?? drReason
+
+      // If "other" reason, ask for custom text
+      if (drReason === 'other') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: otherDriver } = await (supabase as any)
+          .from('delivery_drivers')
+          .select('id, metadata')
+          .eq('telegram_chat_id', chatId)
+          .single()
+
+        if (otherDriver) {
+          const nm = { ...(otherDriver.metadata ?? {}), awaiting_deny_reason: { deliveryId: drDeliveryId } }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from('delivery_drivers').update({ metadata: nm }).eq('id', otherDriver.id)
+        }
+
+        if (messageId) await tgRemoveButtons(chatId, messageId)
+        await tgAnswerCallback(cb.id)
+        await tgSend(chatId, '✏️ <b>Татгалзах шалтгааныг бичнэ үү:</b>')
+        break
+      }
+
+      // Deny with preset reason — update delivery to pending, clear driver, record denial_info
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: deniedDel } = await (supabase as any)
+        .from('deliveries')
+        .update({
+          status: 'pending',
+          driver_id: null,
+          denial_info: {
+            driver_id: driver.id,
+            driver_name: driver.name,
+            reason: drReason,
+            reason_label: reasonLabel,
+            denied_at: new Date().toISOString(),
+          },
+        })
+        .eq('id', drDeliveryId)
+        .select('delivery_number, store_id')
+        .single()
+
+      if (messageId) await tgRemoveButtons(chatId, messageId)
+      await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+      await tgSend(chatId, `↩️ <b>#${deniedDel?.delivery_number}</b> — татгалзлаа (${reasonLabel}). Менежерт мэдэгдлээ.`)
+
+      // Notify store
+      if (deniedDel?.store_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          store_id: deniedDel.store_id,
+          type: 'delivery_denied',
+          title: '❌ Жолооч татгалзлаа',
+          body: `${driver.name} #${deniedDel.delivery_number} татгалзлаа: ${reasonLabel}`,
+          metadata: { delivery_id: drDeliveryId, reason: drReason },
+        }).catch(() => {})
+      }
+      break
+    }
+
+    case 'batch_confirm': {
+      // Driver confirms all non-denied deliveries
+      const confirmBatchKey = deliveryId // batchKey is in "deliveryId" slot after split
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cbDriver } = await (supabase as any)
+        .from('delivery_drivers')
+        .select('id, name, metadata')
+        .eq('telegram_chat_id', chatId)
+        .maybeSingle()
+
+      if (!cbDriver) {
+        await tgAnswerCallback(cb.id, '❌ Алдаа')
+        break
+      }
+
+      const cbMeta = cbDriver.metadata as Record<string, unknown> | null
+      const cbBatch = cbMeta?.pending_batch as { batchKey: string; deliveryIds: string[] } | undefined
+
+      const deliveryIds = cbBatch?.deliveryIds ?? []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: remaining } = await (supabase as any)
+        .from('deliveries')
+        .select('id, delivery_number')
+        .in('id', deliveryIds)
+        .eq('driver_id', cbDriver.id)
+        .eq('status', 'assigned')
+
+      if (messageId) await tgRemoveButtons(chatId, messageId)
+
+      // Clear the pending_batch from driver metadata
+      const clearedMeta = { ...cbMeta }
+      delete clearedMeta.pending_batch
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('delivery_drivers').update({ metadata: clearedMeta }).eq('id', cbDriver.id)
+
+      if (!remaining || remaining.length === 0) {
+        await tgAnswerCallback(cb.id, 'Бүгдийг татгалзлаа')
+        await tgSend(chatId, '📭 Бүх хүргэлтийг татгалзлаа. Менежерт мэдэгдлээ.')
+      } else {
+        await tgAnswerCallback(cb.id, `✅ ${remaining.length} баталлаа!`)
+        await tgSend(chatId,
+          `✅ <b>${remaining.length} хүргэлт баталлаа!</b>\n\n` +
+          `Дэлгүүр рүү очиж барааг хүлээж аваарай.\n` +
+          `Мэдэгдэл ирнэ.`
+        )
+      }
+      break
+    }
+
     // ── Customer Refusal (Feature 7) ─────────────────────────────────────────
 
     case 'customer_refused': {
@@ -1391,6 +1587,53 @@ export async function POST(request: NextRequest) {
         metadata: { delivery_id: awaitingDelayDeliveryId, eta_text: text },
       }).catch(() => {})
     }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── Custom deny reason input (batch flow) ────────────────────────────────────
+  // Driver typed a custom reason after selecting "✏️ Бусад шалтгаан"
+  const awaitingDenyReason = earlyMeta?.awaiting_deny_reason as { deliveryId: string } | undefined
+  if (awaitingDenyReason && text && !text.startsWith('/')) {
+    const drId = awaitingDenyReason.deliveryId
+
+    // Clear the awaiting flag
+    const clearedM = { ...earlyMeta }
+    delete clearedM.awaiting_deny_reason
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('delivery_drivers').update({ metadata: clearedM }).eq('telegram_chat_id', chatId)
+
+    // Update delivery to pending, clear driver, record denial_info with custom reason
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: deniedDelCustom } = await (supabase as any)
+      .from('deliveries')
+      .update({
+        status: 'pending',
+        driver_id: null,
+        denial_info: {
+          driver_id: earlyDriver?.id,
+          driver_name: earlyDriver?.name ?? 'Жолооч',
+          reason: 'other',
+          reason_label: `Бусад: ${text}`,
+          denied_at: new Date().toISOString(),
+        },
+      })
+      .eq('id', drId)
+      .select('delivery_number, store_id')
+      .single()
+
+    // Notify store
+    if (deniedDelCustom?.store_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('notifications').insert({
+        store_id: deniedDelCustom.store_id,
+        type: 'delivery_denied',
+        title: '❌ Жолооч татгалзлаа',
+        body: `${earlyDriver?.name ?? 'Жолооч'} #${deniedDelCustom.delivery_number} татгалзлаа: ${text}`,
+        metadata: { delivery_id: drId },
+      }).catch(() => {})
+    }
+
+    await tgSend(chatId, `↩️ Татгалзлаа. Менежерт мэдэгдлээ.`)
     return NextResponse.json({ ok: true })
   }
 

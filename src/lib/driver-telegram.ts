@@ -195,6 +195,54 @@ export function handoffReadyKeyboard(deliveryId: string): TgInlineKeyboard {
 }
 
 // ---------------------------------------------------------------------------
+// Batch assignment flow keyboards
+// ---------------------------------------------------------------------------
+
+/** Batch ready button — driver sees this after batch assignment summary */
+export function batchReadyKeyboard(batchKey: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [{ text: '✅ Бэлэн байна — хүргэлтүүдийг харах', callback_data: `batch_ready:${batchKey}` }],
+    ],
+  }
+}
+
+/** Individual delivery deny button — shown on each delivery review card */
+export function deliveryDenyKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [{ text: '❌ Татгалзах', callback_data: `deny:${deliveryId}` }],
+    ],
+  }
+}
+
+/** Deny reason selection keyboard */
+export function denyReasonKeyboard(deliveryId: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📍 Бүсэд биш', callback_data: `deny_reason:area:${deliveryId}` },
+        { text: '🚗 Хэт алс', callback_data: `deny_reason:far:${deliveryId}` },
+      ],
+      [
+        { text: '📦 Хэт их ачаа', callback_data: `deny_reason:heavy:${deliveryId}` },
+        { text: '🕐 Цаг гаргахгүй', callback_data: `deny_reason:busy:${deliveryId}` },
+      ],
+      [{ text: '✏️ Бусад шалтгаан', callback_data: `deny_reason:other:${deliveryId}` }],
+    ],
+  }
+}
+
+/** Final batch confirmation button — confirms all non-denied deliveries */
+export function batchConfirmKeyboard(batchKey: string): TgInlineKeyboard {
+  return {
+    inline_keyboard: [
+      [{ text: '✅ Үлдсэнийг баталлаа — яваа!', callback_data: `batch_confirm:${batchKey}` }],
+    ],
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Intercity wizard state (stored in delivery_drivers.metadata)
 // ---------------------------------------------------------------------------
 
@@ -346,6 +394,63 @@ export async function sendToDriver(
   }
 
   return tgSend(driver.telegram_chat_id, text, keyboard ? { replyMarkup: keyboard } : undefined)
+}
+
+/**
+ * Send a batch assignment notification to a driver.
+ * Shows ONE summary message with all assigned deliveries, then lets driver
+ * review each one and optionally deny individual deliveries.
+ */
+export async function sendBatchAssignmentNotification(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any, any, any>,
+  driverId: string,
+  storeId: string,
+  deliveries: Array<{
+    id: string
+    delivery_number: string
+    delivery_address: string
+    customer_name: string | null
+    customer_phone: string | null
+  }>
+): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: driver } = await (supabase as any)
+    .from('delivery_drivers')
+    .select('telegram_chat_id, name, metadata')
+    .eq('id', driverId)
+    .single()
+
+  if (!driver?.telegram_chat_id) return false
+
+  // Generate a unique batch key for this assignment session
+  const batchKey = `${driverId}_${Date.now()}`
+  const pendingBatch = {
+    batchKey,
+    deliveryIds: deliveries.map(d => d.id),
+    storeId,
+    timestamp: new Date().toISOString(),
+  }
+
+  // Store batch info in driver metadata
+  const existingMeta = (driver.metadata ?? {}) as Record<string, unknown>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('delivery_drivers')
+    .update({ metadata: { ...existingMeta, pending_batch: pendingBatch } })
+    .eq('id', driverId)
+
+  // Build summary message with all deliveries
+  const lines = deliveries.map(d =>
+    `📦 <b>#${d.delivery_number}</b>\n📍 ${d.delivery_address}\n👤 ${d.customer_name || '—'}${d.customer_phone ? ` · <code>${d.customer_phone}</code>` : ''}`
+  ).join('\n\n')
+
+  const text =
+    `🚚 <b>Танд ${deliveries.length} шинэ хүргэлт ирлээ!</b>\n\n` +
+    `${lines}\n\n` +
+    `Хүргэлтүүдийг харж, татгалзах гэснийг сонгоно уу.`
+
+  return tgSend(driver.telegram_chat_id, text, { replyMarkup: batchReadyKeyboard(batchKey) })
 }
 
 /** Also save the message to driver_messages table for the dashboard */
