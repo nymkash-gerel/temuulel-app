@@ -10,6 +10,7 @@ interface Staff {
   email: string | null
   specialties: string[] | null
   status: string
+  telegram_chat_id: string | null
   created_at: string
   updated_at: string
 }
@@ -21,6 +22,56 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('mn-MN', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function TelegramLinkSection({ staffId, telegramChatId }: { staffId: string; telegramChatId: string | null }) {
+  const [copied, setCopied] = useState(false)
+  const botUsername = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? '').trim()
+  const link = botUsername ? `https://t.me/${botUsername}?start=${staffId}` : null
+
+  function handleCopy() {
+    if (!link) return
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="space-y-2">
+      <span className="text-sm text-slate-400">Telegram</span>
+      {telegramChatId ? (
+        <div className="flex items-center gap-2">
+          <span className="text-green-400 text-sm">✅ Холбогдсон</span>
+          <span className="text-slate-500 text-xs">(chat ID: {telegramChatId})</span>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-slate-500 text-sm">Холбогдоогүй байна. Доорх линкийг ажилтанд илгээнэ үү:</p>
+          {link ? (
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-slate-900 px-3 py-2 rounded-lg text-slate-300 flex-1 truncate">{link}</code>
+              <button
+                onClick={handleCopy}
+                className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-lg transition-all whitespace-nowrap"
+              >
+                {copied ? '✓ Хуулагдсан' : 'Хуулах'}
+              </button>
+              <a
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg transition-all whitespace-nowrap"
+              >
+                Telegram нээх
+              </a>
+            </div>
+          ) : (
+            <p className="text-amber-400 text-xs">⚠️ NEXT_PUBLIC_TELEGRAM_BOT_USERNAME тохируулаагүй байна</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function StaffDetailPage() {
@@ -198,6 +249,9 @@ export default function StaffDetailPage() {
               ) : (
                 <p className="text-slate-500">-</p>
               )}
+            </div>
+            <div className="pt-4 border-t border-slate-700">
+              <TelegramLinkSection staffId={staff.id} telegramChatId={staff.telegram_chat_id} />
             </div>
             <div className="pt-4 border-t border-slate-700 text-sm text-slate-500 flex gap-6">
               <span>Үүсгэсэн: {formatDate(staff.created_at)}</span>
