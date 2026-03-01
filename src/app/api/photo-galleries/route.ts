@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from('photo_galleries')
     .select(`
-      id, session_id, name, description, gallery_url, download_url, password, photo_count, status, created_at, updated_at,
+      id, session_id, name, description, gallery_url, download_url, photo_count, status, created_at, updated_at,
       photo_sessions(id, session_type, scheduled_at)
     `, { count: 'exact' })
     .eq('store_id', store.id)
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       photo_count: body.photo_count || undefined,
     })
     .select(`
-      id, session_id, name, description, gallery_url, download_url, password, photo_count, status, created_at, updated_at,
+      id, session_id, name, description, gallery_url, download_url, photo_count, status, created_at, updated_at,
       photo_sessions(id, session_type, scheduled_at)
     `)
     .single()

@@ -27,6 +27,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Telegram not configured' }, { status: 500 })
   }
 
+  // Verify Telegram webhook secret token (set via TELEGRAM_WEBHOOK_SECRET env var).
+  // Register it with Telegram using: setWebhook?url=...&secret_token=YOUR_SECRET
+  // Telegram sends it back in the X-Telegram-Bot-Api-Secret-Token header on every update.
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET
+  if (webhookSecret) {
+    const incomingToken = request.headers.get('x-telegram-bot-api-secret-token')
+    if (incomingToken !== webhookSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
   let body: Record<string, unknown>
   try {
     body = await request.json()

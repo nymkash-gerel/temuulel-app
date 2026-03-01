@@ -21,6 +21,37 @@ function getReceiver(): Receiver | null {
   return new Receiver({ currentSigningKey, nextSigningKey })
 }
 
+/**
+ * Reject URLs that point to private/internal network ranges (SSRF prevention).
+ * Only https:// and http:// are allowed, and only public IP ranges.
+ */
+function isSafeWebhookUrl(urlStr: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(urlStr)
+  } catch {
+    return false
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
+  const h = parsed.hostname.toLowerCase()
+  // Reject localhost and private/link-local/metadata ranges
+  if (
+    h === 'localhost' ||
+    h === 'metadata.google.internal' ||
+    h === '169.254.169.254' ||
+    /^127\./.test(h) ||
+    /^10\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+    /^192\.168\./.test(h) ||
+    /^::1$/.test(h) ||
+    /^fc00:/i.test(h) ||
+    /^fe80:/i.test(h)
+  ) {
+    return false
+  }
+  return true
+}
+
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
@@ -68,7 +99,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'No webhook URL configured' })
   }
 
-  // 4. Sign and deliver the payload to the store's webhook URL
+  // 4a. Reject private/internal URLs before fetching (SSRF prevention)
+  if (!isSafeWebhookUrl(store.webhook_url)) {
+    console.error(`Blocked SSRF attempt for store ${store_id}: ${store.webhook_url}`)
+    return NextResponse.json({ error: 'Invalid webhook URL' }, { status: 400 })
+  }
+
+  // 4b. Sign and deliver the payload to the store's webhook URL
   const jsonBody = JSON.stringify(payload)
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
