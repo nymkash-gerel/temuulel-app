@@ -66,6 +66,7 @@ export async function buildCustomerProfile(
   const [
     customerResult,
     ordersResult,
+    tierStatsResult,
     activeOrderResult,
     escalationResult,
   ] = await Promise.all([
@@ -77,7 +78,7 @@ export async function buildCustomerProfile(
       .eq('id', customerId)
       .single(),
 
-    // 2. Last 5 orders (history + spend calc)
+    // 2. Last 5 orders — for display only (recent history summary)
     supabase
       .from('orders')
       .select('order_number, status, total_amount, created_at')
@@ -86,7 +87,16 @@ export async function buildCustomerProfile(
       .order('created_at', { ascending: false })
       .limit(5),
 
-    // 3. Active order (in transit or confirmed)
+    // 3. Lifetime stats — full count + total spend for accurate tier calculation
+    // NOTE: We can't use .count() without fetching rows in Supabase JS v2,
+    // so we select only total_amount across all orders (no limit).
+    supabase
+      .from('orders')
+      .select('total_amount')
+      .eq('customer_id', customerId)
+      .eq('store_id', storeId),
+
+    // 4. Active order (in transit or confirmed)
     supabase
       .from('orders')
       .select('order_number, status, total_amount, created_at')
@@ -97,7 +107,7 @@ export async function buildCustomerProfile(
       .limit(1)
       .maybeSingle(),
 
-    // 4. Open escalations (unresolved complaints)
+    // 5. Open escalations (unresolved complaints)
     supabase
       .from('conversations')
       .select('id, escalation_level, escalated_at')
@@ -109,13 +119,16 @@ export async function buildCustomerProfile(
 
   const customer = customerResult.data
   const orders = ordersResult.data ?? []
+  const allOrders = tierStatsResult.data ?? []
   const activeOrder = activeOrderResult.data ?? null
   const openEscalations = escalationResult.data ?? []
 
   // ── Derived values ──
   const name = customer?.name ?? null
-  const orderCount = orders.length
-  const lifetimeSpend = orders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0)
+  // Use full order history for tier calculation — last-5 limit caused VIP customers
+  // to be misclassified (e.g. 20 orders → showed as 5 → never reached VIP tier)
+  const orderCount = allOrders.length
+  const lifetimeSpend = allOrders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0)
   const loyaltyTier = deriveTier(orderCount, lifetimeSpend)
   const isNewCustomer = orderCount === 0
   const isReturning = orderCount > 0

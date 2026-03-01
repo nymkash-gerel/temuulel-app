@@ -347,12 +347,17 @@ export async function generateAIResponse(
   extendedProfile?: string | null,
   latestPurchaseSummary?: string | null,
 ): Promise<string> {
-  // Tier 1: Contextual AI with conversation history
-  if (history && history.length > 0) {
+  // Tier 1: Contextual AI with conversation history.
+  // Also allow GPT on turn 1 for 'general' and 'complaint' intents — ambiguous and
+  // upset first messages need GPT the most. Other intents (product_search, order_status,
+  // etc.) have deterministic templates that work well without history context.
+  const historyForGPT = history ?? []
+  const callGPT = historyForGPT.length > 0 || intent === 'general' || intent === 'complaint'
+  if (callGPT) {
     try {
       const { contextualAIResponse } = await import('./ai/contextual-responder')
       const contextResult = await contextualAIResponse({
-        history,
+        history: historyForGPT,
         currentMessage: customerQuery,
         intent,
         products: products.map((p) => ({

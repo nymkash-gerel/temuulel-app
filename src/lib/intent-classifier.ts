@@ -73,8 +73,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'бга ю', 'бгаа', 'бга', 'бий', 'плаж',
     // Price inquiry (common in product search context)
     'хэд', 'хэдээр',
-    // Latin-typed price inquiry abbreviations
-    'хд',
+    // NOTE: 'хд' removed — 2-char substring fires inside 'худалдаж', 'ахдаа', etc.
+    // 'хэд' (line above) already handles "how much?" queries.
     // Latin aliases for product category names
     'умд', 'цамц',
     // Image/photo requests (stemmer handles: зургийг/зургыг→зург, зурагтай→зураг, үзүүлээд→үзүүл)
@@ -605,7 +605,7 @@ export function classifyIntentWithConfidence(
     // Shipping tiebreaker: "хүргэлт*" + price keyword = delivery price query, not product search
     // e.g. "хүргэлтийн үнэ" has "үнэ" (product_search) but is really asking about delivery cost
     const DELIVERY_STEMS = ['хүргэлт', 'хургэлт', 'хургелт', 'хүргэх', 'delivery', 'shipping']
-    const PRICE_WORDS = ['үнэ', 'хэд', 'хэдэн', 'зардал', 'хөлс', 'price', 'cost', 'fee', 'уне']
+    const PRICE_WORDS = ['үнэ', 'хэд', 'хэдэн', 'зардал', 'хөлс', 'price', 'cost', 'fee', 'уне'] // lint-ignore: paddedIncludes + endsWith guard, no raw substring match
     const hasDelivery = DELIVERY_STEMS.some(kw => normalized.includes(kw))
     const hasPriceWord = PRICE_WORDS.some(kw => padded.includes(` ${kw} `) || normalized.endsWith(kw))
     if (hasDelivery && hasPriceWord) bestIntent = 'shipping'

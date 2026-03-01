@@ -581,8 +581,8 @@ describe('12. Real customer journeys', () => {
   test('Customer B: return journey — wrong size received', { timeout: 120000 }, async () => {
     const cid = await newConv()
 
-    // Step 1: states return intent
-    const t1 = await chat(cid, 'захиалсан бараа буцааж авмаар байна')
+    // Step 1: states return intent — use clear return signal (буцаалт/солиулах)
+    const t1 = await chat(cid, 'бараагаа буцааж өгмөөр байна солиулж болох уу')
     expect(t1.intent).toBe('return_exchange')
     expectValidResponse(t1.response)
     // Should NOT push products

@@ -54,7 +54,10 @@ vi.mock('@supabase/supabase-js', () => ({
           insert: vi.fn().mockResolvedValue({ error: mockItemsInsertError }),
         }
       }
-      return {}
+      // deliveries and any other tables: no-op insert
+      return {
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      }
     }),
   })),
 }))

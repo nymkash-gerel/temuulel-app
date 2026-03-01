@@ -276,7 +276,10 @@ function buildSystemPrompt(input: ContextualInput): string {
  */
 export async function contextualAIResponse(input: ContextualInput): Promise<string | null> {
   if (!isOpenAIConfigured()) return null
-  if (input.history.length === 0) return null
+  // Allow GPT on turn 1 for 'general' and 'complaint' — ambiguous and upset first
+  // messages need GPT most. All other intents without history fall to templates.
+  const TURN1_GPT_INTENTS = ['general', 'complaint']
+  if (input.history.length === 0 && !TURN1_GPT_INTENTS.includes(input.intent)) return null
 
   // Guard: never let GPT generate responses for product queries when the store
   // has no matching products. Without this, GPT invents product names and prices.
