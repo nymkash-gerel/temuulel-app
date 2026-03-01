@@ -31,6 +31,16 @@ export default function IntegrationsPage() {
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState(false)
   const [messageDismissed, setMessageDismissed] = useState(false)
+  const [telegramStatus, setTelegramStatus] = useState<{
+    configured: boolean
+    registered: boolean
+    webhookUrl: string
+    hasSecret: boolean
+    pendingUpdates: number
+    lastError: string | null
+  } | null>(null)
+  const [telegramRegistering, setTelegramRegistering] = useState(false)
+  const [telegramMessage, setTelegramMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Derive OAuth result message from URL params (Messenger & Instagram)
   const fbMessage = useMemo(() => {
@@ -203,6 +213,31 @@ export default function IntegrationsPage() {
       setShowApiKey(true)
     }
     setRegenerating(false)
+  }
+
+  // Load Telegram webhook status on mount
+  useEffect(() => {
+    fetch('/api/admin/telegram/setup-webhook')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setTelegramStatus(data) })
+      .catch(() => {})
+  }, [])
+
+  async function handleRegisterTelegramWebhook() {
+    setTelegramRegistering(true)
+    setTelegramMessage(null)
+    const res = await fetch('/api/admin/telegram/setup-webhook', { method: 'POST' })
+    const data = await res.json()
+    if (res.ok) {
+      setTelegramMessage({ type: 'success', text: data.message })
+      setTelegramStatus(prev => prev
+        ? { ...prev, registered: true, webhookUrl: data.webhookUrl, hasSecret: data.hasSecret }
+        : null
+      )
+    } else {
+      setTelegramMessage({ type: 'error', text: data.error })
+    }
+    setTelegramRegistering(false)
   }
 
   const integrations = [
@@ -448,6 +483,81 @@ export default function IntegrationsPage() {
             )}
           </div>
         ))}
+      </div>
+
+      {/* Telegram Staff Notifications */}
+      <div className={`mt-6 bg-slate-800/50 border rounded-2xl p-6 ${
+        telegramStatus?.registered ? 'border-blue-500/30' : 'border-slate-700'
+      }`}>
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center">
+              <span className="text-3xl">✈️</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-white">Telegram</h3>
+                {telegramStatus?.registered ? (
+                  <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded-full">
+                    Бүртгэгдсэн
+                  </span>
+                ) : telegramStatus?.configured === false ? (
+                  <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs font-medium rounded-full">
+                    Bot тохиргоогүй
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-slate-400 mt-1">
+                Ажилтны захиалга, цаг захиалгын Telegram мэдэгдэл
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleRegisterTelegramWebhook}
+            disabled={telegramRegistering || telegramStatus?.configured === false}
+            className="px-5 py-2.5 rounded-xl font-medium transition-all bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {telegramRegistering ? 'Бүртгэж байна...' : telegramStatus?.registered ? 'Дахин бүртгэх' : 'Webhook бүртгэх'}
+          </button>
+        </div>
+
+        {/* Status / result message */}
+        {telegramMessage && (
+          <div className={`mt-4 px-4 py-3 rounded-xl text-sm ${
+            telegramMessage.type === 'success'
+              ? 'bg-green-500/10 border border-green-500/20 text-green-400'
+              : 'bg-red-500/10 border border-red-500/20 text-red-400'
+          }`}>
+            {telegramMessage.type === 'success' ? '✓ ' : '✕ '}{telegramMessage.text}
+          </div>
+        )}
+
+        {telegramStatus?.registered && (
+          <div className="mt-4 pt-4 border-t border-slate-700 space-y-3">
+            <div className="flex items-center gap-3">
+              <code className="flex-1 px-3 py-2 bg-slate-900 rounded-lg text-slate-300 text-xs font-mono truncate">
+                {telegramStatus.webhookUrl}
+              </code>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-slate-400">
+              <span>{telegramStatus.hasSecret ? '🔒 Secret тохируулагдсан' : '⚠️ Secret тохируулаагүй (TELEGRAM_WEBHOOK_SECRET нэмнэ)'}</span>
+              {telegramStatus.pendingUpdates > 0 && (
+                <span className="text-yellow-400">⏳ {telegramStatus.pendingUpdates} хүлээгдэж буй мэдэгдэл</span>
+              )}
+              {telegramStatus.lastError && (
+                <span className="text-red-400">Сүүлийн алдаа: {telegramStatus.lastError}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {telegramStatus?.configured === false && (
+          <div className="mt-4 pt-4 border-t border-slate-700">
+            <p className="text-sm text-yellow-400">
+              Telegram bot ажиллуулахын тулд Vercel dashboard-д <code className="bg-slate-900 px-1 rounded">TELEGRAM_BOT_TOKEN</code> env var нэмнэ үү.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Web Chat Widget Embed */}
