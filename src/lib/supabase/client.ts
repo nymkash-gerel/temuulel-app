@@ -7,6 +7,14 @@ import { Database } from '@/lib/database.types'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_KEY) || 'placeholder'
 
+// Singleton — every call returns the same instance so that components using
+// `supabase` as a useEffect/useCallback dependency don't trigger infinite
+// re-renders (a new object reference would re-run the effect on every render).
+let _client: ReturnType<typeof createBrowserClient<Database>> | null = null
+
 export function createClient() {
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+  if (!_client) {
+    _client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+  }
+  return _client
 }
