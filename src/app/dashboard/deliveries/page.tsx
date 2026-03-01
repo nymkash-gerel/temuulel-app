@@ -180,7 +180,7 @@ export default function DeliveriesPage() {
               id, delivery_number, status, delivery_type, provider_name,
               delivery_address, customer_name, customer_phone,
               estimated_delivery_time, actual_delivery_time,
-              delivery_fee, failure_reason, notes, metadata, ai_assignment, denial_info, created_at,
+              delivery_fee, failure_reason, notes, metadata, ai_assignment, created_at,
               orders(id, order_number, total_amount, payment_status, order_items(quantity, products(name))),
               delivery_drivers(id, name, phone, vehicle_type)
             `)
