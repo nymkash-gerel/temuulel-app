@@ -59,11 +59,11 @@ export default function DeliveryDriversPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [copiedTgId, setCopiedTgId] = useState<string | null>(null)
 
-  const BOT_USERNAME = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? '').trim()
+  const BOT_USERNAME = (process.env.NEXT_PUBLIC_DRIVER_TELEGRAM_BOT_USERNAME ?? '').trim()
 
   function copyTelegramInvite(driver: Driver) {
     if (!BOT_USERNAME) {
-      alert('NEXT_PUBLIC_TELEGRAM_BOT_USERNAME тохируулаагүй байна.\nVercel → Environment Variables-д нэмнэ үү.')
+      alert('NEXT_PUBLIC_DRIVER_TELEGRAM_BOT_USERNAME тохируулаагүй байна.\nVercel → Environment Variables-д нэмнэ үү.')
       return
     }
     const link = `https://t.me/${BOT_USERNAME}?start=${driver.id}`
