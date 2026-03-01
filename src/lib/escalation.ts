@@ -12,6 +12,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { dispatchNotification } from './notifications'
 import type { ChatbotSettings } from './chat-ai'
+import { matchesAnyKeyword, findAllMatches } from './keyword-matcher'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -130,16 +131,16 @@ export function scoreToLevel(score: number): EscalationLevel {
   return 'low'
 }
 
-function matchesAny(lower: string, keywords: string[]): boolean {
-  return keywords.some((kw) => lower.includes(kw))
+function matchesAny(message: string, keywords: string[]): boolean {
+  return matchesAnyKeyword(message, keywords) !== null
 }
 
 /**
  * Count how many distinct keywords from a list appear in the message.
- * Used to scale frustration/complaint score by intensity (more keywords = angrier).
+ * Uses word-boundary matching — 'муу' won't match inside 'мууд'.
  */
-function countKeywordMatches(lower: string, keywords: string[]): number {
-  return keywords.filter((kw) => lower.includes(kw)).length
+function countKeywordMatches(message: string, keywords: string[]): number {
+  return findAllMatches(message, keywords).length
 }
 
 /**
@@ -221,7 +222,6 @@ export function evaluateEscalation(
     }
   }
 
-  const lower = currentMessage.toLowerCase()
   let addedScore = 0
   const signals: string[] = []
 
@@ -237,21 +237,21 @@ export function evaluateEscalation(
     }
   }
 
-  // Check for immediate escalation triggers (bypass scoring)
-  for (const trigger of IMMEDIATE_ESCALATION_TRIGGERS) {
-    if (lower.includes(trigger.toLowerCase())) {
-      return {
-        newScore: config.threshold, // Set to threshold to trigger escalation
-        level: 'critical',
-        shouldEscalate: true,
-        signals: ['immediate_escalation', trigger],
-      }
+  // Check for immediate escalation triggers (bypass scoring).
+  // Uses word-boundary matching — prevents 'захирал' matching inside 'захирлагч', etc.
+  const matchedTrigger = matchesAnyKeyword(currentMessage, IMMEDIATE_ESCALATION_TRIGGERS)
+  if (matchedTrigger) {
+    return {
+      newScore: config.threshold,
+      level: 'critical',
+      shouldEscalate: true,
+      signals: ['immediate_escalation', matchedTrigger],
     }
   }
 
   // 1. Complaint keywords — scale by number of distinct matches (cap at 3×)
   //    e.g. "гомдол байна, чанар муу, алдаа гарсан" → 3 keywords → 75 pts
-  const complaintCount = countKeywordMatches(lower, COMPLAINT_KEYWORDS)
+  const complaintCount = countKeywordMatches(currentMessage, COMPLAINT_KEYWORDS)
   if (complaintCount > 0) {
     addedScore += WEIGHTS.complaint * Math.min(complaintCount, 3)
     signals.push('complaint')
@@ -261,7 +261,7 @@ export function evaluateEscalation(
   //    1st keyword: full weight (20), each additional: half weight (10)
   //    e.g. "яагаад удаан" → 2 keywords → 20+10=30 pts
   //         "яагаад удаан хариулахгүй" → 3 keywords → 20+10+10=40 pts
-  const frustrationCount = countKeywordMatches(lower, FRUSTRATION_KEYWORDS)
+  const frustrationCount = countKeywordMatches(currentMessage, FRUSTRATION_KEYWORDS)
   if (frustrationCount > 0) {
     const extraMatches = Math.min(frustrationCount - 1, 4)
     addedScore += WEIGHTS.frustration + extraMatches * Math.floor(WEIGHTS.frustration / 2)
@@ -269,13 +269,13 @@ export function evaluateEscalation(
   }
 
   // 3. Return/exchange request
-  if (matchesAny(lower, RETURN_EXCHANGE_KEYWORDS)) {
+  if (matchesAny(currentMessage, RETURN_EXCHANGE_KEYWORDS)) {
     addedScore += WEIGHTS.return_exchange
     signals.push('return_exchange')
   }
 
   // 4. Payment dispute
-  if (matchesAny(lower, PAYMENT_DISPUTE_KEYWORDS)) {
+  if (matchesAny(currentMessage, PAYMENT_DISPUTE_KEYWORDS)) {
     addedScore += WEIGHTS.payment_dispute
     signals.push('payment_dispute')
   }
