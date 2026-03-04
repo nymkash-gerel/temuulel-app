@@ -54,10 +54,25 @@ export function orderAssignedKeyboard(deliveryId: string): TgInlineKeyboard {
   return {
     inline_keyboard: [
       [
-        { text: '🏪 Дэлгүүрт ирлээ', callback_data: `arrived_at_store:${deliveryId}` },
-        { text: '❌ Татгалзах', callback_data: `reject:${deliveryId}` },
+        { text: '✅ Хүлээж авлаа', callback_data: `confirm_received:${deliveryId}` },
+        { text: '❌ Татгалзах', callback_data: `deny_delivery:${deliveryId}` },
       ],
     ],
+  }
+}
+
+/**
+ * Per-delivery rows for the bulk assignment combined message.
+ * Each delivery gets its own row: [Хүлээж авлаа] [Татгалзах]
+ */
+export function bulkListKeyboard(
+  deliveries: Array<{ id: string }>
+): TgInlineKeyboard {
+  return {
+    inline_keyboard: deliveries.map(d => [
+      { text: '✅ Хүлээж авлаа', callback_data: `confirm_received:${d.id}` },
+      { text: '❌ Татгалзах', callback_data: `deny_delivery:${d.id}` },
+    ]),
   }
 }
 

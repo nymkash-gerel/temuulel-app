@@ -2,7 +2,7 @@
  * POST /api/deliveries/bulk-assign
  *
  * Assign multiple deliveries to a single driver in one shot.
- * Sends ONE combined Telegram notification instead of N individual messages.
+ * Sends ONE combined Telegram message with per-delivery Хүлээж авлаа / Татгалзах buttons.
  *
  * Body: { driver_id: string, delivery_ids: string[] }
  */
@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, bulkAssignSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { sendToDriver } from '@/lib/driver-telegram'
+import { sendToDriver, bulkListKeyboard } from '@/lib/driver-telegram'
 
 export async function POST(request: NextRequest) {
   const rl = await rateLimit(getClientIp(request), { limit: 20, windowSeconds: 60 })
@@ -79,22 +79,38 @@ export async function POST(request: NextRequest) {
     .update({ status: 'on_delivery', updated_at: now })
     .eq('id', body.driver_id)
 
-  // Build ONE combined Telegram message and send via admin-client path (bypasses RLS)
+  // Build ONE combined message listing all deliveries
   const lines = deliveries
-    .map(d =>
-      `📦 <b>#${d.delivery_number}</b>\n` +
-      `📍 ${d.delivery_address || 'Тодорхойгүй'}\n` +
-      `👤 ${d.customer_name || '—'}${d.customer_phone ? ` · <code>${d.customer_phone}</code>` : ''}`
+    .map((d, i) =>
+      `${i + 1}. 📋 <b>#${d.delivery_number}</b>\n` +
+      `    📍 ${d.delivery_address || 'Тодорхойгүй'}\n` +
+      `    👤 ${d.customer_name || '—'}${d.customer_phone ? ` · <code>${d.customer_phone}</code>` : ''}`
     )
     .join('\n\n')
 
   const combinedMessage =
     `🚚 <b>ШИНЭ ЗАХИАЛГУУД — ${deliveries.length} хүргэлт</b>\n\n` +
     `${lines}\n\n` +
-    `Дэлгэрэнгүй мэдээллийг апп-с харна уу.`
+    `Хүлээж авах товчийг дарна уу.`
 
-  await sendToDriver(supabase, body.driver_id, combinedMessage)
-    .catch(err => console.error('[Telegram] Bulk assign notification failed:', err))
+  // Send combined message with per-delivery buttons (uses admin client — bypasses RLS)
+  const msgId = await sendToDriver(
+    supabase,
+    body.driver_id,
+    combinedMessage,
+    bulkListKeyboard(deliveries),
+  ).catch(err => { console.error('[Telegram] Bulk assign notification failed:', err); return null })
+
+  // Store batch_ids + telegram_message_id in each delivery's metadata
+  // so the webhook can rebuild the combined message when driver taps a button
+  if (msgId) {
+    await Promise.all(deliveries.map(d =>
+      supabase
+        .from('deliveries')
+        .update({ metadata: { batch_ids: body.delivery_ids, telegram_message_id: msgId } })
+        .eq('id', d.id)
+    ))
+  }
 
   return NextResponse.json({ assigned: deliveries.length, driver_id: body.driver_id })
 }

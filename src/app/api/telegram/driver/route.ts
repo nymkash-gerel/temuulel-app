@@ -22,6 +22,7 @@ import {
   tgSendButtons,
   tgAnswerCallback,
   tgRemoveButtons,
+  tgEdit,
   enRouteKeyboard,
   delayKeyboard,
   issueKeyboard,
@@ -45,6 +46,7 @@ import {
   deliveryDenyKeyboard,
   denyReasonKeyboard,
   batchConfirmKeyboard,
+  bulkListKeyboard,
   type IntercityWizard,
   type TgInlineKeyboard,
 } from '@/lib/driver-telegram'
@@ -89,6 +91,40 @@ interface TgUpdate {
   update_id: number
   message?: TgMessage
   callback_query?: TgCallbackQuery
+}
+
+/**
+ * Rebuild the combined bulk-assign message after driver taps confirm or deny.
+ * Fetches fresh delivery states, updates text + keyboard in-place.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function rebuildBatchMessage(supabase: any, chatId: number, messageId: number, batchIds: string[]): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: batch } = await (supabase as any)
+    .from('deliveries')
+    .select('id, delivery_number, delivery_address, customer_name, customer_phone, status, driver_id')
+    .in('id', batchIds)
+
+  if (!batch) return
+
+  const lines = (batch as { id: string; delivery_number: string; delivery_address: string | null; customer_name: string | null; customer_phone: string | null; status: string; driver_id: string | null }[]).map((d, i) => {
+    const confirmed = ['picked_up', 'in_transit', 'delivered', 'at_store'].includes(d.status)
+    const denied = !d.driver_id && ['pending', 'cancelled', 'failed'].includes(d.status)
+    const icon = confirmed ? '✅' : denied ? '❌' : '📋'
+    const tag = confirmed ? ' — Хүлээж авлаа' : denied ? ' — Татгалзсан' : ''
+    return `${i + 1}. ${icon} <b>#${d.delivery_number}</b>${tag}\n    📍 ${d.delivery_address || '—'}\n    👤 ${d.customer_name || '—'}${d.customer_phone ? ` · <code>${d.customer_phone}</code>` : ''}`
+  }).join('\n\n')
+
+  const pending = (batch as { id: string; status: string; driver_id: string | null }[]).filter(d =>
+    d.status === 'assigned' && d.driver_id !== null
+  )
+
+  const newText = `🚚 <b>ЗАХИАЛГУУД — ${batchIds.length} хүргэлт</b>\n\n${lines}`
+  const newKeyboard = pending.length > 0
+    ? bulkListKeyboard(pending)
+    : { inline_keyboard: [] as TgInlineKeyboard['inline_keyboard'] }
+
+  await tgEdit(chatId, messageId, newText, { replyMarkup: newKeyboard })
 }
 
 /** Handle inline button taps from drivers */
@@ -161,6 +197,96 @@ async function handleCallbackQuery(
         `✅ <b>Авлаа гэж бүртгэгдлээ.</b>\n\nХаягруу явна уу. Хүргэсэн үедээ доорх товчийг дарна уу.`,
         { replyMarkup: enRouteKeyboard(deliveryId) }
       )
+      break
+    }
+
+    case 'confirm_received': {
+      // Driver confirmed they picked up the package from the store
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: confirmedDelivery } = await (supabase as any)
+        .from('deliveries')
+        .select('id, delivery_number, delivery_address, customer_name, customer_phone, metadata')
+        .eq('id', deliveryId)
+        .single()
+
+      if (!confirmedDelivery) {
+        await tgAnswerCallback(cb.id, '❌ Хүргэлт олдсонгүй')
+        break
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'picked_up', updated_at: new Date().toISOString() })
+        .eq('id', deliveryId)
+
+      await tgAnswerCallback(cb.id, '✅ Хүлээж авлаа!')
+
+      // Rebuild combined message if this came from a bulk assignment
+      const confirmMeta = (confirmedDelivery.metadata || {}) as Record<string, unknown>
+      const confirmBatchIds = confirmMeta.batch_ids as string[] | undefined
+      const confirmMsgId = confirmMeta.telegram_message_id as number | undefined
+
+      if (confirmBatchIds && confirmMsgId) {
+        await rebuildBatchMessage(supabase, chatId, confirmMsgId, confirmBatchIds)
+      } else if (messageId) {
+        await tgRemoveButtons(chatId, messageId)
+      }
+
+      // Send delivery action message for this specific delivery
+      await tgSend(chatId,
+        `✅ <b>#${confirmedDelivery.delivery_number} — Хүлээж авлаа!</b>\n\n` +
+        `📍 ${confirmedDelivery.delivery_address || 'Тодорхойгүй'}\n` +
+        `👤 ${confirmedDelivery.customer_name || '—'}${confirmedDelivery.customer_phone ? `\n📞 ${confirmedDelivery.customer_phone}` : ''}\n\n` +
+        `Хаягруу явна уу!`,
+        { replyMarkup: enRouteKeyboard(deliveryId) }
+      )
+      break
+    }
+
+    case 'deny_delivery': {
+      // Driver denied a delivery — unassign and notify store
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: deniedDelivery } = await (supabase as any)
+        .from('deliveries')
+        .select('id, delivery_number, store_id, metadata')
+        .eq('id', deliveryId)
+        .single()
+
+      if (!deniedDelivery) {
+        await tgAnswerCallback(cb.id, '❌ Олдсонгүй')
+        break
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'pending', driver_id: null, updated_at: new Date().toISOString() })
+        .eq('id', deliveryId)
+
+      await tgAnswerCallback(cb.id, 'Татгалзлаа')
+      await tgSend(chatId, `↩️ <b>#${deniedDelivery.delivery_number}</b> — Татгалзлаа.\nДэлгүүрт мэдэгдлээ.`)
+
+      // Notify store
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('notifications').insert({
+        store_id: deniedDelivery.store_id,
+        type: 'delivery_driver_denied',
+        title: '❌ Жолооч татгалзлаа',
+        body: `${driver.name} жолооч #${deniedDelivery.delivery_number} хүргэлтийг татгалзлаа.`,
+        metadata: { delivery_id: deliveryId },
+      }).catch(() => {})
+
+      // Rebuild combined message if this came from a bulk assignment
+      const denyMeta = (deniedDelivery.metadata || {}) as Record<string, unknown>
+      const denyBatchIds = denyMeta.batch_ids as string[] | undefined
+      const denyMsgId = denyMeta.telegram_message_id as number | undefined
+
+      if (denyBatchIds && denyMsgId) {
+        await rebuildBatchMessage(supabase, chatId, denyMsgId, denyBatchIds)
+      } else if (messageId) {
+        await tgRemoveButtons(chatId, messageId)
+      }
       break
     }
 
@@ -1209,7 +1335,7 @@ async function recordTgHistory(
   driverId: string,
   newChatId: number,
   from: { id: number; first_name?: string; last_name?: string; username?: string }
-): Promise<void> {
+): Promise<boolean> {
   // Fetch current driver metadata + existing chat_id
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: drv } = await (supabase as any)
@@ -1237,7 +1363,7 @@ async function recordTgHistory(
   const updatedHistory = [newEntry, ...filtered].slice(0, 20) // keep last 20
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
+  const { error } = await (supabase as any)
     .from('delivery_drivers')
     .update({
       telegram_chat_id: newChatId,
@@ -1245,6 +1371,12 @@ async function recordTgHistory(
       metadata: { ...meta, telegram_history: updatedHistory },
     })
     .eq('id', driverId)
+
+  if (error) {
+    console.error(`[DriverBot] recordTgHistory FAILED driver=${driverId} chat=${newChatId}:`, error)
+    return false
+  }
+  return true
 }
 
 /** Check if a string looks like a Mongolian phone number (any common format) */
@@ -1306,7 +1438,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Link this Telegram chat to the driver (record full history)
-      await recordTgHistory(supabase, driver.id, chatId, msg.from ?? { id: chatId })
+      const linked = await recordTgHistory(supabase, driver.id, chatId, msg.from ?? { id: chatId })
+
+      if (!linked) {
+        await tgSend(chatId, '❌ Холбоход алдаа гарлаа. Дахин оролдоно уу.')
+        return NextResponse.json({ ok: true })
+      }
 
       await tgSend(chatId, DRIVER_BOT_LINKED(driver.name))
       return NextResponse.json({ ok: true })
@@ -1837,7 +1974,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Save chat_id with full history
-    await recordTgHistory(supabase, driver.id, chatId, msg.from ?? { id: chatId })
+    const linked = await recordTgHistory(supabase, driver.id, chatId, msg.from ?? { id: chatId })
+
+    if (!linked) {
+      await tgSend(chatId, '❌ Холбоход алдаа гарлаа. Дахин оролдоно уу.')
+      return NextResponse.json({ ok: true })
+    }
 
     await tgSend(chatId, DRIVER_BOT_LINKED(driver.name))
     return NextResponse.json({ ok: true })
