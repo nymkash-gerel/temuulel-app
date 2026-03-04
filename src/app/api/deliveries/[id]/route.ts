@@ -148,8 +148,12 @@ export async function PATCH(
     }
   }
 
-  // Handle driver assignment (pending → assigned)
-  if (body.driver_id && body.driver_id !== current.driver_id) {
+  // Handle driver assignment
+  // Also fires when same driver is re-assigned after a terminal status (cancelled/failed/delivered)
+  const isTerminal = ['cancelled', 'failed', 'delivered'].includes(current.status)
+  const driverChanged = body.driver_id && body.driver_id !== current.driver_id
+  const sameDriverReassignedAfterTerminal = body.driver_id && body.driver_id === current.driver_id && isTerminal
+  if (driverChanged || sameDriverReassignedAfterTerminal) {
     // Verify driver
     const { data: driver } = await supabase
       .from('delivery_drivers')
@@ -162,13 +166,16 @@ export async function PATCH(
 
     updateData.driver_id = body.driver_id
 
-    // If assigning while pending, auto-advance to assigned
-    if (current.status === 'pending' && !body.status) {
-      updateData.status = 'assigned'
+    // Auto-advance status when assigning a driver
+    if (!body.status) {
+      if (current.status === 'pending' || isTerminal) {
+        updateData.status = 'assigned'
+      }
     }
 
     // 📱 Telegram: notify OLD driver that delivery was reassigned to someone else
-    if (current.driver_id) {
+    // Skip if delivery was in terminal status — it's a fresh start, not a takeover
+    if (current.driver_id && driverChanged && !isTerminal) {
       const oldOrderNumber = (current.orders as { order_number?: string } | null)?.order_number || current.delivery_number || id.slice(0, 8)
       await sendToDriverWithLog(
         supabase,
