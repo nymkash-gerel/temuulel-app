@@ -431,6 +431,27 @@ export async function tgAnswerCallback(
   }
 }
 
+/** Replace the keyboard on a message without changing its text */
+export async function tgSetKeyboard(
+  chatId: number | string,
+  messageId: number,
+  keyboard: TgInlineKeyboard
+): Promise<void> {
+  try {
+    await fetch(`${TELEGRAM_API}/bot${botToken()}/editMessageReplyMarkup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        reply_markup: keyboard,
+      }),
+    })
+  } catch (err) {
+    console.error('[Telegram] editMessageReplyMarkup error:', err)
+  }
+}
+
 /** Remove buttons from a message after driver taps one */
 export async function tgRemoveButtons(
   chatId: number | string,

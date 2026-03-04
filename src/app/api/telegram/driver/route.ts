@@ -47,6 +47,7 @@ import {
   denyReasonKeyboard,
   batchConfirmKeyboard,
   bulkListKeyboard,
+  tgSetKeyboard,
   type IntercityWizard,
   type TgInlineKeyboard,
 } from '@/lib/driver-telegram'
@@ -115,14 +116,27 @@ async function rebuildBatchMessage(supabase: any, chatId: number, messageId: num
     return `${i + 1}. ${icon} <b>#${d.delivery_number}</b>${tag}\n    📍 ${d.delivery_address || '—'}\n    👤 ${d.customer_name || '—'}${d.customer_phone ? ` · <code>${d.customer_phone}</code>` : ''}`
   }).join('\n\n')
 
-  const pending = (batch as { id: string; status: string; driver_id: string | null }[]).filter(d =>
-    d.status === 'assigned' && d.driver_id !== null
-  )
+  // Build smart keyboard: assigned → accept/deny, picked_up/in_transit → delivery actions
+  type BatchDelivery = { id: string; status: string; driver_id: string | null }
+  const typedBatch = batch as BatchDelivery[]
+  const keyboardRows = typedBatch.flatMap(d => {
+    if (d.status === 'assigned' && d.driver_id) {
+      return [[
+        { text: '✅ Хүлээж авлаа', callback_data: `confirm_received:${d.id}` },
+        { text: '❌ Татгалзах', callback_data: `deny_delivery:${d.id}` },
+      ]]
+    }
+    if (d.status === 'picked_up' || d.status === 'in_transit') {
+      return [[
+        { text: '✅ Хүргэлээ', callback_data: `delivered:${d.id}` },
+        { text: '⏰ Хоцрох', callback_data: `delay:${d.id}` },
+      ]]
+    }
+    return []
+  })
 
   const newText = `🚚 <b>ЗАХИАЛГУУД — ${batchIds.length} хүргэлт</b>\n\n${lines}`
-  const newKeyboard = pending.length > 0
-    ? bulkListKeyboard(pending)
-    : { inline_keyboard: [] as TgInlineKeyboard['inline_keyboard'] }
+  const newKeyboard: TgInlineKeyboard = { inline_keyboard: keyboardRows }
 
   await tgEdit(chatId, messageId, newText, { replyMarkup: newKeyboard })
 }
@@ -228,19 +242,12 @@ async function handleCallbackQuery(
       const confirmMsgId = confirmMeta.telegram_message_id as number | undefined
 
       if (confirmBatchIds && confirmMsgId) {
+        // Batch: rebuild the combined message with updated icons and smart keyboard
         await rebuildBatchMessage(supabase, chatId, confirmMsgId, confirmBatchIds)
       } else if (messageId) {
-        await tgRemoveButtons(chatId, messageId)
+        // Single delivery: swap buttons in-place to delivery action buttons
+        await tgSetKeyboard(chatId, messageId, enRouteKeyboard(deliveryId))
       }
-
-      // Send delivery action message for this specific delivery
-      await tgSend(chatId,
-        `✅ <b>#${confirmedDelivery.delivery_number} — Хүлээж авлаа!</b>\n\n` +
-        `📍 ${confirmedDelivery.delivery_address || 'Тодорхойгүй'}\n` +
-        `👤 ${confirmedDelivery.customer_name || '—'}${confirmedDelivery.customer_phone ? `\n📞 ${confirmedDelivery.customer_phone}` : ''}\n\n` +
-        `Хаягруу явна уу!`,
-        { replyMarkup: enRouteKeyboard(deliveryId) }
-      )
       break
     }
 
