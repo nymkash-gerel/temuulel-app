@@ -26,8 +26,6 @@ jobs:
           FACEBOOK_APP_SECRET: placeholder
           FACEBOOK_PAGE_ACCESS_TOKEN: placeholder
           MESSENGER_VERIFY_TOKEN: placeholder
-          UPSTASH_REDIS_REST_URL: https://placeholder.upstash.io
-          UPSTASH_REDIS_REST_TOKEN: placeholder
           TELEGRAM_BOT_TOKEN: placeholder
           DRIVER_TELEGRAM_BOT_TOKEN: placeholder
           SENTRY_DSN: https://placeholder@sentry.io/0
