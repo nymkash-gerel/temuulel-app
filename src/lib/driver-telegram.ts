@@ -438,7 +438,7 @@ export async function tgSetKeyboard(
   keyboard: TgInlineKeyboard
 ): Promise<void> {
   try {
-    await fetch(`${TELEGRAM_API}/bot${botToken()}/editMessageReplyMarkup`, {
+    const res = await fetch(`${TELEGRAM_API}/bot${botToken()}/editMessageReplyMarkup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -447,6 +447,10 @@ export async function tgSetKeyboard(
         reply_markup: keyboard,
       }),
     })
+    if (!res.ok) {
+      const body = await res.text()
+      console.error('[Telegram] editMessageReplyMarkup failed:', res.status, body)
+    }
   } catch (err) {
     console.error('[Telegram] editMessageReplyMarkup error:', err)
   }

@@ -245,8 +245,14 @@ async function handleCallbackQuery(
         // Batch: rebuild the combined message with updated icons and smart keyboard
         await rebuildBatchMessage(supabase, chatId, confirmMsgId, confirmBatchIds)
       } else if (messageId) {
-        // Single delivery: swap buttons in-place to delivery action buttons
-        await tgSetKeyboard(chatId, messageId, enRouteKeyboard(deliveryId))
+        // Single delivery: edit message in-place with delivery action buttons
+        const updatedText =
+          `✅ <b>ЗАХИАЛГА — #${confirmedDelivery.delivery_number}</b>\n\n` +
+          `📍 Хаяг: ${confirmedDelivery.delivery_address || 'Тодорхойгүй'}\n` +
+          `👤 Хүлээн авагч: ${confirmedDelivery.customer_name || '—'}\n` +
+          `📞 Утас: ${confirmedDelivery.customer_phone || '—'}\n\n` +
+          `✅ Хүлээж авлаа — Хаягруу явна уу!`
+        await tgEdit(chatId, messageId, updatedText, { replyMarkup: enRouteKeyboard(deliveryId) })
       }
       break
     }
