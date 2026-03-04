@@ -4,6 +4,7 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { validateBody, createDeliverySchema, parsePagination } from '@/lib/validations'
 import { dispatchNotification } from '@/lib/notifications'
 import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
+import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard } from '@/lib/driver-telegram'
 import type { Database } from '@/lib/database.types'
 
 function generateDeliveryNumber(): string {
@@ -184,13 +185,27 @@ export async function POST(request: NextRequest) {
       .update({ status: 'on_delivery', updated_at: new Date().toISOString() })
       .eq('id', driver_id)
 
-    // Dispatch notification
+    // Dispatch notification to store dashboard
     dispatchNotification(store.id, 'delivery_assigned', {
       delivery_id: delivery.id,
       delivery_number: deliveryNumber,
       driver_name: driverName,
       order_number: orderNumber,
     })
+
+    // 📱 Telegram: notify newly assigned driver
+    await sendToDriverWithLog(
+      supabase,
+      driver_id,
+      store.id,
+      DRIVER_PROACTIVE_MESSAGES.orderAssigned({
+        orderNumber: orderNumber || deliveryNumber,
+        deliveryAddress: delivery_address,
+        customerName: customer_name ?? undefined,
+        customerPhone: customer_phone ?? undefined,
+      }),
+      orderAssignedKeyboard(delivery.id),
+    ).catch(err => console.error('[Telegram] Driver notification on create failed:', err))
   }
 
   return NextResponse.json({ delivery }, { status: 201 })

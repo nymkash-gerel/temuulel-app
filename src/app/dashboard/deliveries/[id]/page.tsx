@@ -145,6 +145,43 @@ export default function DeliveryDetailPage() {
     load()
   }, [supabase, router, id])
 
+  async function handleReassignDriver() {
+    if (!delivery || !selectedDriverId) return
+    if (selectedDriverId === delivery.delivery_drivers?.id) {
+      alert('Өөр жолооч сонгоно уу')
+      return
+    }
+    setUpdating(true)
+    try {
+      const res = await fetch(`/api/deliveries/${delivery.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driver_id: selectedDriverId }),
+      })
+      if (res.ok) {
+        const { data: { user } } = await supabase.auth.getUser()
+        const { data: store } = await supabase.from('stores').select('id').eq('owner_id', user!.id).single()
+        const { data: updated } = await supabase
+          .from('deliveries')
+          .select(`*, orders(id, order_number, total_amount, status), delivery_drivers(id, name, phone, vehicle_type, vehicle_number, status), delivery_status_log(id, status, changed_by, notes, location, created_at)`)
+          .eq('id', id).eq('store_id', store!.id).single()
+        if (updated) {
+          const d = updated as unknown as DeliveryDetail
+          d.delivery_status_log = (d.delivery_status_log || []).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          setDelivery(d)
+        }
+        setSelectedDriverId('')
+      } else {
+        const err = await res.json()
+        alert(err.error || 'Error')
+      }
+    } catch {
+      alert('Алдаа гарлаа')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   async function handleStatusUpdate(newStatus: string) {
     if (!delivery) return
 
@@ -367,6 +404,32 @@ export default function DeliveryDetailPage() {
                       <option key={d.id} value={d.id}>{d.name} ({d.phone})</option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* Driver reassignment for already-assigned deliveries */}
+              {delivery.delivery_drivers && !['delivered', 'failed', 'cancelled'].includes(delivery.status) && drivers.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-sm text-slate-400 mb-1">Жолооч солих</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedDriverId}
+                      onChange={(e) => setSelectedDriverId(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Өөр жолооч сонгох...</option>
+                      {drivers.filter(d => d.id !== delivery.delivery_drivers?.id).map(d => (
+                        <option key={d.id} value={d.id}>{d.name} ({d.phone})</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleReassignDriver}
+                      disabled={updating || !selectedDriverId}
+                      className="px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium rounded-xl transition-all disabled:opacity-50 hover:opacity-90 whitespace-nowrap"
+                    >
+                      {updating ? '...' : '🔄 Солих'}
+                    </button>
+                  </div>
                 </div>
               )}
 
