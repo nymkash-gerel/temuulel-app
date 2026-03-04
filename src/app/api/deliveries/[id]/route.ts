@@ -167,6 +167,17 @@ export async function PATCH(
       updateData.status = 'assigned'
     }
 
+    // 📱 Telegram: notify OLD driver that delivery was reassigned to someone else
+    if (current.driver_id) {
+      const oldOrderNumber = (current.orders as { order_number?: string } | null)?.order_number || current.delivery_number || id.slice(0, 8)
+      await sendToDriverWithLog(
+        supabase,
+        current.driver_id,
+        store.id,
+        DRIVER_PROACTIVE_MESSAGES.orderReassigned({ orderNumber: oldOrderNumber }),
+      ).catch(err => console.error('[Telegram] Old driver reassignment notify failed:', err))
+    }
+
     // Update driver status
     await supabase
       .from('delivery_drivers')
@@ -217,7 +228,7 @@ export async function PATCH(
       store.id,
       assignmentMessage,
       orderAssignedKeyboard(id),
-    ).catch(() => {})
+    ).catch(err => console.error('[Telegram] Driver notification failed:', err))
   }
 
   // Handle driver UNASSIGN (driver_id explicitly set to null)
@@ -236,6 +247,15 @@ export async function PATCH(
     if (!count || count === 0) {
       await supabase.from('delivery_drivers').update({ status: 'active', updated_at: now }).eq('id', current.driver_id)
     }
+
+    // 📱 Telegram: notify driver they were unassigned
+    const unassignOrderNumber = (current.orders as { order_number?: string } | null)?.order_number || current.delivery_number || id.slice(0, 8)
+    await sendToDriverWithLog(
+      supabase,
+      current.driver_id,
+      store.id,
+      DRIVER_PROACTIVE_MESSAGES.orderUnassigned({ orderNumber: unassignOrderNumber }),
+    ).catch(err => console.error('[Telegram] Driver unassign notify failed:', err))
   }
 
   // Other field updates

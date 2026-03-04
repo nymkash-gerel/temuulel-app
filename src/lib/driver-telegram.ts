@@ -9,6 +9,15 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
+
+/** Service-role client that bypasses RLS — used only for driver telegram_chat_id lookups */
+function getAdminSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
+  if (!url || !key) throw new Error('Supabase admin credentials not configured')
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
+}
 
 // ---------------------------------------------------------------------------
 // Telegram API
@@ -376,20 +385,21 @@ export async function tgRemoveButtons(
 /** Send a message to a driver by their DB driver_id. Returns false if no Telegram linked. */
 export async function sendToDriver(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: SupabaseClient<any, any, any>,
+  _supabase: SupabaseClient<any, any, any>,
   driverId: string,
   text: string,
   keyboard?: TgInlineKeyboard
 ): Promise<boolean> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: driver } = await (supabase as any)
+  // Use admin client to bypass RLS — telegram_chat_id must be readable regardless of caller context
+  const admin = getAdminSupabase()
+  const { data: driver } = await admin
     .from('delivery_drivers')
     .select('telegram_chat_id, name')
     .eq('id', driverId)
     .single()
 
   if (!driver?.telegram_chat_id) {
-    console.warn(`[Telegram] Driver ${driverId} has no telegram_chat_id — falling back to driver_messages only`)
+    console.warn(`[Telegram] Driver ${driverId} has no telegram_chat_id — skipping Telegram, saving to driver_messages only`)
     return false
   }
 
@@ -520,6 +530,18 @@ export const DRIVER_PROACTIVE_MESSAGES = {
     `✅ <b>ТӨЛБӨР ОРЛОО — #${order.orderNumber}</b>\n\n` +
     `Харилцагч төлбөрөө хийлээ.\n` +
     `Барааг одоо өгч болно. Баярлалаа!`,
+
+  /** Delivery reassigned to another driver — old driver must stop */
+  orderReassigned: (order: OrderInfo) =>
+    `🔄 <b>ЗАХИАЛГА ӨӨРЧЛӨГДЛӨӨ — #${order.orderNumber}</b>\n\n` +
+    `Энэ хүргэлт өөр жолоочид шилжүүллээ.\n` +
+    `Барааг агуулахад буцааж өгнө үү.`,
+
+  /** Delivery unassigned — driver no longer responsible */
+  orderUnassigned: (order: OrderInfo) =>
+    `ℹ️ <b>ХҮРГЭЛТ ЦУЦЛАГДЛАА — #${order.orderNumber}</b>\n\n` +
+    `Энэ хүргэлтийн жолоочийн томилолт цуцлагдлаа.\n` +
+    `Барааг агуулахад буцааж өгнө үү.`,
 
   /** Return request — collect and bring back */
   returnRequest: (order: OrderInfo) =>
