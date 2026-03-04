@@ -1,8 +1,8 @@
 /**
  * POST /api/deliveries/bulk-assign
  *
- * Assign multiple deliveries to a single driver in one shot.
- * Sends ONE combined Telegram message with per-delivery Хүлээж авлаа / Татгалзах buttons.
+ * Assign multiple deliveries to a single driver.
+ * Sends one individual Telegram message per delivery with its own buttons.
  *
  * Body: { driver_id: string, delivery_ids: string[] }
  */
@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, bulkAssignSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { sendToDriver, bulkListKeyboard } from '@/lib/driver-telegram'
+import { sendToDriverWithLog, orderAssignedKeyboard } from '@/lib/driver-telegram'
 
 export async function POST(request: NextRequest) {
   const rl = await rateLimit(getClientIp(request), { limit: 20, windowSeconds: 60 })
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   // Fetch all specified deliveries that belong to this store
   const { data: deliveries } = await supabase
     .from('deliveries')
-    .select('id, delivery_number, delivery_address, customer_name, customer_phone, status')
+    .select('id, delivery_number, delivery_address, customer_name, customer_phone, status, delivery_fee, metadata')
     .in('id', body.delivery_ids)
     .eq('store_id', store.id)
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   const now = new Date().toISOString()
   const terminal = ['cancelled', 'failed', 'delivered']
 
-  // Update all deliveries
+  // Update all deliveries and send one notification per delivery
   await Promise.all(deliveries.map(async (d) => {
     const newStatus = (d.status === 'pending' || terminal.includes(d.status)) ? 'assigned' : d.status
     await supabase
@@ -71,6 +71,29 @@ export async function POST(request: NextRequest) {
         changed_by: user.email || 'store_owner',
       })
     }
+
+    // Send individual Telegram notification for this delivery
+    const message =
+      `🆕 <b>ШИНЭ ЗАХИАЛГА — #${d.delivery_number}</b>\n\n` +
+      `📍 Хаяг: ${d.delivery_address || 'Тодорхойгүй'}\n` +
+      `👤 Хүлээн авагч: ${d.customer_name || '—'}\n` +
+      `📞 Утас: ${d.customer_phone || '—'}`
+
+    const currentMeta = (d.metadata || {}) as Record<string, unknown>
+    const msgId = await sendToDriverWithLog(
+      supabase,
+      body.driver_id,
+      store.id,
+      message,
+      orderAssignedKeyboard(d.id),
+    ).catch(err => { console.error('[Telegram] Driver notification failed:', err); return null })
+
+    if (msgId) {
+      await supabase
+        .from('deliveries')
+        .update({ metadata: { ...currentMeta, telegram_message_id: msgId } })
+        .eq('id', d.id)
+    }
   }))
 
   // Update driver status
@@ -78,39 +101,6 @@ export async function POST(request: NextRequest) {
     .from('delivery_drivers')
     .update({ status: 'on_delivery', updated_at: now })
     .eq('id', body.driver_id)
-
-  // Build ONE combined message listing all deliveries
-  const lines = deliveries
-    .map((d, i) =>
-      `${i + 1}. 📋 <b>#${d.delivery_number}</b>\n` +
-      `    📍 ${d.delivery_address || 'Тодорхойгүй'}\n` +
-      `    👤 ${d.customer_name || '—'}${d.customer_phone ? ` · <code>${d.customer_phone}</code>` : ''}`
-    )
-    .join('\n\n')
-
-  const combinedMessage =
-    `🚚 <b>ШИНЭ ЗАХИАЛГУУД — ${deliveries.length} хүргэлт</b>\n\n` +
-    `${lines}\n\n` +
-    `Хүлээж авах товчийг дарна уу.`
-
-  // Send combined message with per-delivery buttons (uses admin client — bypasses RLS)
-  const msgId = await sendToDriver(
-    supabase,
-    body.driver_id,
-    combinedMessage,
-    bulkListKeyboard(deliveries),
-  ).catch(err => { console.error('[Telegram] Bulk assign notification failed:', err); return null })
-
-  // Store batch_ids + telegram_message_id in each delivery's metadata
-  // so the webhook can rebuild the combined message when driver taps a button
-  if (msgId) {
-    await Promise.all(deliveries.map(d =>
-      supabase
-        .from('deliveries')
-        .update({ metadata: { batch_ids: body.delivery_ids, telegram_message_id: msgId } })
-        .eq('id', d.id)
-    ))
-  }
 
   return NextResponse.json({ assigned: deliveries.length, driver_id: body.driver_id })
 }
