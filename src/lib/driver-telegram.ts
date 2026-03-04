@@ -303,11 +303,11 @@ export function intercityCustomerMessage(
 // Telegram API helpers
 // ---------------------------------------------------------------------------
 
-/** Low-level Telegram sendMessage */
+/** Low-level Telegram sendMessage. Returns the message_id on success, null on failure. */
 export async function tgSend(chatId: number | string, text: string, options?: {
   parseMode?: 'HTML' | 'Markdown'
   replyMarkup?: object
-}): Promise<boolean> {
+}): Promise<number | null> {
   try {
     const res = await fetch(`${TELEGRAM_API}/bot${botToken()}/sendMessage`, {
       method: 'POST',
@@ -322,22 +322,76 @@ export async function tgSend(chatId: number | string, text: string, options?: {
     if (!res.ok) {
       const err = await res.text()
       console.error(`[Telegram] sendMessage FAILED chat=${chatId} status=${res.status}:`, err)
-      return false
+      return null
     }
-    console.log(`[Telegram] sendMessage OK chat=${chatId}`)
-    return true
+    const body = await res.json()
+    console.log(`[Telegram] sendMessage OK chat=${chatId} msg=${body.result?.message_id}`)
+    return body.result?.message_id ?? null
   } catch (err) {
     console.error('[Telegram] sendMessage error:', err)
+    return null
+  }
+}
+
+/**
+ * Edit an existing Telegram message in-place.
+ * Returns true on success. Falls back gracefully if message is too old or deleted.
+ */
+export async function tgEdit(
+  chatId: number | string,
+  messageId: number,
+  text: string,
+  options?: { parseMode?: 'HTML' | 'Markdown'; replyMarkup?: object }
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${TELEGRAM_API}/bot${botToken()}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: options?.parseMode ?? 'HTML',
+        reply_markup: options?.replyMarkup,
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      console.warn(`[Telegram] editMessageText failed (will send new) chat=${chatId} msg=${messageId}:`, err)
+      return false
+    }
+    console.log(`[Telegram] editMessageText OK chat=${chatId} msg=${messageId}`)
+    return true
+  } catch (err) {
+    console.error('[Telegram] editMessageText error:', err)
     return false
   }
 }
 
-/** Send a message with inline keyboard buttons */
+/**
+ * Send or edit a delivery Telegram message.
+ * If existingMessageId is provided, tries to edit first — falls back to send if edit fails.
+ * Returns the message_id (same or new).
+ */
+export async function tgSendOrEdit(
+  chatId: number | string,
+  text: string,
+  options?: { parseMode?: 'HTML' | 'Markdown'; replyMarkup?: object; existingMessageId?: number }
+): Promise<number | null> {
+  if (options?.existingMessageId) {
+    const edited = await tgEdit(chatId, options.existingMessageId, text, options)
+    if (edited) return options.existingMessageId
+    // Fall through to send a new message
+  }
+  return tgSend(chatId, text, options)
+}
+
+/** Send a message with inline keyboard buttons. Returns message_id or null. */
 export async function tgSendButtons(
   chatId: number | string,
   text: string,
   keyboard: TgInlineKeyboard
-): Promise<boolean> {
+): Promise<number | null> {
   return tgSend(chatId, text, { replyMarkup: keyboard })
 }
 
@@ -382,15 +436,19 @@ export async function tgRemoveButtons(
   }
 }
 
-/** Send a message to a driver by their DB driver_id. Returns false if no Telegram linked. */
+/**
+ * Send (or edit) a Telegram message to a driver by their DB driver_id.
+ * Pass existingMessageId to edit the previous message in-place instead of sending a new one.
+ * Returns the message_id on success, null if driver has no Telegram linked or send failed.
+ */
 export async function sendToDriver(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _supabase: SupabaseClient<any, any, any>,
   driverId: string,
   text: string,
-  keyboard?: TgInlineKeyboard
-): Promise<boolean> {
-  // Use admin client to bypass RLS — telegram_chat_id must be readable regardless of caller context
+  keyboard?: TgInlineKeyboard,
+  existingMessageId?: number,
+): Promise<number | null> {
   const admin = getAdminSupabase()
   const { data: driver } = await admin
     .from('delivery_drivers')
@@ -399,11 +457,14 @@ export async function sendToDriver(
     .single()
 
   if (!driver?.telegram_chat_id) {
-    console.warn(`[Telegram] Driver ${driverId} has no telegram_chat_id — skipping Telegram, saving to driver_messages only`)
-    return false
+    console.warn(`[Telegram] Driver ${driverId} has no telegram_chat_id — skipping Telegram`)
+    return null
   }
 
-  return tgSend(driver.telegram_chat_id, text, keyboard ? { replyMarkup: keyboard } : undefined)
+  return tgSendOrEdit(driver.telegram_chat_id, text, {
+    replyMarkup: keyboard,
+    existingMessageId,
+  })
 }
 
 /**
@@ -423,7 +484,7 @@ export async function sendBatchAssignmentNotification(
     customer_name: string | null
     customer_phone: string | null
   }>
-): Promise<boolean> {
+): Promise<number | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: driver } = await (supabase as any)
     .from('delivery_drivers')
@@ -431,7 +492,7 @@ export async function sendBatchAssignmentNotification(
     .eq('id', driverId)
     .single()
 
-  if (!driver?.telegram_chat_id) return false
+  if (!driver?.telegram_chat_id) return null
 
   // Generate a unique batch key for this assignment session
   const batchKey = `${driverId}_${Date.now()}`
@@ -463,28 +524,37 @@ export async function sendBatchAssignmentNotification(
   return tgSend(driver.telegram_chat_id, text, { replyMarkup: batchReadyKeyboard(batchKey) })
 }
 
-/** Also save the message to driver_messages table for the dashboard */
+/**
+ * Send (or edit) a Telegram message to a driver and log it to driver_messages.
+ * Pass existingMessageId to edit the existing message in-place (no new message noise).
+ * Returns the Telegram message_id so callers can persist it for future edits.
+ */
 export async function sendToDriverWithLog(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any, any, any>,
   driverId: string,
   storeId: string,
   text: string,
-  keyboard?: TgInlineKeyboard
-): Promise<void> {
-  // Send via Telegram (best-effort)
-  await sendToDriver(supabase, driverId, text, keyboard)
+  keyboard?: TgInlineKeyboard,
+  existingMessageId?: number,
+): Promise<number | null> {
+  // Send or edit via Telegram (best-effort)
+  const messageId = await sendToDriver(supabase, driverId, text, keyboard, existingMessageId)
 
-  // Always save to DB so dashboard shows it
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
-    .from('driver_messages')
-    .insert({
-      store_id: storeId,
-      driver_id: driverId,
-      sender_type: 'store',
-      message: text.replace(/<[^>]+>/g, ''), // strip HTML for DB
-    })
+  // Only log to DB when sending a new message (not when editing an existing one)
+  if (!existingMessageId || messageId !== existingMessageId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from('driver_messages')
+      .insert({
+        store_id: storeId,
+        driver_id: driverId,
+        sender_type: 'store',
+        message: text.replace(/<[^>]+>/g, ''), // strip HTML for DB
+      })
+  }
+
+  return messageId
 }
 
 // ---------------------------------------------------------------------------

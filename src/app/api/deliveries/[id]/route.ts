@@ -229,13 +229,23 @@ export async function PATCH(
       `💰 Нийт: ${new Intl.NumberFormat('mn-MN').format(grandTotal)}₮` +
       (deliveryFee > 0 ? ` (+${new Intl.NumberFormat('mn-MN').format(deliveryFee)}₮ хүргэлт)` : '')
 
-    await sendToDriverWithLog(
+    // Reuse existing Telegram message_id if same driver — edit in-place instead of spamming new message
+    const currentMeta = (current.metadata || {}) as Record<string, unknown>
+    const existingMsgId = (driverChanged ? undefined : currentMeta.telegram_message_id) as number | undefined
+
+    const newMsgId = await sendToDriverWithLog(
       supabase,
       body.driver_id,
       store.id,
       assignmentMessage,
       orderAssignedKeyboard(id),
-    ).catch(err => console.error('[Telegram] Driver notification failed:', err))
+      existingMsgId,
+    ).catch(err => { console.error('[Telegram] Driver notification failed:', err); return null })
+
+    // Persist the message_id so future status changes can edit it instead of sending new messages
+    if (newMsgId) {
+      updateData.metadata = { ...currentMeta, telegram_message_id: newMsgId }
+    }
   }
 
   // Handle driver UNASSIGN (driver_id explicitly set to null)
@@ -347,8 +357,10 @@ export async function PATCH(
     }
 
     // 📱 Telegram: notify driver when their delivery is cancelled by the store
-    // Must await — serverless function is killed after response, fire-and-forget won't complete
+    // Edit the existing assignment message in-place instead of sending a new message
     if (newStatus === 'cancelled' && current.driver_id) {
+      const meta = (current.metadata || {}) as Record<string, unknown>
+      const existingMsgId = meta.telegram_message_id as number | undefined
       await sendToDriverWithLog(
         supabase,
         current.driver_id,
@@ -357,6 +369,8 @@ export async function PATCH(
           orderNumber: orderNumber || current.delivery_number,
           cancelReason: body.failure_reason || body.notes || undefined,
         }),
+        undefined, // no keyboard for cancellation
+        existingMsgId,
       ).catch(() => {})
     }
   }
