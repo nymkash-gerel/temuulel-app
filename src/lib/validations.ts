@@ -634,6 +634,11 @@ export const triggerAssignmentSchema = z.object({
   delivery_id: z.string().uuid(),
 })
 
+export const bulkAssignSchema = z.object({
+  driver_id: z.string().uuid(),
+  delivery_ids: z.array(z.string().uuid()).min(1).max(50),
+})
+
 export const driverLocationSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
