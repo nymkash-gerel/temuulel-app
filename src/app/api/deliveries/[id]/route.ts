@@ -148,12 +148,10 @@ export async function PATCH(
     }
   }
 
-  // Handle driver assignment
-  // Also fires when same driver is re-assigned after a terminal status (cancelled/failed/delivered)
+  // Handle driver assignment — fire whenever driver_id is explicitly provided
   const isTerminal = ['cancelled', 'failed', 'delivered'].includes(current.status)
   const driverChanged = body.driver_id && body.driver_id !== current.driver_id
-  const sameDriverReassignedAfterTerminal = body.driver_id && body.driver_id === current.driver_id && isTerminal
-  if (driverChanged || sameDriverReassignedAfterTerminal) {
+  if (body.driver_id) {
     // Verify driver
     const { data: driver } = await supabase
       .from('delivery_drivers')
@@ -229,9 +227,8 @@ export async function PATCH(
       `💰 Нийт: ${new Intl.NumberFormat('mn-MN').format(grandTotal)}₮` +
       (deliveryFee > 0 ? ` (+${new Intl.NumberFormat('mn-MN').format(deliveryFee)}₮ хүргэлт)` : '')
 
-    // Reuse existing Telegram message_id if same driver — edit in-place instead of spamming new message
+    // Always send a NEW message for assignments — Telegram only notifies on new messages, not edits
     const currentMeta = (current.metadata || {}) as Record<string, unknown>
-    const existingMsgId = (driverChanged ? undefined : currentMeta.telegram_message_id) as number | undefined
 
     const newMsgId = await sendToDriverWithLog(
       supabase,
@@ -239,7 +236,6 @@ export async function PATCH(
       store.id,
       assignmentMessage,
       orderAssignedKeyboard(id),
-      existingMsgId,
     ).catch(err => { console.error('[Telegram] Driver notification failed:', err); return null })
 
     // Persist the message_id so future status changes can edit it instead of sending new messages
@@ -357,10 +353,8 @@ export async function PATCH(
     }
 
     // 📱 Telegram: notify driver when their delivery is cancelled by the store
-    // Edit the existing assignment message in-place instead of sending a new message
+    // Always send a new message — edits don't trigger Telegram push notifications
     if (newStatus === 'cancelled' && current.driver_id) {
-      const meta = (current.metadata || {}) as Record<string, unknown>
-      const existingMsgId = meta.telegram_message_id as number | undefined
       await sendToDriverWithLog(
         supabase,
         current.driver_id,
@@ -369,8 +363,6 @@ export async function PATCH(
           orderNumber: orderNumber || current.delivery_number,
           cancelReason: body.failure_reason || body.notes || undefined,
         }),
-        undefined, // no keyboard for cancellation
-        existingMsgId,
       ).catch(() => {})
     }
   }
