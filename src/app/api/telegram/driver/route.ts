@@ -236,16 +236,8 @@ async function handleCallbackQuery(
 
       await tgAnswerCallback(cb.id, '✅ Хүлээж авлаа!')
 
-      // Rebuild combined message if this came from a bulk assignment
-      const confirmMeta = (confirmedDelivery.metadata || {}) as Record<string, unknown>
-      const confirmBatchIds = confirmMeta.batch_ids as string[] | undefined
-      const confirmMsgId = confirmMeta.telegram_message_id as number | undefined
-
-      if (confirmBatchIds && confirmMsgId) {
-        // Batch: rebuild the combined message with updated icons and smart keyboard
-        await rebuildBatchMessage(supabase, chatId, confirmMsgId, confirmBatchIds)
-      } else if (messageId) {
-        // Single delivery: edit message in-place with delivery action buttons
+      // Always edit the tapped message in-place with delivery action buttons
+      if (messageId) {
         const updatedText =
           `✅ <b>ЗАХИАЛГА — #${confirmedDelivery.delivery_number}</b>\n\n` +
           `📍 Хаяг: ${confirmedDelivery.delivery_address || 'Тодорхойгүй'}\n` +
@@ -290,14 +282,8 @@ async function handleCallbackQuery(
         metadata: { delivery_id: deliveryId },
       }).catch(() => {})
 
-      // Rebuild combined message if this came from a bulk assignment
-      const denyMeta = (deniedDelivery.metadata || {}) as Record<string, unknown>
-      const denyBatchIds = denyMeta.batch_ids as string[] | undefined
-      const denyMsgId = denyMeta.telegram_message_id as number | undefined
-
-      if (denyBatchIds && denyMsgId) {
-        await rebuildBatchMessage(supabase, chatId, denyMsgId, denyBatchIds)
-      } else if (messageId) {
+      // Always remove buttons from the tapped message
+      if (messageId) {
         await tgRemoveButtons(chatId, messageId)
       }
       break
