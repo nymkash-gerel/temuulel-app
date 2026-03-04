@@ -174,11 +174,10 @@ async function handleCallbackQuery(
   // Intermediate actions (delivered, delay, issue, etc.) keep the card alive and send NEW messages
   // Note: payment_custom removes buttons in its handler because it waits for text input
   const terminalActions = [
-    'payment_full', 'payment_received', 'payment_declined', // payment terminal states
-    'payment_delayed', // also terminal for payment flow (marks delivered + notifies store)
     'reject', 'reject_handoff', // rejection terminal states
     'arrived_at_store', // transitions to handoff flow - removes assignment card
     'accept_handoff', // transitions to en-route flow
+    // Note: payment_* actions handle their own in-place edits — excluded here
   ]
   if (messageId && terminalActions.includes(action)) {
     await tgRemoveButtons(chatId, messageId)
@@ -373,17 +372,17 @@ async function handleCallbackQuery(
       const deliveryFee = fullPayDelivery?.delivery_fee || 0
       await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
       if (messageId) {
-        await tgEdit(chatId, messageId,
-          `💰 <b>Төлбөрийн мэдээлэл — #${fullPayDelivery.delivery_number}</b>\n\n` +
-          (fullPayDelivery.delivery_address ? `📍 ${fullPayDelivery.delivery_address}\n` : '') +
-          (fullPayDelivery.customer_name ? `👤 ${fullPayDelivery.customer_name}` : '') +
-          (fullPayDelivery.customer_phone ? ` · <code>${fullPayDelivery.customer_phone}</code>` : '') +
-          `\n\nЗахиалгын дүн: ${fmt(orderTotal)}₮\n` +
-          `Хүргэлтийн үнэ: ${fmt(deliveryFee)}₮\n` +
-          `Нийт: ${fmt(paidAmount)}₮\n\n` +
-          `✅ <b>Бүрэн төлбөр амжилттай бүртгэгдлээ. Баярлалаа, ${driver.name}!</b>`,
-          { replyMarkup: { inline_keyboard: [] } }
-        )
+        const successText = fullPayDelivery
+          ? `💰 <b>Төлбөрийн мэдээлэл — #${fullPayDelivery.delivery_number}</b>\n\n` +
+            (fullPayDelivery.delivery_address ? `📍 ${fullPayDelivery.delivery_address}\n` : '') +
+            (fullPayDelivery.customer_name ? `👤 ${fullPayDelivery.customer_name}` : '') +
+            (fullPayDelivery.customer_phone ? ` · <code>${fullPayDelivery.customer_phone}</code>` : '') +
+            `\n\nЗахиалгын дүн: ${fmt(orderTotal)}₮\n` +
+            `Хүргэлтийн үнэ: ${fmt(deliveryFee)}₮\n` +
+            `Нийт: ${fmt(paidAmount)}₮\n\n` +
+            `✅ <b>Бүрэн төлбөр амжилттай бүртгэгдлээ. Баярлалаа, ${driver.name}!</b>`
+          : `✅ <b>Бүрэн төлбөр амжилттай бүртгэгдлээ. Баярлалаа, ${driver.name}!</b>`
+        await tgEdit(chatId, messageId, successText, { replyMarkup: { inline_keyboard: [] } })
       }
 
       // Notify store
@@ -456,17 +455,17 @@ async function handleCallbackQuery(
       const delayedFee = delayedPayDelivery?.delivery_fee || 0
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) {
-        await tgEdit(chatId, messageId,
-          `💰 <b>Төлбөрийн мэдээлэл — #${delayedPayDelivery.delivery_number}</b>\n\n` +
-          (delayedPayDelivery.delivery_address ? `📍 ${delayedPayDelivery.delivery_address}\n` : '') +
-          (delayedPayDelivery.customer_name ? `👤 ${delayedPayDelivery.customer_name}` : '') +
-          (delayedPayDelivery.customer_phone ? ` · <code>${delayedPayDelivery.customer_phone}</code>` : '') +
-          `\n\nЗахиалгын дүн: ${delayedFmt(delayedOrderTotal)}₮\n` +
-          `Хүргэлтийн үнэ: ${delayedFmt(delayedFee)}₮\n` +
-          `Нийт: ${delayedFmt(delayedOrderTotal + delayedFee)}₮\n\n` +
-          `🕐 <b>Хүргэгдсэн — төлбөр аваагүй. Дэлгүүрт мэдэгдлээ.</b>`,
-          { replyMarkup: { inline_keyboard: [] } }
-        )
+        const delayedText = delayedPayDelivery
+          ? `💰 <b>Төлбөрийн мэдээлэл — #${delayedPayDelivery.delivery_number}</b>\n\n` +
+            (delayedPayDelivery.delivery_address ? `📍 ${delayedPayDelivery.delivery_address}\n` : '') +
+            (delayedPayDelivery.customer_name ? `👤 ${delayedPayDelivery.customer_name}` : '') +
+            (delayedPayDelivery.customer_phone ? ` · <code>${delayedPayDelivery.customer_phone}</code>` : '') +
+            `\n\nЗахиалгын дүн: ${delayedFmt(delayedOrderTotal)}₮\n` +
+            `Хүргэлтийн үнэ: ${delayedFmt(delayedFee)}₮\n` +
+            `Нийт: ${delayedFmt(delayedOrderTotal + delayedFee)}₮\n\n` +
+            `🕐 <b>Хүргэгдсэн — төлбөр аваагүй. Дэлгүүрт мэдэгдлээ.</b>`
+          : `🕐 <b>Хүргэгдсэн — төлбөр аваагүй. Дэлгүүрт мэдэгдлээ.</b>`
+        await tgEdit(chatId, messageId, delayedText, { replyMarkup: { inline_keyboard: [] } })
       }
 
       // Notify store urgently
