@@ -347,10 +347,11 @@ async function handleCallbackQuery(
         .from('deliveries')
         .update({ status: 'delivered', delivered_at: new Date().toISOString() })
         .eq('id', deliveryId)
-        .select('id, order_id, delivery_number, delivery_fee, store_id')
+        .select('id, order_id, delivery_number, delivery_fee, delivery_address, customer_name, customer_phone, store_id')
         .single()
 
       let paidAmount = 0
+      let orderTotal = 0
       if (fullPayDelivery?.order_id) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: orderData } = await (supabase as any)
@@ -358,7 +359,8 @@ async function handleCallbackQuery(
           .select('total_amount')
           .eq('id', fullPayDelivery.order_id)
           .single()
-        paidAmount = (orderData?.total_amount || 0) + (fullPayDelivery.delivery_fee || 0)
+        orderTotal = orderData?.total_amount || 0
+        paidAmount = orderTotal + (fullPayDelivery.delivery_fee || 0)
 
         // Mark order as paid
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -367,11 +369,19 @@ async function handleCallbackQuery(
           .eq('id', fullPayDelivery.order_id)
       }
 
-      const formattedAmount = new Intl.NumberFormat('mn-MN').format(paidAmount)
+      const fmt = (n: number) => new Intl.NumberFormat('mn-MN').format(n)
+      const deliveryFee = fullPayDelivery?.delivery_fee || 0
       await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
       if (messageId) {
         await tgEdit(chatId, messageId,
-          `✅ <b>Хүргэлт + бүрэн төлбөр ${formattedAmount}₮ амжилттай бүртгэгдлээ.</b>\n\nБаярлалаа, ${driver.name}!`,
+          `💰 <b>Төлбөрийн мэдээлэл — #${fullPayDelivery.delivery_number}</b>\n\n` +
+          (fullPayDelivery.delivery_address ? `📍 ${fullPayDelivery.delivery_address}\n` : '') +
+          (fullPayDelivery.customer_name ? `👤 ${fullPayDelivery.customer_name}` : '') +
+          (fullPayDelivery.customer_phone ? ` · <code>${fullPayDelivery.customer_phone}</code>` : '') +
+          `\n\nЗахиалгын дүн: ${fmt(orderTotal)}₮\n` +
+          `Хүргэлтийн үнэ: ${fmt(deliveryFee)}₮\n` +
+          `Нийт: ${fmt(paidAmount)}₮\n\n` +
+          `✅ <b>Бүрэн төлбөр амжилттай бүртгэгдлээ. Баярлалаа, ${driver.name}!</b>`,
           { replyMarkup: { inline_keyboard: [] } }
         )
       }
@@ -428,20 +438,33 @@ async function handleCallbackQuery(
           metadata: { payment_followup: true },
         })
         .eq('id', deliveryId)
-        .select('id, order_id, delivery_number, store_id')
+        .select('id, order_id, delivery_number, delivery_address, customer_name, customer_phone, delivery_fee, store_id')
         .single()
 
+      let delayedOrderTotal = 0
       if (delayedPayDelivery?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: delayedOrderData } = await (supabase as any).from('orders').select('total_amount').eq('id', delayedPayDelivery.order_id).single()
+        delayedOrderTotal = delayedOrderData?.total_amount || 0
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase as any).from('orders')
           .update({ payment_status: 'pending', notes: 'Жолооч: хүргэгдсэн боловч төлбөр аваагүй' })
           .eq('id', delayedPayDelivery.order_id)
       }
 
+      const delayedFmt = (n: number) => new Intl.NumberFormat('mn-MN').format(n)
+      const delayedFee = delayedPayDelivery?.delivery_fee || 0
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) {
         await tgEdit(chatId, messageId,
-          `🕐 <b>Хүргэгдсэн — төлбөр аваагүй.</b>\n\nДэлгүүрт мэдэгдлээ.`,
+          `💰 <b>Төлбөрийн мэдээлэл — #${delayedPayDelivery.delivery_number}</b>\n\n` +
+          (delayedPayDelivery.delivery_address ? `📍 ${delayedPayDelivery.delivery_address}\n` : '') +
+          (delayedPayDelivery.customer_name ? `👤 ${delayedPayDelivery.customer_name}` : '') +
+          (delayedPayDelivery.customer_phone ? ` · <code>${delayedPayDelivery.customer_phone}</code>` : '') +
+          `\n\nЗахиалгын дүн: ${delayedFmt(delayedOrderTotal)}₮\n` +
+          `Хүргэлтийн үнэ: ${delayedFmt(delayedFee)}₮\n` +
+          `Нийт: ${delayedFmt(delayedOrderTotal + delayedFee)}₮\n\n` +
+          `🕐 <b>Хүргэгдсэн — төлбөр аваагүй. Дэлгүүрт мэдэгдлээ.</b>`,
           { replyMarkup: { inline_keyboard: [] } }
         )
       }
