@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
   if (driverId) {
     try {
       const admin = createAdminClient()
-      const { data: driver, error } = await admin
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: driver, error } = await (admin as any)
         .from('delivery_drivers')
         .select('id, name, telegram_chat_id, telegram_linked_at, store_id')
         .eq('id', driverId)
