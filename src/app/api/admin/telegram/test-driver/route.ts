@@ -6,6 +6,7 @@
  */
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendToDriver, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
 import { NextRequest, NextResponse } from 'next/server'
 
 const TELEGRAM_API = 'https://api.telegram.org'
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
         result.telegram_bot = meRes.ok ? { ok: true, username: me.result?.username } : { ok: false, error: me }
       }
 
-      // 5. Optionally send a test message
+      // 5. Optionally send via raw Telegram API (baseline)
       if (send && driver?.telegram_chat_id && botToken) {
         const msgRes = await fetch(`${TELEGRAM_API}/bot${botToken}/sendMessage`, {
           method: 'POST',
@@ -78,6 +79,20 @@ export async function GET(request: NextRequest) {
         const msgBody = await msgRes.json()
         result.test_message_sent = msgRes.ok
         result.test_message_result = msgBody
+      }
+
+      // 6. Optionally test via sendToDriver (the actual code path used in PATCH /api/deliveries/[id])
+      if (send && driverId) {
+        try {
+          const sent = await sendToDriver(
+            supabase,
+            driverId,
+            DRIVER_PROACTIVE_MESSAGES.orderReassigned({ orderNumber: 'TEST-001' }),
+          )
+          result.send_to_driver_result = { success: sent }
+        } catch (err) {
+          result.send_to_driver_result = { success: false, error: String(err) }
+        }
       }
     } catch (err) {
       result.driver_lookup_error = String(err)
