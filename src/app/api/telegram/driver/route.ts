@@ -323,17 +323,19 @@ async function handleCallbackQuery(
 
       await tgAnswerCallback(cb.id, '💰 Төлбөрийн мэдээлэл')
 
-      // Send NEW message with payment options (don't edit old card)
-      await tgSendButtons(chatId,
-        `💰 <b>Төлбөрийн мэдээлэл</b>\n\n` +
-        `📦 Захиалга: #${deliveryInfo.delivery_number}\n` +
-        (deliveryInfo.customer_name ? `👤 ${deliveryInfo.customer_name}\n` : '') +
-        `\nЗахиалгын дүн: ${formattedOrder}₮\n` +
-        `Хүргэлтийн үнэ: ${formattedDelivery}₮\n` +
-        `<b>Нийт: ${formattedTotal}₮</b>\n\n` +
-        `Төлбөрийн байдлыг сонгоно уу:`,
-        paymentOptionsKeyboard(deliveryId, grandTotal)
-      )
+      // Edit the same message in-place with payment options
+      if (messageId) {
+        await tgEdit(chatId, messageId,
+          `💰 <b>Төлбөрийн мэдээлэл</b>\n\n` +
+          `📦 Захиалга: #${deliveryInfo.delivery_number}\n` +
+          (deliveryInfo.customer_name ? `👤 ${deliveryInfo.customer_name}\n` : '') +
+          `\nЗахиалгын дүн: ${formattedOrder}₮\n` +
+          `Хүргэлтийн үнэ: ${formattedDelivery}₮\n` +
+          `<b>Нийт: ${formattedTotal}₮</b>\n\n` +
+          `Төлбөрийн байдлыг сонгоно уу:`,
+          { replyMarkup: paymentOptionsKeyboard(deliveryId, grandTotal) }
+        )
+      }
       break
     }
 
