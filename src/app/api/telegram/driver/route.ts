@@ -393,7 +393,7 @@ async function handleCallbackQuery(
           store_id: fullPayDelivery.store_id,
           type: 'delivery_completed',
           title: `✅ Хүргэлт амжилттай`,
-          body: `#${fullPayDelivery.delivery_number} хүргэгдэж, ${formattedAmount}₮ авлаа.`,
+          body: `#${fullPayDelivery.delivery_number} хүргэгдэж, ${fmt(paidAmount)}₮ авлаа.`,
           metadata: { delivery_id: deliveryId, amount: paidAmount },
         }).catch(() => {})
       }
