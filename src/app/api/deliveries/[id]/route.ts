@@ -240,7 +240,8 @@ export async function PATCH(
 
     // Persist the message_id so future status changes can edit it instead of sending new messages
     if (newMsgId) {
-      updateData.metadata = { ...currentMeta, telegram_message_id: newMsgId }
+      // Clear batch_ids so confirm_received treats this as a single delivery (not a batch)
+      updateData.metadata = { ...currentMeta, telegram_message_id: newMsgId, batch_ids: null }
     }
   }
 

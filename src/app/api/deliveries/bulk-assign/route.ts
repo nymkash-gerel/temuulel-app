@@ -89,9 +89,10 @@ export async function POST(request: NextRequest) {
     ).catch(err => { console.error('[Telegram] Driver notification failed:', err); return null })
 
     if (msgId) {
+      // Clear batch_ids so confirm_received treats this as a single delivery (not a batch)
       await supabase
         .from('deliveries')
-        .update({ metadata: { ...currentMeta, telegram_message_id: msgId } })
+        .update({ metadata: { ...currentMeta, telegram_message_id: msgId, batch_ids: null } })
         .eq('id', d.id)
     }
   }))
