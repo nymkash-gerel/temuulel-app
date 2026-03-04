@@ -294,7 +294,7 @@ async function handleCallbackQuery(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: deliveryInfo } = await (supabase as any)
         .from('deliveries')
-        .select('id, order_id, delivery_fee, delivery_number, customer_name, customer_phone')
+        .select('id, order_id, delivery_fee, delivery_number, delivery_address, customer_name, customer_phone')
         .eq('id', deliveryId)
         .single()
 
@@ -323,13 +323,14 @@ async function handleCallbackQuery(
 
       await tgAnswerCallback(cb.id, '💰 Төлбөрийн мэдээлэл')
 
-      // Edit the same message in-place with payment options
+      // Edit the same message in-place with payment options + delivery details
       if (messageId) {
         await tgEdit(chatId, messageId,
-          `💰 <b>Төлбөрийн мэдээлэл</b>\n\n` +
-          `📦 Захиалга: #${deliveryInfo.delivery_number}\n` +
-          (deliveryInfo.customer_name ? `👤 ${deliveryInfo.customer_name}\n` : '') +
-          `\nЗахиалгын дүн: ${formattedOrder}₮\n` +
+          `💰 <b>Төлбөрийн мэдээлэл — #${deliveryInfo.delivery_number}</b>\n\n` +
+          (deliveryInfo.delivery_address ? `📍 ${deliveryInfo.delivery_address}\n` : '') +
+          (deliveryInfo.customer_name ? `👤 ${deliveryInfo.customer_name}` : '') +
+          (deliveryInfo.customer_phone ? ` · <code>${deliveryInfo.customer_phone}</code>` : '') +
+          `\n\nЗахиалгын дүн: ${formattedOrder}₮\n` +
           `Хүргэлтийн үнэ: ${formattedDelivery}₮\n` +
           `<b>Нийт: ${formattedTotal}₮</b>\n\n` +
           `Төлбөрийн байдлыг сонгоно уу:`,
@@ -366,14 +367,14 @@ async function handleCallbackQuery(
           .eq('id', fullPayDelivery.order_id)
       }
 
-      // Remove buttons from the payment message
-      if (messageId) await tgRemoveButtons(chatId, messageId)
-
       const formattedAmount = new Intl.NumberFormat('mn-MN').format(paidAmount)
       await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
-      await tgSend(chatId,
-        `✅ <b>Хүргэлт + бүрэн төлбөр ${formattedAmount}₮ амжилттай бүртгэгдлээ.</b>\n\nБаярлалаа, ${driver.name}!`
-      )
+      if (messageId) {
+        await tgEdit(chatId, messageId,
+          `✅ <b>Хүргэлт + бүрэн төлбөр ${formattedAmount}₮ амжилттай бүртгэгдлээ.</b>\n\nБаярлалаа, ${driver.name}!`,
+          { replyMarkup: { inline_keyboard: [] } }
+        )
+      }
 
       // Notify store
       if (fullPayDelivery?.store_id) {
@@ -437,11 +438,13 @@ async function handleCallbackQuery(
           .eq('id', delayedPayDelivery.order_id)
       }
 
-      // Remove buttons from the payment message
-      if (messageId) await tgRemoveButtons(chatId, messageId)
-
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
-      await tgSend(chatId, `🕐 <b>Бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдлээ.`)
+      if (messageId) {
+        await tgEdit(chatId, messageId,
+          `🕐 <b>Хүргэгдсэн — төлбөр аваагүй.</b>\n\nДэлгүүрт мэдэгдлээ.`,
+          { replyMarkup: { inline_keyboard: [] } }
+        )
+      }
 
       // Notify store urgently
       if (delayedPayDelivery?.store_id) {
@@ -471,7 +474,12 @@ async function handleCallbackQuery(
           .eq('id', paidDelivery.order_id)
       }
       await tgAnswerCallback(cb.id, '✅ Бүртгэгдлээ!')
-      await tgSend(chatId, `✅ <b>Төлбөр авсан гэж бүртгэгдлээ.</b>\n\nБаярлалаа, ${driver.name}!`)
+      if (messageId) {
+        await tgEdit(chatId, messageId,
+          `✅ <b>Төлбөр авсан гэж бүртгэгдлээ.</b>\n\nБаярлалаа, ${driver.name}!`,
+          { replyMarkup: { inline_keyboard: [] } }
+        )
+      }
       break
     }
 
@@ -490,11 +498,14 @@ async function handleCallbackQuery(
           .eq('id', pendingDelivery.order_id)
       }
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
-      const phone = pendingDelivery?.customer_phone
-      await tgSend(chatId,
-        `⏳ <b>Дараа төлнө гэж бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдлээ.` +
-        (phone ? `\n📞 Хэрэв харилцагчтай холбогдох шаардлагатай бол: <code>${phone}</code>` : '')
-      )
+      if (messageId) {
+        const phone = pendingDelivery?.customer_phone
+        await tgEdit(chatId, messageId,
+          `⏳ <b>Дараа төлнө гэж бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдлээ.` +
+          (phone ? `\n📞 Харилцагч: <code>${phone}</code>` : ''),
+          { replyMarkup: { inline_keyboard: [] } }
+        )
+      }
       break
     }
 
