@@ -15,11 +15,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx vitest run
-      - run: npx next build
+      - name: Run unit tests (src/ only)
+        run: npx vitest run src/
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: placeholder
+          SUPABASE_SECRET_KEY: placeholder
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
           OPENAI_API_KEY: placeholder
           FACEBOOK_APP_SECRET: placeholder
@@ -28,4 +29,20 @@ jobs:
           UPSTASH_REDIS_REST_URL: https://placeholder.upstash.io
           UPSTASH_REDIS_REST_TOKEN: placeholder
           TELEGRAM_BOT_TOKEN: placeholder
+          DRIVER_TELEGRAM_BOT_TOKEN: placeholder
+          SENTRY_DSN: https://placeholder@sentry.io/0
+      - run: npx next build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          SUPABASE_SECRET_KEY: placeholder
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          OPENAI_API_KEY: placeholder
+          FACEBOOK_APP_SECRET: placeholder
+          FACEBOOK_PAGE_ACCESS_TOKEN: placeholder
+          MESSENGER_VERIFY_TOKEN: placeholder
+          UPSTASH_REDIS_REST_URL: https://placeholder.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: placeholder
+          TELEGRAM_BOT_TOKEN: placeholder
+          DRIVER_TELEGRAM_BOT_TOKEN: placeholder
           SENTRY_DSN: https://placeholder@sentry.io/0
