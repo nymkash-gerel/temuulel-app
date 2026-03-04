@@ -112,11 +112,13 @@ export default function DeliveriesPage() {
     if (!bulkDriverId || selectedIds.size === 0) return
     setBulkActionLoading(true)
     const ids = [...selectedIds]
-    await fetch('/api/deliveries/bulk-assign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ driver_id: bulkDriverId, delivery_ids: ids }),
-    })
+    await Promise.all(ids.map(id =>
+      fetch(`/api/deliveries/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driver_id: bulkDriverId }),
+      })
+    ))
     const driverObj = drivers.find(d => d.id === bulkDriverId)
     setDeliveries(prev => prev.map(d =>
       selectedIds.has(d.id)
