@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, bulkAssignSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { sendBatchAssignmentNotification } from '@/lib/driver-telegram'
+import { sendToDriver } from '@/lib/driver-telegram'
 
 export async function POST(request: NextRequest) {
   const rl = await rateLimit(getClientIp(request), { limit: 20, windowSeconds: 60 })
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   // Fetch all specified deliveries that belong to this store
   const { data: deliveries } = await supabase
     .from('deliveries')
-    .select('id, delivery_number, delivery_address, customer_name, customer_phone, status, driver_id')
+    .select('id, delivery_number, delivery_address, customer_name, customer_phone, status')
     .in('id', body.delivery_ids)
     .eq('store_id', store.id)
 
@@ -79,19 +79,22 @@ export async function POST(request: NextRequest) {
     .update({ status: 'on_delivery', updated_at: now })
     .eq('id', body.driver_id)
 
-  // Send ONE combined Telegram notification for all deliveries
-  await sendBatchAssignmentNotification(
-    supabase,
-    body.driver_id,
-    store.id,
-    deliveries.map(d => ({
-      id: d.id,
-      delivery_number: d.delivery_number,
-      delivery_address: d.delivery_address ?? '',
-      customer_name: d.customer_name,
-      customer_phone: d.customer_phone,
-    })),
-  ).catch(err => console.error('[Telegram] Bulk assign notification failed:', err))
+  // Build ONE combined Telegram message and send via admin-client path (bypasses RLS)
+  const lines = deliveries
+    .map(d =>
+      `📦 <b>#${d.delivery_number}</b>\n` +
+      `📍 ${d.delivery_address || 'Тодорхойгүй'}\n` +
+      `👤 ${d.customer_name || '—'}${d.customer_phone ? ` · <code>${d.customer_phone}</code>` : ''}`
+    )
+    .join('\n\n')
+
+  const combinedMessage =
+    `🚚 <b>ШИНЭ ЗАХИАЛГУУД — ${deliveries.length} хүргэлт</b>\n\n` +
+    `${lines}\n\n` +
+    `Дэлгэрэнгүй мэдээллийг апп-с харна уу.`
+
+  await sendToDriver(supabase, body.driver_id, combinedMessage)
+    .catch(err => console.error('[Telegram] Bulk assign notification failed:', err))
 
   return NextResponse.json({ assigned: deliveries.length, driver_id: body.driver_id })
 }
