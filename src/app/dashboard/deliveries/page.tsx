@@ -217,9 +217,14 @@ export default function DeliveriesPage() {
     }
     // Tab-based group filtering
     if (statusFilter === 'needs_action') {
-      result = result.filter(d => ['pending', 'at_store'].includes(d.status))
-      // at_store (awaiting handoff) first, then pending (needs driver)
-      const order: Record<string, number> = { at_store: 0, pending: 1 }
+      const now = new Date()
+      result = result.filter(d =>
+        ['pending', 'at_store'].includes(d.status) ||
+        // Include delayed deliveries whose estimated time has passed
+        (d.status === 'delayed' && d.estimated_delivery_time && new Date(d.estimated_delivery_time) <= now)
+      )
+      // at_store first, then delayed (overdue), then pending
+      const order: Record<string, number> = { at_store: 0, delayed: 1, pending: 2 }
       result = [...result].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9))
     } else if (statusFilter === 'active') {
       result = result.filter(d => ['assigned', 'picked_up', 'in_transit', 'delayed'].includes(d.status))
@@ -240,9 +245,15 @@ export default function DeliveriesPage() {
   const awaitingPaymentCount = deliveries.filter(d =>
     d.delivery_type === 'intercity_post' && d.orders?.payment_status !== 'paid' && d.status === 'pending'
   ).length
-  const pendingCount = deliveries.filter(d => d.status === 'pending').length
+  const nowForCount = new Date()
+  const overdueDelayedCount = deliveries.filter(d =>
+    d.status === 'delayed' && d.estimated_delivery_time && new Date(d.estimated_delivery_time) <= nowForCount
+  ).length
+  const pendingCount = deliveries.filter(d => d.status === 'pending').length + overdueDelayedCount
   const completedCount = deliveries.filter(d => d.status === 'delivered').length
-  const failedCount = deliveries.filter(d => ['failed', 'delayed'].includes(d.status)).length
+  const failedCount = deliveries.filter(d =>
+    d.status === 'failed' || (d.status === 'delayed' && (!d.estimated_delivery_time || new Date(d.estimated_delivery_time) > nowForCount))
+  ).length
   const deniedCount = deliveries.filter(d => d.denial_info !== null && d.status === 'pending').length
 
   // Group at_store deliveries by driver — for bulk confirm buttons

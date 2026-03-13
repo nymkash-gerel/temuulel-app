@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/daily-report",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/reactivate-delayed",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/payment-followup",
+      "schedule": "0 * * * *"
     }
   ]
 }

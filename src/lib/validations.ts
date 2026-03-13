@@ -382,6 +382,12 @@ export const markNotificationsSchema = z.object({
 export const teamInviteSchema = z.object({
   email: z.string().trim().email('Invalid email format'),
   role: z.enum(['admin', 'staff']),
+  permissions: z.record(z.string(), z.boolean()).optional(),
+})
+
+export const teamUpdatePermissionsSchema = z.object({
+  user_id: uuid,
+  permissions: z.record(z.string(), z.boolean()),
 })
 
 export const teamRemoveSchema = z.object({

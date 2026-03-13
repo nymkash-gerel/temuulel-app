@@ -82,18 +82,13 @@ export function enRouteKeyboard(deliveryId: string): TgInlineKeyboard {
     inline_keyboard: [
       [
         { text: '✅ Хүргэлээ', callback_data: `delivered:${deliveryId}` },
-        { text: '⏰ Хоцрох', callback_data: `delay:${deliveryId}` },
+        { text: '⏰ Хойшлуулав', callback_data: `delay:${deliveryId}` },
       ],
       [
-        { text: '📞 Харилцагчийн мэдээлэл', callback_data: `customer_info:${deliveryId}` },
         { text: '📵 Утас авсангүй', callback_data: `unreachable:${deliveryId}` },
-      ],
-      [
-        { text: '💬 Гомдол мэдэгдэх', callback_data: `receiver_complaint:${deliveryId}` },
         { text: '⚠️ Асуудал', callback_data: `issue:${deliveryId}` },
       ],
       [
-        { text: '💳 Төлбөр баталгаажуулах', callback_data: `confirm_cod:${deliveryId}` },
         { text: '🚫 Авахаас татгалзав', callback_data: `customer_refused:${deliveryId}` },
       ],
     ],
@@ -109,7 +104,7 @@ export function delayKeyboard(deliveryId: string): TgInlineKeyboard {
         { text: '📅 Маргааш', callback_data: `delay_time:tomorrow:${deliveryId}` },
       ],
       [
-        { text: '🗓️ Энэ долоо хоногт', callback_data: `delay_time:week:${deliveryId}` },
+        { text: '🗓️ Энэ амралтын өдрүүдэд', callback_data: `delay_time:week:${deliveryId}` },
         { text: '✏️ Өөр цаг оруулах', callback_data: `delay_time:custom:${deliveryId}` },
       ],
     ],

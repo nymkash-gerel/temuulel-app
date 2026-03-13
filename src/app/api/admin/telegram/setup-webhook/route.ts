@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Derive the app's public URL from the request origin
-  const origin = new URL(request.url).origin
+  // Use configured app URL if available, otherwise fall back to request origin
+  const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
   const webhookUrl = `${origin}/api/webhook/telegram`
 
   const params = new URLSearchParams({ url: webhookUrl })

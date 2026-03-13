@@ -3,14 +3,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendTeamInviteEmail } from '@/lib/email'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { validateBody, teamInviteSchema } from '@/lib/validations'
+import { randomBytes } from 'crypto'
 
 const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
 /**
  * POST /api/team/invite
  *
- * Invite an existing user to a store's team.
- * Sends an invite email after adding to store_members.
+ * Invite a user to a store's team.
+ * - If user exists: adds to store_members immediately + sends login email
+ * - If user doesn't exist: creates pending_invite + sends signup email with token
  */
 export async function POST(request: NextRequest) {
   const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   const { data: body, error: validationError } = await validateBody(request, teamInviteSchema)
   if (validationError) return validationError
-  const { email, role } = body
+  const { email, role, permissions } = body
 
   // Verify requester owns a store
   const { data: store } = await supabase
@@ -59,7 +61,13 @@ export async function POST(request: NextRequest) {
     .select('id', { count: 'exact', head: true })
     .eq('store_id', store.id)
 
-  if (teamLimit > 0 && (count || 0) >= teamLimit) {
+  // Also count pending invites toward the limit
+  const { count: pendingCount } = await supabase
+    .from('pending_invites')
+    .select('id', { count: 'exact', head: true })
+    .eq('store_id', store.id)
+
+  if (teamLimit > 0 && ((count || 0) + (pendingCount || 0)) >= teamLimit) {
     return NextResponse.json(
       { error: 'Багийн хязгаарт хүрсэн. Планаа шинэчилнэ үү.' },
       { status: 403 }
@@ -73,46 +81,91 @@ export async function POST(request: NextRequest) {
     .eq('email', email)
     .single()
 
-  if (!invitedUser) {
-    return NextResponse.json(
-      { error: 'Энэ имэйл хаягтай хэрэглэгч олдсонгүй. Тэд эхлээд бүртгүүлсэн байх ёстой.' },
-      { status: 404 }
-    )
+  if (invitedUser) {
+    // --- Existing user: add directly ---
+
+    // Check if already a member
+    const { data: existing } = await supabase
+      .from('store_members')
+      .select('id')
+      .eq('store_id', store.id)
+      .eq('user_id', invitedUser.id)
+      .single()
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Энэ хэрэглэгч аль хэдийн багийн гишүүн байна.' },
+        { status: 409 }
+      )
+    }
+
+    const { error: insertError } = await supabase
+      .from('store_members')
+      .insert({ store_id: store.id, user_id: invitedUser.id, role, permissions: permissions || null })
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
+
+    // Send email (non-blocking)
+    sendTeamInviteEmail(
+      email,
+      store.name,
+      role,
+      user.email || 'Эзэмшигч'
+    ).catch((err) => console.error('Team invite email failed:', err))
+
+    return NextResponse.json({
+      member: { user_id: invitedUser.id, email: invitedUser.email, role, permissions: permissions || null },
+      status: 'added',
+    })
   }
 
-  // Check if already a member
-  const { data: existing } = await supabase
-    .from('store_members')
+  // --- New user: create pending invite ---
+
+  // Check if already has a pending invite for this store
+  const { data: existingInvite } = await supabase
+    .from('pending_invites')
     .select('id')
     .eq('store_id', store.id)
-    .eq('user_id', invitedUser.id)
+    .eq('email', email)
     .single()
 
-  if (existing) {
+  if (existingInvite) {
     return NextResponse.json(
-      { error: 'Энэ хэрэглэгч аль хэдийн багийн гишүүн байна.' },
+      { error: 'Энэ имэйл хаягаар урилга аль хэдийн илгээсэн байна.' },
       { status: 409 }
     )
   }
 
-  // Insert member
-  const { error: insertError } = await supabase
-    .from('store_members')
-    .insert({ store_id: store.id, user_id: invitedUser.id, role })
+  const token = randomBytes(32).toString('hex')
 
-  if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 })
+  const { error: inviteError } = await supabase
+    .from('pending_invites')
+    .insert({
+      store_id: store.id,
+      email,
+      role,
+      permissions: permissions || {},
+      token,
+      invited_by: user.id,
+    })
+
+  if (inviteError) {
+    return NextResponse.json({ error: inviteError.message }, { status: 500 })
   }
 
-  // Send invite email (non-blocking)
+  // Send invite email with signup link (non-blocking)
   sendTeamInviteEmail(
     email,
     store.name,
     role,
-    user.email || 'Эзэмшигч'
+    user.email || 'Эзэмшигч',
+    token
   ).catch((err) => console.error('Team invite email failed:', err))
 
   return NextResponse.json({
-    member: { user_id: invitedUser.id, email: invitedUser.email, role },
+    invite: { email, role, permissions: permissions || {}, token },
+    status: 'pending',
   })
 }

@@ -7661,11 +7661,64 @@ export type Database = {
           },
         ]
       }
+      pending_invites: {
+        Row: {
+          id: string
+          store_id: string
+          email: string
+          role: string
+          permissions: Record<string, boolean>
+          token: string
+          invited_by: string
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          email: string
+          role?: string
+          permissions?: Record<string, boolean>
+          token: string
+          invited_by: string
+          expires_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          email?: string
+          role?: string
+          permissions?: Record<string, boolean>
+          token?: string
+          invited_by?: string
+          expires_at?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_invites_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_members: {
         Row: {
           created_at: string | null
           id: string
           role: string | null
+          permissions: Record<string, boolean> | null
+          telegram_chat_id: string | null
           store_id: string
           user_id: string
         }
@@ -7673,6 +7726,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: string | null
+          permissions?: Record<string, boolean> | null
+          telegram_chat_id?: string | null
           store_id: string
           user_id: string
         }
@@ -7680,6 +7735,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: string | null
+          permissions?: Record<string, boolean> | null
+          telegram_chat_id?: string | null
           store_id?: string
           user_id?: string
         }

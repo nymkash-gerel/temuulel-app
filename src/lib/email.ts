@@ -201,10 +201,19 @@ export async function sendTeamInviteEmail(
   to: string,
   storeName: string,
   role: string,
-  inviterName: string
+  inviterName: string,
+  inviteToken?: string
 ): Promise<boolean> {
   const roleLabel = role === 'admin' ? 'Админ' : 'Ажилтан'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://temuulel.com'
+
+  // If token provided, user needs to sign up first
+  const isNewUser = !!inviteToken
+  const linkUrl = isNewUser ? `${appUrl}/invite/${inviteToken}` : `${appUrl}/dashboard`
+  const buttonText = isNewUser ? 'Бүртгүүлэх' : 'Самбар руу очих'
+  const footerText = isNewUser
+    ? 'Энэ урилга 7 хоногийн дотор хүчинтэй. Бүртгүүлсний дараа та автоматаар багт нэмэгдэнэ.'
+    : 'Та аль хэдийн бүртгэлтэй тул шууд нэвтрэн орж болно.'
 
   return sendEmail(to, `${storeName} - Багийн урилга`, `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -214,12 +223,12 @@ export async function sendTeamInviteEmail(
         <p style="margin: 4px 0;"><strong>Үүрэг:</strong> ${roleLabel}</p>
         <p style="margin: 4px 0;"><strong>Урьсан:</strong> ${inviterName}</p>
       </div>
-      <a href="${appUrl}/dashboard"
+      <a href="${linkUrl}"
          style="display: inline-block; padding: 12px 24px; background: linear-gradient(to right, #3b82f6, #06b6d4); color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">
-        Самбар руу очих
+        ${buttonText}
       </a>
       <p style="color: #64748b; font-size: 14px; margin-top: 16px;">
-        Та аль хэдийн бүртгэлтэй тул шууд нэвтрэн орж болно.
+        ${footerText}
       </p>
     </div>
   `)

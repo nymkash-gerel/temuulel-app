@@ -8,6 +8,7 @@ import NotificationBell from '@/components/ui/NotificationBell'
 import ChatWidget from '@/components/ui/ChatWidget'
 import { LanguageProvider, useTranslation } from '@/lib/i18n'
 import { resolveFeatures, getNavItems } from '@/lib/features'
+import { canAccessPath } from '@/lib/permissions'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -28,6 +29,8 @@ interface DashboardLayoutProps {
       limits: unknown
     } | null
   } | null
+  memberRole?: string | null
+  memberPermissions?: Record<string, boolean> | null
 }
 
 export default function DashboardLayout(props: DashboardLayoutProps) {
@@ -42,7 +45,9 @@ function DashboardLayoutInner({
   children,
   user,
   store,
-  subscription
+  subscription,
+  memberRole,
+  memberPermissions,
 }: DashboardLayoutProps) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -50,12 +55,18 @@ function DashboardLayoutInner({
   const { locale, setLocale } = useTranslation()
   const prevPathnameRef = useRef(pathname)
 
-  // Resolve nav items from feature flags
+  const role = memberRole || 'owner'
+
+  // Resolve nav items from feature flags, then filter by permissions
   const navItems = useMemo(() => {
     const modules = store?.enabled_modules as Record<string, boolean> | null | undefined
     const features = resolveFeatures(store?.business_type, modules)
-    return getNavItems(features)
-  }, [store?.business_type, store?.enabled_modules])
+    const allNavItems = getNavItems(features)
+
+    // Filter nav items based on member's permissions
+    if (role === 'owner') return allNavItems
+    return allNavItems.filter((item) => canAccessPath(role, memberPermissions ?? null, item.href))
+  }, [store?.business_type, store?.enabled_modules, role, memberPermissions])
 
   // Close sidebar on route change (mobile)
   useEffect(() => {

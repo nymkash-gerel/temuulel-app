@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
       delivery.delivery_type === 'intercity_post'
         ? intercityKeyboard(delivery.id)
         : orderAssignedKeyboard(delivery.id)
-    ).catch(() => {})
+    ).catch(err => console.error('[Telegram] Driver notification failed:', err))
 
     // Send tracking SMS to customer
     if (delivery.customer_phone) {

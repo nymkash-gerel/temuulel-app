@@ -17,12 +17,37 @@ export default async function Layout({
     redirect('/login')
   }
 
-  // Get user's store
-  const { data: store } = await supabase
+  // Get user's store (as owner)
+  let { data: store } = await supabase
     .from('stores')
     .select('*')
     .eq('owner_id', user.id)
     .single()
+
+  // If not owner, check if team member
+  let memberRole: string | null = null
+  let memberPermissions: Record<string, boolean> | null = null
+  if (!store) {
+    const { data: membership } = await supabase
+      .from('store_members')
+      .select('store_id, role, permissions')
+      .eq('user_id', user.id)
+      .single()
+
+    if (membership) {
+      memberRole = membership.role
+      // JSONB narrowing — permissions comes as Json from Supabase
+      memberPermissions = (membership.permissions ?? null) as Record<string, boolean> | null
+      const { data: memberStore } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('id', membership.store_id)
+        .single()
+      store = memberStore
+    }
+  } else {
+    memberRole = 'owner'
+  }
 
   // Get subscription
   const { data: subscription } = await supabase
@@ -37,6 +62,8 @@ export default async function Layout({
         user={{ email: user.email || '' }}
         store={store}
         subscription={subscription}
+        memberRole={memberRole}
+        memberPermissions={memberPermissions}
       >
         {children}
       </DashboardLayout>

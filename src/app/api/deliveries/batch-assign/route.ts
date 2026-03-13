@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
         customer_name: a.customer_name,
         customer_phone: null, // Not available in BatchAssignment, will be fetched later if needed
       }))
-    ).catch(() => {})
+    ).catch(err => console.error('[Telegram] Batch driver notification failed:', err))
   }
 
   return NextResponse.json({
