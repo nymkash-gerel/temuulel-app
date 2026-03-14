@@ -12,7 +12,10 @@ function getResend(): Resend | null {
   return new Resend(apiKey)
 }
 
-const fromEmail = () => process.env.NOTIFICATION_FROM_EMAIL || 'noreply@temuulel.com'
+const fromEmail = () => {
+  const email = process.env.NOTIFICATION_FROM_EMAIL || 'noreply@temuulel.com'
+  return `Temuulel <${email}>`
+}
 
 export async function sendEmail(
   to: string,
