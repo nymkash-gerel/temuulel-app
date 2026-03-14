@@ -6,11 +6,11 @@
     },
     {
       "path": "/api/cron/reactivate-delayed",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/payment-followup",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
