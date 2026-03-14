@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
-    // Send email (non-blocking)
-    sendTeamInviteEmail(
+    // Send email (must await on serverless)
+    await sendTeamInviteEmail(
       email,
       store.name,
       role,
@@ -155,8 +155,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: inviteError.message }, { status: 500 })
   }
 
-  // Send invite email with signup link (non-blocking)
-  sendTeamInviteEmail(
+  // Send invite email with signup link (must await on serverless)
+  await sendTeamInviteEmail(
     email,
     store.name,
     role,
