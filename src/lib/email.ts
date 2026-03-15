@@ -13,7 +13,7 @@ function getResend(): Resend | null {
 }
 
 const fromEmail = () => {
-  const email = process.env.NOTIFICATION_FROM_EMAIL || 'noreply@temuulel.com'
+  const email = (process.env.NOTIFICATION_FROM_EMAIL || 'noreply@temuulel.com').trim()
   return `Temuulel <${email}>`
 }
 
