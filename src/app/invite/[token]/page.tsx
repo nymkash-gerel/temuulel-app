@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 interface InviteData {
@@ -15,7 +14,6 @@ interface InviteData {
 export default function InviteSignupPage() {
   const { token } = useParams<{ token: string }>()
   const router = useRouter()
-  const supabase = createClient()
 
   const [invite, setInvite] = useState<InviteData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,7 +27,6 @@ export default function InviteSignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [step, setStep] = useState<'form' | 'verify'>('form')
 
   const passwordChecks = {
     length: password.length >= 8,
@@ -80,39 +77,27 @@ export default function InviteSignupPage() {
 
     setSubmitting(true)
     try {
-      const { error: signupError } = await supabase.auth.signUp({
-        email: invite.email,
-        password,
-        options: {
-          data: { phone, invite_token: token },
-          emailRedirectTo: `${window.location.origin}/api/team/invite/accept?token=${token}`,
-        },
+      const res = await fetch('/api/team/invite/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password, fullName, phone }),
       })
 
-      if (signupError) {
-        if (signupError.message.includes('already registered')) {
-          setError('Энэ имэйл хаяг бүртгэлтэй байна. Нэвтэрсний дараа автоматаар багт нэмэгдэнэ.')
-        } else {
-          setError(signupError.message)
-        }
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Алдаа гарлаа')
         return
       }
 
-      // Create user profile
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase.from('users').insert({
-          id: user.id,
-          email: invite.email,
-          phone,
-          full_name: fullName,
-          password_hash: 'supabase_auth',
-          is_verified: true,
-          email_verified: true,
-        })
+      if (data.needsLogin) {
+        // User created but session failed — redirect to login
+        router.push('/login?message=signup_success')
+        return
       }
 
-      setStep('verify')
+      // Success — user is signed in and added to team
+      router.push('/dashboard?welcome=team')
     } catch {
       setError('Алдаа гарлаа. Дахин оролдоно уу.')
     } finally {
@@ -190,8 +175,7 @@ export default function InviteSignupPage() {
         </div>
 
         <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-8">
-          {step === 'form' ? (
-            <form onSubmit={handleSignup} className="space-y-5">
+          <form onSubmit={handleSignup} className="space-y-5">
               <h2 className="text-lg font-semibold text-white mb-4">Бүртгүүлэх</h2>
 
               {/* Email (read-only) */}
@@ -303,18 +287,6 @@ export default function InviteSignupPage() {
                 <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">Нэвтрэх</Link>
               </p>
             </form>
-          ) : (
-            <div className="text-center py-8 space-y-4">
-              <div className="text-5xl">📧</div>
-              <h2 className="text-xl font-bold text-white">Имэйлээ шалгана уу</h2>
-              <p className="text-slate-400 text-sm">
-                <span className="text-white font-medium">{invite.email}</span> хаяг руу баталгаажуулах линк илгээлээ.
-              </p>
-              <p className="text-slate-500 text-xs">
-                Линк дээр дарсны дараа та автоматаар <span className="text-blue-400">{invite.storeName}</span> багт нэмэгдэнэ.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
