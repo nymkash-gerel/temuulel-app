@@ -1025,6 +1025,19 @@ export default function DeliveriesPage() {
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${sc.color}`}>
                         {sc.icon} {sc.label}
                       </span>
+                      {del.status === 'failed' && (
+                        <p className="text-red-400/80 text-xs mt-1">
+                          {del.metadata?.wrong_item_photo_url ? '📦 Буруу бараа' :
+                           del.notes === 'Гэмтсэн бараа' ? '💔 Гэмтсэн' :
+                           del.notes?.includes('мөнгө') ? '💰 Мөнгө өгсөнгүй' :
+                           del.failure_reason || del.notes || 'Шалтгаан тодорхойгүй'}
+                        </p>
+                      )}
+                      {del.notes && del.status !== 'failed' && (
+                        <p className="text-slate-500 text-xs mt-1 truncate max-w-[150px]" title={del.notes}>
+                          💬 {del.notes}
+                        </p>
+                      )}
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6">
                       <span className="text-slate-400 text-sm">

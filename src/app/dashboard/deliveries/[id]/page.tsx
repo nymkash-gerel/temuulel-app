@@ -23,6 +23,7 @@ interface DeliveryDetail {
   notes: string | null
   failure_reason: string | null
   proof_photo_url: string | null
+  metadata: Record<string, unknown> | null
   created_at: string
   updated_at: string
   orders: { id: string; order_number: string; total_amount: number; status: string } | null
@@ -377,6 +378,32 @@ export default function DeliveryDetailPage() {
                   alt="Proof of delivery"
                   className="w-48 h-48 object-cover rounded-xl border border-slate-700"
                 />
+              </div>
+            )}
+
+            {/* Wrong item section */}
+            {delivery.metadata?.wrong_item_photo_url && (
+              <div className="mt-4 pt-4 border-t border-red-800/50">
+                <p className="text-sm text-red-400 mb-2 font-medium">Буруу бараа</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={delivery.metadata.wrong_item_photo_url as string}
+                  alt="Wrong item photo"
+                  className="w-48 h-48 object-cover rounded-xl border border-red-700/50"
+                />
+                <div className="mt-3 space-y-1">
+                  {delivery.metadata.wrong_item_returned ? (
+                    <p className="text-green-400 text-sm">✅ Агуулахад буцааж өгсөн {delivery.metadata.wrong_item_returned_at ? `— ${new Date(delivery.metadata.wrong_item_returned_at as string).toLocaleString('mn-MN')}` : ''}</p>
+                  ) : (
+                    <p className="text-yellow-400 text-sm">⏳ Буцаагдаагүй байна</p>
+                  )}
+                  {delivery.metadata.wrong_product_note && (
+                    <p className="text-slate-300 text-sm">📝 {delivery.metadata.wrong_product_note as string}</p>
+                  )}
+                  {delivery.metadata.wrong_product_received_by && (
+                    <p className="text-slate-400 text-xs">Хүлээн авсан: {delivery.metadata.wrong_product_received_by as string}</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
