@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/server'
 import { addressMatchesZones } from '@/lib/ai/delivery-assigner'
 import { sendBatchAssignmentNotification } from '@/lib/driver-telegram'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface PendingDelivery {
   id: string
@@ -74,12 +75,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single()
-  if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const storeId = await resolveStoreId(supabase, user.id)
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const store = { id: storeId }
 
   const body = await request.json().catch(() => ({}))
   const dryRun = body.dry_run !== false // default to dry_run = true for safety

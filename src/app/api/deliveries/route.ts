@@ -5,6 +5,7 @@ import { validateBody, createDeliverySchema, parsePagination } from '@/lib/valid
 import { dispatchNotification } from '@/lib/notifications'
 import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
 import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard } from '@/lib/driver-telegram'
+import { resolveStoreId } from '@/lib/resolve-store'
 import type { Database } from '@/lib/database.types'
 
 function generateDeliveryNumber(): string {
@@ -23,13 +24,9 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single()
-
-  if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const storeId = await resolveStoreId(supabase, user.id)
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const store = { id: storeId }
 
   const searchParams = request.nextUrl.searchParams
   const status = searchParams.get('status')
@@ -86,13 +83,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single()
-
-  if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const storeId = await resolveStoreId(supabase, user.id)
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const store = { id: storeId }
 
   const { data: body, error: validationError } = await validateBody(request, createDeliverySchema)
   if (validationError) return validationError

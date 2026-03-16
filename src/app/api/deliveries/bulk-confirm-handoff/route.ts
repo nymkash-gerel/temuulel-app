@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendToDriver, handoffReadyKeyboard } from '@/lib/driver-telegram'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -18,12 +19,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single()
-  if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const storeId = await resolveStoreId(supabase, user.id)
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const store = { id: storeId }
 
   const body = await request.json()
   const { driver_id } = body

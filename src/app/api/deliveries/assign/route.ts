@@ -8,6 +8,7 @@ import { dispatchNotification } from '@/lib/notifications'
 import { sendPushToUser } from '@/lib/push'
 import { sendDeliveryTrackingSMS } from '@/lib/sms'
 import { sendToDriver, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard, intercityKeyboard } from '@/lib/driver-telegram'
+import { resolveStore } from '@/lib/resolve-store'
 
 /**
  * POST /api/deliveries/assign
@@ -24,12 +25,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id, delivery_settings')
-    .eq('owner_id', user.id)
-    .single()
-
+  const store = await resolveStore(supabase, user.id)
   if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
 
   const { data: body, error: validationError } = await validateBody(request, triggerAssignmentSchema)

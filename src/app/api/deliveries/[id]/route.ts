@@ -4,6 +4,7 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { validateBody, updateDeliverySchema } from '@/lib/validations'
 import { dispatchNotification } from '@/lib/notifications'
 import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard } from '@/lib/driver-telegram'
+import { resolveStoreId } from '@/lib/resolve-store'
 import type { Database } from '@/lib/database.types'
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -29,13 +30,9 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single()
-
-  if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const storeId = await resolveStoreId(supabase, user.id)
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const store = { id: storeId }
 
   // Fetch delivery and related data separately to avoid deep type instantiation
   const { data: deliveryRaw, error: delError } = await supabase
@@ -90,13 +87,9 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('owner_id', user.id)
-    .single()
-
-  if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const storeId = await resolveStoreId(supabase, user.id)
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  const store = { id: storeId }
 
   const { data: body, error: validationError } = await validateBody(request, updateDeliverySchema)
   if (validationError) return validationError
