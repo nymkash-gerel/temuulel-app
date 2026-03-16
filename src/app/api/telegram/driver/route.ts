@@ -793,6 +793,93 @@ async function handleCallbackQuery(
       break
     }
 
+    case 'wrong_returned': {
+      // Driver confirms they returned the wrong item to warehouse
+      const wrHeader = await getDeliveryHeader(supabase, deliveryId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: wrDel } = await (supabase as any)
+        .from('deliveries')
+        .select('id, delivery_number, store_id, metadata')
+        .eq('id', deliveryId)
+        .single()
+
+      if (wrDel) {
+        const existingMeta = (wrDel.metadata ?? {}) as Record<string, unknown>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
+          .from('deliveries')
+          .update({
+            notes: 'Буруу бараа — агуулахад буцааж өгсөн',
+            metadata: { ...existingMeta, wrong_item_returned: true, wrong_item_returned_at: new Date().toISOString() },
+          })
+          .eq('id', deliveryId)
+
+        await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
+        if (messageId) await tgEdit(chatId, messageId, `${wrHeader}📦 <b>БУЦААЖ ӨГСӨН</b>\nБаярлалаа! Дэлгүүрт мэдэгдлээ.`, { replyMarkup: { inline_keyboard: [] } })
+
+        // Notify staff/members via store bot
+        const storeBotToken = process.env.TELEGRAM_BOT_TOKEN
+        if (storeBotToken) {
+          const allChatIds: string[] = []
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: storeStaff } = await (supabase as any)
+            .from('staff')
+            .select('telegram_chat_id')
+            .eq('store_id', wrDel.store_id)
+            .not('telegram_chat_id', 'is', null)
+          for (const s of (storeStaff || []) as Array<{ telegram_chat_id: string }>) {
+            if (s.telegram_chat_id && !allChatIds.includes(s.telegram_chat_id)) allChatIds.push(s.telegram_chat_id)
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: storeMembers } = await (supabase as any)
+            .from('store_members')
+            .select('telegram_chat_id, notification_preferences')
+            .eq('store_id', wrDel.store_id)
+            .not('telegram_chat_id', 'is', null)
+          for (const m of (storeMembers || []) as Array<{ telegram_chat_id: string; notification_preferences: Record<string, boolean> | null }>) {
+            const prefs = m.notification_preferences || {}
+            if (m.telegram_chat_id && prefs.delivery !== false && !allChatIds.includes(m.telegram_chat_id)) {
+              allChatIds.push(m.telegram_chat_id)
+            }
+          }
+
+          const returnMsg =
+            `📦 <b>БУРУУ БАРАА БУЦААГДЛАА</b>\n\n` +
+            `🆔 Хүргэлт: #${wrDel.delivery_number}\n` +
+            `👤 Жолооч: ${(driver as Record<string, unknown>).name}\n\n` +
+            `Жолооч буруу барааг агуулахад буцааж өгсөн.\n` +
+            `⚠️ <b>Хүлээн авч, ямар бараа буруу илгээсэнийг тэмдэглэнэ үү.</b>\n\n` +
+            `Dashboard → Захиалга → Хүргэлт #${wrDel.delivery_number}`
+
+          for (const sChatId of allChatIds) {
+            try {
+              await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: sChatId, text: returnMsg, parse_mode: 'HTML' }),
+              })
+            } catch (tgErr) {
+              console.error(`[DriverBot] Wrong return notify failed for ${sChatId}:`, tgErr)
+            }
+          }
+        }
+
+        // Dashboard notification
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          store_id: wrDel.store_id, type: 'delivery_failed',
+          title: '📦 Буруу бараа буцаагдлаа',
+          body: `${(driver as Record<string, unknown>).name} — #${wrDel.delivery_number}: буруу барааг агуулахад буцааж өгсөн. Хүлээн авч тэмдэглэнэ үү.`,
+          metadata: { delivery_id: deliveryId, reason: 'wrong_product_returned' },
+        }).then(null, () => {})
+      } else {
+        await tgAnswerCallback(cb.id, 'Хүргэлт олдсонгүй')
+      }
+      break
+    }
+
     case 'damaged': {
       const dmHeader = await getDeliveryHeader(supabase, deliveryId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2393,7 +2480,13 @@ export async function POST(request: NextRequest) {
       .select('delivery_number, store_id, order_id, customer_name, customer_phone, delivery_address')
       .single()
 
-    await tgSend(chatId, `📸 Зураг хүлээн авлаа. Дэлгүүрт мэдэгдлээ.\nБарааг агуулахад буцааж өгнө үү.`)
+    await tgSend(chatId, `📸 Зураг хүлээн авлаа. Дэлгүүрт мэдэгдлээ.\nБарааг агуулахад буцааж өгнө үү.`, {
+      replyMarkup: {
+        inline_keyboard: [
+          [{ text: '📦 Агуулахад буцааж өгсөн', callback_data: `wrong_returned:${wrongDeliveryId}` }],
+        ],
+      },
+    })
 
     if (wpDel) {
       // Fetch order items

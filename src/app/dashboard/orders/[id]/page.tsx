@@ -101,6 +101,8 @@ export default function OrderDetailPage() {
   const [notes, setNotes] = useState('')
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null)
+  const [wrongProductNote, setWrongProductNote] = useState('')
+  const [wrongProductSaving, setWrongProductSaving] = useState(false)
 
   // ── Edit mode ─────────────────────────────────────────────────────────────
   const [isEditing, setIsEditing]     = useState(false)
@@ -995,10 +997,12 @@ export default function OrderDetailPage() {
                   </div>
                 )}
               </div>
-              {/* Wrong item photo */}
+              {/* Wrong item section */}
               {deliveryInfo.metadata?.wrong_item_photo_url && (
-                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
-                  <p className="text-red-400 text-xs font-medium mb-2">📦 Буруу барааны зураг (жолоочоос)</p>
+                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl space-y-3">
+                  <p className="text-red-400 text-xs font-medium">📦 Буруу бараа мэдэгдэл</p>
+
+                  {/* Wrong item photo */}
                   <a
                     href={deliveryInfo.metadata.wrong_item_photo_url as string}
                     target="_blank"
@@ -1011,28 +1015,73 @@ export default function OrderDetailPage() {
                       className="w-full max-h-48 object-cover rounded-lg border border-red-500/20 cursor-pointer hover:opacity-80 transition-opacity"
                     />
                   </a>
-                  <p className="text-slate-400 text-xs mt-2">
-                    {deliveryInfo.notes || 'Буруу бараа мэдэгдэл'}
-                  </p>
-                </div>
-              )}
 
-              {/* Wrong item action: mark order for re-fulfillment */}
-              {deliveryInfo.status === 'failed' && deliveryInfo.metadata?.wrong_item_photo_url && order.status !== 'cancelled' && (
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={async () => {
-                      if (!confirm('Захиалгыг дахин бэлтгэх болгох уу?')) return
-                      setUpdating(true)
-                      await supabase.from('orders').update({ status: 'processing', notes: (order.notes ? order.notes + '\n' : '') + `[${new Date().toLocaleDateString('mn-MN')}] Буруу бараа — дахин бэлтгэж байна` }).eq('id', order.id)
-                      setOrder(prev => prev ? { ...prev, status: 'processing', notes: (prev.notes ? prev.notes + '\n' : '') + `Буруу бараа — дахин бэлтгэж байна` } : prev)
-                      setUpdating(false)
-                    }}
-                    disabled={updating}
-                    className="flex-1 py-2 text-sm bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:border-amber-500/50 rounded-lg transition-all disabled:opacity-50"
-                  >
-                    🔄 Дахин бэлтгэх
-                  </button>
+                  {/* Return status */}
+                  <div className="flex items-center gap-2 text-xs">
+                    {deliveryInfo.metadata?.wrong_item_returned ? (
+                      <span className="text-green-400">✅ Агуулахад буцаагдсан {deliveryInfo.metadata.wrong_item_returned_at ? `— ${new Date(deliveryInfo.metadata.wrong_item_returned_at as string).toLocaleDateString('mn-MN')}` : ''}</span>
+                    ) : (
+                      <span className="text-amber-400">⏳ Жолооч буцааж өгөөгүй байна</span>
+                    )}
+                  </div>
+
+                  {/* Already saved wrong product note */}
+                  {deliveryInfo.metadata?.wrong_product_note && (
+                    <div className="p-2 bg-slate-700/50 rounded-lg text-xs">
+                      <p className="text-slate-400 mb-1">Буруу илгээсэн бараа:</p>
+                      <p className="text-white">{deliveryInfo.metadata.wrong_product_note as string}</p>
+                      {deliveryInfo.metadata?.wrong_product_received_by && (
+                        <p className="text-slate-500 mt-1">Хүлээн авсан: {deliveryInfo.metadata.wrong_product_received_by as string}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Form to note what was wrongly sent — show when returned but not yet noted */}
+                  {deliveryInfo.metadata?.wrong_item_returned && !deliveryInfo.metadata?.wrong_product_note && (
+                    <div className="space-y-2">
+                      <p className="text-slate-300 text-xs">Ямар бараа буруу илгээсэнийг тэмдэглэнэ үү:</p>
+                      <textarea
+                        value={wrongProductNote}
+                        onChange={e => setWrongProductNote(e.target.value)}
+                        rows={2}
+                        className="w-full px-3 py-2 bg-slate-700 border border-red-500/30 rounded-lg text-white text-xs focus:outline-none focus:border-red-400 resize-none"
+                        placeholder="Жишээ: Хар өнгийн XL хэмжээтэй цамц илгээсэн байна. Захиалга дээр цагаан S хэмжээтэй."
+                      />
+                      <button
+                        onClick={async () => {
+                          if (!wrongProductNote.trim()) return
+                          setWrongProductSaving(true)
+                          const meta = { ...(deliveryInfo.metadata || {}), wrong_product_note: wrongProductNote.trim(), wrong_product_received_by: 'staff', wrong_product_received_at: new Date().toISOString() }
+                          await supabase.from('deliveries').update({ metadata: meta, notes: `Буруу бараа — хүлээн авсан: ${wrongProductNote.trim()}` }).eq('id', deliveryInfo.id)
+                          setDeliveryInfo(prev => prev ? { ...prev, metadata: meta } : prev)
+                          setWrongProductSaving(false)
+                        }}
+                        disabled={wrongProductSaving || !wrongProductNote.trim()}
+                        className="w-full py-2 text-xs bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-all disabled:opacity-50"
+                      >
+                        {wrongProductSaving ? 'Хадгалж байна...' : '📝 Хүлээн авсан гэж тэмдэглэх'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Re-fulfill button */}
+                  {deliveryInfo.status === 'failed' && order.status !== 'cancelled' && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm('Захиалгыг дахин бэлтгэх болгох уу?')) return
+                        setUpdating(true)
+                        const notePrefix = order.notes ? order.notes + '\n' : ''
+                        const wrongNote = deliveryInfo.metadata?.wrong_product_note ? ` (${deliveryInfo.metadata.wrong_product_note})` : ''
+                        await supabase.from('orders').update({ status: 'processing', notes: notePrefix + `[${new Date().toLocaleDateString('mn-MN')}] Буруу бараа${wrongNote} — дахин бэлтгэж байна` }).eq('id', order.id)
+                        setOrder(prev => prev ? { ...prev, status: 'processing' } : prev)
+                        setUpdating(false)
+                      }}
+                      disabled={updating}
+                      className="w-full py-2 text-sm bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:border-amber-500/50 rounded-lg transition-all disabled:opacity-50"
+                    >
+                      🔄 Зөв барааг дахин бэлтгэх
+                    </button>
+                  )}
                 </div>
               )}
 
