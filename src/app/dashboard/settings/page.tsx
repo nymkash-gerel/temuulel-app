@@ -130,6 +130,13 @@ export default async function SettingsPage() {
           title: 'Мэдэгдэл',
           description: 'Имэйл, push мэдэгдэл',
         },
+        {
+          href: '/dashboard/settings/telegram',
+          icon: '✈️',
+          title: 'Telegram',
+          description: 'Telegram мэдэгдэл холбох',
+
+        },
       ],
     },
   ]

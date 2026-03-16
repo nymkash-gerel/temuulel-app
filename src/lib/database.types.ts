@@ -7719,6 +7719,7 @@ export type Database = {
           role: string | null
           permissions: Record<string, boolean> | null
           telegram_chat_id: string | null
+          notification_preferences: Record<string, boolean> | null
           store_id: string
           user_id: string
         }
@@ -7728,6 +7729,7 @@ export type Database = {
           role?: string | null
           permissions?: Record<string, boolean> | null
           telegram_chat_id?: string | null
+          notification_preferences?: Record<string, boolean> | null
           store_id: string
           user_id: string
         }
@@ -7737,6 +7739,7 @@ export type Database = {
           role?: string | null
           permissions?: Record<string, boolean> | null
           telegram_chat_id?: string | null
+          notification_preferences?: Record<string, boolean> | null
           store_id?: string
           user_id?: string
         }

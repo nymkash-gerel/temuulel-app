@@ -103,7 +103,9 @@ function getSupabase() {
 }
 
 /**
- * Handle /start STAFF_ID — Links the Telegram chat to a staff member.
+ * Handle /start PARAM — Links Telegram to a staff or store member.
+ * - /start member_UUID — Link to store_members (team member / owner)
+ * - /start UUID — Link to staff table (legacy appointment staff)
  */
 async function handleStartCommand(
   supabase: SupabaseClient,
@@ -112,30 +114,69 @@ async function handleStartCommand(
   const chatId = String(message.chat.id)
   const text = message.text || ''
   const parts = text.split(' ')
-  const staffId = parts[1]?.trim()
+  const param = parts[1]?.trim()
 
-  if (!staffId) {
-    await sendTelegramMessage(chatId, 'Сайн байна уу! Ажилтны холбоос линкээр нэвтэрнэ үү.')
+  if (!param) {
+    await sendTelegramMessage(chatId, 'Сайн байна уу! Dashboard-аас Telegram холбох линк дарна уу.')
     return
   }
 
-  // Look up staff member
+  // Store member linking (team members & owners)
+  if (param.startsWith('member_')) {
+    const memberId = param.replace('member_', '')
+
+    const { data: member, error } = await supabase
+      .from('store_members')
+      .select('id, store_id')
+      .eq('id', memberId)
+      .single()
+
+    if (error || !member) {
+      await sendTelegramMessage(chatId, 'Багийн гишүүн олдсонгүй. Линкээ шалгана уу.')
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('store_members')
+      .update({ telegram_chat_id: chatId })
+      .eq('id', memberId)
+
+    if (updateError) {
+      console.error('[telegram] Failed to link member:', updateError)
+      await sendTelegramMessage(chatId, 'Алдаа гарлаа. Дахин оролдоно уу.')
+      return
+    }
+
+    const { data: store } = await supabase
+      .from('stores')
+      .select('name')
+      .eq('id', member.store_id)
+      .single()
+
+    const name = message.from?.first_name || ''
+    await sendTelegramMessage(
+      chatId,
+      `${name ? name + ', а' : 'А'}мжилттай холбогдлоо! ${store?.name || 'Дэлгүүр'}-н мэдэгдэл авах болно.\n\nDashboard → Тохиргоо → Telegram хэсгээс ямар мэдэгдэл авахаа сонгоно уу.`
+    )
+    return
+  }
+
+  // Legacy: staff table linking
   const { data: staffMember, error } = await supabase
     .from('staff')
     .select('id, name, store_id')
-    .eq('id', staffId)
+    .eq('id', param)
     .single()
 
   if (error || !staffMember) {
-    await sendTelegramMessage(chatId, 'Ажилтан олдсонгүй. Линкээ шалгана уу.')
+    await sendTelegramMessage(chatId, 'Олдсонгүй. Линкээ шалгана уу.')
     return
   }
 
-  // Link Telegram chat ID to staff
   const { error: updateError } = await supabase
     .from('staff')
     .update({ telegram_chat_id: chatId })
-    .eq('id', staffId)
+    .eq('id', param)
 
   if (updateError) {
     console.error('[telegram] Failed to link staff:', updateError)
