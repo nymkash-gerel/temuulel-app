@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface Resource {
   id: string
@@ -47,11 +48,8 @@ export default function ResourceDetailPage({ params }: { params: Promise<{ id: s
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (!store) return
 

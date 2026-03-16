@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import CalendarView from '@/components/ui/CalendarView'
 import type { CalendarEvent } from '@/components/ui/CalendarView'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface ReservationRow {
   id: string
@@ -101,11 +102,8 @@ export default function ReservationsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (store) {
         setStoreId(store.id)

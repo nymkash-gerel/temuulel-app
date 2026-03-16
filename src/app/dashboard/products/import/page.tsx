@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { readExcelFile } from '@/lib/export-utils'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface ProductRow {
   name: string
@@ -36,11 +37,8 @@ export default function ImportProductsPage() {
     const getStoreId = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: store } = await supabase
-          .from('stores')
-          .select('id')
-          .eq('owner_id', user.id)
-          .single()
+        const storeId = await resolveStoreId(supabase, user.id)
+        const store = storeId ? { id: storeId } : null
         if (store) setStoreId(store.id)
       }
     }

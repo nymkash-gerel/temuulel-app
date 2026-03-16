@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStore } from '@/lib/resolve-store'
 
 interface Conversation {
   id: string
@@ -58,11 +59,7 @@ export default function ChatPage() {
         return
       }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id, facebook_page_id')
-        .eq('owner_id', user.id)
-        .single()
+      const store = await resolveStore(supabase, user.id)
 
       if (store) {
         setStoreId(store.id)

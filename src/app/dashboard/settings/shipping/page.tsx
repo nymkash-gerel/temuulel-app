@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { toJson } from '@/lib/supabase/json'
 import { INTERCITY_CITIES } from '@/lib/delivery-fee-calculator'
+import { resolveStore } from '@/lib/resolve-store'
 
 // Leaflet can't SSR — load dynamically
 const DeliveryZoneMap = dynamic(() => import('@/components/DeliveryZoneMap'), { ssr: false })
@@ -75,11 +76,7 @@ export default function ShippingSettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id, shipping_settings')
-        .eq('owner_id', user.id)
-        .single()
+      const store = await resolveStore(supabase, user.id)
 
       if (store) {
         setStoreId(store.id)

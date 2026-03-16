@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { exportToFile } from '@/lib/export-utils'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -315,7 +316,8 @@ export default function OrdersPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const { data: store } = await supabase.from('stores').select('id').eq('owner_id', user.id).single()
+    const storeId = await resolveStoreId(supabase, user.id)
+    const store = storeId ? { id: storeId } : null
     if (!store) { setLoading(false); return }
 
     const { data } = await supabase

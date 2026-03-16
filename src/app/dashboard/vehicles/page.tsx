@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface Customer {
   id: string
@@ -47,11 +48,8 @@ export default function VehiclesPage() {
         return
       }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (!store) {
         setLoading(false)

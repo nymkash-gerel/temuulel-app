@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStore } from '@/lib/resolve-store'
 
 interface DeliverySettings {
   assignment_mode: 'auto' | 'suggest' | 'manual'
@@ -50,11 +51,7 @@ export default function DeliverySettingsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const { data: store } = await supabase
-      .from('stores')
-      .select('id, delivery_settings')
-      .eq('owner_id', user.id)
-      .single()
+    const store = await resolveStore(supabase, user.id)
 
     if (store) {
       setStoreId(store.id)

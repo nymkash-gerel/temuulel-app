@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { resolveStore } from '@/lib/resolve-store'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -8,11 +9,7 @@ export default async function ProductsPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Get user's store
-  const { data: store } = await supabase
-    .from('stores')
-    .select('*')
-    .eq('owner_id', user?.id ?? '')
-    .single()
+  const store = await resolveStore(supabase, user?.id || '')
 
   const storeId = store?.id ?? ''
 

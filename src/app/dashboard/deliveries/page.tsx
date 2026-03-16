@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStoreId } from '@/lib/resolve-store'
 import { exportToFile } from '@/lib/export-utils'
 import BatchDispatchModal from '@/components/BatchDispatchModal'
 import type { BatchPreview } from '@/app/api/deliveries/batch-assign/route'
@@ -157,14 +158,11 @@ export default function DeliveriesPage() {
       }
       setDebugInfo(`✅ User: ${user.email} (${user.id})`)
 
-      const { data: store, error: storeErr } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (!store) {
-        setDebugInfo(prev => prev + ` | ❌ Store not found. Error: ${storeErr?.message ?? 'null store'}`)
+        setDebugInfo(prev => prev + ` | ❌ Store not found.`)
         setLoading(false)
         return
       }

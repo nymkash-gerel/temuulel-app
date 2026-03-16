@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRoleGuard } from '@/lib/hooks/useRoleGuard'
+import { resolveStore } from '@/lib/resolve-store'
 
 export default function WebhookSettingsPage() {
   const { allowed, loading: roleLoading } = useRoleGuard(['owner', 'admin'])
@@ -33,11 +34,7 @@ export default function WebhookSettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id, api_key, webhook_url, webhook_secret, webhook_events')
-        .eq('owner_id', user.id)
-        .single()
+      const store = await resolveStore(supabase, user.id)
 
       if (store) {
         setStoreId(store.id)

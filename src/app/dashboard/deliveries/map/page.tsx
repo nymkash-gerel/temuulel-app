@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import dynamic from 'next/dynamic'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then(m => m.MapContainer),
@@ -110,11 +111,8 @@ export default function DeliveryMapPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (!store) return
       setStoreId(store.id)

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface DeliveryDetail {
   id: string
@@ -102,11 +103,8 @@ export default function DeliveryDetailPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (!store) { router.push('/dashboard'); return }
 
@@ -160,7 +158,8 @@ export default function DeliveryDetailPage() {
       })
       if (res.ok) {
         const { data: { user } } = await supabase.auth.getUser()
-        const { data: store } = await supabase.from('stores').select('id').eq('owner_id', user!.id).single()
+        const storeId = await resolveStoreId(supabase, user!.id)
+        const store = storeId ? { id: storeId } : null
         const { data: updated } = await supabase
           .from('deliveries')
           .select(`*, orders(id, order_number, total_amount, status), delivery_drivers(id, name, phone, vehicle_type, vehicle_number, status), delivery_status_log(id, status, changed_by, notes, location, created_at)`)
@@ -213,11 +212,8 @@ export default function DeliveryDetailPage() {
       if (res.ok) {
         // Reload the page data
         const { data: { user } } = await supabase.auth.getUser()
-        const { data: store } = await supabase
-          .from('stores')
-          .select('id')
-          .eq('owner_id', user!.id)
-          .single()
+        const storeId = await resolveStoreId(supabase, user!.id)
+        const store = storeId ? { id: storeId } : null
 
         const { data: updated } = await supabase
           .from('deliveries')

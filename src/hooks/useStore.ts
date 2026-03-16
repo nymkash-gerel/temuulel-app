@@ -16,13 +16,31 @@ async function fetchStore(): Promise<Store | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  // Check as owner first
   const { data: store } = await supabase
     .from('stores')
     .select('id, name, business_type, shipping_settings, payment_settings, chatbot_settings')
     .eq('owner_id', user.id)
     .single()
 
-  return store ?? null
+  if (store) return store
+
+  // Check as team member
+  const { data: membership } = await supabase
+    .from('store_members')
+    .select('store_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!membership) return null
+
+  const { data: memberStore } = await supabase
+    .from('stores')
+    .select('id, name, business_type, shipping_settings, payment_settings, chatbot_settings')
+    .eq('id', membership.store_id)
+    .single()
+
+  return memberStore ?? null
 }
 
 /**

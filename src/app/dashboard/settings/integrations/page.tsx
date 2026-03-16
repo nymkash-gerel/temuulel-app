@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStore } from '@/lib/resolve-store'
 import { useRoleGuard } from '@/lib/hooks/useRoleGuard'
 
 interface StoreData {
@@ -81,15 +82,7 @@ export default function IntegrationsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data, error } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('owner_id', user.id)
-        .single()
-
-      if (error) {
-        console.error('Store load error:', error)
-      }
+      const data = await resolveStore(supabase, user.id)
 
       if (data) {
         setStore({

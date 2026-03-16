@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface Retainer {
   id: string
@@ -75,11 +76,8 @@ export default function RetainersPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (!store) return
 

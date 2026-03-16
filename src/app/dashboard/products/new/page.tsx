@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import ImageUpload from '@/components/ui/ImageUpload'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface Variant {
   id: string
@@ -72,11 +73,8 @@ export default function NewProductPage() {
     const getStoreId = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: store } = await supabase
-          .from('stores')
-          .select('id')
-          .eq('owner_id', user.id)
-          .single()
+        const storeId = await resolveStoreId(supabase, user.id)
+        const store = storeId ? { id: storeId } : null
         if (store) setStoreId(store.id)
       }
     }
@@ -112,11 +110,8 @@ export default function NewProductPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (!store) throw new Error('Store not found')
 

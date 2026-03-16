@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStore } from '@/lib/resolve-store'
 
 interface StoreData {
   id: string
@@ -39,11 +40,7 @@ export default function StoreSettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data } = await supabase
-        .from('stores')
-        .select('*')
-        .eq('owner_id', user.id)
-        .single()
+      const data = await resolveStore(supabase, user.id)
 
       if (data) {
         setStore(data)

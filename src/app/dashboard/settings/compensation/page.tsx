@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { resolveStore } from '@/lib/resolve-store'
 
 interface Policy {
   id?: string
@@ -61,11 +62,7 @@ export default function CompensationSettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id, business_type')
-        .eq('owner_id', user.id)
-        .single()
+      const store = await resolveStore(supabase, user.id)
 
       if (!store) { router.push('/dashboard'); return }
       setStoreId(store.id)

@@ -9,6 +9,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 type Period = '7d' | '30d' | '90d' | '1y'
 
@@ -101,11 +102,8 @@ export default function AnalyticsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (!store) { setLoading(false); return }
       setStoreId(store.id)

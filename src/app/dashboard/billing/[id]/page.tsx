@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { resolveStoreId } from '@/lib/resolve-store'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 
@@ -9,11 +10,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: store } = await supabase
-    .from('stores')
-    .select('id, name')
-    .eq('owner_id', user.id)
-    .single()
+  const storeId = await resolveStoreId(supabase, user.id)
+  const store = storeId ? { id: storeId } : null
 
   if (!store) redirect('/login')
 

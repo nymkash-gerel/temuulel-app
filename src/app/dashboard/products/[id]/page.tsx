@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import ImageUpload from '@/components/ui/ImageUpload'
+import { resolveStoreId } from '@/lib/resolve-store'
 
 interface Variant {
   id: string
@@ -59,11 +60,8 @@ export default function EditProductPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
+      const storeId = await resolveStoreId(supabase, user.id)
+      const store = storeId ? { id: storeId } : null
 
       if (store) setStoreId(store.id)
 

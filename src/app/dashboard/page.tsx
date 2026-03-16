@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { resolveStore } from '@/lib/resolve-store'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -7,11 +8,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Get user's store
-  const { data: store } = await supabase
-    .from('stores')
-    .select('*')
-    .eq('owner_id', user?.id ?? '')
-    .single()
+  const store = await resolveStore(supabase, user?.id || '')
 
   const storeId = store?.id ?? ''
   const serviceBasedTypes = ['beauty_salon', 'fitness', 'education', 'services', 'hospital', 'dental_clinic']
