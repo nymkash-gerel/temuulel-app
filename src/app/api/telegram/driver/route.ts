@@ -771,158 +771,25 @@ async function handleCallbackQuery(
     case 'wrong_product': {
       const wpHeader = await getDeliveryHeader(supabase, deliveryId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: wpDel } = await (supabase as any)
+      await (supabase as any)
         .from('deliveries')
-        .update({ status: 'failed', notes: 'Буруу бараа — шалгаж байна' })
+        .update({
+          status: 'failed',
+          notes: 'Буруу бараа — зураг хүлээж байна',
+          metadata: { awaiting_wrong_photo: true },
+        })
         .eq('id', deliveryId)
-        .select('delivery_number, store_id, order_id, customer_name, customer_phone, delivery_address')
-        .single()
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
-      if (messageId) await tgEdit(chatId, messageId, `${wpHeader}📦 <b>БУРУУ БАРАА</b>\nДэлгүүрт мэдэгдлээ. Барааг агуулахад буцааж өгнө үү.`, { replyMarkup: { inline_keyboard: [] } })
+      // Save state so photo handler knows this is a wrong-item photo
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('delivery_drivers')
+        .update({ metadata: { ...((driver as Record<string, unknown>).metadata as Record<string, unknown> ?? {}), awaiting_wrong_photo: deliveryId } })
+        .eq('id', driver.id)
+      if (messageId) await tgEdit(chatId, messageId, `${wpHeader}📦 <b>БУРУУ БАРАА</b>\n📸 Буруу барааны зургийг илгээнэ үү.`, { replyMarkup: { inline_keyboard: [] } })
 
-      if (wpDel) {
-        // Fetch order items with product/variant details for customer confirmation
-        let orderItemsText = ''
-        let customerId = ''
-        if (wpDel.order_id) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: orderData } = await (supabase as any)
-            .from('orders')
-            .select('order_number, customer_id, order_items(quantity, unit_price, variant_label, products(name), product_variants(size, color))')
-            .eq('id', wpDel.order_id)
-            .single()
-
-          customerId = orderData?.customer_id || ''
-          if (orderData?.order_items) {
-            orderItemsText = (orderData.order_items as Array<{
-              quantity: number; unit_price: number; variant_label: string | null
-              products: { name: string } | null
-              product_variants: { size: string | null; color: string | null } | null
-            }>).map((item) => {
-              const name = item.products?.name || 'Бараа'
-              const parts = [name]
-              if (item.product_variants?.size) parts.push(`Размер: ${item.product_variants.size}`)
-              if (item.product_variants?.color) parts.push(`Өнгө: ${item.product_variants.color}`)
-              if (item.variant_label) parts.push(item.variant_label)
-              return `• ${parts.join(' / ')} x${item.quantity}`
-            }).join('\n')
-          }
-        }
-
-        // Send customer a confirmation message via their conversation
-        if (customerId && wpDel.store_id) {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { data: conversation } = await (supabase as any)
-              .from('conversations')
-              .select('id')
-              .eq('customer_id', customerId)
-              .eq('store_id', wpDel.store_id)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle()
-
-            if (conversation) {
-              const confirmMsg =
-                `Уучлаарай, таны захиалгад асуудал гарсан байна.\n\n` +
-                `📦 Таны захиалсан бараа:\n${orderItemsText || '(мэдээлэл олдсонгүй)'}\n\n` +
-                `Та дээрх захиалга зөв эсэхийг баталгаажуулна уу. Бид дэлгүүрт мэдэгдэж, зөв барааг дахин хүргүүлнэ.`
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              await (supabase as any).from('messages').insert({
-                conversation_id: conversation.id,
-                content: confirmMsg,
-                is_from_customer: false,
-                is_ai_response: true,
-                metadata: { type: 'wrong_product_confirmation', delivery_id: deliveryId },
-              })
-            }
-          } catch (customerMsgErr) {
-            console.error('[DriverBot] Wrong product customer message failed:', customerMsgErr)
-          }
-        }
-
-        // Send store manager Telegram notification with action buttons
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: storeStaff } = await (supabase as any)
-          .from('staff')
-          .select('telegram_chat_id')
-          .eq('store_id', wpDel.store_id)
-          .not('telegram_chat_id', 'is', null)
-
-        const staffChatIds: string[] = (storeStaff || [])
-          .map((s: { telegram_chat_id: string }) => s.telegram_chat_id)
-          .filter(Boolean)
-
-        // Also check store owner
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: storeOwner } = await (supabase as any)
-          .from('stores')
-          .select('owner_id')
-          .eq('id', wpDel.store_id)
-          .single()
-
-        if (storeOwner?.owner_id) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: ownerStaff } = await (supabase as any)
-            .from('staff')
-            .select('telegram_chat_id')
-            .eq('store_id', wpDel.store_id)
-            .not('telegram_chat_id', 'is', null)
-            .limit(5)
-          if (ownerStaff) {
-            for (const s of ownerStaff as Array<{ telegram_chat_id: string }>) {
-              if (s.telegram_chat_id && !staffChatIds.includes(s.telegram_chat_id)) {
-                staffChatIds.push(s.telegram_chat_id)
-              }
-            }
-          }
-        }
-
-        const storeMsg =
-          `📦 <b>БУРУУ БАРАА МЭДЭГДЭЛ</b>\n\n` +
-          `🆔 Хүргэлт: #${wpDel.delivery_number}\n` +
-          `👤 Хүлээн авагч: ${wpDel.customer_name || '—'}\n` +
-          `📞 Утас: ${wpDel.customer_phone || '—'}\n` +
-          `📍 Хаяг: ${wpDel.delivery_address || '—'}\n\n` +
-          `🛒 <b>Захиалсан бараа:</b>\n${orderItemsText || '(мэдээлэл олдсонгүй)'}\n\n` +
-          `⚠️ Жолооч буруу бараа мэдэгдлээ.\n` +
-          `Барааг шалгаж, зөв барааг бэлдэнэ үү.`
-
-        const storeBotToken = process.env.TELEGRAM_BOT_TOKEN
-        if (storeBotToken && staffChatIds.length > 0) {
-          const storeKeyboard = {
-            inline_keyboard: [
-              [{ text: '✅ Зөв бараа бэлдлээ — дахин хүргэх', callback_data: `wrong_product_resend:${deliveryId}` }],
-              [{ text: '❌ Илгээсэн бараа зөв байсан', callback_data: `wrong_product_correct:${deliveryId}` }],
-            ],
-          }
-          for (const sChatId of staffChatIds) {
-            try {
-              await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  chat_id: sChatId,
-                  text: storeMsg,
-                  parse_mode: 'HTML',
-                  reply_markup: storeKeyboard,
-                }),
-              })
-            } catch (tgErr) {
-              console.error(`[DriverBot] Staff TG notify failed for ${sChatId}:`, tgErr)
-            }
-          }
-        }
-
-        // Also save dashboard notification
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from('notifications').insert({
-          store_id: wpDel.store_id, type: 'delivery_failed',
-          title: '📦 Буруу бараа',
-          body: `${driver.name} — #${wpDel.delivery_number}: буруу бараа. Шалгаж, зөв барааг бэлдэнэ үү.`,
-          metadata: { delivery_id: deliveryId, reason: 'wrong_product', order_items: orderItemsText },
-        }).then(null, () => {})
-      }
+      // Notification and customer message now happen in the photo handler
+      // after driver sends the wrong item photo
       break
     }
 
@@ -2468,6 +2335,230 @@ export async function POST(request: NextRequest) {
       default:
         break // transport_type step — they should press button, not type
     }
+  }
+
+  // ── Wrong item photo ────────────────────────────────────────────────────
+  // If driver was asked to send a wrong-item photo, handle it first.
+  const driverMeta = ((driver as Record<string, unknown>).metadata ?? {}) as Record<string, unknown>
+  if (msg.photo && msg.photo.length > 0 && driverMeta.awaiting_wrong_photo) {
+    const wrongDeliveryId = driverMeta.awaiting_wrong_photo as string
+    const fileId = msg.photo[msg.photo.length - 1].file_id as string
+
+    // Clear awaiting state
+    const { awaiting_wrong_photo: _, ...cleanMeta } = driverMeta
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from('delivery_drivers')
+      .update({ metadata: cleanMeta })
+      .eq('id', driver.id)
+
+    // Upload photo to Supabase Storage via Telegram getFile
+    let wrongPhotoUrl = ''
+    try {
+      const driverBotToken = process.env.DRIVER_TELEGRAM_BOT_TOKEN
+      if (driverBotToken) {
+        const getFileRes = await fetch(`https://api.telegram.org/bot${driverBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`)
+        const getFileData = await getFileRes.json() as { ok: boolean; result?: { file_path: string } }
+        if (getFileData.ok && getFileData.result?.file_path) {
+          const photoUrl = `https://api.telegram.org/file/bot${driverBotToken}/${getFileData.result.file_path}`
+          const photoRes = await fetch(photoUrl)
+          const photoBlob = await photoRes.blob()
+          const ext = getFileData.result.file_path.split('.').pop() || 'jpg'
+          const storagePath = `${wrongDeliveryId}/wrong_item_${Date.now()}.${ext}`
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: uploadErr } = await (supabase as any).storage
+            .from('delivery-proofs')
+            .upload(storagePath, photoBlob, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, upsert: false })
+          if (!uploadErr) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: urlData } = (supabase as any).storage.from('delivery-proofs').getPublicUrl(storagePath)
+            wrongPhotoUrl = urlData?.publicUrl || ''
+          }
+        }
+      }
+    } catch (photoErr) {
+      console.error('[DriverBot] Wrong item photo upload error:', photoErr)
+    }
+
+    // Save wrong photo URL to delivery metadata
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: wpDel } = await (supabase as any)
+      .from('deliveries')
+      .update({
+        notes: 'Буруу бараа — зураг илгээсэн',
+        metadata: { awaiting_wrong_photo: false, wrong_item_photo_url: wrongPhotoUrl, wrong_item_photo_file_id: fileId },
+      })
+      .eq('id', wrongDeliveryId)
+      .select('delivery_number, store_id, order_id, customer_name, customer_phone, delivery_address')
+      .single()
+
+    await tgSend(chatId, `📸 Зураг хүлээн авлаа. Дэлгүүрт мэдэгдлээ.\nБарааг агуулахад буцааж өгнө үү.`)
+
+    if (wpDel) {
+      // Fetch order items
+      let orderItemsText = ''
+      let customerId = ''
+      if (wpDel.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: orderData } = await (supabase as any)
+          .from('orders')
+          .select('order_number, customer_id, order_items(quantity, unit_price, variant_label, products(name), product_variants(size, color))')
+          .eq('id', wpDel.order_id)
+          .single()
+
+        customerId = orderData?.customer_id || ''
+        if (orderData?.order_items) {
+          orderItemsText = (orderData.order_items as Array<{
+            quantity: number; unit_price: number; variant_label: string | null
+            products: { name: string } | null
+            product_variants: { size: string | null; color: string | null } | null
+          }>).map((item) => {
+            const name = item.products?.name || 'Бараа'
+            const parts = [name]
+            if (item.product_variants?.size) parts.push(`Размер: ${item.product_variants.size}`)
+            if (item.product_variants?.color) parts.push(`Өнгө: ${item.product_variants.color}`)
+            if (item.variant_label) parts.push(item.variant_label)
+            return `• ${parts.join(' / ')} x${item.quantity}`
+          }).join('\n')
+        }
+      }
+
+      // Send customer confirmation
+      if (customerId && wpDel.store_id) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: conversation } = await (supabase as any)
+            .from('conversations')
+            .select('id')
+            .eq('customer_id', customerId)
+            .eq('store_id', wpDel.store_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (conversation) {
+            const confirmMsg =
+              `Уучлаарай, таны захиалгад асуудал гарсан байна.\n\n` +
+              `📦 Таны захиалсан бараа:\n${orderItemsText || '(мэдээлэл олдсонгүй)'}\n\n` +
+              `Та дээрх захиалга зөв эсэхийг баталгаажуулна уу. Бид дэлгүүрт мэдэгдэж, зөв барааг дахин хүргүүлнэ.`
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (supabase as any).from('messages').insert({
+              conversation_id: conversation.id,
+              content: confirmMsg,
+              is_from_customer: false,
+              is_ai_response: true,
+              metadata: { type: 'wrong_product_confirmation', delivery_id: wrongDeliveryId },
+            })
+          }
+        } catch (customerMsgErr) {
+          console.error('[DriverBot] Wrong product customer message failed:', customerMsgErr)
+        }
+      }
+
+      // Build staff notification message
+      const storeMsg =
+        `📦 <b>БУРУУ БАРАА МЭДЭГДЭЛ</b>\n\n` +
+        `🆔 Хүргэлт: #${wpDel.delivery_number}\n` +
+        `👤 Хүлээн авагч: ${wpDel.customer_name || '—'}\n` +
+        `📞 Утас: ${wpDel.customer_phone || '—'}\n` +
+        `📍 Хаяг: ${wpDel.delivery_address || '—'}\n\n` +
+        `🛒 <b>Захиалсан бараа:</b>\n${orderItemsText || '(мэдээлэл олдсонгүй)'}\n\n` +
+        `⚠️ Жолооч буруу бараа мэдэгдэж, зураг илгээсэн.\n` +
+        `Барааг шалгаж, зөв барааг бэлдэнэ үү.`
+
+      const storeKeyboard = {
+        inline_keyboard: [
+          [{ text: '✅ Зөв бараа бэлдлээ — дахин хүргэх', callback_data: `wrong_product_resend:${wrongDeliveryId}` }],
+          [{ text: '❌ Илгээсэн бараа зөв байсан', callback_data: `wrong_product_correct:${wrongDeliveryId}` }],
+        ],
+      }
+
+      const storeBotToken = process.env.TELEGRAM_BOT_TOKEN
+
+      // Collect all chat IDs to notify: staff + store_members
+      const allChatIds: string[] = []
+
+      // Legacy staff table
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: storeStaff } = await (supabase as any)
+        .from('staff')
+        .select('telegram_chat_id')
+        .eq('store_id', wpDel.store_id)
+        .not('telegram_chat_id', 'is', null)
+
+      for (const s of (storeStaff || []) as Array<{ telegram_chat_id: string }>) {
+        if (s.telegram_chat_id && !allChatIds.includes(s.telegram_chat_id)) allChatIds.push(s.telegram_chat_id)
+      }
+
+      // New store_members table (owners, admins, staff with Telegram)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: storeMembers } = await (supabase as any)
+        .from('store_members')
+        .select('telegram_chat_id, notification_preferences')
+        .eq('store_id', wpDel.store_id)
+        .not('telegram_chat_id', 'is', null)
+
+      for (const m of (storeMembers || []) as Array<{ telegram_chat_id: string; notification_preferences: Record<string, boolean> | null }>) {
+        // Check if member wants delivery notifications (default: true)
+        const prefs = m.notification_preferences || {}
+        const wantsDelivery = prefs.delivery !== false
+        if (m.telegram_chat_id && wantsDelivery && !allChatIds.includes(m.telegram_chat_id)) {
+          allChatIds.push(m.telegram_chat_id)
+        }
+      }
+
+      // Send photo + message to all staff/members via store bot
+      if (storeBotToken && allChatIds.length > 0) {
+        for (const sChatId of allChatIds) {
+          try {
+            // Send wrong item photo first
+            if (wrongPhotoUrl) {
+              await fetch(`https://api.telegram.org/bot${storeBotToken}/sendPhoto`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: sChatId,
+                  photo: wrongPhotoUrl,
+                  caption: `📦 Буруу бараа — #${wpDel.delivery_number}\n📸 Жолоочийн илгээсэн зураг`,
+                  parse_mode: 'HTML',
+                }),
+              })
+            } else if (fileId) {
+              // Fallback: forward the file_id via driver bot token won't work on store bot,
+              // so just send text notification
+            }
+            // Then send details with action buttons
+            await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: sChatId,
+                text: storeMsg,
+                parse_mode: 'HTML',
+                reply_markup: storeKeyboard,
+              }),
+            })
+          } catch (tgErr) {
+            console.error(`[DriverBot] Staff TG notify failed for ${sChatId}:`, tgErr)
+          }
+        }
+      }
+
+      // Dashboard notification
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('notifications').insert({
+        store_id: wpDel.store_id, type: 'delivery_failed',
+        title: '📦 Буруу бараа',
+        body: `${(driver as Record<string, unknown>).name} — #${wpDel.delivery_number}: буруу бараа. Зураг илгээсэн.`,
+        metadata: {
+          delivery_id: wrongDeliveryId, reason: 'wrong_product',
+          wrong_item_photo_url: wrongPhotoUrl,
+          order_items: orderItemsText,
+        },
+      }).then(null, () => {})
+    }
+
+    return NextResponse.json({ ok: true })
   }
 
   // ── Photo proof ─────────────────────────────────────────────────────────

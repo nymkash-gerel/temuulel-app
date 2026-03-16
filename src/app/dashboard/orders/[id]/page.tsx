@@ -43,6 +43,8 @@ interface DeliveryInfo {
   delivery_type: string
   driver_name: string | null
   driver_phone: string | null
+  notes: string | null
+  metadata: Record<string, unknown> | null
   created_at: string
 }
 
@@ -140,7 +142,7 @@ export default function OrderDetailPage() {
       // Fetch linked delivery if any
       const { data: del } = await supabase
         .from('deliveries')
-        .select('id, delivery_number, status, delivery_type, created_at, delivery_drivers(name, phone)')
+        .select('id, delivery_number, status, delivery_type, notes, metadata, created_at, delivery_drivers(name, phone)')
         .eq('order_id', orderId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -155,6 +157,8 @@ export default function OrderDetailPage() {
           delivery_type: del.delivery_type,
           driver_name: driver?.name || null,
           driver_phone: driver?.phone || null,
+          notes: del.notes as string | null,
+          metadata: del.metadata as Record<string, unknown> | null,
           created_at: del.created_at,
         })
       }
@@ -991,6 +995,47 @@ export default function OrderDetailPage() {
                   </div>
                 )}
               </div>
+              {/* Wrong item photo */}
+              {deliveryInfo.metadata?.wrong_item_photo_url && (
+                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                  <p className="text-red-400 text-xs font-medium mb-2">📦 Буруу барааны зураг (жолоочоос)</p>
+                  <a
+                    href={deliveryInfo.metadata.wrong_item_photo_url as string}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={deliveryInfo.metadata.wrong_item_photo_url as string}
+                      alt="Буруу бараа"
+                      className="w-full max-h-48 object-cover rounded-lg border border-red-500/20 cursor-pointer hover:opacity-80 transition-opacity"
+                    />
+                  </a>
+                  <p className="text-slate-400 text-xs mt-2">
+                    {deliveryInfo.notes || 'Буруу бараа мэдэгдэл'}
+                  </p>
+                </div>
+              )}
+
+              {/* Wrong item action: mark order for re-fulfillment */}
+              {deliveryInfo.status === 'failed' && deliveryInfo.metadata?.wrong_item_photo_url && order.status !== 'cancelled' && (
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Захиалгыг дахин бэлтгэх болгох уу?')) return
+                      setUpdating(true)
+                      await supabase.from('orders').update({ status: 'processing', notes: (order.notes ? order.notes + '\n' : '') + `[${new Date().toLocaleDateString('mn-MN')}] Буруу бараа — дахин бэлтгэж байна` }).eq('id', order.id)
+                      setOrder(prev => prev ? { ...prev, status: 'processing', notes: (prev.notes ? prev.notes + '\n' : '') + `Буруу бараа — дахин бэлтгэж байна` } : prev)
+                      setUpdating(false)
+                    }}
+                    disabled={updating}
+                    className="flex-1 py-2 text-sm bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:border-amber-500/50 rounded-lg transition-all disabled:opacity-50"
+                  >
+                    🔄 Дахин бэлтгэх
+                  </button>
+                </div>
+              )}
+
               <Link
                 href={`/dashboard/deliveries/${deliveryInfo.id}`}
                 className="block w-full mt-4 py-2 text-center text-sm text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/50 rounded-lg transition-all"
