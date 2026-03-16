@@ -98,6 +98,8 @@ export default function DeliveryDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [selectedDriverId, setSelectedDriverId] = useState('')
   const [failureReason, setFailureReason] = useState('')
+  const [wrongPhotoSignedUrl, setWrongPhotoSignedUrl] = useState('')
+  const [proofPhotoSignedUrl, setProofPhotoSignedUrl] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -136,6 +138,27 @@ export default function DeliveryDetailPage() {
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
         setDelivery(d)
+
+        // Generate signed URLs for private bucket photos
+        const extractPath = (url: string) => {
+          const match = url.match(/delivery-proofs\/(.+)$/)
+          return match ? match[1] : null
+        }
+        const wrongUrl = d.metadata?.wrong_item_photo_url as string | undefined
+        if (wrongUrl) {
+          const path = extractPath(wrongUrl)
+          if (path) {
+            const { data: signed } = await supabase.storage.from('delivery-proofs').createSignedUrl(path, 3600)
+            if (signed?.signedUrl) setWrongPhotoSignedUrl(signed.signedUrl)
+          }
+        }
+        if (d.proof_photo_url) {
+          const path = extractPath(d.proof_photo_url)
+          if (path) {
+            const { data: signed } = await supabase.storage.from('delivery-proofs').createSignedUrl(path, 3600)
+            if (signed?.signedUrl) setProofPhotoSignedUrl(signed.signedUrl)
+          }
+        }
       }
       if (driversRes.data) setDrivers(driversRes.data as Driver[])
 
@@ -369,12 +392,12 @@ export default function DeliveryDetailPage() {
               </div>
             )}
 
-            {delivery.proof_photo_url && (
+            {delivery.proof_photo_url && (proofPhotoSignedUrl || delivery.proof_photo_url) && (
               <div className="mt-4 pt-4 border-t border-slate-700">
                 <p className="text-sm text-slate-400 mb-2">Хүргэсэн баталгаа</p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={delivery.proof_photo_url}
+                  src={proofPhotoSignedUrl || delivery.proof_photo_url}
                   alt="Proof of delivery"
                   className="w-48 h-48 object-cover rounded-xl border border-slate-700"
                 />
@@ -382,12 +405,12 @@ export default function DeliveryDetailPage() {
             )}
 
             {/* Wrong item section */}
-            {delivery.metadata?.wrong_item_photo_url && (
+            {delivery.metadata?.wrong_item_photo_url && wrongPhotoSignedUrl && (
               <div className="mt-4 pt-4 border-t border-red-800/50">
                 <p className="text-sm text-red-400 mb-2 font-medium">Буруу бараа</p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={delivery.metadata.wrong_item_photo_url as string}
+                  src={wrongPhotoSignedUrl}
                   alt="Wrong item photo"
                   className="w-48 h-48 object-cover rounded-xl border border-red-700/50"
                 />
