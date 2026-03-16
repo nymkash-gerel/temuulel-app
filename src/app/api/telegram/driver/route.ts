@@ -2352,8 +2352,9 @@ export async function POST(request: NextRequest) {
       .update({ metadata: cleanMeta })
       .eq('id', driver.id)
 
-    // Upload photo to Supabase Storage via Telegram getFile
+    // Download photo from Telegram and upload to Supabase Storage
     let wrongPhotoUrl = ''
+    let wrongPhotoBlob: Blob | null = null
     try {
       const driverBotToken = process.env.DRIVER_TELEGRAM_BOT_TOKEN
       if (driverBotToken) {
@@ -2362,13 +2363,13 @@ export async function POST(request: NextRequest) {
         if (getFileData.ok && getFileData.result?.file_path) {
           const photoUrl = `https://api.telegram.org/file/bot${driverBotToken}/${getFileData.result.file_path}`
           const photoRes = await fetch(photoUrl)
-          const photoBlob = await photoRes.blob()
+          wrongPhotoBlob = await photoRes.blob()
           const ext = getFileData.result.file_path.split('.').pop() || 'jpg'
           const storagePath = `${wrongDeliveryId}/wrong_item_${Date.now()}.${ext}`
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { error: uploadErr } = await (supabase as any).storage
             .from('delivery-proofs')
-            .upload(storagePath, photoBlob, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, upsert: false })
+            .upload(storagePath, wrongPhotoBlob, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, upsert: false })
           if (!uploadErr) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: urlData } = (supabase as any).storage.from('delivery-proofs').getPublicUrl(storagePath)
@@ -2511,21 +2512,17 @@ export async function POST(request: NextRequest) {
       if (storeBotToken && allChatIds.length > 0) {
         for (const sChatId of allChatIds) {
           try {
-            // Send wrong item photo first
-            if (wrongPhotoUrl) {
+            // Send wrong item photo first via multipart upload
+            if (wrongPhotoBlob) {
+              const formData = new FormData()
+              formData.append('chat_id', sChatId)
+              formData.append('photo', wrongPhotoBlob, 'wrong_item.jpg')
+              formData.append('caption', `📦 Буруу бараа — #${wpDel.delivery_number}\n📸 Жолоочийн илгээсэн зураг`)
+              formData.append('parse_mode', 'HTML')
               await fetch(`https://api.telegram.org/bot${storeBotToken}/sendPhoto`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  chat_id: sChatId,
-                  photo: wrongPhotoUrl,
-                  caption: `📦 Буруу бараа — #${wpDel.delivery_number}\n📸 Жолоочийн илгээсэн зураг`,
-                  parse_mode: 'HTML',
-                }),
+                body: formData,
               })
-            } else if (fileId) {
-              // Fallback: forward the file_id via driver bot token won't work on store bot,
-              // so just send text notification
             }
             // Then send details with action buttons
             await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
