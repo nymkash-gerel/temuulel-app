@@ -65,22 +65,35 @@ export async function POST(request: NextRequest) {
   if (createError) {
     if (createError.message.includes('already been registered') || createError.message.includes('already exists')) {
       // User already exists (e.g. from a previous failed signup attempt)
-      // Try to sign them in with the provided password, or update their password
-      const { data: existingUsers } = await admin.auth.admin.listUsers()
-      const existingUser = existingUsers?.users?.find(u => u.email === invite.email)
+      // Look up in public.users table by email to get their auth ID
+      const { data: publicUser } = await admin
+        .from('users')
+        .select('id')
+        .eq('email', invite.email)
+        .single()
 
-      if (!existingUser) {
-        return NextResponse.json({ error: 'Хэрэглэгч олдсонгүй' }, { status: 500 })
+      if (!publicUser) {
+        // No public user record — try listUsers from auth
+        const { data: listData } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+        const found = listData?.users?.find((u: { email?: string }) => u.email === invite.email)
+        if (!found) {
+          return NextResponse.json({ error: 'Хэрэглэгч олдсонгүй' }, { status: 500 })
+        }
+        await admin.auth.admin.updateUserById(found.id, {
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName, phone },
+        })
+        userId = found.id
+      } else {
+        // Update their password and confirm email
+        await admin.auth.admin.updateUserById(publicUser.id, {
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName, phone },
+        })
+        userId = publicUser.id
       }
-
-      // Update their password and confirm email
-      await admin.auth.admin.updateUser(existingUser.id, {
-        password,
-        email_confirm: true,
-        user_metadata: { full_name: fullName, phone },
-      })
-
-      userId = existingUser.id
     } else {
       return NextResponse.json({ error: createError.message }, { status: 500 })
     }
