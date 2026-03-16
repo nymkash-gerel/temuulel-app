@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
 
   // ── Skip auth for public pages (no Supabase call needed) ──
   const publicPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/verify', '/demo']
-  if (publicPaths.includes(pathname) || pathname.startsWith('/embed') || pathname.startsWith('/track')) {
+  if (publicPaths.includes(pathname) || pathname.startsWith('/embed') || pathname.startsWith('/track') || pathname.startsWith('/invite')) {
     return NextResponse.next({ request })
   }
 
