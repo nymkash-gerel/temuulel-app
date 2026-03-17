@@ -2450,19 +2450,29 @@ export async function POST(request: NextRequest) {
         if (getFileData.ok && getFileData.result?.file_path) {
           const photoUrl = `https://api.telegram.org/file/bot${driverBotToken}/${getFileData.result.file_path}`
           const photoRes = await fetch(photoUrl)
-          wrongPhotoBlob = await photoRes.blob()
+          const arrayBuf = await photoRes.arrayBuffer()
+          const photoBuf = Buffer.from(arrayBuf)
+          wrongPhotoBlob = new Blob([photoBuf])
           const ext = getFileData.result.file_path.split('.').pop() || 'jpg'
+          const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
           const storagePath = `${wrongDeliveryId}/wrong_item_${Date.now()}.${ext}`
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { error: uploadErr } = await (supabase as any).storage
             .from('delivery-proofs')
-            .upload(storagePath, wrongPhotoBlob, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, upsert: false })
-          if (!uploadErr) {
+            .upload(storagePath, photoBuf, { contentType, upsert: true })
+          if (uploadErr) {
+            console.error('[DriverBot] Wrong item photo upload error:', uploadErr)
+          } else {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: urlData } = (supabase as any).storage.from('delivery-proofs').getPublicUrl(storagePath)
             wrongPhotoUrl = urlData?.publicUrl || ''
+            console.log('[DriverBot] Wrong item photo uploaded:', wrongPhotoUrl)
           }
+        } else {
+          console.error('[DriverBot] getFile failed:', JSON.stringify(getFileData))
         }
+      } else {
+        console.error('[DriverBot] DRIVER_TELEGRAM_BOT_TOKEN not set')
       }
     } catch (photoErr) {
       console.error('[DriverBot] Wrong item photo upload error:', photoErr)
