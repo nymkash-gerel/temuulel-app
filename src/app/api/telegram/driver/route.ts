@@ -913,6 +913,7 @@ async function handleCallbackQuery(
         await (supabase as any).from('notifications').insert({ store_id: dmDel.store_id, type: 'delivery_failed', title: '💔 Гэмтсэн бараа', body: `${driver.name} — #${dmDel.delivery_number}: гэмтсэн бараа.`, metadata: { delivery_id: deliveryId, reason: 'damaged' } }).then(null, () => {})
 
         // Notify staff + members via store bot
+        console.log('[DriverBot] Damaged item — notifying staff for store:', dmDel.store_id)
         const dmBotToken = process.env.TELEGRAM_BOT_TOKEN
         if (dmBotToken) {
           const dmMsg =
@@ -945,6 +946,7 @@ async function handleCallbackQuery(
         await (supabase as any).from('notifications').insert({ store_id: npDel.store_id, type: 'delivery_failed', title: '💰 Мөнгө өгсөнгүй', body: `${driver.name} — #${npDel.delivery_number}: харилцагч мөнгө өгсөнгүй.`, metadata: { delivery_id: deliveryId, reason: 'no_payment' } }).then(null, () => {})
 
         // Notify staff + members via store bot
+        console.log('[DriverBot] No payment — notifying staff for store:', npDel.store_id)
         const npBotToken = process.env.TELEGRAM_BOT_TOKEN
         if (npBotToken) {
           const npMsg =
@@ -2154,7 +2156,7 @@ export async function POST(request: NextRequest) {
 
       // Mark delivery as delivered with custom payment info
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: customPayDelivery } = await (supabase as any)
+      const { data: customPayDelivery, error: customPayErr } = await (supabase as any)
         .from('deliveries')
         .update({
           status: 'delivered',
@@ -2164,6 +2166,7 @@ export async function POST(request: NextRequest) {
         .eq('id', delId)
         .select('id, order_id, delivery_number, store_id, customer_name, customer_phone, delivery_address')
         .single()
+      console.log('[DriverBot] Custom payment delivery update:', { delId, customPayDelivery: !!customPayDelivery, error: customPayErr?.message })
 
       // Mark order as partially paid or pending
       let customPayOrderTotal = 0
@@ -2220,11 +2223,16 @@ export async function POST(request: NextRequest) {
             `⚠️ Харилцагчтай холбогдож үлдсэн төлбөрийг авна уу.`
 
           const cpChatIds = await getStaffMemberChatIds(supabase, customPayDelivery.store_id)
+          console.log('[DriverBot] Partial payment TG notify:', { storeId: customPayDelivery.store_id, chatIds: cpChatIds, botToken: storeBotToken ? 'set' : 'missing' })
           for (const sChatId of cpChatIds) {
-            await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
+            const tgRes = await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ chat_id: sChatId, text: cpStoreMsg, parse_mode: 'HTML' }),
-            }).catch(() => {})
+            }).catch((e) => { console.error('[DriverBot] TG send failed:', e); return null })
+            if (tgRes) {
+              const tgJson = await tgRes.json().catch(() => null)
+              console.log('[DriverBot] TG send result:', { chatId: sChatId, ok: tgJson?.ok, error: tgJson?.description })
+            }
           }
         }
       }
