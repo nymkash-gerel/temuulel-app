@@ -62,6 +62,28 @@ function getSupabase() {
   return createClient(url, key)
 }
 
+/** Get all staff + store_members Telegram chat IDs for a store */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getStaffMemberChatIds(supabase: any, storeId: string): Promise<string[]> {
+  const chatIds: string[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: staff } = await (supabase as any)
+    .from('staff').select('telegram_chat_id').eq('store_id', storeId).not('telegram_chat_id', 'is', null)
+  for (const s of (staff || []) as Array<{ telegram_chat_id: string }>) {
+    if (s.telegram_chat_id && !chatIds.includes(s.telegram_chat_id)) chatIds.push(s.telegram_chat_id)
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: members } = await (supabase as any)
+    .from('store_members').select('telegram_chat_id, notification_preferences').eq('store_id', storeId).not('telegram_chat_id', 'is', null)
+  for (const m of (members || []) as Array<{ telegram_chat_id: string; notification_preferences: Record<string, boolean> | null }>) {
+    const prefs = m.notification_preferences || {}
+    if (m.telegram_chat_id && prefs.delivery !== false && !chatIds.includes(m.telegram_chat_id)) {
+      chatIds.push(m.telegram_chat_id)
+    }
+  }
+  return chatIds
+}
+
 /** Telegram update shape (only fields we use) */
 interface TgPhotoSize {
   file_id: string
@@ -883,12 +905,31 @@ async function handleCallbackQuery(
     case 'damaged': {
       const dmHeader = await getDeliveryHeader(supabase, deliveryId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: dmDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Гэмтсэн бараа' }).eq('id', deliveryId).select('delivery_number, store_id').single()
+      const { data: dmDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Гэмтсэн бараа' }).eq('id', deliveryId).select('delivery_number, store_id, customer_name, customer_phone, delivery_address').single()
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) await tgEdit(chatId, messageId, `${dmHeader}💔 <b>ГЭМТСЭН БАРАА</b>\nЗураг авч, агуулахад буцааж өгнө үү.`, { replyMarkup: { inline_keyboard: [] } })
       if (dmDel) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from('notifications').insert({ store_id: dmDel.store_id, type: 'delivery_failed', title: '💔 Гэмтсэн бараа', body: `${driver.name} — #${dmDel.delivery_number}: гэмтсэн бараа. Зураг авсан.`, metadata: { delivery_id: deliveryId, reason: 'damaged' } }).then(null, () => {})
+        await (supabase as any).from('notifications').insert({ store_id: dmDel.store_id, type: 'delivery_failed', title: '💔 Гэмтсэн бараа', body: `${driver.name} — #${dmDel.delivery_number}: гэмтсэн бараа.`, metadata: { delivery_id: deliveryId, reason: 'damaged' } }).then(null, () => {})
+
+        // Notify staff + members via store bot
+        const dmBotToken = process.env.TELEGRAM_BOT_TOKEN
+        if (dmBotToken) {
+          const dmMsg =
+            `💔 <b>ГЭМТСЭН БАРАА</b>\n\n` +
+            `🆔 Хүргэлт: #${dmDel.delivery_number}\n` +
+            `👤 ${dmDel.customer_name || '—'}` + (dmDel.customer_phone ? ` · <code>${dmDel.customer_phone}</code>` : '') + `\n` +
+            `📍 ${dmDel.delivery_address || '—'}\n\n` +
+            `🚚 Жолооч: ${(driver as Record<string, unknown>).name}\n` +
+            `⚠️ Зураг авч, агуулахад буцааж өгнө.`
+          const dmChatIds = await getStaffMemberChatIds(supabase, dmDel.store_id)
+          for (const cid of dmChatIds) {
+            await fetch(`https://api.telegram.org/bot${dmBotToken}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: cid, text: dmMsg, parse_mode: 'HTML' }),
+            }).catch(() => {})
+          }
+        }
       }
       break
     }
@@ -896,12 +937,31 @@ async function handleCallbackQuery(
     case 'no_payment': {
       const npHeader = await getDeliveryHeader(supabase, deliveryId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: npDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId).select('delivery_number, store_id').single()
+      const { data: npDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId).select('delivery_number, store_id, customer_name, customer_phone, delivery_address').single()
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) await tgEdit(chatId, messageId, `${npHeader}💰 <b>МӨНГӨ ӨГСӨНГҮЙ</b>\nДэлгүүрт мэдэгдлээ.`, { replyMarkup: { inline_keyboard: [] } })
       if (npDel) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase as any).from('notifications').insert({ store_id: npDel.store_id, type: 'delivery_failed', title: '💰 Мөнгө өгсөнгүй', body: `${driver.name} — #${npDel.delivery_number}: харилцагч мөнгө өгсөнгүй.`, metadata: { delivery_id: deliveryId, reason: 'no_payment' } }).then(null, () => {})
+
+        // Notify staff + members via store bot
+        const npBotToken = process.env.TELEGRAM_BOT_TOKEN
+        if (npBotToken) {
+          const npMsg =
+            `💰 <b>МӨНГӨ ӨГСӨНГҮЙ</b>\n\n` +
+            `🆔 Хүргэлт: #${npDel.delivery_number}\n` +
+            `👤 ${npDel.customer_name || '—'}` + (npDel.customer_phone ? ` · <code>${npDel.customer_phone}</code>` : '') + `\n` +
+            `📍 ${npDel.delivery_address || '—'}\n\n` +
+            `🚚 Жолооч: ${(driver as Record<string, unknown>).name}\n` +
+            `⚠️ Харилцагч төлбөр төлөөгүй.`
+          const npChatIds = await getStaffMemberChatIds(supabase, npDel.store_id)
+          for (const cid of npChatIds) {
+            await fetch(`https://api.telegram.org/bot${npBotToken}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: cid, text: npMsg, parse_mode: 'HTML' }),
+            }).catch(() => {})
+          }
+        }
       }
       break
     }
@@ -2142,22 +2202,11 @@ export async function POST(request: NextRequest) {
           metadata: { delivery_id: delId, amount, reason },
         }).then(null, () => {})
 
-        // Send directly to store staff via Telegram
+        // Send directly to store staff + members via Telegram
         const fmtTotal = new Intl.NumberFormat('mn-MN').format(customPayOrderTotal)
         const fmtDiff = new Intl.NumberFormat('mn-MN').format(customPayOrderTotal - amount)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: cpStaff } = await (supabase as any)
-          .from('staff')
-          .select('telegram_chat_id')
-          .eq('store_id', customPayDelivery.store_id)
-          .not('telegram_chat_id', 'is', null)
-
-        const cpStaffChatIds: string[] = (cpStaff || [])
-          .map((s: { telegram_chat_id: string }) => s.telegram_chat_id)
-          .filter(Boolean)
-
-        if (cpStaffChatIds.length > 0) {
-          const storeBotToken = process.env.TELEGRAM_BOT_TOKEN
+        const storeBotToken = process.env.TELEGRAM_BOT_TOKEN
+        if (storeBotToken) {
           const cpStoreMsg =
             `💸 <b>ДУТУУ ТӨЛБӨР</b>\n\n` +
             `🆔 Хүргэлт: #${customPayDelivery.delivery_number}\n` +
@@ -2170,22 +2219,12 @@ export async function POST(request: NextRequest) {
             `📝 Шалтгаан: ${reason}\n\n` +
             `⚠️ Харилцагчтай холбогдож үлдсэн төлбөрийг авна уу.`
 
-          if (storeBotToken) {
-            for (const sChatId of cpStaffChatIds) {
-              try {
-                await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    chat_id: sChatId,
-                    text: cpStoreMsg,
-                    parse_mode: 'HTML',
-                  }),
-                })
-              } catch (tgErr) {
-                console.error(`[DriverBot] Staff TG partial payment notify failed for ${sChatId}:`, tgErr)
-              }
-            }
+          const cpChatIds = await getStaffMemberChatIds(supabase, customPayDelivery.store_id)
+          for (const sChatId of cpChatIds) {
+            await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: sChatId, text: cpStoreMsg, parse_mode: 'HTML' }),
+            }).catch(() => {})
           }
         }
       }
