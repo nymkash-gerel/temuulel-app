@@ -382,14 +382,17 @@ export default function DeliveryDetailPage() {
             )}
 
             {/* Wrong item section — show when delivery failed with wrong product metadata */}
-            {delivery.status === 'failed' && delivery.metadata && (delivery.metadata.wrong_item_photo_url || delivery.metadata.awaiting_wrong_photo !== undefined) && (
+            {delivery.status === 'failed' && delivery.metadata && (delivery.metadata.wrong_item_photo_url || delivery.metadata.wrong_item_photo_file_id || delivery.metadata.awaiting_wrong_photo !== undefined) && (
               <div className="mt-4 pt-4 border-t border-red-800/50">
                 <p className="text-sm text-red-400 mb-2 font-medium">Буруу бараа</p>
-                {delivery.metadata.wrong_item_photo_url ? (
+                {(delivery.metadata.wrong_item_photo_url || delivery.metadata.wrong_item_photo_file_id) ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={delivery.metadata.wrong_item_photo_url as string}
+                      src={
+                        (delivery.metadata.wrong_item_photo_url as string) ||
+                        `/api/deliveries/photo?file_id=${encodeURIComponent(delivery.metadata.wrong_item_photo_file_id as string)}&bot=driver`
+                      }
                       alt="Wrong item photo"
                       className="w-48 h-48 object-cover rounded-xl border border-red-700/50"
                     />
