@@ -59,7 +59,9 @@ function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
   if (!url || !key) throw new Error('Supabase not configured')
-  return createClient(url, key)
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 /** Get all staff + store_members Telegram chat IDs for a store */
@@ -905,7 +907,9 @@ async function handleCallbackQuery(
     case 'damaged': {
       const dmHeader = await getDeliveryHeader(supabase, deliveryId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: dmDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Гэмтсэн бараа' }).eq('id', deliveryId).select('delivery_number, store_id, customer_name, customer_phone, delivery_address').single()
+      await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Гэмтсэн бараа' }).eq('id', deliveryId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: dmDel } = await (supabase as any).from('deliveries').select('delivery_number, store_id, customer_name, customer_phone, delivery_address').eq('id', deliveryId).single()
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) await tgEdit(chatId, messageId, `${dmHeader}💔 <b>ГЭМТСЭН БАРАА</b>\nЗураг авч, агуулахад буцааж өгнө үү.`, { replyMarkup: { inline_keyboard: [] } })
       if (dmDel) {
@@ -938,7 +942,9 @@ async function handleCallbackQuery(
     case 'no_payment': {
       const npHeader = await getDeliveryHeader(supabase, deliveryId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: npDel } = await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId).select('delivery_number, store_id, customer_name, customer_phone, delivery_address').single()
+      await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: npDel } = await (supabase as any).from('deliveries').select('delivery_number, store_id, customer_name, customer_phone, delivery_address').eq('id', deliveryId).single()
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) await tgEdit(chatId, messageId, `${npHeader}💰 <b>МӨНГӨ ӨГСӨНГҮЙ</b>\nДэлгүүрт мэдэгдлээ.`, { replyMarkup: { inline_keyboard: [] } })
       if (npDel) {
@@ -2194,14 +2200,24 @@ export async function POST(request: NextRequest) {
         await tgSend(chatId, `✅ <b>Бүртгэгдлээ.</b>\n\n💸 ${formattedAmount}₮ авсан\n📝 Шалтгаан: ${reason}\n\nБаярлалаа!`)
       }
 
-      // Notify store (dashboard)
-      if (customPayDelivery?.store_id) {
+      // Fetch delivery info independently (update may return null due to client issues)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cpDelInfo } = customPayDelivery ? { data: customPayDelivery } : await (supabase as any)
+        .from('deliveries')
+        .select('id, order_id, delivery_number, store_id, customer_name, customer_phone, delivery_address')
+        .eq('id', delId)
+        .single()
+
+      console.log('[DriverBot] Custom payment notify check:', { delId, fromUpdate: !!customPayDelivery, fromFetch: !!cpDelInfo, storeId: cpDelInfo?.store_id })
+
+      // Notify store (dashboard + Telegram)
+      if (cpDelInfo?.store_id) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase as any).from('notifications').insert({
-          store_id: customPayDelivery.store_id,
+          store_id: cpDelInfo.store_id,
           type: 'delivery_completed',
           title: `💸 Дутуу төлбөр`,
-          body: `#${customPayDelivery.delivery_number} хүргэгдэж, ${formattedAmount}₮ авлаа. Шалтгаан: ${reason}`,
+          body: `#${cpDelInfo.delivery_number} хүргэгдэж, ${formattedAmount}₮ авлаа. Шалтгаан: ${reason}`,
           metadata: { delivery_id: delId, amount, reason },
         }).then(null, () => {})
 
@@ -2212,18 +2228,18 @@ export async function POST(request: NextRequest) {
         if (storeBotToken) {
           const cpStoreMsg =
             `💸 <b>ДУТУУ ТӨЛБӨР</b>\n\n` +
-            `🆔 Хүргэлт: #${customPayDelivery.delivery_number}\n` +
-            `👤 Хүлээн авагч: ${customPayDelivery.customer_name || '—'}` +
-            (customPayDelivery.customer_phone ? ` · <code>${customPayDelivery.customer_phone}</code>` : '') + `\n` +
-            `📍 Хаяг: ${customPayDelivery.delivery_address || '—'}\n\n` +
+            `🆔 Хүргэлт: #${cpDelInfo.delivery_number}\n` +
+            `👤 Хүлээн авагч: ${cpDelInfo.customer_name || '—'}` +
+            (cpDelInfo.customer_phone ? ` · <code>${cpDelInfo.customer_phone}</code>` : '') + `\n` +
+            `📍 Хаяг: ${cpDelInfo.delivery_address || '—'}\n\n` +
             `💰 Захиалгын дүн: ${fmtTotal}₮\n` +
             `✅ Авсан: ${formattedAmount}₮\n` +
             `❌ Дутуу: ${fmtDiff}₮\n\n` +
             `📝 Шалтгаан: ${reason}\n\n` +
             `⚠️ Харилцагчтай холбогдож үлдсэн төлбөрийг авна уу.`
 
-          const cpChatIds = await getStaffMemberChatIds(supabase, customPayDelivery.store_id)
-          console.log('[DriverBot] Partial payment TG notify:', { storeId: customPayDelivery.store_id, chatIds: cpChatIds, botToken: storeBotToken ? 'set' : 'missing' })
+          const cpChatIds = await getStaffMemberChatIds(supabase, cpDelInfo.store_id)
+          console.log('[DriverBot] Partial payment TG notify:', { storeId: cpDelInfo.store_id, chatIds: cpChatIds })
           for (const sChatId of cpChatIds) {
             const tgRes = await fetch(`https://api.telegram.org/bot${storeBotToken}/sendMessage`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
