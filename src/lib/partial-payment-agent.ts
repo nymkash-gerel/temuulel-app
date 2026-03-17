@@ -141,42 +141,68 @@ export async function initiatePartialPaymentResolution(params: {
     .update({ metadata: { ...existingMeta, partial_payment_resolution: resolution } })
     .eq('id', orderId)
 
-  // Find the customer
-  const { data: customer } = await supabase
-    .from('customers')
-    .select('id, messenger_id, instagram_id, channel, phone')
-    .eq('store_id', storeId)
-    .or(`phone.eq.${customerPhone},name.eq.${customerName}`)
-    .limit(1)
-    .maybeSingle()
+  // Find the customer — try order's customer_id first, then phone/name
+  let customerId: string | null = null
+  let messengerId: string | null = null
+  let instagramId: string | null = null
+  let custPhone = customerPhone
 
-  // Also try via the order's customer_id
-  let customerId = customer?.id
-  let messengerId = customer?.messenger_id
-  let instagramId = customer?.instagram_id
-  let custPhone = customer?.phone || customerPhone
+  // Try 1: order's customer_id
+  const { data: orderCust } = await supabase
+    .from('orders')
+    .select('customer_id')
+    .eq('id', orderId)
+    .single()
 
-  if (!customerId) {
-    const { data: orderCust } = await supabase
-      .from('orders')
-      .select('customer_id')
-      .eq('id', orderId)
+  if (orderCust?.customer_id) {
+    const { data: c } = await supabase
+      .from('customers')
+      .select('id, messenger_id, instagram_id, channel, phone')
+      .eq('id', orderCust.customer_id)
       .single()
-
-    if (orderCust?.customer_id) {
-      const { data: c } = await supabase
-        .from('customers')
-        .select('id, messenger_id, instagram_id, channel, phone')
-        .eq('id', orderCust.customer_id)
-        .single()
-      if (c) {
-        customerId = c.id
-        messengerId = c.messenger_id
-        instagramId = c.instagram_id
-        custPhone = c.phone || customerPhone
-      }
+    if (c) {
+      customerId = c.id
+      messengerId = c.messenger_id
+      instagramId = c.instagram_id
+      custPhone = c.phone || customerPhone
     }
   }
+
+  // Try 2: lookup by phone
+  if (!customerId && customerPhone) {
+    const { data: c } = await supabase
+      .from('customers')
+      .select('id, messenger_id, instagram_id, channel, phone')
+      .eq('store_id', storeId)
+      .eq('phone', customerPhone)
+      .limit(1)
+      .maybeSingle()
+    if (c) {
+      customerId = c.id
+      messengerId = c.messenger_id
+      instagramId = c.instagram_id
+      custPhone = c.phone || customerPhone
+    }
+  }
+
+  // Try 3: lookup by name
+  if (!customerId && customerName) {
+    const { data: c } = await supabase
+      .from('customers')
+      .select('id, messenger_id, instagram_id, channel, phone')
+      .eq('store_id', storeId)
+      .eq('name', customerName)
+      .limit(1)
+      .maybeSingle()
+    if (c) {
+      customerId = c.id
+      messengerId = c.messenger_id
+      instagramId = c.instagram_id
+      custPhone = c.phone || customerPhone
+    }
+  }
+
+  console.log('[PartialPaymentAgent] Customer lookup:', { customerId, messengerId, instagramId, custPhone })
 
   // Get store page token
   const { data: store } = await supabase

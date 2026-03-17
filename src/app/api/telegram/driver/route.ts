@@ -2175,16 +2175,19 @@ export async function POST(request: NextRequest) {
         .single()
       console.log('[DriverBot] Custom payment delivery update:', { delId, customPayDelivery: !!customPayDelivery, error: customPayErr?.message })
 
-      // Mark order as partially paid or pending
+      // Mark order as partially paid — fetch order_id from delivery independently
       let customPayOrderTotal = 0
-      if (customPayDelivery?.order_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cpDelOrder } = await (supabase as any).from('deliveries').select('order_id').eq('id', delId).single()
+      const cpOrderId = customPayDelivery?.order_id || cpDelOrder?.order_id
+      if (cpOrderId) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: cpOrder } = await (supabase as any).from('orders').select('total_amount').eq('id', customPayDelivery.order_id).single()
+        const { data: cpOrder } = await (supabase as any).from('orders').select('total_amount').eq('id', cpOrderId).single()
         customPayOrderTotal = cpOrder?.total_amount || 0
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase as any).from('orders')
           .update({ payment_status: 'partial', notes: `Жолооч: ${amount}₮ авсан. Шалтгаан: ${reason}` })
-          .eq('id', customPayDelivery.order_id)
+          .eq('id', cpOrderId)
       }
 
       // Clear the awaiting flag
@@ -2255,10 +2258,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Initiate AI agent to contact customer about partial payment
-      if (cpDelInfo?.order_id && cpDelInfo?.store_id) {
+      const agentOrderId = cpDelInfo?.order_id || cpOrderId
+      if (agentOrderId && cpDelInfo?.store_id) {
         initiatePartialPaymentResolution({
           deliveryId: delId,
-          orderId: cpDelInfo.order_id,
+          orderId: agentOrderId,
           storeId: cpDelInfo.store_id,
           paidAmount: amount,
           driverReason: reason,
