@@ -16,6 +16,7 @@ import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
 import { handleFeedChange, FeedChangeValue } from '@/lib/comment-auto-reply'
 import type { ChatbotSettings } from '@/lib/chat-ai'
 import { interceptWithFlow } from '@/lib/flow-middleware'
+import { findActivePartialPayment, handlePartialPaymentReply } from '@/lib/partial-payment-agent'
 import { processAIChat, type AIProductCard } from '@/lib/chat-ai-handler'
 
 function getSupabase() {
@@ -293,6 +294,22 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
       // AI auto-reply
       if (store.ai_auto_reply && pageToken) {
+        // --- Partial payment agent interception ---
+        try {
+          const ppOrder = await findActivePartialPayment(supabase, customer.id, store.id)
+          if (ppOrder) {
+            const ppResult = await handlePartialPaymentReply({
+              supabase, orderId: ppOrder.orderId, storeId: store.id,
+              customerId: customer.id, customerMessage: messageText,
+              quickReplyPayload: quickReplyPayload || null,
+              senderId, pageToken, conversationId: conversation.id,
+            })
+            if (ppResult.handled) continue
+          }
+        } catch (ppErr) {
+          console.error('[PartialPayment] Messenger interception error:', ppErr)
+        }
+
         // --- Flow interception (before AI pipeline) ---
         try {
           const flowResult = await interceptWithFlow(

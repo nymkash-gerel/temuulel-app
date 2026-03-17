@@ -54,6 +54,7 @@ import {
 import { processDriverMessage } from '@/lib/driver-chat-engine'
 import { createQPayInvoice, isQPayConfigured } from '@/lib/qpay'
 import { assignDriver, DEFAULT_DELIVERY_SETTINGS } from '@/lib/ai/delivery-assigner'
+import { initiatePartialPaymentResolution } from '@/lib/partial-payment-agent'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -2251,6 +2252,19 @@ export async function POST(request: NextRequest) {
             }
           }
         }
+      }
+
+      // Initiate AI agent to contact customer about partial payment
+      if (cpDelInfo?.order_id && cpDelInfo?.store_id) {
+        initiatePartialPaymentResolution({
+          deliveryId: delId,
+          orderId: cpDelInfo.order_id,
+          storeId: cpDelInfo.store_id,
+          paidAmount: amount,
+          driverReason: reason,
+          customerName: cpDelInfo.customer_name,
+          customerPhone: cpDelInfo.customer_phone,
+        }).catch(err => console.error('[DriverBot] Partial payment agent error:', err))
       }
 
       return NextResponse.json({ ok: true })
