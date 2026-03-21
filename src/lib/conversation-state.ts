@@ -370,7 +370,14 @@ function isGreetingOrReset(normalized: string): boolean {
     // Goodbye
     'баяртай', 'сайн байгаарай', 'goodbye', 'bye',
   ]
-  return resetKeywords.some((kw) => normalized.includes(kw))
+  // Use word-boundary matching (padded spaces) to prevent false positives
+  // from names containing greeting substrings:
+  //   "Shinebayar".includes("hi") → true (WRONG)
+  //   " shinebayar ".includes(" hi ") → false (CORRECT)
+  //   "Мэндбаяр".includes("мэнд") → true (WRONG)
+  //   " мэндбаяр ".includes(" мэнд ") → false (CORRECT)
+  const padded = ` ${normalized} `
+  return resetKeywords.some((kw) => padded.includes(` ${kw} `))
 }
 
 /**
