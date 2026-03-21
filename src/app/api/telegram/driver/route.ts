@@ -185,9 +185,8 @@ async function rebuildBatchMessage(supabase: any, chatId: number, messageId: num
 }
 
 /** Handle inline button taps from drivers */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleCallbackQuery(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   cb: TgCallbackQuery
 ): Promise<void> {
   const chatId = cb.message?.chat.id ?? cb.from.id
@@ -757,11 +756,15 @@ async function handleCallbackQuery(
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('deliveries')
+        .update({ status: 'delayed', estimated_delivery_time: etaIso || null, notes: `Хоцрох: ${etaLabel}` })
+        .eq('id', dtDeliveryId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: delayedDel } = await (supabase as any)
         .from('deliveries')
-        .update({ status: 'delayed', estimated_delivery_time: etaIso || null })
+        .select('delivery_number, store_id, order_id')
         .eq('id', dtDeliveryId)
-        .select('delivery_number, store_id')
         .single()
 
       const dtHeader = await getDeliveryHeader(supabase, dtDeliveryId)
@@ -773,6 +776,7 @@ async function handleCallbackQuery(
         )
       }
       if (delayedDel) {
+        // Dashboard notification
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase as any).from('notifications').insert({
           store_id: delayedDel.store_id, type: 'delivery_delayed',
@@ -780,6 +784,31 @@ async function handleCallbackQuery(
           body: `${driver.name} — #${delayedDel.delivery_number}: ${etaLabel} хүргэнэ.`,
           metadata: { delivery_id: dtDeliveryId, eta: etaIso },
         }).then(null, () => {})
+
+        // Update order notes
+        if (delayedDel.order_id) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from('orders')
+            .update({ notes: `⏰ Хойшлуулсан: ${etaLabel}` })
+            .eq('id', delayedDel.order_id)
+        }
+
+        // Telegram notification to staff + members
+        const dtBotToken = process.env.TELEGRAM_BOT_TOKEN
+        if (dtBotToken) {
+          const dtTgMsg =
+            `⏰ <b>ХҮРГЭЛТ ХОЙШЛУУЛСАН</b>\n\n` +
+            `🆔 #${delayedDel.delivery_number}\n` +
+            `🚚 Жолооч: ${driver.name}\n` +
+            `📅 Шинэ хугацаа: ${etaLabel}\n`
+          const dtChatIds = await getStaffMemberChatIds(supabase, delayedDel.store_id)
+          for (const cid of dtChatIds) {
+            await fetch(`https://api.telegram.org/bot${dtBotToken}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: cid, text: dtTgMsg, parse_mode: 'HTML' }),
+            }).catch(() => {})
+          }
+        }
       }
       break
     }
@@ -1071,7 +1100,7 @@ async function handleCallbackQuery(
 
           if (otherDrivers && otherDrivers.length > 0) {
             // Build candidates
-            const candidates = await Promise.all(otherDrivers.map(async (d: any) => {
+            const candidates = await Promise.all(otherDrivers.map(async (d: Record<string, unknown>) => {
               const { count } = await supabase
                 .from('deliveries')
                 .select('id', { count: 'exact', head: true })
@@ -2039,13 +2068,17 @@ export async function POST(request: NextRequest) {
   const awaitingDelayDeliveryId = earlyMeta?.awaiting_delay_time as string | undefined
   const awaitingDelayMsgId = earlyMeta?.awaiting_delay_message_id as number | null | undefined
   if (awaitingDelayDeliveryId && text && !text.startsWith('/')) {
-    // Save the custom ETA text as a note + mark delayed
+    // Save the custom ETA text as a note + mark delayed (separate update from select)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: customDelDel } = await (supabase as any)
+    await (supabase as any)
       .from('deliveries')
       .update({ status: 'delayed', notes: `Хоцрох: ${text}` })
       .eq('id', awaitingDelayDeliveryId)
-      .select('delivery_number, store_id')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: customDelDel } = await (supabase as any)
+      .from('deliveries')
+      .select('delivery_number, store_id, order_id')
+      .eq('id', awaitingDelayDeliveryId)
       .single()
 
     // Clear the awaiting flags
@@ -2068,6 +2101,7 @@ export async function POST(request: NextRequest) {
       )
     }
     if (customDelDel) {
+      // Dashboard notification
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('notifications').insert({
         store_id: customDelDel.store_id, type: 'delivery_delayed',
@@ -2075,6 +2109,31 @@ export async function POST(request: NextRequest) {
         body: `${earlyDriver?.name ?? 'Жолооч'} — #${customDelDel.delivery_number}: "${text}" хүргэнэ.`,
         metadata: { delivery_id: awaitingDelayDeliveryId, eta_text: text },
       }).then(null, () => {})
+
+      // Update order notes
+      if (customDelDel.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders')
+          .update({ notes: `⏰ Хойшлуулсан: ${text}` })
+          .eq('id', customDelDel.order_id)
+      }
+
+      // Telegram notification to staff + members
+      const delayBotToken = process.env.TELEGRAM_BOT_TOKEN
+      if (delayBotToken) {
+        const delayTgMsg =
+          `⏰ <b>ХҮРГЭЛТ ХОЙШЛУУЛСАН</b>\n\n` +
+          `🆔 #${customDelDel.delivery_number}\n` +
+          `🚚 Жолооч: ${earlyDriver?.name ?? '—'}\n` +
+          `📅 Шинэ хугацаа: "${text}"\n`
+        const delayChatIds = await getStaffMemberChatIds(supabase, customDelDel.store_id)
+        for (const cid of delayChatIds) {
+          await fetch(`https://api.telegram.org/bot${delayBotToken}/sendMessage`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: cid, text: delayTgMsg, parse_mode: 'HTML' }),
+          }).catch(() => {})
+        }
+      }
     }
     return NextResponse.json({ ok: true })
   }
@@ -2162,8 +2221,9 @@ export async function POST(request: NextRequest) {
       const delId = awaitingCustomPayment.deliveryId
 
       // Mark delivery as delivered with custom payment info
+      // Note: .update().select().single() chain fails silently with non-standard key — separate the calls
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: customPayDelivery, error: customPayErr } = await (supabase as any)
+      await (supabase as any)
         .from('deliveries')
         .update({
           status: 'delivered',
@@ -2171,9 +2231,13 @@ export async function POST(request: NextRequest) {
           metadata: { custom_payment: { amount, reason, recorded_at: new Date().toISOString() } },
         })
         .eq('id', delId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: customPayDelivery } = await (supabase as any)
+        .from('deliveries')
         .select('id, order_id, delivery_number, store_id, customer_name, customer_phone, delivery_address')
+        .eq('id', delId)
         .single()
-      console.log('[DriverBot] Custom payment delivery update:', { delId, customPayDelivery: !!customPayDelivery, error: customPayErr?.message })
+      console.log('[DriverBot] Custom payment delivery update:', { delId, customPayDelivery: !!customPayDelivery })
 
       // Mark order as partially paid — fetch order_id from delivery independently
       let customPayOrderTotal = 0
@@ -2204,15 +2268,8 @@ export async function POST(request: NextRequest) {
         await tgSend(chatId, `✅ <b>Бүртгэгдлээ.</b>\n\n💸 ${formattedAmount}₮ авсан\n📝 Шалтгаан: ${reason}\n\nБаярлалаа!`)
       }
 
-      // Fetch delivery info independently (update may return null due to client issues)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: cpDelInfo } = customPayDelivery ? { data: customPayDelivery } : await (supabase as any)
-        .from('deliveries')
-        .select('id, order_id, delivery_number, store_id, customer_name, customer_phone, delivery_address')
-        .eq('id', delId)
-        .single()
-
-      console.log('[DriverBot] Custom payment notify check:', { delId, fromUpdate: !!customPayDelivery, fromFetch: !!cpDelInfo, storeId: cpDelInfo?.store_id })
+      const cpDelInfo = customPayDelivery
+      console.log('[DriverBot] Custom payment notify check:', { delId, hasData: !!cpDelInfo, storeId: cpDelInfo?.store_id })
 
       // Notify store (dashboard + Telegram)
       if (cpDelInfo?.store_id) {
@@ -2260,15 +2317,19 @@ export async function POST(request: NextRequest) {
       // Initiate AI agent to contact customer about partial payment
       const agentOrderId = cpDelInfo?.order_id || cpOrderId
       if (agentOrderId && cpDelInfo?.store_id) {
-        initiatePartialPaymentResolution({
-          deliveryId: delId,
-          orderId: agentOrderId,
-          storeId: cpDelInfo.store_id,
-          paidAmount: amount,
-          driverReason: reason,
-          customerName: cpDelInfo.customer_name,
-          customerPhone: cpDelInfo.customer_phone,
-        }).catch(err => console.error('[DriverBot] Partial payment agent error:', err))
+        try {
+          await initiatePartialPaymentResolution({
+            deliveryId: delId,
+            orderId: agentOrderId,
+            storeId: cpDelInfo.store_id,
+            paidAmount: amount,
+            driverReason: reason,
+            customerName: cpDelInfo.customer_name,
+            customerPhone: cpDelInfo.customer_phone,
+          })
+        } catch (err) {
+          console.error('[DriverBot] Partial payment agent error:', err)
+        }
       }
 
       return NextResponse.json({ ok: true })

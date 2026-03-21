@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { resolveStoreId } from '@/lib/resolve-store'
 import { exportToFile } from '@/lib/export-utils'
 import BatchDispatchModal from '@/components/BatchDispatchModal'
 import type { BatchPreview } from '@/app/api/deliveries/batch-assign/route'
@@ -69,7 +68,7 @@ export default function DeliveriesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [, setStoreId] = useState('')
-  const [debugInfo, setDebugInfo] = useState<string>('')
+
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [creating, setCreating] = useState(false)
 
@@ -150,23 +149,14 @@ export default function DeliveriesPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user }, error: userErr } = await supabase.auth.getUser()
-      if (!user) {
-        setDebugInfo(`❌ No user session. Error: ${userErr?.message ?? 'null user'}`)
-        setLoading(false)
-        return
-      }
-      setDebugInfo(`✅ User: ${user.email} (${user.id})`)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
 
-      const storeId = await resolveStoreId(supabase, user.id)
-      const store = storeId ? { id: storeId } : null
-
-      if (!store) {
-        setDebugInfo(prev => prev + ` | ❌ Store not found.`)
-        setLoading(false)
-        return
-      }
-      setDebugInfo(prev => prev + ` | ✅ Store: ${store.id}`)
+      const { data: store } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single()
 
       if (store) {
         setStoreId(store.id)
@@ -192,7 +182,6 @@ export default function DeliveriesPage() {
             .order('name'),
         ])
 
-        setDebugInfo(prev => prev + ` | deliveries: ${deliveriesRes.data?.length ?? 0} err: ${deliveriesRes.error?.message ?? 'none'}`)
         if (deliveriesRes.data) setDeliveries(deliveriesRes.data as unknown as Delivery[])
         if (driversRes.data) setDrivers(driversRes.data as Driver[])
       }
@@ -476,18 +465,12 @@ export default function DeliveriesPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        {debugInfo && <p className="ml-4 text-xs text-slate-400">{debugInfo}</p>}
       </div>
     )
   }
 
   return (
     <div>
-      {debugInfo && (
-        <div className="mb-4 px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-xs text-slate-300 font-mono break-all">
-          🔍 {debugInfo}
-        </div>
-      )}
       {/* Batch dispatch modal */}
       {batchPreview && (
         <BatchDispatchModal

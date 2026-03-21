@@ -40,19 +40,28 @@ interface SendApiResponse {
   message_id: string
 }
 
+/** Facebook message tag — allows sending outside the 24h window */
+export type MessageTag = 'CONFIRMED_EVENT_UPDATE' | 'POST_PURCHASE_UPDATE' | 'ACCOUNT_UPDATE' | 'HUMAN_AGENT'
+
 async function callSendAPI(
   recipientId: string,
   messagePayload: Record<string, unknown>,
-  pageAccessToken: string
+  pageAccessToken: string,
+  tag?: MessageTag,
 ): Promise<SendApiResponse | null> {
   try {
+    const body: Record<string, unknown> = {
+      recipient: { id: recipientId },
+      ...messagePayload,
+    }
+    if (tag) {
+      body.messaging_type = 'MESSAGE_TAG'
+      body.tag = tag
+    }
     const res = await fetch(`${GRAPH_API_BASE}/me/messages?access_token=${pageAccessToken}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        ...messagePayload,
-      }),
+      body: JSON.stringify(body),
     })
 
     if (!res.ok) {
@@ -74,19 +83,20 @@ async function callSendAPI(
 export async function sendTextMessage(
   recipientId: string,
   text: string,
-  pageAccessToken: string
+  pageAccessToken: string,
+  tag?: MessageTag,
 ): Promise<SendApiResponse | null> {
   // Messenger has a 2000 char limit per text message
   if (text.length > 2000) {
     const chunks = splitText(text, 2000)
     let lastResult: SendApiResponse | null = null
     for (const chunk of chunks) {
-      lastResult = await callSendAPI(recipientId, { message: { text: chunk } }, pageAccessToken)
+      lastResult = await callSendAPI(recipientId, { message: { text: chunk } }, pageAccessToken, tag)
     }
     return lastResult
   }
 
-  return callSendAPI(recipientId, { message: { text } }, pageAccessToken)
+  return callSendAPI(recipientId, { message: { text } }, pageAccessToken, tag)
 }
 
 /**
@@ -96,7 +106,8 @@ export async function sendQuickReplies(
   recipientId: string,
   text: string,
   replies: { title: string; payload: string }[],
-  pageAccessToken: string
+  pageAccessToken: string,
+  tag?: MessageTag,
 ): Promise<SendApiResponse | null> {
   return callSendAPI(
     recipientId,
@@ -110,7 +121,8 @@ export async function sendQuickReplies(
         })),
       },
     },
-    pageAccessToken
+    pageAccessToken,
+    tag,
   )
 }
 
@@ -121,7 +133,8 @@ export async function sendButtonMessage(
   recipientId: string,
   text: string,
   buttons: { title: string; url: string }[],
-  pageAccessToken: string
+  pageAccessToken: string,
+  tag?: MessageTag,
 ): Promise<SendApiResponse | null> {
   return callSendAPI(
     recipientId,
@@ -141,7 +154,8 @@ export async function sendButtonMessage(
         },
       },
     },
-    pageAccessToken
+    pageAccessToken,
+    tag,
   )
 }
 

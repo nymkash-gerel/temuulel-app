@@ -140,7 +140,7 @@ async function getActiveDelivery(
   if (!delivery) return null
 
   // Look up order + customer_id
-  let orderId: string | null = delivery.order_id ?? null
+  const orderId: string | null = delivery.order_id ?? null
   let orderNumber: string | null = null
   let customerId: string | null = null
 
@@ -245,13 +245,15 @@ export async function processDriverMessage(
     // ── Delivery completed ───────────────────────────────────────────────
     case 'delivery_completed': {
       // Update delivery + order status
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).from('deliveries')
           .update({ status: 'delivered', updated_at: new Date().toISOString() })
           .eq('id', ctx.deliveryId),
         ctx.orderId
-          ? (supabase as any).from('orders')
+          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).from('orders')
               .update({ status: 'delivered', updated_at: new Date().toISOString() })
               .eq('id', ctx.orderId)
           : Promise.resolve(),

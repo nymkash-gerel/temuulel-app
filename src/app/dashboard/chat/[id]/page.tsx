@@ -132,14 +132,15 @@ export default function ChatConversationPage() {
 
       setConversation(conv)
 
+      // Fetch newest 200 messages (desc), then reverse for display order
       const { data: msgs } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-        .limit(100)
+        .order('created_at', { ascending: false })
+        .limit(200)
 
-      setMessages((msgs || []) as Message[])
+      setMessages(((msgs || []) as Message[]).reverse())
       setLoading(false)
 
       // Reset unread count when agent opens conversation

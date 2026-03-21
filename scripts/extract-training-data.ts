@@ -109,7 +109,7 @@ function deduplicateExamples(examples: TrainingExample[]): TrainingExample[] {
 function main() {
   console.log('Extracting training data from test files...')
   
-  let allExamples: TrainingExample[] = []
+  const allExamples: TrainingExample[] = []
   
   for (const filePath of TEST_FILES) {
     try {

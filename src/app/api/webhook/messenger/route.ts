@@ -294,12 +294,70 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
       // AI auto-reply
       if (store.ai_auto_reply && pageToken) {
+        // --- Redelivery quick reply interception ---
+        if (quickReplyPayload?.startsWith('REDELIVERY_')) {
+          try {
+            const [action, delId] = [quickReplyPayload.split(':')[0], quickReplyPayload.split(':')[1]]
+            let redeliveryMsg = ''
+            if (action === 'REDELIVERY_CANCEL') {
+              await supabase.from('deliveries').update({ status: 'cancelled', notes: 'Харилцагч цуцалсан' }).eq('id', delId)
+              redeliveryMsg = 'Захиалга цуцлагдлаа. Баярлалаа!'
+            } else {
+              let etaLabel = ''
+              if (action === 'REDELIVERY_TODAY') etaLabel = 'Өнөөдөр'
+              else if (action === 'REDELIVERY_TOMORROW') etaLabel = 'Маргааш'
+              else if (action === 'REDELIVERY_WEEK') etaLabel = 'Энэ 7 хоногт'
+              await supabase.from('deliveries').update({ notes: `Дахин хүргэлт: ${etaLabel}` }).eq('id', delId)
+              redeliveryMsg = `Баярлалаа! ${etaLabel} хүргэхээр бүртгэлээ.`
+              // Notify staff
+              const { data: rdel } = await supabase.from('deliveries').select('delivery_number, store_id').eq('id', delId).single()
+              if (rdel) {
+                await supabase.from('notifications').insert({
+                  store_id: rdel.store_id, type: 'delivery_assigned',
+                  title: '📦 Дахин хүргэлт баталгаажлаа',
+                  body: `#${rdel.delivery_number}: Харилцагч "${etaLabel}" гэж баталлаа.`,
+                  metadata: { delivery_id: delId },
+                }).then(null, () => {})
+                // Telegram notify
+                const rdBotToken = process.env.TELEGRAM_BOT_TOKEN
+                if (rdBotToken) {
+                  const rdChatIds: string[] = []
+                  const { data: rdStaff } = await supabase.from('staff').select('telegram_chat_id').eq('store_id', rdel.store_id).not('telegram_chat_id', 'is', null)
+                  for (const s of (rdStaff || []) as Array<{ telegram_chat_id: string }>) {
+                    if (s.telegram_chat_id && !rdChatIds.includes(s.telegram_chat_id)) rdChatIds.push(s.telegram_chat_id)
+                  }
+                  const { data: rdMembers } = await supabase.from('store_members').select('telegram_chat_id, notification_preferences').eq('store_id', rdel.store_id).not('telegram_chat_id', 'is', null)
+                  for (const m of (rdMembers || []) as Array<{ telegram_chat_id: string; notification_preferences: Record<string, boolean> | null }>) {
+                    if (m.telegram_chat_id && (m.notification_preferences || {} as Record<string, boolean>).delivery !== false && !rdChatIds.includes(m.telegram_chat_id)) rdChatIds.push(m.telegram_chat_id)
+                  }
+                  const rdTgMsg = `📦 <b>ДАХИН ХҮРГЭЛТ БАТАЛГААЖЛАА</b>\n\n🆔 #${rdel.delivery_number}\n📅 ${etaLabel}\n\nЖолооч оноож хүргүүлнэ үү.`
+                  for (const cid of rdChatIds) {
+                    await fetch(`https://api.telegram.org/bot${rdBotToken}/sendMessage`, {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ chat_id: cid, text: rdTgMsg, parse_mode: 'HTML' }),
+                    }).catch(() => {})
+                  }
+                }
+              }
+            }
+            await sendTextMessage(senderId, redeliveryMsg, pageToken)
+            await supabase.from('messages').insert({
+              conversation_id: conversation.id, content: redeliveryMsg,
+              is_from_customer: false, is_ai_response: true,
+              metadata: { type: 'redelivery_response', delivery_id: delId },
+            })
+            continue
+          } catch (rdErr) {
+            console.error('[Redelivery] Quick reply error:', rdErr)
+          }
+        }
+
         // --- Partial payment agent interception ---
         try {
-          const ppOrder = await findActivePartialPayment(supabase, customer.id, store.id)
-          if (ppOrder) {
+          const ppActive = await findActivePartialPayment(supabase, customer.id, store.id)
+          if (ppActive) {
             const ppResult = await handlePartialPaymentReply({
-              supabase, orderId: ppOrder.orderId, storeId: store.id,
+              supabase, deliveryId: ppActive.deliveryId, storeId: store.id,
               customerId: customer.id, customerMessage: messageText,
               quickReplyPayload: quickReplyPayload || null,
               senderId, pageToken, conversationId: conversation.id,

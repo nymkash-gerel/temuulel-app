@@ -199,9 +199,8 @@ export async function searchProducts(
   }
 
   // product_faqs and ai_context exist in DB but not in generated Supabase types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let dbQuery = (supabase
-    .from('products') as any)
+    .from('products') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .select(`
       id, name, description, category, base_price, images, sales_script,
       product_faqs, ai_context,
