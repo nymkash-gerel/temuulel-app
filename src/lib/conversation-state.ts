@@ -398,10 +398,26 @@ export function resolveFollowUp(
   // 0. Active order draft — always intercept until order completes or cancels
   // UNLESS the user sends a greeting/reset signal (allows starting fresh conversation)
   if (state.order_draft && !isConversationReset) {
-    candidates.push({
-      score: FOLLOWUP_WEIGHTS.order_step_input,
-      result: { type: 'order_step_input' }
-    })
+    // Check for order cancellation phrases first (Mongolian negation: -гүй, -хгүй suffix)
+    const CANCEL_PHRASES = [
+      'захиалаагүй', 'захиалахгүй', 'захиалсангүй',
+      'авахгүй', 'авмааргүй', 'авсангүй',
+      'хэрэггүй', 'болих', 'болихоо', 'болсон',
+      'цуцлах', 'цуцал', 'цуцлана',
+      'үгүй', 'болохгүй',
+    ]
+    const hasCancelPhrase = CANCEL_PHRASES.some((kw) => normalized.includes(normalizeText(kw)))
+    if (hasCancelPhrase) {
+      candidates.push({
+        score: FOLLOWUP_WEIGHTS.order_step_input + 5, // Must beat order_step_input
+        result: { type: 'order_cancel' }
+      })
+    } else {
+      candidates.push({
+        score: FOLLOWUP_WEIGHTS.order_step_input,
+        result: { type: 'order_step_input' }
+      })
+    }
   }
 
   // 1. Number reference: "2 дугаарыг", "2", ordinals
@@ -450,10 +466,18 @@ export function resolveFollowUp(
       return matchCount >= 2 || (nameWords.length === 1 && matchCount === 1)
     })
     if (nameMatch) {
-      candidates.push({
-        score: FOLLOWUP_WEIGHTS.number_reference,
-        result: { type: 'number_reference', product: nameMatch }
-      })
+      // Don't treat as product selection if the message is an availability question
+      // e.g., "арьсан цүнх байна уу" = asking if product exists, not selecting it
+      const AVAILABILITY_PARTICLES = ['байна уу', 'бга уу', 'бгаа уу', 'бий юу', 'байгаа юу', 'бн уу']
+      const isAvailabilityQuestion = AVAILABILITY_PARTICLES.some((p) =>
+        normalized.includes(normalizeText(p))
+      )
+      if (!isAvailabilityQuestion) {
+        candidates.push({
+          score: FOLLOWUP_WEIGHTS.number_reference,
+          result: { type: 'number_reference', product: nameMatch }
+        })
+      }
     }
   }
 

@@ -186,7 +186,7 @@ async function rebuildBatchMessage(supabase: any, chatId: number, messageId: num
 
 /** Handle inline button taps from drivers */
 async function handleCallbackQuery(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // eslint-disable-line @typescript-eslint/no-explicit-any
   cb: TgCallbackQuery
 ): Promise<void> {
   const chatId = cb.message?.chat.id ?? cb.from.id

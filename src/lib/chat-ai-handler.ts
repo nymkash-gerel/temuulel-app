@@ -665,10 +665,14 @@ function isProductQuestion(msg: string): boolean {
 
 function hasOrderIntent(msg: string): boolean {
   const words = normalizeText(msg).trim().split(/\s+/)
-  return words.some((w) =>
-    ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
-    || ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
-  )
+  // Mongolian negation suffixes: -гүй, -хгүй, -аагүй, etc. mean "did NOT"
+  const NEGATION_SUFFIXES = ['гүй', 'хгүй', 'ахгүй', 'охгүй', 'ээгүй', 'оогүй', 'аагүй']
+  return words.some((w) => {
+    // Skip negated words: захиалаагүй = did NOT order, авахгүй = will NOT buy
+    if (NEGATION_SUFFIXES.some((neg) => w.endsWith(neg))) return false
+    return ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+      || ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
+  })
 }
 
 function isAffirmative(msg: string): boolean {
