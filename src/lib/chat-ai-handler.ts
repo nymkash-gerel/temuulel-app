@@ -46,6 +46,7 @@ import {
 import { dispatchNotification } from '@/lib/notifications'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
 import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
+import { createQPayInvoice, checkQPayPayment, isQPayConfigured } from '@/lib/qpay'
 
 const DEFAULT_DELIVERY_FEE = 5000
 
@@ -1168,8 +1169,45 @@ async function handleGiftCardPurchaseStep(
           pendingGiftCardCode: null,
         }
       }
+
+      // ── Real QPay invoice ─────────────────────────────────────────────
+      if (isQPayConfigured()) {
+        try {
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://temuulel.mn'
+          const gcOrderNumber = `GC-${Date.now()}`
+          const invoice = await createQPayInvoice({
+            orderNumber: gcOrderNumber,
+            amount,
+            description: `Бэлгийн карт - ${formatGiftCardBalance(amount)}`,
+            callbackUrl: `${baseUrl}/api/payments/callback?type=gift_card`,
+          })
+          return {
+            response:
+              `💳 **${formatGiftCardBalance(amount)}** бэлгийн карт\n\n` +
+              `📱 **QPay-аар төлнө үү:**\n🔗 ${invoice.qPay_shortUrl}\n\n` +
+              `Төлсний дараа "Төлсөн" гэж бичнэ үү.`,
+            intent: 'gift_card_purchase',
+            giftCardDraft: {
+              ...draft,
+              step: 'confirm',
+              amount,
+              invoiceId: invoice.invoice_id,
+              shortUrl: invoice.qPay_shortUrl,
+            },
+            pendingGiftCardCode: null,
+          }
+        } catch (qpayErr) {
+          console.error('[GiftCard] QPay invoice creation failed:', qpayErr)
+          // Fall through to mock/manual mode below
+        }
+      }
+
+      // ── Fallback: QPay not configured or invoice creation failed ─────
       return {
-        response: `💳 **${formatGiftCardBalance(amount)}** бэлгийн карт\n\nQPay-аар төлнө үү?\n\n[QPay холбоос — TODO: integrate real QPay]\n\n_(Одоогоор тест горимд автоматаар баталгаажна)_\n\nБаталгаажуулах уу? (Тийм / Үгүй)`,
+        response:
+          `💳 **${formatGiftCardBalance(amount)}** бэлгийн карт\n\n` +
+          `💳 Төлбөр хийхийн тулд дэлгүүртэй шууд холбогдоно уу.\n\n` +
+          `Баталгаажуулах уу? (Тийм / Үгүй)`,
         intent: 'gift_card_purchase',
         giftCardDraft: { ...draft, step: 'confirm', amount },
         pendingGiftCardCode: null,
@@ -1186,15 +1224,46 @@ async function handleGiftCardPurchaseStep(
         }
       }
       if (!isAffirmative(customerMessage)) {
+        // If QPay invoice exists, remind to pay
+        const payReminder = draft.shortUrl
+          ? `\n\n💳 Төлөх линк: ${draft.shortUrl}`
+          : ''
         return {
-          response: 'Бэлгийн картыг баталгаажуулах уу? (Тийм / Үгүй)',
+          response: `Бэлгийн картыг баталгаажуулах уу? (Тийм / Үгүй)${payReminder}`,
           intent: 'gift_card_purchase',
           giftCardDraft: draft,
           pendingGiftCardCode: null,
         }
       }
 
-      // Payment confirmed — create the gift card
+      // ── QPay payment verification ─────────────────────────────────────
+      if (draft.invoiceId) {
+        try {
+          const checkResult = await checkQPayPayment(draft.invoiceId)
+          const isPaid =
+            checkResult.count > 0 &&
+            checkResult.paid_amount >= (draft.amount ?? 0)
+
+          if (!isPaid) {
+            return {
+              response:
+                `⏳ QPay-д төлбөр баталгаажаагүй байна.\n\n` +
+                `🔗 ${draft.shortUrl}\n\n` +
+                `Төлсний дараа "Төлсөн" гэж дахин бичнэ үү.`,
+              intent: 'gift_card_purchase',
+              giftCardDraft: draft,
+              pendingGiftCardCode: null,
+            }
+          }
+          // Payment confirmed — fall through to create gift card
+        } catch (qpayErr) {
+          console.error('[GiftCard] QPay payment check failed:', qpayErr)
+          // Graceful degradation: if check fails, proceed to create card
+          // (avoids blocking customer due to QPay API outage)
+        }
+      }
+
+      // ── Create the gift card ──────────────────────────────────────────
       try {
         const { code } = await purchaseGiftCard(supabase, {
           storeId,

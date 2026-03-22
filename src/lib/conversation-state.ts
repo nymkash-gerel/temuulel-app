@@ -45,6 +45,8 @@ export interface GiftCardDraft {
   amount?: number            // chosen denomination
   code?: string              // generated code after purchase
   recipientContact?: string  // phone / messenger handle to forward card to
+  invoiceId?: string         // QPay invoice_id — set when real QPay is used
+  shortUrl?: string          // QPay short payment URL shown to customer
 }
 
 export interface ConversationState {
