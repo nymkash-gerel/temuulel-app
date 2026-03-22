@@ -414,6 +414,16 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'avmaar', 'avya', 'avii', 'avi', 'avna', 'avah',
     'hudaldaj av', 'hudaldaj avna',
   ],
+  gift_card_purchase: [
+    // Compound phrases — high confidence (require "бэлгийн" genitive form, avoids false-matching bare "бэлэг")
+    'бэлгийн карт авмаар', 'бэлгийн карт авах', 'бэлгийн карт авъя',
+    'бэлгийн карт захиалах', 'бэлгийн карт худалдаж',
+    'бэлгийн картаар',
+    // Core noun — medium confidence ("бэлгийн" is genitive, won't match bare "бэлэг")
+    'бэлгийн карт', 'гифт карт',
+    // Latin / English (full phrases only)
+    'gift card', 'gift kart', 'belgiin kart',
+  ],
 }
 
 // ---------------------------------------------------------------------------
