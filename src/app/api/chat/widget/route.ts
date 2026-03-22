@@ -141,18 +141,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Smart escalation — evaluate score AFTER AI response is saved
-    // Skip escalation for informational intents (customer is just asking questions)
-    const INFORMATIONAL_INTENTS = [
-      'greeting', 'thanks', 'product_search', 'order_status', 'shipping',
-      'payment', 'size_info', 'table_reservation', 'allergen_info',
-      'menu_availability', 'order_collection', 'order_created',
-      'product_detail', 'price_info', 'gift_card_purchase', 'gift_card_redeem',
-      // return_exchange is a normal policy question ("can I return this?").
-      // Escalation fires through complaint scoring when distress language is present.
-      // Without this, any return/exchange question triggers escalation incorrectly.
-      'return_exchange',
+    // Only skip escalation for truly low-risk intents where complaint keywords
+    // are impossible (greetings, confirmations, completed actions).
+    // NOTE: product_search and order_status are intentionally NOT excluded —
+    // frustrated customers often get misclassified into these intents and their
+    // frustration keywords must still be scored by processEscalation.
+    const SKIP_ESCALATION_INTENTS = [
+      'greeting', 'thanks', 'order_created',
+      'gift_card_purchase', 'gift_card_redeem',
     ]
-    const shouldCheckEscalation = !INFORMATIONAL_INTENTS.includes(aiResult.intent)
+    const shouldCheckEscalation = !SKIP_ESCALATION_INTENTS.includes(aiResult.intent)
 
     if (shouldCheckEscalation) {
       const escalationResult = await processEscalation(
