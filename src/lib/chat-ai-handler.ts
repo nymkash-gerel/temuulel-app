@@ -677,7 +677,7 @@ function hasOrderIntent(msg: string): boolean {
 
 function isAffirmative(msg: string): boolean {
   const n = normalizeText(msg).trim()
-  const words = ['тийм', 'за', 'зүгээр', 'болно', 'тийм ээ', 'зөв', 'ok', 'ок', 'yes']
+  const words = ['тийм', 'за', 'зүгээр', 'болно', 'тийм ээ', 'зөв', 'ok', 'ок', 'yes', 'tiim', 'tiim ee', 'za', 'bolno']
   return words.some((w) => n === w || n.startsWith(w + ' '))
 }
 
