@@ -149,7 +149,7 @@ async function createTestDriver(storeId: string, name?: string): Promise<{ id: s
       store_id: storeId,
       name: driverName,
       phone,
-      status: 'available',
+      status: 'active',
       delivery_zones: ['all'],
     })
     .select('id, name, phone')
@@ -480,7 +480,6 @@ async function testCODDelayedPayment(storeId: string) {
     .update({
       payment_status: 'pending',
       notes: 'Driver: delivered but payment not collected',
-      metadata: { payment_reminder_count: 1, first_reminder_at: new Date().toISOString(), last_reminder_at: new Date().toISOString() },
     })
     .eq('id', orderId)
 
@@ -589,7 +588,7 @@ async function testBankTransferPayment(storeId: string) {
     customerId: null,
     totalAmount: 120000,
     shippingAmount: 0,
-    paymentMethod: 'bank_transfer',
+    paymentMethod: 'bank',
     paymentStatus: 'pending',
   })
   console.log(`    Order: ${orderNumber}, Delivery: ${deliveryNumber}`)
@@ -602,7 +601,7 @@ async function testBankTransferPayment(storeId: string) {
     .eq('id', orderId)
     .single()
 
-  assert(order?.payment_method === 'bank_transfer', 'Order payment_method is "bank_transfer"', `got: ${order?.payment_method}`)
+  assert(order?.payment_method === 'bank', 'Order payment_method is "bank"', `got: ${order?.payment_method}`)
   assert(order?.payment_status === 'pending', 'Order payment_status starts as "pending"', `got: ${order?.payment_status}`)
   assert(order?.total_amount === 120000, 'Order total_amount is 120000', `got: ${order?.total_amount}`)
 

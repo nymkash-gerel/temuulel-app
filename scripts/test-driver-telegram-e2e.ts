@@ -213,14 +213,8 @@ async function setup() {
   // 1. Find or create a test user (owner for the store)
   // We need a user_id for the store owner. Try to use a known test user or create via auth.
   // Since we use service role, we can create store without a real user using a dummy UUID.
-  const dummyOwnerId = '00000000-0000-0000-0000-000000000099'
-
-  // Ensure user exists (upsert)
-  await supabase.from('users').upsert({
-    id: dummyOwnerId,
-    email: 'test-driverbot@e2e.local',
-    full_name: 'Test Owner',
-  }, { onConflict: 'id' })
+  // Use existing local public.users row
+  const dummyOwnerId = '2338b53a-3f3e-482a-9d69-7c2c28661bbd'
 
   // 2. Create store
   const { data: store, error: storeErr } = await supabase
@@ -345,7 +339,6 @@ async function cleanup() {
   await supabase.from('orders').delete().eq('id', orderId)
   await supabase.from('customers').delete().eq('id', customerId)
   await supabase.from('stores').delete().eq('id', storeId)
-  await supabase.from('users').delete().eq('id', '00000000-0000-0000-0000-000000000099')
 
   console.log('    Done.')
 }

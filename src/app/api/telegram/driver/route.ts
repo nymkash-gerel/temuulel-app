@@ -319,7 +319,7 @@ async function handleCallbackQuery(
         type: 'delivery_driver_denied',
         title: '❌ Жолооч татгалзлаа',
         body: `${driver.name} жолооч #${deniedDelivery.delivery_number} хүргэлтийг татгалзлаа.`,
-        metadata: { delivery_id: deliveryId },
+        data: { delivery_id: deliveryId },
       }).then(null, () => {})
 
       // Always remove buttons from the tapped message
@@ -392,7 +392,7 @@ async function handleCallbackQuery(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any)
         .from('deliveries')
-        .update({ status: 'delivered', delivered_at: new Date().toISOString() })
+        .update({ status: 'delivered', actual_delivery_time: new Date().toISOString() })
         .eq('id', deliveryId)
 
       let paidAmount = 0
@@ -439,7 +439,7 @@ async function handleCallbackQuery(
           type: 'delivery_completed',
           title: `✅ Хүргэлт амжилттай`,
           body: `#${fullPayDelivery.delivery_number} хүргэгдэж, ${fmt(paidAmount)}₮ авлаа.`,
-          metadata: { delivery_id: deliveryId, amount: paidAmount },
+          data: { delivery_id: deliveryId, amount: paidAmount },
         }).then(null, () => {})
       }
       break
@@ -490,7 +490,7 @@ async function handleCallbackQuery(
         .from('deliveries')
         .update({
           status: 'delivered',
-          delivered_at: new Date().toISOString(),
+          actual_delivery_time: new Date().toISOString(),
           metadata: { payment_followup: true },
         })
         .eq('id', deliveryId)
@@ -509,7 +509,6 @@ async function handleCallbackQuery(
           .update({
             payment_status: 'pending',
             notes: 'Жолооч: хүргэгдсэн боловч төлбөр аваагүй',
-            metadata: { payment_reminder_count: 1, first_reminder_at: new Date().toISOString(), last_reminder_at: new Date().toISOString() },
           })
           .eq('id', delayedPayDelivery.order_id)
       }
@@ -539,7 +538,7 @@ async function handleCallbackQuery(
           type: 'payment_pending',
           title: `⚠️ Төлбөр аваагүй`,
           body: `#${delayedPayDelivery.delivery_number} хүргэгдсэн боловч төлбөр аваагүй — харилцагчтай холбогдоно уу.`,
-          metadata: { delivery_id: deliveryId, payment_followup: true },
+          data: { delivery_id: deliveryId, payment_followup: true },
         }).then(null, () => {})
       }
 
@@ -782,7 +781,7 @@ async function handleCallbackQuery(
           store_id: delayedDel.store_id, type: 'delivery_delayed',
           title: '⏰ Хүргэлт хоцорлоо',
           body: `${driver.name} — #${delayedDel.delivery_number}: ${etaLabel} хүргэнэ.`,
-          metadata: { delivery_id: dtDeliveryId, eta: etaIso },
+          data: { delivery_id: dtDeliveryId, eta: etaIso },
         }).then(null, () => {})
 
         // Update order notes
@@ -926,7 +925,7 @@ async function handleCallbackQuery(
           store_id: wrDel.store_id, type: 'delivery_failed',
           title: '📦 Буруу бараа буцаагдлаа',
           body: `${(driver as Record<string, unknown>).name} — #${wrDel.delivery_number}: буруу барааг агуулахад буцааж өгсөн. Хүлээн авч тэмдэглэнэ үү.`,
-          metadata: { delivery_id: deliveryId, reason: 'wrong_product_returned' },
+          data: { delivery_id: deliveryId, reason: 'wrong_product_returned' },
         }).then(null, () => {})
       } else {
         await tgAnswerCallback(cb.id, 'Хүргэлт олдсонгүй')
@@ -944,7 +943,7 @@ async function handleCallbackQuery(
       if (messageId) await tgEdit(chatId, messageId, `${dmHeader}💔 <b>ГЭМТСЭН БАРАА</b>\nЗураг авч, агуулахад буцааж өгнө үү.`, { replyMarkup: { inline_keyboard: [] } })
       if (dmDel) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from('notifications').insert({ store_id: dmDel.store_id, type: 'delivery_failed', title: '💔 Гэмтсэн бараа', body: `${driver.name} — #${dmDel.delivery_number}: гэмтсэн бараа.`, metadata: { delivery_id: deliveryId, reason: 'damaged' } }).then(null, () => {})
+        await (supabase as any).from('notifications').insert({ store_id: dmDel.store_id, type: 'delivery_failed', title: '💔 Гэмтсэн бараа', body: `${driver.name} — #${dmDel.delivery_number}: гэмтсэн бараа.`, data: { delivery_id: deliveryId, reason: "damaged" } }).then(null, () => {})
 
         // Notify staff + members via store bot
         console.log('[DriverBot] Damaged item — notifying staff for store:', dmDel.store_id)
@@ -979,7 +978,7 @@ async function handleCallbackQuery(
       if (messageId) await tgEdit(chatId, messageId, `${npHeader}💰 <b>МӨНГӨ ӨГСӨНГҮЙ</b>\nДэлгүүрт мэдэгдлээ.`, { replyMarkup: { inline_keyboard: [] } })
       if (npDel) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from('notifications').insert({ store_id: npDel.store_id, type: 'delivery_failed', title: '💰 Мөнгө өгсөнгүй', body: `${driver.name} — #${npDel.delivery_number}: харилцагч мөнгө өгсөнгүй.`, metadata: { delivery_id: deliveryId, reason: 'no_payment' } }).then(null, () => {})
+        await (supabase as any).from('notifications').insert({ store_id: npDel.store_id, type: 'delivery_failed', title: '💰 Мөнгө өгсөнгүй', body: `${driver.name} — #${npDel.delivery_number}: харилцагч мөнгө өгсөнгүй.`, data: { delivery_id: deliveryId, reason: "no_payment" } }).then(null, () => {})
 
         // Notify staff + members via store bot
         console.log('[DriverBot] No payment — notifying staff for store:', npDel.store_id)
@@ -1067,7 +1066,7 @@ async function handleCallbackQuery(
           type: 'delivery_delayed',
           title: 'Хүлээн авагч гомдол мэдэгдлээ',
           body: `${driver.name} — Захиалга #${complaintDelivery.delivery_number}: хүлээн авагч гомдол мэдэгдлээ. Холбогдоно уу.`,
-          metadata: { delivery_id: deliveryId, reason: 'receiver_complaint' },
+          data: { delivery_id: deliveryId, reason: 'receiver_complaint' },
         }).then(null, () => {})
       }
       break
@@ -1151,7 +1150,7 @@ async function handleCallbackQuery(
                 type: 'delivery_unassigned',
                 title: `Хүргэлт томилогдоогүй — #${rejectedDelivery.delivery_number}`,
                 message: `${driver.name} татгалзсан. Боломжтой жолооч байхгүй байна.`,
-                metadata: { delivery_id: deliveryId },
+                data: { delivery_id: deliveryId },
               }).then(null, () => {})
               console.log(`[DriverBot] No available driver for ${deliveryId} after rejection`)
             }
@@ -1445,7 +1444,7 @@ async function handleCallbackQuery(
           type: 'handoff_rejected',
           title: `❌ Жолооч татгалзлаа`,
           body: `${driver.name} #${rejectedHandoff.delivery_number} барааг хүлээж авахаас татгалзлаа.`,
-          metadata: { delivery_id: deliveryId, driver_id: rejectedHandoff.driver_id },
+          data: { delivery_id: deliveryId, driver_id: rejectedHandoff.driver_id },
         }).then(null, () => {})
       }
       break
@@ -1587,7 +1586,7 @@ async function handleCallbackQuery(
           type: 'delivery_denied',
           title: '❌ Жолооч татгалзлаа',
           body: `${driver.name} #${deniedDel.delivery_number} татгалзлаа: ${reasonLabel}`,
-          metadata: { delivery_id: drDeliveryId, reason: drReason },
+          data: { delivery_id: drDeliveryId, reason: drReason },
         }).then(null, () => {})
       }
       break
@@ -2107,7 +2106,7 @@ export async function POST(request: NextRequest) {
         store_id: customDelDel.store_id, type: 'delivery_delayed',
         title: '⏰ Хүргэлт хоцорлоо',
         body: `${earlyDriver?.name ?? 'Жолооч'} — #${customDelDel.delivery_number}: "${text}" хүргэнэ.`,
-        metadata: { delivery_id: awaitingDelayDeliveryId, eta_text: text },
+        data: { delivery_id: awaitingDelayDeliveryId, eta_text: text },
       }).then(null, () => {})
 
       // Update order notes
@@ -2177,7 +2176,7 @@ export async function POST(request: NextRequest) {
         type: 'delivery_denied',
         title: '❌ Жолооч татгалзлаа',
         body: `${earlyDriver?.name ?? 'Жолооч'} #${deniedDelCustom.delivery_number} татгалзлаа: ${text}`,
-        metadata: { delivery_id: drId },
+        data: { delivery_id: drId },
       }).then(null, () => {})
     }
 
@@ -2227,7 +2226,7 @@ export async function POST(request: NextRequest) {
         .from('deliveries')
         .update({
           status: 'delivered',
-          delivered_at: new Date().toISOString(),
+          actual_delivery_time: new Date().toISOString(),
           metadata: { custom_payment: { amount, reason, recorded_at: new Date().toISOString() } },
         })
         .eq('id', delId)
@@ -2279,7 +2278,7 @@ export async function POST(request: NextRequest) {
           type: 'delivery_completed',
           title: `💸 Дутуу төлбөр`,
           body: `#${cpDelInfo.delivery_number} хүргэгдэж, ${formattedAmount}₮ авлаа. Шалтгаан: ${reason}`,
-          metadata: { delivery_id: delId, amount, reason },
+          data: { delivery_id: delId, amount, reason },
         }).then(null, () => {})
 
         // Send directly to store staff + members via Telegram
@@ -2391,7 +2390,7 @@ export async function POST(request: NextRequest) {
         type: 'delivery_failed',
         title: `🚫 Харилцагч татгалзлаа`,
         body: `#${refusedDelivery.delivery_number} — харилцагч авахаас татгалзлаа. Шалтгаан: ${reason}`,
-        metadata: { delivery_id: delId, reason, customer_refused: true },
+        data: { delivery_id: delId, reason, customer_refused: true },
       }).then(null, () => {})
     }
 
@@ -2792,7 +2791,7 @@ export async function POST(request: NextRequest) {
         store_id: wpDel.store_id, type: 'delivery_failed',
         title: '📦 Буруу бараа',
         body: `${(driver as Record<string, unknown>).name} — #${wpDel.delivery_number}: буруу бараа. Зураг илгээсэн.`,
-        metadata: {
+        data: {
           delivery_id: wrongDeliveryId, reason: 'wrong_product',
           wrong_item_photo_url: wrongPhotoUrl,
           order_items: orderItemsText,
@@ -2874,7 +2873,7 @@ export async function POST(request: NextRequest) {
         message: canComplete
           ? `Жолооч зураг илгээж хүргэлтийг баталгаажуулав. Захиалга #${orderNum}.`
           : `Жолооч хүргэлтийн зураг илгээв. Захиалга #${orderNum}.`,
-        metadata: {
+        data: {
           delivery_id: activeDelivery.id,
           proof_photo_file_id: fileId,
           driver_name: (driver as { id: string; name?: string }).name,

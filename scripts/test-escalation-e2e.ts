@@ -113,7 +113,7 @@ async function findTestStore(): Promise<string> {
  * Returns the conversation ID.
  */
 async function createTestConversation(storeId: string, customerId?: string): Promise<string> {
-  const convId = `test-esc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const convId = crypto.randomUUID()
 
   const { error } = await supabase.from('conversations').insert({
     id: convId,
@@ -138,7 +138,7 @@ async function createTestConversation(storeId: string, customerId?: string): Pro
  * Create a test customer in the database.
  */
 async function createTestCustomer(storeId: string): Promise<string> {
-  const custId = `test-cust-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const custId = crypto.randomUUID()
 
   const { error } = await supabase.from('customers').insert({
     id: custId,
