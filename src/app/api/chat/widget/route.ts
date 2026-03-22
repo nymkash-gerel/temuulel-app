@@ -152,8 +152,13 @@ export async function POST(request: NextRequest) {
     ]
     // Also skip escalation during active checkout data-collection steps —
     // customers typing their name/phone/address are NOT complaining.
-    const CHECKOUT_STEPS = ['name', 'phone', 'address', 'variant', 'confirm']
-    const inCheckout = !!aiResult.orderStep && CHECKOUT_STEPS.includes(aiResult.orderStep)
+    // Suppress escalation only during active data-collection steps:
+    //   'info'    = collecting address + phone
+    //   'variant' = picking product variant
+    // Allow escalation at 'confirming' — customer can legitimately complain
+    // while waiting to confirm their order.
+    const inCheckout = aiResult.intent === 'order_collection' &&
+      !!aiResult.orderStep && ['info', 'variant'].includes(aiResult.orderStep)
     const shouldCheckEscalation = !SKIP_ESCALATION_INTENTS.includes(aiResult.intent) && !inCheckout
 
     if (shouldCheckEscalation) {
