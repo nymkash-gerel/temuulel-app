@@ -150,7 +150,11 @@ export async function POST(request: NextRequest) {
       'greeting', 'thanks', 'order_created',
       'gift_card_purchase', 'gift_card_redeem',
     ]
-    const shouldCheckEscalation = !SKIP_ESCALATION_INTENTS.includes(aiResult.intent)
+    // Also skip escalation during active checkout data-collection steps —
+    // customers typing their name/phone/address are NOT complaining.
+    const CHECKOUT_STEPS = ['name', 'phone', 'address', 'variant', 'confirm']
+    const inCheckout = !!aiResult.orderStep && CHECKOUT_STEPS.includes(aiResult.orderStep)
+    const shouldCheckEscalation = !SKIP_ESCALATION_INTENTS.includes(aiResult.intent) && !inCheckout
 
     if (shouldCheckEscalation) {
       const escalationResult = await processEscalation(

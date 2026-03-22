@@ -711,10 +711,23 @@ function extractPhone(msg: string): string | null {
  */
 // Address keywords that must be present for a message to be considered an address
 const ADDRESS_KEYWORDS = [
+  // ── Cyrillic ────────────────────────────────────────────────────────────
   'дүүрэг', 'хороо', 'байр', 'тоот', 'гудамж', 'хороолол', 'дэнж',
   'өргөн чөлөө', 'нутгийн', 'баянгол', 'сүхбаатар', 'чингэлтэй',
   'хан-уул', 'баянзүрх', 'сонгинохайрхан', 'налайх', 'багануур',
   'багахангай', 'орон сууц', 'гэр хороолол', 'сум', 'аймаг',
+  // ── Latin transliterations (very common in Messenger / web widget) ─────
+  'horoo', 'khoroo', 'bair', 'toot', 'duureg', 'gudamj', 'khoroolol',
+  // District abbreviations
+  'bzd',  // Баянзүрх дүүрэг
+  'bbd',  // Баянгол дүүрэг
+  'sbd',  // Сүхбаатар дүүрэг
+  'chd',  // Чингэлтэй дүүрэг
+  'sgd',  // Сонгинохайрхан дүүрэг
+  'hhd',  // Хан-Уул дүүрэг
+  // District names in Latin
+  'bayanzurkh', 'bayangol', 'sukhbaatar', 'chingeltei',
+  'songino', 'khan-uul', 'han-uul', 'nalaikha',
 ]
 
 function extractAddress(msg: string, phone: string | null): string | null {
