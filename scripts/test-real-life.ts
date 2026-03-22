@@ -858,9 +858,9 @@ async function scenario6(storeId: string): Promise<boolean> {
   const testDeliveryNumber = `DEL-DENY-${NOW}`
   const denyChatId = DRIVER_CHAT_ID // reuse same chat_id — different driver record
 
-  // Pre-setup: Insert test driver with unique chat_id suffix
-  const denyChatIdStr = String(denyChatId + 1) // offset to avoid collision with scenario 5
-  const { data: driverRow } = await sb
+  // Pre-setup: Insert test driver with unique identifiers per run
+  const denyChatIdStr = String(denyChatId + 1) // must match webhook from.id below
+  const { data: driverRow, error: denyDriverErr } = await sb
     .from('delivery_drivers')
     .insert({
       store_id: storeId,
@@ -873,7 +873,7 @@ async function scenario6(storeId: string): Promise<boolean> {
     .single()
 
   if (!driverRow) {
-    dbFail('Failed to insert deny test driver')
+    dbFail(`Failed to insert deny test driver: ${denyDriverErr?.message}`)
     return false
   }
 

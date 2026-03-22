@@ -94,15 +94,27 @@ export async function POST(request: NextRequest) {
   // 5. Full AI pipeline — use processAIChat when conversation_id exists.
   //    It handles: product search, checkout flow, order drafts, follow-ups, DB saves.
   if (conversation_id) {
-    // Resolve customer_id from sender_id if available
+    // Resolve (or create) customer from sender_id.
+    // Web widget visitors are stored in customers.messenger_id with a
+    // "web_" prefix by convention (same as /api/chat/route.ts).
     let customerId: string | null = null
     if (sender_id) {
-      const { data: customer } = await supabase
+      let { data: customer } = await supabase
         .from('customers')
         .select('id')
         .eq('store_id', store_id)
-        .eq('external_id', sender_id)
+        .eq('messenger_id', sender_id)
         .single()
+
+      if (!customer) {
+        const { data: newCustomer } = await supabase
+          .from('customers')
+          .insert({ store_id: store_id, messenger_id: sender_id, channel: 'web' })
+          .select('id')
+          .single()
+        customer = newCustomer
+      }
+
       customerId = customer?.id ?? null
     }
 
