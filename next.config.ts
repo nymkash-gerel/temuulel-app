@@ -21,6 +21,7 @@ const imgSrc = [
   'blob:',
   'https://*.supabase.co',
   supabaseUrl,
+  'https://*.tile.openstreetmap.org', // Leaflet delivery zone map
 ].filter(Boolean).join(' ')
 
 const securityHeaders = [
