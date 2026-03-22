@@ -77,8 +77,10 @@ const PAYMENT_DISPUTE_KEYWORDS = [
   // Refund demand variants
   'мөнгөө буцааж', 'мөнгоо буцааж', 'мөнгөө буцаа', 'буцааж өг',
   'мөнгө буцаа', 'буцаан өг', 'буцааж ог',
-  // Latin transliterations
-  'mongoo butaaj', 'mongoo butaa', 'mungu butaaj', 'butaaj ug', 'butaaj og',
+  // Latin transliterations (multiple spelling variants — customers are inconsistent)
+  'mongoo butaaj', 'mongoo butaa', 'mongoo butsaaj', 'mongoo butsaa',
+  'mungu butaaj', 'mungu butsaaj',
+  'butaaj ug', 'butaaj og', 'butsaaj ug', 'butsaaj og',
 ]
 
 const IMMEDIATE_ESCALATION_TRIGGERS = [
@@ -104,6 +106,9 @@ const IMMEDIATE_ESCALATION_TRIGGERS = [
   'operator duudaach', 'operator duu', 'operator heregteii',
   'hun heregteii', 'hun yariltsah', 'yariltsah',
   'mongoo butaaj ug!!!', 'butaaj ug!!!',
+  // "manager" with Mongolian case suffixes (-ийг, -д, -аа, -ее)
+  'manageraa', 'manageree', 'managerd', 'manageriig',
+  'manageraa duu', 'manageree duu',
 ]
 
 // ---------------------------------------------------------------------------

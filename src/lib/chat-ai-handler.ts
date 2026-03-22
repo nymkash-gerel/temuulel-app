@@ -249,6 +249,15 @@ export async function processAIChat(
           }
 
           case 'confirming': {
+            // If the customer is clearly complaining mid-order, acknowledge it
+            // and keep the draft alive so they can confirm/cancel later.
+            const isComplaint = /yaagaad|uulaad|uurlasan|udaan|mongoo|butsaaj|munguu|gомдол|муу|буцаа|яагаад|уурла|удаан|гомдол/i.test(customerMessage)
+            if (isComplaint && !isAffirmative(customerMessage) && !isNegative(customerMessage)) {
+              orderDraft = draft
+              intent = 'complaint'
+              responseText = 'Уучлаарай, таньд тохиромжгүй байдалд хүрсэнд харамсаж байна. Захиалгаа үргэлжлүүлэх үү? (Тийм/Үгүй)'
+              break
+            }
             if (isAffirmative(customerMessage)) {
               const order = await createOrderFromChat(supabase, storeId, customerId, draft)
               orderDraft = null
@@ -679,13 +688,22 @@ function hasOrderIntent(msg: string): boolean {
 function isAffirmative(msg: string): boolean {
   const n = normalizeText(msg).trim()
   const words = ['тийм', 'за', 'зүгээр', 'болно', 'тийм ээ', 'зөв', 'ok', 'ок', 'yes', 'tiim', 'tiim ee', 'za', 'bolno']
-  return words.some((w) => n === w || n.startsWith(w + ' '))
+  // Normalize each word too — normalizeText() converts Latin→Cyrillic so
+  // 'tiim' becomes 'тиим' in both the message AND the word; they must both
+  // go through the same transform to be comparable.
+  return words.some((w) => {
+    const nw = normalizeText(w)
+    return n === nw || n.startsWith(nw + ' ')
+  })
 }
 
 function isNegative(msg: string): boolean {
   const n = normalizeText(msg).trim()
-  const words = ['үгүй', 'болихгүй', 'цуцлах', 'цуцал', 'хүсэхгүй', 'нет', 'no']
-  return words.some((w) => n === w || n.startsWith(w + ' '))
+  const words = ['үгүй', 'болихгүй', 'цуцлах', 'цуцал', 'хүсэхгүй', 'нет', 'no', 'ugui', 'bolihgui']
+  return words.some((w) => {
+    const nw = normalizeText(w)
+    return n === nw || n.startsWith(nw + ' ')
+  })
 }
 
 function extractPhone(msg: string): string | null {
