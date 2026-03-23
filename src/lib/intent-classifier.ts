@@ -589,7 +589,9 @@ export function classifyIntentWithConfidence(
     const RETURN_SIGNALS = ['буцаах', 'буцаалт', 'буцаан', 'солих', 'солилт', 'солиулах', 'буцааж',
       'буцай', 'буцаж',  // colloquial/imperative: "буцай" = "return it!" (e.g. "bara butsay")
       'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'butaah', 'butaa', 'butay', 'butsay', 'бутай', 'бутаах', 'бутаа', 'solih',
-      'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй']
+      'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй',
+      // Wrong product delivered
+      'буруу бараа', 'бараа буруу', 'өөр бараа ирсэн', 'захиалаагүй бараа']
     // Note: 'эвдэрсэн' removed from RETURN_SIGNALS — it belongs to complaint (product is broken = complaint, not return request)
     const COMPLAINT_SIGNALS = ['гомдол', 'асуудал', 'муу', 'луйвар', 'хуурамч', 'complaint',
       'эвдэрсэн', 'гэмтсэн', 'гэмтэл',

@@ -543,7 +543,7 @@ export async function processAIChat(
         const isRecommendationQuery = RECOMMENDATION_SIGNALS.some(
           (sig) => normalizeText(customerMessage).includes(normalizeText(sig))
         )
-        if (!isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && hasOrderIntent(customerMessage)) {
+        if (!isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && intent !== 'return_exchange' && hasOrderIntent(customerMessage)) {
           // Check if message has meaningful non-order words that identify a product.
           // If message is ONLY order words (e.g. "zahialu"), products from search are
           // likely coincidental matches (description contains "захиал*") — show catalog.
