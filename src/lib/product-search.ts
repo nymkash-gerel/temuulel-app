@@ -190,6 +190,16 @@ export async function searchProducts(
     }
   }
   const normalizedQuery = normalizeText(query)
+
+  // Detect "browse all" requests — generic queries that mean "show me everything"
+  const BROWSE_ALL_PATTERNS = [
+    'бараа үз', 'бараа харуул', 'бараа харъя', 'юу байна', 'юу байгаа',
+    'бараа бгаа', 'бараагаа харуул', 'бүтээгдэхүүн', 'каталог',
+    'бараа жагсаалт', 'бүх бараа', 'бараа авъя', 'бараа авмаар',
+    'юу зарж', 'юу зарна', 'ямар бараа',
+  ]
+  const isBrowseAll = BROWSE_ALL_PATTERNS.some(p => normalizedQuery.includes(p))
+
   let mappedCategory: string | null = null
   for (const [mn, en] of Object.entries(CATEGORY_MAP)) {
     if (normalizedQuery.includes(mn)) {
@@ -216,7 +226,9 @@ export async function searchProducts(
     dbQuery = dbQuery.eq('available_today', true).eq('sold_out', false)
   }
 
-  if (mappedCategory) {
+  if (isBrowseAll) {
+    // Return all products — no name/description filter
+  } else if (mappedCategory) {
     dbQuery = dbQuery.eq('category', mappedCategory)
   } else {
     const searchTerms = extractSearchTerms(query)
