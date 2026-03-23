@@ -162,15 +162,19 @@ export async function POST(request: NextRequest) {
       'greeting', 'thanks', 'order_created',
       'gift_card_purchase', 'gift_card_redeem',
     ]
-    // Also skip escalation during active checkout data-collection steps —
-    // customers typing their name/phone/address are NOT complaining.
-    // Suppress escalation only during active data-collection steps:
-    //   'info'    = collecting address + phone
-    //   'variant' = picking product variant
-    // Allow escalation at 'confirming' — customer can legitimately complain
-    // while waiting to confirm their order.
-    const inCheckout = aiResult.intent === 'order_collection' &&
-      !!aiResult.orderStep && ['info', 'variant'].includes(aiResult.orderStep)
+    // Also skip escalation during active checkout — customers typing their
+    // name/phone/address/confirming are NOT complaining. We suppress for the
+    // entire 'order_collection' intent because:
+    //   1. aiResult.orderStep reflects the step AFTER processing (e.g. address
+    //      input moves step 'info' → 'confirming' before we check here), so
+    //      checking the step post-transition misses the address turn.
+    //   2. If the customer genuinely complains at 'confirming', the intent
+    //      classifier returns 'complaint', not 'order_collection' — so
+    //      suppressing order_collection entirely is safe.
+    //   3. Multi-message order flows (product search → select → name → phone →
+    //      address → confirm) accumulate ai_fail_to_resolve + long_unresolved
+    //      signals and can push score over 60 even with zero complaint keywords.
+    const inCheckout = aiResult.intent === 'order_collection'
     const shouldCheckEscalation = !SKIP_ESCALATION_INTENTS.includes(aiResult.intent) && !inCheckout
 
     if (shouldCheckEscalation) {

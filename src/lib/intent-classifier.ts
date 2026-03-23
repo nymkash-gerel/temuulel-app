@@ -209,6 +209,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'өөр хэмжээ', 'өөр өнгө', 'өөрчлөх',
     'багтахгүй',  // "doesn't fit" — specific return signal (unlike 'том'/'жижиг' which are size_info)
     'хэмжээ буруу', 'өнгө буруу', 'загвар буруу',
+    // Wrong product delivered (common complaint: "буруу бараа ирсэн")
+    'буруу бараа', 'бараа буруу', 'өөр бараа ирсэн', 'буруу бараа ирсэн',
+    'өөр зүйл ирсэн', 'захиалаагүй бараа', 'захиалаагүй юм ирсэн',
     // English
     'return', 'return policy', 'exchange', 'refund',
     'can i return', 'exchange policy', 'swap',
