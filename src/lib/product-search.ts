@@ -193,12 +193,18 @@ export async function searchProducts(
 
   // Detect "browse all" requests — generic queries that mean "show me everything"
   const BROWSE_ALL_PATTERNS = [
-    'бараа үз', 'бараа харуул', 'бараа харъя', 'юу байна', 'юу байгаа',
-    'бараа бгаа', 'бараагаа харуул', 'бүтээгдэхүүн', 'каталог',
+    'бараа үз', 'бара үз', 'бараа харуул', 'бараа харъя', 'юу байна', 'юу байгаа',
+    'бараа бгаа', 'бара бгаа', 'бараагаа харуул', 'бүтээгдэхүүн', 'каталог',
     'бараа жагсаалт', 'бүх бараа', 'бараа авъя', 'бараа авмаар',
-    'юу зарж', 'юу зарна', 'ямар бараа',
+    'юу зарж', 'юу зарна', 'ямар бараа', 'ямар бара',
+    'бара авъя', 'бара авмаар', 'бара харуул',
   ]
-  const isBrowseAll = BROWSE_ALL_PATTERNS.some(p => normalizedQuery.includes(p))
+  // Also match if the only meaningful words left after stop-word removal are browse verbs
+  const browseVerbs = ['үзэх', 'үзье', 'үзи', 'үзих', 'харах', 'харъя', 'харуул', 'харуулна']
+  const afterStopWords = extractSearchTerms(query)
+  const isBrowseVerb = afterStopWords.split(/\s+/).filter(Boolean).every(w => browseVerbs.some(v => w.startsWith(v)))
+    && afterStopWords.length > 0
+  const isBrowseAll = BROWSE_ALL_PATTERNS.some(p => normalizedQuery.includes(p)) || isBrowseVerb
 
   let mappedCategory: string | null = null
   for (const [mn, en] of Object.entries(CATEGORY_MAP)) {
