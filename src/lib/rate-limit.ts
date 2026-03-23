@@ -126,6 +126,11 @@ export async function rateLimit(
   key: string,
   options: RateLimitOptions,
 ): Promise<RateLimitResult> {
+  // Allow E2E tests to bypass rate limiting in development
+  if (process.env.E2E_RATE_LIMIT_BYPASS === 'true') {
+    return { success: true, limit: options.limit, remaining: options.limit, resetAt: Date.now() + 60000 }
+  }
+
   const upstash = getUpstashLimiter(options.limit, options.windowSeconds)
 
   if (upstash) {

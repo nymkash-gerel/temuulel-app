@@ -87,13 +87,7 @@ export function generateResponse(
 
     case 'order_status': {
       if (orders.length === 0) {
-        let noOrderResponse = `📦 **Захиалгын мэдээлэл олдсонгүй**\n\n`
-        noOrderResponse += `Захиалгаа шалгахын тулд дараах аргуудын аль нэгийг ашиглана уу:\n\n`
-        noOrderResponse += `1️⃣ **Захиалгын дугаар** — жишээ нь ORD-12345\n`
-        noOrderResponse += `2️⃣ **Утасны дугаар** — захиалга өгсөн дугаараа бичнэ үү\n`
-        noOrderResponse += `3️⃣ **Нэр** — захиалга өгсөн нэрээ бичнэ үү\n\n`
-        noOrderResponse += `💡 Захиалгын баримтаа имэйл эсвэл мессежээр авсан бол тэндээс дугаараа олж болно.`
-        return noOrderResponse
+        return `Захиалгын дугаар эсвэл утасны дугаараа бичнэ үү, шалгаад мэдэгдье 😊`
       }
 
       let response = `📋 **Таны захиалгын мэдээлэл:**\n\n`
@@ -408,6 +402,7 @@ export async function generateAIResponse(
           description: p.description,
           base_price: p.base_price,
           sales_script: p.sales_script,
+          variants: p.variants,
         })),
         customer_query: customerQuery,
       })

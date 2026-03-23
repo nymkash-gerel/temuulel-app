@@ -73,6 +73,11 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // "юу байна" = "what do you have?" — browse all products (NOT a greeting in e-commerce context)
     // Added twice so keyword confidence=2, overriding ML which incorrectly learned return_exchange
     'юу байна', 'юу байна',
+    // Kit / accessory set queries
+    'ком', 'үсний ком', 'хавчаарны ком',
+    // "What does it contain / what is in it" — product info questions
+    'юу байдаг', 'юу байдаг вэ', 'юу юу байдаг', 'байдаг юм бэ',
+    'юу орох', 'юу ордог',
     // Short forms from Latin typing
     'бга ю', 'бгаа', 'бга', 'бий', 'плаж',
     // Price inquiry (common in product search context)
@@ -202,6 +207,13 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'жолооч ирсэнгүй', 'жолооч ирэхгүй',
     'холбоо барьсангүй', 'утас авсангүй', 'холбоогүй',
     'жолооч дуудаагүй', 'жолооч мессеж илгээгүй',
+    // Delivery not arrived — general (compound wins over shipping's "хүргэлт")
+    'хүргэлт ирсэнгүй', 'хүргэлт ирэхгүй', 'хүргэлт ирэхгүй байна',
+    'ирсэнгүй', 'ирэхгүй байна',
+    'ирэхгүй бол', 'хүргэхгүй бол',
+    // Urgency complaints — customer about to leave, won't be at address
+    'ажлаасаа гарлаа', 'ажлаасаа гарах', 'байхгүй болно',
+    'байхгүй болно хаяг', 'хаяг дээр байхгүй',
     // Wrong item/color arrived — strong complaint signal (beats product_search's "өнгө")
     'гэтэл ийм', 'гэтэл өөр', 'гэтэл буруу',
     'өнгө ирсэн', 'хэмжээ ирсэн', 'загвар ирсэн',
@@ -789,6 +801,18 @@ export function classifyIntentWithConfidence(
     // Also catch Latin "hurgeed / hurgelt" variants that didn't fully normalize
     const hasLatinDelivery = /hur[g|г]e/.test(normalized)
     if (hasDelivery || hasLatinDelivery) bestIntent = 'shipping'
+  }
+
+  // Tiebreaker: shipping → complaint when delivery failure words are present
+  // "Хүргэлт ирсэнгүй" / "Өнөөдөр хүргэхгүй бол байхгүй болно" — these are complaints, not shipping info queries
+  if (bestIntent === 'shipping' && bestScore > 0) {
+    const DELIVERY_FAILURE = [
+      'ирсэнгүй', 'ирэхгүй', 'хүргэхгүй', 'хүргэгдсэнгүй',
+      'хаяг дээр байхгүй', 'байхгүй болно', 'ажлаасаа гарлаа',
+      'irehgui', 'ireegui',
+    ]
+    const hasFailure = DELIVERY_FAILURE.some(kw => padded.includes(` ${kw} `) || normalized.includes(kw))
+    if (hasFailure) bestIntent = 'complaint'
   }
 
   // Tiebreaker: shipping → order_collection when message contains a phone number + address words

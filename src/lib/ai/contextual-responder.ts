@@ -179,7 +179,47 @@ function buildSystemPrompt(input: ContextualInput): string {
   if (hasVariants) {
     prompt += `
 
-ХУВИЛБАР: Зөвхөн жагсаалтад байгаа размер/өнгийг хэл. Байхгүйг "Одоогоор байхгүй" гэж хариулна.`
+ХУВИЛБАР ДҮРЭМ:
+• Зөвхөн ХУВИЛБАР жагсаалтад БАЙГАА размер/өнгийг хэл
+• Хэрэв өнгийн хувилбар байхгүй бол "Өнгийн сонголт байхгүй" гэж хариулна — ХЭЗЭЭ Ч өнгийг зохиож хэлж болохгүй
+• Хэрэв хүсэгдсэн өнгө жагсаалтад байхгүй бол "Тийм өнгө байхгүй, боломжтой өнгөнүүд:" гэж хариулж жагсаана
+• БАТАЛГААЖААГҮЙ МЭДЭЭЛЭЛ хэлж болохгүй`
+  }
+
+  // --- Color availability guard (prevent hallucination) ---
+  // If customer asked for a specific color, check if it exists in variants
+  if (input.products.length > 0) {
+    const COLOR_MAP: Record<string, string> = {
+      'улаан': 'улаан', 'улан': 'улаан', 'ulaan': 'улаан', 'red': 'улаан',
+      'бор': 'бор', 'brown': 'бор',
+      'шар': 'шар', 'yellow': 'шар',
+      'хөх': 'хөх', 'хох': 'хөх', 'blue': 'хөх',
+      'нил': 'нил ягаан', 'purple': 'нил ягаан',
+      'ягаан': 'ягаан', 'pink': 'ягаан',
+      'цагаан': 'цагаан', 'white': 'цагаан',
+      'хар': 'хар', 'black': 'хар',
+      'саарал': 'саарал', 'gray': 'саарал', 'grey': 'саарал',
+      'ногоон': 'ногоон', 'green': 'ногоон',
+      'цэнхэр': 'цэнхэр', 'цэнхэр': 'цэнхэр',
+      'улбар': 'улбар ягаан', 'orange': 'улбар ягаан',
+    }
+    const msgLower = input.currentMessage.toLowerCase()
+    const allColors = new Set(
+      input.products.flatMap(p => (p.variants || []).map(v => v.color?.toLowerCase()).filter(Boolean))
+    )
+    const requested = Object.entries(COLOR_MAP).find(([kw]) => msgLower.includes(kw))
+    if (requested) {
+      const [kw, colorName] = requested
+      const hasColor = [...allColors].some(c => c && (c.includes(colorName) || colorName.includes(c.split(' ')[0])))
+      if (!hasColor) {
+        if (allColors.size === 0) {
+          prompt += `\n\n🚫 ӨНГИЙН АНХААРУУЛГА: Хэрэглэгч "${colorName}" өнгийг хүссэн. Гэхдээ энэ бүтээгдэхүүнд ӨНГИЙН СОНГОЛТ БАЙХГҮЙ — зөвхөн хэмжээгээр байна. ЗААВАЛ: "Өнгийн сонголт байхгүй, зөвхөн S/M/L/XL хэмжээгээр байна" гэж хэлнэ.`
+        } else {
+          const avail = [...allColors].filter(Boolean).join(', ')
+          prompt += `\n\n🚫 ӨНГИЙН АНХААРУУЛГА: Хэрэглэгч "${colorName}" өнгийг хүссэн. Энэ өнгө БАЙХГҮЙ. Боломжтой өнгөнүүд: ${avail}. ЗААВАЛ тийм өнгө байхгүй гэж хэлж, боломжтой өнгөнүүдийг жагсаана. ХЭЗЭЭ Ч байхгүй өнгийг байгаа гэж хэлж болохгүй.`
+        }
+      }
+    }
   }
 
   // --- Busy mode (restaurants) ---
@@ -206,6 +246,7 @@ function buildSystemPrompt(input: ContextualInput): string {
       if (tags.length > 0) prompt += ` [${tags.join(', ')}]`
       // Variants (compact)
       if (p.variants && p.variants.length > 0) {
+        const hasColors = p.variants.some(v => v.color)
         const vLines = p.variants.map(v => {
           const parts: string[] = []
           if (v.size) parts.push(v.size)
@@ -214,6 +255,7 @@ function buildSystemPrompt(input: ContextualInput): string {
           return parts.join('/')
         })
         prompt += `\n   Хувилбар: ${vLines.join(', ')}`
+        if (!hasColors) prompt += ` [өнгийн сонголт байхгүй]`
       }
       // FAQ (compact)
       if (p.product_faqs) {

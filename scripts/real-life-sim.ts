@@ -363,7 +363,7 @@ async function main() {
     .eq('id', convId)
     .single()
 
-  log(conv?.escalation_score! > 0 ? '✅' : '⚠️', `Escalation score: ${conv?.escalation_score} | Status: ${conv?.status}`)
+  log((conv?.escalation_score ?? 0) > 0 ? '✅' : '⚠️', `Escalation score: ${conv?.escalation_score} | Status: ${conv?.status}`)
   if (conv?.status === 'escalated') {
     log('🏪', '🔔 Store agent notified — human handoff triggered!')
   }
