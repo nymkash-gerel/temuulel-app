@@ -432,5 +432,13 @@ export function matchesHandoffKeywords(message: string, settings: ChatbotSetting
   if (!settings.auto_handoff || !settings.handoff_keywords) return false
   const keywords = settings.handoff_keywords.split(',').map(k => normalizeText(k.trim()))
   const normalized = normalizeText(message)
-  return keywords.some(k => k && normalized.includes(k))
+  // Use word-boundary-aware check: "хүн" must not match inside "хүнд" (dative suffix).
+  // Replace non-letter chars with spaces, then pad for safe substring matching.
+  const wordified = normalized.replace(/[^а-яёүөА-ЯЁҮӨa-zA-Z0-9]/g, ' ').replace(/\s+/g, ' ').trim()
+  const padded = ` ${wordified} `
+  return keywords.some(k => {
+    if (!k) return false
+    const kw = k.replace(/[^а-яёүөА-ЯЁҮӨa-zA-Z0-9]/g, ' ').replace(/\s+/g, ' ').trim()
+    return padded.includes(` ${kw} `)
+  })
 }

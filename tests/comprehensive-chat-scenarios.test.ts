@@ -60,8 +60,8 @@ describe('1. Intent Classification — all scenarios', () => {
     test('Cyrillic greetings', () => {
       for (const m of ['Сайн байна уу', 'Сайн уу', 'мэнд', 'өглөөний мэнд'])
         expectIntent(m, 'greeting')
-      // "Юу байна" = "what's up" — greeting OR general inquiry
-      expectIntent('Юу байна', 'greeting', 'general', 'return_exchange')
+      // "Юу байна" = in e-commerce context "what do you have?" → product_search (fixed)
+      expectIntent('Юу байна', 'product_search', 'greeting', 'general')
     })
     test('Latin / slang greetings', () => {
       for (const m of ['sain bn uu', 'sbnuu', 'hi', 'hello', 'hey', 'good morning'])

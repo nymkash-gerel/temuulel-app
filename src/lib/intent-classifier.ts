@@ -35,7 +35,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English
     'product', 'products', 'item', 'buy', 'purchase', 'shop', 'catalog',
     'price', 'cheap', 'expensive', 'new arrival', 'show me', 'browse',
-    'search', 'find', 'looking for', 'want to buy', 'how much',
+    'search', 'find', 'looking for', 'how much',
+    // NOTE: 'want to buy' removed — it belongs to order_collection (purchase intent, not browse)
     'available', 'in stock',
     // English product names (also triggers product_search intent)
     'cashmere', 'shirt', 'hat', 'bag', 'shoes', 'pants', 'jacket',
@@ -69,6 +70,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // ('авч болох' removed — overlaps with "зээлээр авч болох уу" = payment intent)
     'байгаа юу', 'бий юу', 'бга юу', 'бгаа юу',
     'байна уу', 'болох уу',
+    // "юу байна" = "what do you have?" — browse all products (NOT a greeting in e-commerce context)
+    // Added twice so keyword confidence=2, overriding ML which incorrectly learned return_exchange
+    'юу байна', 'юу байна',
     // Short forms from Latin typing
     'бга ю', 'бгаа', 'бга', 'бий', 'плаж',
     // Price inquiry (common in product search context)
@@ -129,7 +133,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'hello', 'hi', 'hey', 'good morning', 'good evening', 'greetings',
     // Aliases
     'сайн бн', 'сн бн уу', 'сайн бна', 'сайнуу', 'сайн уу',
-    'юу байна', 'сонин юу байна',
+    // NOTE: 'юу байна' removed — in e-commerce chat means "what do you have?" → product_search
+    'сонин юу байна',
     // stemmer handles: мэндээ→мэнд
     'мэнд хүргэе',
     'амар', 'амрагтай',
@@ -192,6 +197,15 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Non-delivery complaints — Latin transliterations
     'irehgui', 'ireegui', 'ireedgui',
     'baraa irehgui', 'baraa ireegui',
+    // Driver contact failure — very common delivery complaint
+    'жолооч холбоо барьсангүй', 'жолооч утас авсангүй',
+    'жолооч ирсэнгүй', 'жолооч ирэхгүй',
+    'холбоо барьсангүй', 'утас авсангүй', 'холбоогүй',
+    'жолооч дуудаагүй', 'жолооч мессеж илгээгүй',
+    // Wrong item/color arrived — strong complaint signal (beats product_search's "өнгө")
+    'гэтэл ийм', 'гэтэл өөр', 'гэтэл буруу',
+    'өнгө ирсэн', 'хэмжээ ирсэн', 'загвар ирсэн',
+    'ийм өнгө', 'ийм хэмжээ', 'ийм загвар',
   ],
   return_exchange: [
     // Core — return/exchange policy questions (moved from complaint)
@@ -236,6 +250,12 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'hemjee tom', 'hemjee jijig', 'tom baina', 'jijig bna',
     'soliulj boloh uu', 'soliulj', 'solih',
     'butsaah bolomj', 'butaaj ug', 'butaaj og',
+    // Latin wrong-product pattern: "zahisan" (short for захиалсан) + size mismatch
+    // e.g. "XL zahisan L sz irsen" = "ordered XL but L came"
+    // NOTE: 'irsen bn'/'ирсен бн' removed — "бн" token contaminates "bn uu" (greeting abbr)
+    'zahisan', 'захисан',
+    // Wrong color/item arrived (complements complaint keywords)
+    'өнгө ирсэн', 'өнгө ирсен',
   ],
   size_info: [
     // Core
@@ -310,6 +330,13 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хэдэн өдөр', 'хэдэн хоног',
     'хурдан', 'яаралтай хүргэлт',
     'өнөөдөр хүргэх', 'маргааш',
+    // Delivery timing — "can you deliver tomorrow/day-after?" (нөөдөр = day after tomorrow colloquially)
+    'нөөдөр хүргэж', 'нөөдөр хүргэх', 'нөөдөр ирэх', 'нөөдөр',
+    'хүргэж болох уу', 'хүргэж өгч болох уу', 'хүргэж чадах уу',
+    'маргааш хүргэж', 'өнөөдөр хүргэж',
+    // "хэдэн өдрийн дотор ирэх вэ" = "within how many days will it arrive?" → shipping
+    // "дотор" alone prefix-matches clothing keyword "дотортой" → must use compound
+    'өдрийн дотор ирэх', 'хоногийн дотор ирэх', 'дотор ирэх вэ', 'дотор ирэх',
     // Delivery price / cost queries (compound keywords so shipping beats product_search's "үнэ")
     'хүргэлтийн үнэ', 'хүргэлт үнэ', 'хүргэлтийн зардал', 'хүргэлтийн хөлс',
     'хүргэлт хэд', 'хүргэлт хэдэн',
