@@ -65,6 +65,15 @@ function getSupabase() {
   })
 }
 
+/** Fetch delivery metadata and merge with new fields (prevents overwriting existing metadata) */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function mergedDeliveryMeta(supabase: any, deliveryId: string, newFields: Record<string, unknown>): Promise<Record<string, unknown>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any).from('deliveries').select('metadata').eq('id', deliveryId).single()
+  const existing = (data?.metadata ?? {}) as Record<string, unknown>
+  return { ...existing, ...newFields }
+}
+
 /** Get all staff + store_members Telegram chat IDs for a store */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getStaffMemberChatIds(supabase: any, storeId: string): Promise<string[]> {
@@ -491,7 +500,7 @@ async function handleCallbackQuery(
         .update({
           status: 'delivered',
           actual_delivery_time: new Date().toISOString(),
-          metadata: { payment_followup: true },
+          metadata: await mergedDeliveryMeta(supabase, deliveryId, { payment_followup: true }),
         })
         .eq('id', deliveryId)
 
@@ -784,11 +793,14 @@ async function handleCallbackQuery(
           data: { delivery_id: dtDeliveryId, eta: etaIso },
         }).then(null, () => {})
 
-        // Update order notes
+        // Append to order notes
         if (delayedDel.order_id) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: dtOrd } = await (supabase as any).from('orders').select('notes').eq('id', delayedDel.order_id).single()
+          const dtExisting = (dtOrd?.notes as string) || ''
+          const dtNote = `⏰ Хойшлуулсан: ${etaLabel}`
           await (supabase as any).from('orders')
-            .update({ notes: `⏰ Хойшлуулсан: ${etaLabel}` })
+            .update({ notes: dtExisting ? `${dtExisting}\n${dtNote}` : dtNote })
             .eq('id', delayedDel.order_id)
         }
 
@@ -829,7 +841,7 @@ async function handleCallbackQuery(
         .update({
           status: 'failed',
           notes: 'Буруу бараа — зураг хүлээж байна',
-          metadata: { awaiting_wrong_photo: true },
+          metadata: await mergedDeliveryMeta(supabase, deliveryId, { awaiting_wrong_photo: true }),
         })
         .eq('id', deliveryId)
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
@@ -938,7 +950,12 @@ async function handleCallbackQuery(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Гэмтсэн бараа' }).eq('id', deliveryId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: dmDel } = await (supabase as any).from('deliveries').select('delivery_number, store_id, customer_name, customer_phone, delivery_address').eq('id', deliveryId).single()
+      const { data: dmDel } = await (supabase as any).from('deliveries').select('delivery_number, store_id, order_id, customer_name, customer_phone, delivery_address').eq('id', deliveryId).single()
+      // Update order status to failed
+      if (dmDel?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders').update({ payment_status: 'failed' }).eq('id', dmDel.order_id)
+      }
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) await tgEdit(chatId, messageId, `${dmHeader}💔 <b>ГЭМТСЭН БАРАА</b>\nЗураг авч, агуулахад буцааж өгнө үү.`, { replyMarkup: { inline_keyboard: [] } })
       if (dmDel) {
@@ -973,7 +990,12 @@ async function handleCallbackQuery(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('deliveries').update({ status: 'failed', notes: 'Харилцагч мөнгө өгсөнгүй' }).eq('id', deliveryId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: npDel } = await (supabase as any).from('deliveries').select('delivery_number, store_id, customer_name, customer_phone, delivery_address').eq('id', deliveryId).single()
+      const { data: npDel } = await (supabase as any).from('deliveries').select('delivery_number, store_id, order_id, customer_name, customer_phone, delivery_address').eq('id', deliveryId).single()
+      // Update order status to failed
+      if (npDel?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('orders').update({ payment_status: 'failed' }).eq('id', npDel.order_id)
+      }
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) await tgEdit(chatId, messageId, `${npHeader}💰 <b>МӨНГӨ ӨГСӨНГҮЙ</b>\nДэлгүүрт мэдэгдлээ.`, { replyMarkup: { inline_keyboard: [] } })
       if (npDel) {
@@ -1299,7 +1321,7 @@ async function handleCallbackQuery(
         .update({
           status: 'in_transit',
           estimated_delivery_time: wiz3.eta,
-          metadata: { intercity_handoff: handoff },
+          metadata: await mergedDeliveryMeta(supabase, deliveryId, { intercity_handoff: handoff }),
           updated_at: new Date().toISOString(),
         })
         .eq('id', wiz3.delivery_id)
@@ -2069,9 +2091,20 @@ export async function POST(request: NextRequest) {
   if (awaitingDelayDeliveryId && text && !text.startsWith('/')) {
     // Save the custom ETA text as a note + mark delayed (separate update from select)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Parse simple delay hints from text, default to 3 days
+    let customEta = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) // default 3 days
+    const lowerText = text.toLowerCase()
+    if (/маргааш|margaash|tomorrow/i.test(lowerText)) {
+      customEta = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    } else if (/7 хоног|долоо хоног|1 week|7 honog/i.test(lowerText)) {
+      customEta = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    } else if (/(\d+)\s*(?:хоног|honog|өдөр|odor|day)/i.test(lowerText)) {
+      const days = parseInt(RegExp.$1, 10)
+      if (days > 0 && days <= 30) customEta = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+    }
     await (supabase as any)
       .from('deliveries')
-      .update({ status: 'delayed', notes: `Хоцрох: ${text}` })
+      .update({ status: 'delayed', notes: `Хоцрох: ${text}`, estimated_delivery_time: customEta.toISOString() })
       .eq('id', awaitingDelayDeliveryId)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: customDelDel } = await (supabase as any)
@@ -2109,11 +2142,14 @@ export async function POST(request: NextRequest) {
         data: { delivery_id: awaitingDelayDeliveryId, eta_text: text },
       }).then(null, () => {})
 
-      // Update order notes
+      // Append to order notes
       if (customDelDel.order_id) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: cdOrd } = await (supabase as any).from('orders').select('notes').eq('id', customDelDel.order_id).single()
+        const cdExisting = (cdOrd?.notes as string) || ''
+        const cdNote = `⏰ Хойшлуулсан: ${text}`
         await (supabase as any).from('orders')
-          .update({ notes: `⏰ Хойшлуулсан: ${text}` })
+          .update({ notes: cdExisting ? `${cdExisting}\n${cdNote}` : cdNote })
           .eq('id', customDelDel.order_id)
       }
 
@@ -2227,7 +2263,7 @@ export async function POST(request: NextRequest) {
         .update({
           status: 'delivered',
           actual_delivery_time: new Date().toISOString(),
-          metadata: { custom_payment: { amount, reason, recorded_at: new Date().toISOString() } },
+          metadata: await mergedDeliveryMeta(supabase, delId, { custom_payment: { amount, reason, recorded_at: new Date().toISOString() } }),
         })
         .eq('id', delId)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2355,7 +2391,7 @@ export async function POST(request: NextRequest) {
       .from('deliveries')
       .update({
         status: 'failed',
-        metadata: { refusal_reason: reason, customer_refused: true },
+        metadata: await mergedDeliveryMeta(supabase, delId, { refusal_reason: reason, customer_refused: true }),
         updated_at: new Date().toISOString(),
       })
       .eq('id', delId)
@@ -2427,7 +2463,7 @@ export async function POST(request: NextRequest) {
           // Also mark delivery metadata for tracking
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('deliveries').update({
-            metadata: { refusal_reason: reason, customer_refused: true, customer_refusal_followup: true },
+            metadata: await mergedDeliveryMeta(supabase, delId, { refusal_reason: reason, customer_refused: true, customer_refusal_followup: true }),
           }).eq('id', delId)
         }
       } catch (followUpErr) {
@@ -2625,7 +2661,7 @@ export async function POST(request: NextRequest) {
       .from('deliveries')
       .update({
         notes: 'Буруу бараа — зураг илгээсэн',
-        metadata: { awaiting_wrong_photo: false, wrong_item_photo_url: wrongPhotoUrl, wrong_item_photo_file_id: fileId },
+        metadata: await mergedDeliveryMeta(supabase, wrongDeliveryId, { awaiting_wrong_photo: false, wrong_item_photo_url: wrongPhotoUrl, wrong_item_photo_file_id: fileId }),
       })
       .eq('id', wrongDeliveryId)
       .select('delivery_number, store_id, order_id, customer_name, customer_phone, delivery_address')

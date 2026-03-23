@@ -251,7 +251,7 @@ export async function processAIChat(
           case 'confirming': {
             // If the customer is clearly complaining mid-order, acknowledge it
             // and keep the draft alive so they can confirm/cancel later.
-            const isComplaint = /yaagaad|uulaad|uurlasan|udaan|mongoo|butsaaj|munguu|gомдол|муу|буцаа|яагаад|уурла|удаан|гомдол/i.test(customerMessage)
+            const isComplaint = /yaagaad|uulaad|uurlasan|udaan|mongoo|butsaaj|munguu|гомдол|(?<![а-яөүё])муу(?![а-яөүё])|буцаа|яагаад|уурла|удаан/i.test(customerMessage)
             if (isComplaint && !isAffirmative(customerMessage) && !isNegative(customerMessage)) {
               orderDraft = draft
               intent = 'complaint'

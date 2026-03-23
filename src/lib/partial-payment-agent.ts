@@ -56,6 +56,14 @@ const QUICK_REPLIES = [
 
 // ---------- Admin client helper ----------
 
+/** Append to order notes instead of overwriting */
+async function appendOrderNote(supabase: SupabaseClient, orderId: string, note: string) {
+  const { data } = await supabase.from('orders').select('notes').eq('id', orderId).single()
+  const existing = (data?.notes as string) || ''
+  const newNotes = existing ? `${existing}\n${note}` : note
+  await supabase.from('orders').update({ notes: newNotes }).eq('id', orderId)
+}
+
 function getAdminSupabase(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
@@ -513,9 +521,7 @@ export async function handlePartialPaymentReply(params: {
     // Update order notes with resolution
     if (orderId) {
       const fmtPaid = new Intl.NumberFormat('mn-MN').format(resolution.paid_amount)
-      await supabase.from('orders').update({
-        notes: `AI шийдвэр: ✅ ${evaluation.category}. ${fmtPaid}₮ авсан. Шалтгаан: ${reason}`,
-      }).eq('id', orderId)
+      await appendOrderNote(supabase, orderId, `AI шийдвэр: ✅ ${evaluation.category}. ${fmtPaid}₮ авсан. Шалтгаан: ${reason}`)
     }
 
     return { handled: true, response }
@@ -575,9 +581,7 @@ export async function handlePartialPaymentReply(params: {
       // Update order notes
       if (orderId) {
         const fmtPaid = new Intl.NumberFormat('mn-MN').format(resolution.paid_amount)
-        await supabase.from('orders').update({
-          notes: `AI шийдвэр: ❌ ${evaluation.category}. ${fmtPaid}₮/${new Intl.NumberFormat('mn-MN').format(resolution.total_amount)}₮. QPay илгээсэн.`,
-        }).eq('id', orderId)
+        await appendOrderNote(supabase, orderId, `AI шийдвэр: ❌ ${evaluation.category}. ${fmtPaid}₮/${new Intl.NumberFormat('mn-MN').format(resolution.total_amount)}₮. QPay илгээсэн.`)
       }
 
       return { handled: true, response }
@@ -600,6 +604,8 @@ export async function handlePartialPaymentReply(params: {
         is_ai_response: true,
         metadata: { type: 'partial_payment_agent', turn: turnCount },
       })
+      // Bump conversation so it appears at top of chat list
+      await supabase.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId)
 
       return { handled: true, response }
     }

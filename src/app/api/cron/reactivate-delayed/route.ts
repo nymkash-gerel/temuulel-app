@@ -83,8 +83,12 @@ export async function GET(request: NextRequest) {
 
     // Update order notes
     if (orderId) {
+      // Append to existing notes
+      const { data: existingOrder } = await supabase.from('orders').select('notes').eq('id', orderId).single()
+      const existingNotes = (existingOrder?.notes as string) || ''
+      const newNote = `🔔 Хойшлуулсан хугацаа дууслаа — дахин хүргэлтэнд бэлэн`
       await supabase.from('orders')
-        .update({ notes: `🔔 Хойшлуулсан хугацаа дууслаа — дахин хүргэлтэнд бэлэн` })
+        .update({ notes: existingNotes ? `${existingNotes}\n${newNote}` : newNote })
         .eq('id', orderId)
     }
 

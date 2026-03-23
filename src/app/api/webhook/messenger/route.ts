@@ -304,10 +304,16 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
               redeliveryMsg = 'Захиалга цуцлагдлаа. Баярлалаа!'
             } else {
               let etaLabel = ''
-              if (action === 'REDELIVERY_TODAY') etaLabel = 'Өнөөдөр'
-              else if (action === 'REDELIVERY_TOMORROW') etaLabel = 'Маргааш'
-              else if (action === 'REDELIVERY_WEEK') etaLabel = 'Энэ 7 хоногт'
-              await supabase.from('deliveries').update({ notes: `Дахин хүргэлт: ${etaLabel}` }).eq('id', delId)
+              let etaDate = new Date()
+              if (action === 'REDELIVERY_TODAY') { etaLabel = 'Өнөөдөр'; etaDate = new Date() }
+              else if (action === 'REDELIVERY_TOMORROW') { etaLabel = 'Маргааш'; etaDate = new Date(Date.now() + 24 * 60 * 60 * 1000) }
+              else if (action === 'REDELIVERY_WEEK') { etaLabel = 'Энэ 7 хоногт'; etaDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+              await supabase.from('deliveries').update({
+                status: 'pending',
+                driver_id: null,
+                notes: `Дахин хүргэлт: ${etaLabel}`,
+                estimated_delivery_time: etaDate.toISOString(),
+              }).eq('id', delId)
               redeliveryMsg = `Баярлалаа! ${etaLabel} хүргэхээр бүртгэлээ.`
               // Notify staff
               const { data: rdel } = await supabase.from('deliveries').select('delivery_number, store_id').eq('id', delId).single()
@@ -316,7 +322,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
                   store_id: rdel.store_id, type: 'delivery_assigned',
                   title: '📦 Дахин хүргэлт баталгаажлаа',
                   body: `#${rdel.delivery_number}: Харилцагч "${etaLabel}" гэж баталлаа.`,
-                  metadata: { delivery_id: delId },
+                  data: { delivery_id: delId },
                 }).then(null, () => {})
                 // Telegram notify
                 const rdBotToken = process.env.TELEGRAM_BOT_TOKEN
@@ -379,6 +385,16 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
               await sendQuickReplies(senderId, flowResult.response, flowResult.quick_replies, pageToken)
             } else if (flowResult.response) {
               await sendTextMessage(senderId, flowResult.response, pageToken)
+            }
+            // Save flow response to messages so it appears in dashboard chat
+            if (flowResult.response) {
+              await supabase.from('messages').insert({
+                conversation_id: conversation.id,
+                content: flowResult.response,
+                is_from_customer: false,
+                is_ai_response: true,
+                metadata: { type: 'flow_response' },
+              }).then(null, () => {})
             }
             continue
           }
@@ -452,14 +468,15 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
             console.warn('[AI] No response text returned')
           }
 
-          // Post-reply escalation check — only for complaint/frustration intents
-          const INFORMATIONAL_INTENTS = [
-            'greeting', 'thanks', 'product_search', 'order_status', 'shipping',
-            'payment', 'size_info', 'table_reservation', 'allergen_info',
-            'menu_availability', 'order_collection', 'order_created',
-            'product_detail', 'price_info', 'gift_card_purchase', 'gift_card_redeem',
+          // Post-reply escalation check — match widget route logic:
+          // Only skip truly low-risk intents. product_search/order_status are NOT
+          // excluded — frustrated customers often get misclassified into these.
+          const SKIP_ESCALATION_INTENTS = [
+            'greeting', 'thanks', 'order_created',
+            'gift_card_purchase', 'gift_card_redeem',
           ]
-          if (!INFORMATIONAL_INTENTS.includes(aiIntent)) {
+          const inCheckout = aiIntent === 'order_collection'
+          if (!SKIP_ESCALATION_INTENTS.includes(aiIntent) && !inCheckout) {
             const esc = await processEscalation(
               supabase, conversation.id, messageText, store.id, chatbotSettings
             )

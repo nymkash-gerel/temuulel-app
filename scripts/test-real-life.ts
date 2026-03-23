@@ -39,6 +39,15 @@
  *  32. Wrong Item Photo → Detail Page
  *  33. Staff Telegram Notify — Damaged/No Payment
  *  34. 24h Messenger Window Expired → SMS
+ *  35. Metadata Merge (not overwrite) — damaged handler preserves existing metadata
+ *  36. Custom Delay sets estimated_delivery_time for cron reactivation
+ *  37. damaged/no_payment updates order.payment_status to 'failed'
+ *  38. Order Notes Append (not overwrite)
+ *  39. Messenger Escalation — product_search intent still triggers escalation
+ *  40. Complaint Regex — 'юмуу' does NOT trigger complaint, 'муу бараа' DOES
+ *  41. Full Operational Flow A: Chat → Order → Driver → Deliver → Payment → Tracking
+ *  42. Full Operational Flow B: Chat → Order → Driver → Partial Payment → AI Agent → Resolution
+ *  43. Full Operational Flow C: Chat → Order → Driver → Postpone → Cron Reactivate → Redelivery
  *
  * Usage:
  *   E2E_RATE_LIMIT_BYPASS=true npx tsx scripts/test-real-life.ts
@@ -3126,7 +3135,7 @@ async function scenario25(api: string, storeId: string) {
   // Verify status = delayed
   let { data: del } = await sb
     .from('deliveries')
-    .select('status, notes')
+    .select('status, notes, estimated_delivery_time, actual_delivery_time')
     .eq('id', result.deliveryId)
     .single()
 
@@ -3167,7 +3176,7 @@ async function scenario25(api: string, storeId: string) {
   // Verify delivery is delayed with ETA
   ;({ data: del } = await sb
     .from('deliveries')
-    .select('status, estimated_delivery_time, notes')
+    .select('status, notes, estimated_delivery_time, actual_delivery_time')
     .eq('id', result.deliveryId)
     .single())
 
@@ -3238,7 +3247,7 @@ async function scenario25(api: string, storeId: string) {
   // Verify final state
   ;({ data: del } = await sb
     .from('deliveries')
-    .select('status, actual_delivery_time')
+    .select('status, notes, estimated_delivery_time, actual_delivery_time')
     .eq('id', result.deliveryId)
     .single())
 
@@ -4556,6 +4565,667 @@ async function scenario34(api: string, storeId: string) {
 }
 
 // ============================================================================
+// Scenario 35: Metadata Merge (not overwrite)
+// ============================================================================
+
+async function scenario35(api: string, storeId: string) {
+  section('\n📋 Scenario 35: Metadata Merge — damaged preserves existing metadata')
+  let pass = true
+
+  // Phase 1: Create order + assign + pickup
+  console.log('  ── Phase 1: Create order + pickup ──')
+  const result = await createOrderViaChat(api, storeId, 'meta_merge')
+  if (!result) { dbFail('Failed to create order'); scenarioResult(false); return }
+  dbOk(`Order ${result.orderNumber} created`)
+
+  const driverId = await getOrCreateDriver(storeId)
+  await assignAndPickup(api, result.deliveryId, driverId)
+
+  // Phase 2: Seed existing metadata on delivery (simulate batch_ids, telegram_message_id)
+  console.log('  ── Phase 2: Seed existing metadata ──')
+  await sb.from('deliveries').update({
+    metadata: { batch_ids: ['batch-123'], telegram_message_id: 999, custom_field: 'test' },
+  }).eq('id', result.deliveryId)
+  await delay(300)
+
+  // Phase 3: Driver taps damaged
+  console.log('  ── Phase 3: Driver taps damaged ──')
+  const dmRes = await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_dm_${Date.now()}`,
+      from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 2, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `damaged:${result.deliveryId}`,
+    },
+  })
+  ok(1, `damaged → ${dmRes.status === 200 ? '✅' : '🔴'} HTTP ${dmRes.status}`)
+  await delay(1000)
+
+  // Phase 4: Verify metadata was MERGED, not overwritten
+  console.log('  ── Phase 4: Verify metadata merge ──')
+  const { data: del } = await sb.from('deliveries').select('metadata').eq('id', result.deliveryId).single()
+  const meta = del?.metadata as Record<string, unknown> | null
+
+  if (meta?.batch_ids) {
+    dbOk(`batch_ids preserved: ${JSON.stringify(meta.batch_ids)}`)
+  } else {
+    dbFail(`batch_ids LOST — metadata overwritten! Got: ${JSON.stringify(meta)}`)
+    pass = false
+  }
+
+  if (meta?.telegram_message_id === 999) {
+    dbOk('telegram_message_id preserved')
+  } else {
+    dbFail(`telegram_message_id LOST — got: ${meta?.telegram_message_id}`)
+    pass = false
+  }
+
+  if (meta?.custom_field === 'test') {
+    dbOk('custom_field preserved')
+  } else {
+    dbFail(`custom_field LOST — got: ${meta?.custom_field}`)
+    pass = false
+  }
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
+// Scenario 36: Custom Delay sets estimated_delivery_time
+// ============================================================================
+
+async function scenario36(api: string, storeId: string) {
+  section('\n📋 Scenario 36: Custom Delay sets estimated_delivery_time for cron')
+  let pass = true
+
+  const result = await createOrderViaChat(api, storeId, 'custom_delay_eta')
+  if (!result) { dbFail('Failed to create order'); scenarioResult(false); return }
+  dbOk(`Order ${result.orderNumber} created`)
+
+  const driverId = await getOrCreateDriver(storeId)
+  await assignAndPickup(api, result.deliveryId, driverId)
+
+  // Driver taps delay → custom
+  console.log('  ── Phase 2: Driver taps delay → custom ──')
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_delay_${Date.now()}`,
+      from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 2, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `delay:${result.deliveryId}`,
+    },
+  })
+  await delay(500)
+
+  // Select custom
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_delaycustom_${Date.now()}`,
+      from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 3, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `delay_time:custom:${result.deliveryId}`,
+    },
+  })
+  await delay(500)
+
+  // Driver types free-text delay: "3 хоногийн дараа"
+  console.log('  ── Phase 3: Driver types "3 хоногийн дараа" ──')
+  const textRes = await driverWebhook(api, {
+    update_id: Date.now(),
+    message: {
+      message_id: Date.now(),
+      from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      chat: { id: DRIVER_CHAT_ID, type: 'private' },
+      text: '3 хоногийн дараа',
+      date: Math.floor(Date.now() / 1000),
+    },
+  })
+  ok(1, `Custom delay text → ${textRes.status === 200 ? '✅' : '🔴'}`)
+  await delay(1000)
+
+  // Phase 4: Verify estimated_delivery_time is set
+  console.log('  ── Phase 4: Verify estimated_delivery_time ──')
+  const { data: del } = await sb.from('deliveries')
+    .select('status, estimated_delivery_time, notes')
+    .eq('id', result.deliveryId).single()
+
+  if (del?.status === 'delayed') {
+    dbOk(`status = 'delayed'`)
+  } else {
+    dbFail(`status = '${del?.status}' (expected 'delayed')`)
+    pass = false
+  }
+
+  if (del?.estimated_delivery_time) {
+    const eta = new Date(del.estimated_delivery_time)
+    const now = new Date()
+    const diffDays = (eta.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    if (diffDays > 1 && diffDays < 5) {
+      dbOk(`estimated_delivery_time set (~${diffDays.toFixed(1)} days from now) — cron will reactivate`)
+    } else {
+      dbFail(`estimated_delivery_time = ${del.estimated_delivery_time} (~${diffDays.toFixed(1)} days — expected ~3)`)
+      pass = false
+    }
+  } else {
+    dbFail('estimated_delivery_time is NULL — cron will NEVER reactivate this delivery!')
+    pass = false
+  }
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
+// Scenario 37: damaged/no_payment updates order.payment_status
+// ============================================================================
+
+async function scenario37(api: string, storeId: string) {
+  section('\n📋 Scenario 37: damaged/no_payment updates order.payment_status')
+  let pass = true
+
+  // Test A: damaged
+  console.log('  ── Test A: damaged → order.payment_status = failed ──')
+  const resultA = await createOrderViaChat(api, storeId, 'dmg_order')
+  if (!resultA) { dbFail('Failed to create order A'); scenarioResult(false); return }
+
+  const driverId = await getOrCreateDriver(storeId)
+  await assignAndPickup(api, resultA.deliveryId, driverId)
+
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_dmg_${Date.now()}`,
+      from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 2, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `damaged:${resultA.deliveryId}`,
+    },
+  })
+  await delay(1000)
+
+  const { data: ordA } = await sb.from('orders').select('payment_status').eq('id', resultA.orderId).single()
+  if (ordA?.payment_status === 'failed') {
+    dbOk(`[damaged] order.payment_status = 'failed' ✅`)
+  } else {
+    dbFail(`[damaged] order.payment_status = '${ordA?.payment_status}' (expected 'failed')`)
+    pass = false
+  }
+
+  // Test B: no_payment
+  console.log('  ── Test B: no_payment → order.payment_status = failed ──')
+  const resultB = await createOrderViaChat(api, storeId, 'nopay_order')
+  if (!resultB) { dbFail('Failed to create order B'); scenarioResult(false); return }
+
+  await assignAndPickup(api, resultB.deliveryId, driverId)
+
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_np_${Date.now()}`,
+      from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 2, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `no_payment:${resultB.deliveryId}`,
+    },
+  })
+  await delay(1000)
+
+  const { data: ordB } = await sb.from('orders').select('payment_status').eq('id', resultB.orderId).single()
+  if (ordB?.payment_status === 'failed') {
+    dbOk(`[no_payment] order.payment_status = 'failed' ✅`)
+  } else {
+    dbFail(`[no_payment] order.payment_status = '${ordB?.payment_status}' (expected 'failed')`)
+    pass = false
+  }
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
+// Scenario 38: Order Notes Append (not overwrite)
+// ============================================================================
+
+async function scenario38(api: string, storeId: string) {
+  section('\n📋 Scenario 38: Order Notes Append — delay preserves existing notes')
+  let pass = true
+
+  const result = await createOrderViaChat(api, storeId, 'notes_append')
+  if (!result) { dbFail('Failed to create order'); scenarioResult(false); return }
+
+  // Seed existing notes on order
+  await sb.from('orders').update({ notes: 'Жолооч: 30000₮ авсан. Шалтгаан: hurgelt unegui' }).eq('id', result.orderId)
+  await delay(300)
+
+  const driverId = await getOrCreateDriver(storeId)
+  await assignAndPickup(api, result.deliveryId, driverId)
+
+  // Driver delays with preset "week"
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_delay_${Date.now()}`,
+      from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 2, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `delay:${result.deliveryId}`,
+    },
+  })
+  await delay(500)
+
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_delayweek_${Date.now()}`,
+      from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 3, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `delay_time:week:${result.deliveryId}`,
+    },
+  })
+  await delay(1000)
+
+  // Verify notes were APPENDED, not overwritten
+  const { data: ord } = await sb.from('orders').select('notes').eq('id', result.orderId).single()
+  const notes = ord?.notes as string || ''
+
+  if (notes.includes('Жолооч: 30000₮') && notes.includes('Хойшлуулсан')) {
+    dbOk(`Notes appended correctly: "${notes.substring(0, 80)}..."`)
+  } else if (notes.includes('Хойшлуулсан') && !notes.includes('Жолооч')) {
+    dbFail(`Original notes OVERWRITTEN! Got: "${notes}"`)
+    pass = false
+  } else {
+    dbFail(`Notes unexpected: "${notes}"`)
+    pass = false
+  }
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
+// Scenario 39: Messenger Escalation — product_search triggers escalation
+// ============================================================================
+
+async function scenario39(api: string, storeId: string) {
+  section('\n📋 Scenario 39: Messenger Escalation — frustrated product_search triggers escalation')
+  let pass = true
+
+  // Send 4 frustrated messages via widget (simulating Messenger behavior)
+  const sid = `web_e2e_esc_messenger_${Date.now()}`
+  let r = await chat(api, storeId, sid, 'Яагаад бараагаа олж өгөхгүй байна вэ??')
+  const convId = r.conversationId
+  ok(1, `Frustrated msg 1 → ${r.intent} (${r.aiStatus})`)
+
+  r = await chat(api, storeId, sid, 'Маш удаан байна! Хариу өгөхгүй юм!', convId)
+  ok(2, `Frustrated msg 2 → ${r.intent} (${r.aiStatus})`)
+
+  r = await chat(api, storeId, sid, 'Энэ ямар муу бараатай дэлгүүр вэ???', convId)
+  ok(3, `Frustrated msg 3 → ${r.intent} (${r.aiStatus})`)
+
+  r = await chat(api, storeId, sid, 'Гомдол гаргана шүү! Manager дуудаарай!!!', convId)
+  ok(4, `Frustrated msg 4 → ${r.intent} (${r.aiStatus})`)
+  await delay(1000)
+
+  // Check escalation
+  const { data: conv } = await sb.from('conversations')
+    .select('escalation_score, escalation_level, status')
+    .eq('id', convId).single()
+
+  if (conv?.escalation_score && conv.escalation_score > 0) {
+    dbOk(`escalation_score = ${conv.escalation_score}`)
+  } else {
+    dbFail(`escalation_score = ${conv?.escalation_score} (expected > 0 — escalation not firing for frustrated messages)`)
+    pass = false
+  }
+
+  // Note: escalation status might not be 'escalated' if score didn't cross threshold
+  // but score should at least be non-zero
+  console.log(`  DB: escalation_level = ${conv?.escalation_level || 'none'}, status = ${conv?.status}`)
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
+// Scenario 40: Complaint Regex — 'юмуу' does NOT trigger, 'муу бараа' DOES
+// ============================================================================
+
+async function scenario40(api: string, storeId: string) {
+  section('\n📋 Scenario 40: Complaint Regex — word boundary for муу')
+  let pass = true
+
+  // Test A: "энэ юмуу тэр юмуу?" during checkout should NOT be complaint
+  console.log('  ── Test A: "юмуу" should NOT trigger complaint ──')
+  const sidA = `web_e2e_muu_false_${Date.now()}`
+  let r = await chat(api, storeId, sidA, 'Цамц байна уу?')
+  r = await chat(api, storeId, sidA, '1', r.conversationId)
+  r = await chat(api, storeId, sidA, 'Бат', r.conversationId)
+  r = await chat(api, storeId, sidA, '99887766', r.conversationId)
+  r = await chat(api, storeId, sidA, 'БГД 3-р хороо', r.conversationId)
+  // At confirming step, ask a question with 'юмуу'
+  r = await chat(api, storeId, sidA, 'энэ юмуу тэр юмуу?', r.conversationId)
+
+  if (r.intent !== 'complaint') {
+    ok(1, `"юмуу" → ${r.intent} (NOT complaint) ✅`)
+  } else {
+    ok(1, `"юмуу" → ${r.intent} 🔴 FALSE POSITIVE — юмуу triggered complaint!`)
+    pass = false
+  }
+
+  // Test B: "муу бараа" should be complaint
+  console.log('  ── Test B: "муу бараа" SHOULD trigger complaint ──')
+  const sidB = `web_e2e_muu_true_${Date.now()}`
+  let rB = await chat(api, storeId, sidB, 'Цамц байна уу?')
+  rB = await chat(api, storeId, sidB, '1', rB.conversationId)
+  rB = await chat(api, storeId, sidB, 'Бат', rB.conversationId)
+  rB = await chat(api, storeId, sidB, '99887766', rB.conversationId)
+  rB = await chat(api, storeId, sidB, 'БГД 3-р хороо', rB.conversationId)
+  rB = await chat(api, storeId, sidB, 'Яагаад ийм муу бараатай байна вэ??', rB.conversationId)
+
+  if (rB.intent === 'complaint') {
+    ok(2, `"муу бараа" → complaint ✅`)
+  } else {
+    ok(2, `"муу бараа" → ${rB.intent} 🔴 MISSED — should be complaint`)
+    pass = false
+  }
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
+// Scenario 41: Full Operational Flow A — Happy Path End-to-End
+// ============================================================================
+
+async function scenario41(api: string, storeId: string) {
+  section('\n📋 Scenario 41: Full Operational Flow A — Chat → Order → Driver → Payment → Track')
+  let pass = true
+
+  // Phase 1: Customer conversation
+  console.log('  ── Phase 1: Customer chat flow ──')
+  const sid = `web_e2e_fullA_${Date.now()}`
+
+  let r = await chat(api, storeId, sid, 'Сайн байна уу')
+  if (r.intent !== 'greeting') { ok(1, `greeting → 🔴 ${r.intent}`); pass = false }
+  else ok(1, `greeting → ✅`)
+
+  r = await chat(api, storeId, sid, 'Цамц байна уу?', r.conversationId)
+  if (r.intent !== 'product_search' || r.productsFound === 0) { ok(2, `product_search → 🔴 ${r.intent}, products=${r.productsFound}`); pass = false }
+  else ok(2, `product_search → ✅ ${r.productsFound} products`)
+
+  r = await chat(api, storeId, sid, '1', r.conversationId)
+  ok(3, `select → ${r.intent}, step=${r.orderStep}`)
+
+  r = await chat(api, storeId, sid, 'Болдбаатар', r.conversationId)
+  if (r.intent === 'greeting') { ok(4, `name → 🔴 classified as greeting!`); pass = false }
+  else ok(4, `name "Болдбаатар" → ✅ NOT greeting`)
+
+  r = await chat(api, storeId, sid, '99112233', r.conversationId)
+  ok(5, `phone → ${r.intent}, step=${r.orderStep}`)
+
+  r = await chat(api, storeId, sid, 'СБД 8-р хороо 45 байр 301 тоот', r.conversationId)
+  ok(6, `address → ${r.intent}, step=${r.orderStep}`)
+
+  r = await chat(api, storeId, sid, 'Тийм', r.conversationId)
+  ok(7, `confirm → ${r.intent}`)
+  await delay(1500)
+
+  // Phase 2: Verify order + delivery in DB
+  console.log('  ── Phase 2: DB verification ──')
+  const { data: customer } = await sb.from('customers').select('id').eq('messenger_id', sid).single()
+  if (!customer) { dbFail('Customer not found'); scenarioResult(false); return }
+
+  const { data: order } = await sb.from('orders').select('id, order_number, total_amount, payment_status')
+    .eq('customer_id', customer.id).order('created_at', { ascending: false }).limit(1).single()
+  if (!order) { dbFail('Order not found'); scenarioResult(false); return }
+  dbOk(`Order ${order.order_number} created (${order.total_amount}₮)`)
+  totalOrders++
+
+  const { data: delivery } = await sb.from('deliveries').select('id, delivery_number, delivery_fee')
+    .eq('order_id', order.id).single()
+  if (!delivery) { dbFail('Delivery not found'); scenarioResult(false); return }
+  dbOk(`Delivery ${delivery.delivery_number} (fee: ${delivery.delivery_fee}₮)`)
+  totalDeliveries++
+
+  // Phase 3: Driver flow
+  console.log('  ── Phase 3: Driver pickup → deliver → payment ──')
+  const driverId = await getOrCreateDriver(storeId)
+  const pickedUp = await assignAndPickup(api, delivery.id, driverId)
+  ok(8, `pickup → ${pickedUp ? '✅' : '🔴'}`)
+  if (!pickedUp) pass = false
+
+  // Deliver
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_del_${Date.now()}`, from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 2, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `delivered:${delivery.id}`,
+    },
+  })
+  await delay(500)
+
+  // Payment full
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_pay_${Date.now()}`, from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 3, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `payment_full:${delivery.id}`,
+    },
+  })
+  await delay(1000)
+
+  // Phase 4: Verify final state
+  console.log('  ── Phase 4: Final verification ──')
+  const { data: delFinal } = await sb.from('deliveries').select('status').eq('id', delivery.id).single()
+  if (delFinal?.status === 'delivered') dbOk('delivery.status = delivered')
+  else { dbFail(`delivery.status = '${delFinal?.status}'`); pass = false }
+
+  const { data: ordFinal } = await sb.from('orders').select('payment_status').eq('id', order.id).single()
+  if (ordFinal?.payment_status === 'paid') dbOk('order.payment_status = paid')
+  else { dbFail(`order.payment_status = '${ordFinal?.payment_status}'`); pass = false }
+
+  // Phase 5: Customer asks "хаана явж байна?"
+  console.log('  ── Phase 5: Order tracking ──')
+  r = await chat(api, storeId, sid, 'Захиалга хаана явж байна?', r.conversationId)
+  if (r.intent === 'order_status') ok(9, `tracking → ✅ order_status`)
+  else ok(9, `tracking → ${r.intent} (expected order_status)`)
+
+  // Phase 6: Verify notification exists
+  const { data: notifs } = await sb.from('notifications').select('id')
+    .eq('store_id', storeId).gte('created_at', TEST_START).limit(1)
+  if (notifs && notifs.length > 0) dbOk('Store notification created')
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
+// Scenario 42: Full Operational Flow B — Partial Payment → AI Agent
+// ============================================================================
+
+async function scenario42(api: string, storeId: string) {
+  section('\n📋 Scenario 42: Full Flow B — Chat → Order → Partial Payment → Agent Resolution')
+  let pass = true
+
+  // Phase 1: Create order via chat
+  console.log('  ── Phase 1: Chat → Order ──')
+  const result = await createOrderViaChat(api, storeId, 'fullB_pp')
+  if (!result) { dbFail('Failed to create order'); scenarioResult(false); return }
+  dbOk(`Order ${result.orderNumber} + Delivery ${result.deliveryNumber}`)
+
+  // Phase 2: Driver flow → partial payment
+  console.log('  ── Phase 2: Driver → deliver → partial payment ──')
+  const driverId = await getOrCreateDriver(storeId)
+  await assignAndPickup(api, result.deliveryId, driverId)
+
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_del_${Date.now()}`, from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 2, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `delivered:${result.deliveryId}`,
+    },
+  })
+  await delay(500)
+
+  // payment_custom
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_pc_${Date.now()}`, from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 3, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `payment_custom:${result.deliveryId}`,
+    },
+  })
+  await delay(500)
+
+  // Amount
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    message: {
+      message_id: Date.now(), from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      chat: { id: DRIVER_CHAT_ID, type: 'private' }, text: '30000', date: Math.floor(Date.now() / 1000),
+    },
+  })
+  await delay(500)
+
+  // Reason
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    message: {
+      message_id: Date.now(), from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      chat: { id: DRIVER_CHAT_ID, type: 'private' }, text: 'hurgelt unegui gsn', date: Math.floor(Date.now() / 1000),
+    },
+  })
+  ok(1, 'Partial payment recorded (30000₮, "hurgelt unegui gsn")')
+  await delay(2000) // Wait for agent to run
+
+  // Phase 3: Verify delivery metadata has BOTH custom_payment AND partial_payment_resolution
+  console.log('  ── Phase 3: Verify metadata merge ──')
+  const { data: del } = await sb.from('deliveries').select('status, metadata').eq('id', result.deliveryId).single()
+  const meta = del?.metadata as Record<string, unknown> | null
+
+  if (meta?.custom_payment) {
+    const cp = meta.custom_payment as Record<string, unknown>
+    dbOk(`custom_payment.amount = ${cp.amount}`)
+  } else {
+    dbFail(`custom_payment not in metadata — update may have failed`)
+    pass = false
+  }
+
+  if (meta?.partial_payment_resolution) {
+    const ppr = meta.partial_payment_resolution as Record<string, unknown>
+    dbOk(`partial_payment_resolution.status = ${ppr.status}`)
+  } else {
+    console.log('  DB: ⚠️ partial_payment_resolution not set (agent may not have run — web_e2e_ PSID)')
+  }
+
+  // Phase 4: Verify order status
+  const { data: ord } = await sb.from('orders').select('payment_status, notes').eq('id', result.orderId).single()
+  if (ord?.payment_status === 'partial') {
+    dbOk(`order.payment_status = 'partial'`)
+  } else {
+    dbFail(`order.payment_status = '${ord?.payment_status}'`)
+    pass = false
+  }
+
+  if (ord?.notes) {
+    dbOk(`order.notes = "${(ord.notes as string).substring(0, 60)}..."`)
+  }
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
+// Scenario 43: Full Operational Flow C — Postpone → Cron Reactivate
+// ============================================================================
+
+async function scenario43(api: string, storeId: string) {
+  section('\n📋 Scenario 43: Full Flow C — Order → Postpone → Cron Reactivate → Pending')
+  let pass = true
+
+  // Phase 1: Create order
+  console.log('  ── Phase 1: Chat → Order ──')
+  const result = await createOrderViaChat(api, storeId, 'fullC_cron')
+  if (!result) { dbFail('Failed to create order'); scenarioResult(false); return }
+  dbOk(`Order ${result.orderNumber}`)
+
+  const driverId = await getOrCreateDriver(storeId)
+  await assignAndPickup(api, result.deliveryId, driverId)
+
+  // Phase 2: Driver postpones with "tomorrow"
+  console.log('  ── Phase 2: Driver postpones → tomorrow ──')
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_delay_${Date.now()}`, from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 2, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `delay:${result.deliveryId}`,
+    },
+  })
+  await delay(500)
+
+  await driverWebhook(api, {
+    update_id: Date.now(),
+    callback_query: {
+      id: `e2e_delaytmr_${Date.now()}`, from: { id: DRIVER_CHAT_ID, is_bot: false, first_name: 'E2E' },
+      message: { message_id: 3, chat: { id: DRIVER_CHAT_ID, type: 'private' } },
+      data: `delay_time:tomorrow:${result.deliveryId}`,
+    },
+  })
+  await delay(1000)
+
+  let { data: del } = await sb.from('deliveries').select('status, estimated_delivery_time').eq('id', result.deliveryId).single()
+  if (del?.status === 'delayed') dbOk(`status = 'delayed'`)
+  else { dbFail(`status = '${del?.status}'`); pass = false }
+
+  if (del?.estimated_delivery_time) dbOk(`ETA set: ${del.estimated_delivery_time}`)
+  else { dbFail('ETA not set'); pass = false }
+
+  // Phase 3: Simulate ETA passed → set to past
+  console.log('  ── Phase 3: Fast-forward ETA to past ──')
+  const pastEta = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2h ago
+  await sb.from('deliveries').update({ estimated_delivery_time: pastEta }).eq('id', result.deliveryId)
+  await delay(300)
+
+  // Phase 4: Call cron endpoint
+  console.log('  ── Phase 4: Call /api/cron/reactivate-delayed ──')
+  const cronRes = await fetch(`${api}/api/cron/reactivate-delayed`, {
+    headers: { Authorization: `Bearer ${process.env.CRON_SECRET || ''}` },
+  })
+  const cronData = cronRes.ok ? await cronRes.json() : { error: `HTTP ${cronRes.status}` }
+  ok(1, `Cron response: ${JSON.stringify(cronData)}`)
+  await delay(1000)
+
+  // Phase 5: Verify delivery reactivated
+  console.log('  ── Phase 5: Verify reactivation ──')
+  const { data: delAfterCron } = await sb.from('deliveries').select('status, driver_id, notes').eq('id', result.deliveryId).single()
+
+  if (delAfterCron?.status === 'pending') {
+    dbOk(`status = 'pending' (reactivated by cron)`)
+  } else {
+    dbFail(`status = '${delAfterCron?.status}' (expected 'pending' — cron may not have processed it)`)
+    pass = false
+  }
+
+  if (delAfterCron?.driver_id === null) {
+    dbOk('driver_id = null (ready for reassignment)')
+  } else {
+    dbFail(`driver_id = '${delAfterCron?.driver_id}' (expected null)`)
+    pass = false
+  }
+
+  // Phase 6: Check notification
+  const { data: notifs } = await sb.from('notifications').select('title')
+    .eq('store_id', storeId).ilike('title', '%бэлэн боллоо%')
+    .order('created_at', { ascending: false }).limit(1)
+
+  if (notifs && notifs.length > 0) {
+    dbOk(`Notification: "${notifs[0].title}"`)
+  } else {
+    console.log('  DB: ⚠️ No reactivation notification found')
+  }
+
+  scenarioResult(pass)
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -4712,6 +5382,43 @@ async function main() {
 
   // Scenario 34: 24h Messenger Window Expired → SMS Fallback
   await scenario34(LOCAL, storeId)
+
+  // ── Bug fix verification scenarios (35–43) ────────────────────────────
+
+  console.log('\n📍 BUG FIX VERIFICATION SCENARIOS')
+  console.log()
+
+  // Scenario 35: Metadata merge (not overwrite)
+  await scenario35(LOCAL, storeId)
+
+  // Scenario 36: Custom delay sets estimated_delivery_time
+  await scenario36(LOCAL, storeId)
+
+  // Scenario 37: damaged/no_payment updates order.payment_status
+  await scenario37(LOCAL, storeId)
+
+  // Scenario 38: Order notes append (not overwrite)
+  await scenario38(LOCAL, storeId)
+
+  // Scenario 39: Messenger escalation fires for product_search
+  await scenario39(LOCAL, storeId)
+
+  // Scenario 40: Complaint regex word boundary for 'муу'
+  await scenario40(LOCAL, storeId)
+
+  // ── Full operational flow scenarios (41–43) ────────────────────────────
+
+  console.log('\n📍 FULL OPERATIONAL FLOW SCENARIOS')
+  console.log()
+
+  // Scenario 41: Full Flow A — Happy Path
+  await scenario41(LOCAL, storeId)
+
+  // Scenario 42: Full Flow B — Partial Payment → Agent
+  await scenario42(LOCAL, storeId)
+
+  // Scenario 43: Full Flow C — Postpone → Cron Reactivate
+  await scenario43(LOCAL, storeId)
 
   // ── Summary ──────────────────────────────────────────────────────────────
 
