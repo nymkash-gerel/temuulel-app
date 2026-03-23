@@ -462,6 +462,9 @@ const MIN_PREFIX_LEN = 4
  */
 function prefixMatchWord(normalizedMsg: string, keyword: string): string | null {
   if (keyword.length < MIN_PREFIX_LEN) return null
+  // Multi-word keywords must only match via exact/neutral/stem — never via prefix.
+  // e.g. "бараа буруу".startsWith("бараа") would falsely match any message containing "бараа"
+  if (keyword.includes(' ')) return null
   const words = normalizedMsg.split(' ')
   return words.find((w) => w.startsWith(keyword) || keyword.startsWith(w) && w.length >= MIN_PREFIX_LEN) ?? null
 }
@@ -605,7 +608,10 @@ export function classifyIntentWithConfidence(
 
     const hasReturn = RETURN_SIGNALS.some(kw =>
       padded.includes(` ${kw} `) || normalizedWords.some(w => w === kw) ||
-      stemmedWords.some(w => w === kw || (kw.length >= 4 && w.startsWith(kw.slice(0, 4))))
+      // Prefix check: single-word keywords ONLY.
+      // Multi-word RETURN_SIGNALS like "бараа буруу" would false-match any message
+      // containing "бараа" because kw.slice(0,4)="бара" prefix-matches "бараа".
+      (!kw.includes(' ') && stemmedWords.some(w => w === kw || (kw.length >= 4 && w.startsWith(kw.slice(0, 4)))))
     )
     // Word-split the raw message for Latin keyword matching (avoids 'муу' matching inside 'юмуу')
     const rawMsgWords = new Set(message.toLowerCase().split(/[\s.,!?;:'"()[\]{}<>\\/|@#$%^&*+=~`]+/).filter(w => w))
