@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       type: 'delivery_assigned',
       title: `🔔 Хойшлуулсан хүргэлт бэлэн боллоо`,
       body: `#${deliveryNumber} — хойшлуулсан хугацаа дууслаа. Жолооч оноож хүргүүлнэ үү.`,
-      metadata: { delivery_id: deliveryId, reason: 'delayed_reactivated' },
+      data: { delivery_id: deliveryId, reason: 'delayed_reactivated' },
     }).then(null, () => {})
 
     // --- Telegram notification to staff ---
