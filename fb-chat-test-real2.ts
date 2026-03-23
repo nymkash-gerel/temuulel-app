@@ -11,7 +11,7 @@ const DELAY_MS = 1200
 // ── Real FB messages (fresh sample, 43 msgs) ─────────────────────────────────
 const FB_MSGS = [
   // Greetings
-  { msg: 'Hi minii zahialsan boolt havchaar unuudur ireh uu☺️', tag: 'complaint-latin', note: 'ordered hair accessories, asking where they are' },
+  { msg: 'Hi minii zahialsan boolt havchaar unuudur ireh uu☺️', tag: 'order-status-latin', note: 'asking if ordered hair accessories arrive today — order status inquiry (☺️ = happy, not upset)' },
   { msg: 'Hi bodit zurg bnuu xarj bolxuu', tag: 'browse-latin', note: 'asking for real photo' },
   { msg: 'Hi hawchaar boolt bga yu awah gd', tag: 'order-latin', note: 'wants to buy hair clips/ties' },
 
