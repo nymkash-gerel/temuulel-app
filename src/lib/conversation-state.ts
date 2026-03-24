@@ -413,9 +413,10 @@ export function resolveFollowUp(
   if (state.order_draft && !isConversationReset) {
     // Check for complaint/escalation signals that should BREAK OUT of order flow
     const ESCALATION_SIGNALS = [
-      'эвдэрсэн', 'гэмтсэн', 'буруу бараа', 'муу',
+      'эвдэрсэн', 'эвдэрсан', 'гэмтсэн', 'гэмтсан', 'буруу бараа', 'муу',
       'мөнгөө буцааж', 'мөнгөө буцаа', 'буцааж өг',
       'оператор', 'менежер', 'хүнтэй ярих', 'хүн дуудаач',
+      'оператортой', 'менежертэй', 'хүнтэй холбогд',
     ]
     const hasEscalation = ESCALATION_SIGNALS.some((kw) => normalized.includes(normalizeText(kw)))
     const hasTripleExclamation = (message.match(/!/g) || []).length >= 3

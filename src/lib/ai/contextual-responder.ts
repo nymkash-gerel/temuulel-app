@@ -121,7 +121,7 @@ function buildSystemPrompt(input: ContextualInput): string {
 - ДУУССАН БАРАА: Хэрэв хэрэглэгч тодорхой нэртэй бараа хайсан ч олдоогүй бол (жишээ нь "офис өмд", "кашемир малгай") — "Энэ бараа одоогоор дууссан байна. Ажилтнаас дахин ирэх эсэхийг тодруулаад хариу өгье 😊" гэж хариулна. Санамсаргүй бараа САНАЛ БОЛГОХГҮЙ.${noProductsRule}`
 
   // --- Mode-specific rules (only one active at a time) ---
-  const isHumanAgentRequest = /хүнтэй ярих|хүн хэрэгтэй|хүн дуудах|оператор дуудах|менежер дуудах|хүнтэй холбогдох|амьд хүн|huntei yarih|hun heregteii|operator duu/i.test(input.currentMessage)
+  const isHumanAgentRequest = /хүнтэй ярих|хүн хэрэгтэй|хүн дуудах|оператор|менежер|хүнтэй холбогд|амьд хүн|huntei yarih|hun heregteii|operator/i.test(input.currentMessage)
 
   if (isResolution) {
     prompt += `
