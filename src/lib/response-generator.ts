@@ -88,7 +88,11 @@ export function generateResponse(
 
     case 'order_status': {
       if (orders.length === 0) {
-        return `Захиалгын дугаар эсвэл утасны дугаараа бичнэ үү, шалгаад мэдэгдье 😊`
+        // Add empathy if resolution says customer is worried
+        const empathyPrefix = resolution?.tone === 'empathetic'
+          ? 'Тийм ээ, шалгая! '
+          : ''
+        return `${empathyPrefix}Захиалгын дугаар эсвэл утасны дугаараа бичнэ үү, шалгаад мэдэгдье 😊`
       }
 
       let response = `📋 **Таны захиалгын мэдээлэл:**\n\n`
