@@ -521,6 +521,56 @@ export async function processAIChat(
         responseText = buildInfoRequest(orderDraft)
         intent = 'order_collection'
       } else {
+        // Pre-check: "X өмд", "Y цамц" etc. where X/Y is not in any product name → staff, no LLM
+        let unlistedProductDetected = false
+        if (intent === 'product_search' && products.length > 0) {
+          const msgNorm = normalizeText(customerMessage).toLowerCase()
+          const PRODUCT_TYPES = ['цамц', 'өмд', 'гутал', 'цүнх', 'малгай', 'куртка', 'свитер', 'кофт', 'даашинз', 'костюм', 'хантааз', 'жакет', 'пальто']
+          const productType = PRODUCT_TYPES.find(t => msgNorm.split(/\s+/).some(w => w === t || w.startsWith(t)))
+          if (productType) {
+            const words = msgNorm.split(/\s+/)
+            const typeIdx = words.findIndex(w => w === productType || w.startsWith(productType))
+            const modifiers = words.slice(0, typeIdx).filter(w => w.length >= 3)
+            if (modifiers.length > 0) {
+              const allProductNameWords = new Set(
+                products.flatMap(p => normalizeText(p.name).toLowerCase().split(/\s+/).filter(w => w.length >= 3))
+              )
+              const modifierInCatalog = modifiers.some(m =>
+                allProductNameWords.has(m) || [...allProductNameWords].some(pw => pw.includes(m) || m.includes(pw))
+              )
+              if (!modifierInCatalog) {
+                unlistedProductDetected = true
+                responseText = 'Тийм бүтээгдэхүүн одоогоор манай жагсаалтад байхгүй байна. Ажилтан шалгаад тантай холбогдоно 😊'
+                void dispatchNotification(storeId, 'new_message', {
+                  message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
+                  conversationId,
+                  storeId,
+                }).catch(() => {})
+              }
+            }
+          }
+        }
+
+        if (!unlistedProductDetected) {
+          // Bare price query: "Үнэ хэд вэ", "Хэдэн төгрөг вэ" — no specific product named.
+          // If we have conversation context (last discussed product) → show that product's price.
+          // If no context → ask "Ямар бараа вэ?" instead of dumping all prices.
+          const BARE_PRICE_WORDS = new Set(['үнэ', 'үнэтэй', 'унэ', 'унэтэй', 'price', 'хэд', 'хэдэн'])
+          const priceTermWords = extractSearchTerms(customerMessage).split(/\s+/).filter(Boolean)
+          const hasPriceKeyword = /үнэ|хэд|price|how much|хэдэн/i.test(normalizeText(customerMessage))
+          const isPriceOnlyQuery = intent === 'product_search'
+            && hasPriceKeyword
+            && (priceTermWords.length === 0 || priceTermWords.every(w => BARE_PRICE_WORDS.has(w)))
+
+          if (isPriceOnlyQuery && state.last_products.length === 0) {
+            // No context — ask which product they're interested in
+            responseText = 'Ямар бараа сонирхож байна вэ? Үнэ болон дэлгэрэнгүй мэдээлэл өгье 😊'
+          } else {
+            if (isPriceOnlyQuery && state.last_products.length > 0) {
+              // Re-fetch full product data for last discussed product (StoredProduct has no variants/desc)
+              const refetched = await searchProducts(supabase, state.last_products[0].name, storeId, { maxProducts: 1 })
+              if (refetched.length > 0) products = refetched
+            }
         responseText = await generateAIResponse(
           intent, products, orders, storeName, customerMessage, chatbotSettings, history,
           undefined,
@@ -529,6 +579,17 @@ export async function processAIChat(
           extendedProfile,
           latestPurchaseSummary,
         )
+
+        // If the LLM said "product not in catalog, staff will check" → fire staff notification.
+        if (intent === 'product_search' && responseText.includes('Ажилтан шалгаад')) {
+          void dispatchNotification(storeId, 'new_message', {
+            message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
+            conversationId,
+            storeId,
+          }).catch(() => {})
+        }
+          } // end else (generateAIResponse path)
+        } // end !unlistedProductDetected
 
         // If the message contains order intent, start order flow.
         // Skip if already classified as order_status or complaint —
@@ -539,11 +600,15 @@ export async function processAIChat(
           'санал болг', 'юу авбал', 'юу авах вэ', 'юу захиалах вэ',
           'зөвлө', 'юу санал', 'аль нь дээр', 'юу вэ', 'юу болох',
           'бэлэг', // gift context — almost always exploring, not ready-to-buy
+          // Discount/conditional questions — "авах юм бол хямдардаг уу?" = "if I buy together, is it cheaper?"
+          // These contain "авах" but are NOT purchase intent — they're price inquiries
+          'хямдардаг', 'хямдрах уу', 'хямдрах болов уу', 'хямдрал байна',
+          'авах юм бол', // conditional "if I buy" — not definite purchase intent
         ]
         const isRecommendationQuery = RECOMMENDATION_SIGNALS.some(
           (sig) => normalizeText(customerMessage).includes(normalizeText(sig))
         )
-        if (!isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && intent !== 'return_exchange' && hasOrderIntent(customerMessage)) {
+        if (!unlistedProductDetected && !isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && intent !== 'return_exchange' && hasOrderIntent(customerMessage)) {
           // Check if message has meaningful non-order words that identify a product.
           // If message is ONLY order words (e.g. "zahialu"), products from search are
           // likely coincidental matches (description contains "захиал*") — show catalog.
@@ -555,8 +620,18 @@ export async function processAIChat(
           const hasProductIdentifier = nonOrderWords.some((w) => w.length >= 2)
 
           if (products.length > 0 && hasProductIdentifier) {
-            // Message has product-identifying words + products found — start order draft
-            const p = products[0]
+            // Message has product-identifying words + products found — start order draft.
+            // Pick the product whose name best matches the customer message (not blind products[0])
+            // e.g. "Leevchik set авмаар байна" → Comfort Leevchik Set, not SKIMS Body Shaper
+            const msgNorm = normalizeText(customerMessage).toLowerCase()
+            const bestProduct = products.reduce((best, p) => {
+              const nameWords = normalizeText(p.name).toLowerCase().split(/\s+/).filter(w => w.length >= 3)
+              const score = nameWords.filter(w => msgNorm.includes(w)).length
+              const bestWords = normalizeText(best.name).toLowerCase().split(/\s+/).filter(w => w.length >= 3)
+              const bestScore = bestWords.filter(w => msgNorm.includes(w)).length
+              return score > bestScore ? p : best
+            }, products[0])
+            const p = bestProduct
             const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
             orderDraft = result.draft
             responseText = result.responseText
