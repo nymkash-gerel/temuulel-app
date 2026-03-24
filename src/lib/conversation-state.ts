@@ -409,8 +409,24 @@ export function resolveFollowUp(
 
   // 0. Active order draft — always intercept until order completes or cancels
   // UNLESS the user sends a greeting/reset signal (allows starting fresh conversation)
+  // OR the user sends a high-priority complaint/escalation signal (broken item, refund, operator request)
   if (state.order_draft && !isConversationReset) {
-    // Check for order cancellation phrases first (Mongolian negation: -гүй, -хгүй suffix)
+    // Check for complaint/escalation signals that should BREAK OUT of order flow
+    const ESCALATION_SIGNALS = [
+      'эвдэрсэн', 'гэмтсэн', 'буруу бараа', 'муу',
+      'мөнгөө буцааж', 'мөнгөө буцаа', 'буцааж өг',
+      'оператор', 'менежер', 'хүнтэй ярих', 'хүн дуудаач',
+    ]
+    const hasEscalation = ESCALATION_SIGNALS.some((kw) => normalized.includes(normalizeText(kw)))
+    const hasTripleExclamation = (message.match(/!/g) || []).length >= 3
+
+    if (hasEscalation || hasTripleExclamation) {
+      // Break out of order flow — let complaint/escalation handler take over
+      // Return null so the main handler classifies the intent normally
+      return null
+    }
+
+    // Check for order cancellation phrases (Mongolian negation: -гүй, -хгүй suffix)
     const CANCEL_PHRASES = [
       'захиалаагүй', 'захиалахгүй', 'захиалсангүй',
       'авахгүй', 'авмааргүй', 'авсангүй',
@@ -668,6 +684,7 @@ export function updateState(
   const preserveIntents = [
     'greeting', 'thanks', 'size_info',
     'delivery_info', 'order_info', 'payment_info', 'warranty_info', 'stock_info',
+    'price_info', 'general', 'complaint', 'shipping',
   ]
 
   // Intents that fetch/narrow products and should save them to state

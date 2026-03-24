@@ -283,6 +283,7 @@ function buildSystemPrompt(input: ContextualInput): string {
 
   // --- Products (always structured the same way) ---
   if (input.products.length > 0) {
+    prompt += `\n\n⚠️ ДООРХ ${input.products.length} БАРАА ОЛДСОН — "байхгүй" гэж ХЭЗЭЭ Ч хэлж болохгүй. Заавал жагсаалтаас дурд.`
     prompt += '\n\nБАРАА:'
     input.products.forEach((p, i) => {
       prompt += `\n${i + 1}. ${p.name} — ${p.base_price}₮`
@@ -421,7 +422,7 @@ export async function contextualAIResponse(input: ContextualInput): Promise<Cont
       { role: 'user' as const, content: normalizeMsgContent(input.currentMessage) },
     ]
 
-    const result = await chatCompletionJSON<ContextualAIResponseJSON>({ messages, maxTokens: 500 })
+    const result = await chatCompletionJSON<ContextualAIResponseJSON>({ messages, maxTokens: 700 })
     const data = result.data
 
     // Validate the required 'response' field exists
