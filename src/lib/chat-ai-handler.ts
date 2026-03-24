@@ -286,7 +286,7 @@ export async function processAIChat(
       }
 
       case 'order_intent': {
-        const result = await startOrderDraft(supabase, followUp.product!, customerMessage)
+        const result = await startOrderDraft(supabase, followUp.product!, customerMessage, storeId, customerId)
         intent = 'order_collection'
         orderDraft = result.draft
         responseText = result.responseText
@@ -307,7 +307,7 @@ export async function processAIChat(
         const result = await startOrderDraft(
           supabase,
           { id: p.id, name: p.name, base_price: p.base_price },
-          customerMessage
+          customerMessage, storeId, customerId,
         )
         orderDraft = result.draft
         responseText = result.responseText
@@ -505,7 +505,7 @@ export async function processAIChat(
       if (phoneIntercepted) {
         const product = state.last_products[0]
         const startResult = await startOrderDraft(
-          supabase, { id: product.id, name: product.name, base_price: product.base_price }, customerMessage
+          supabase, { id: product.id, name: product.name, base_price: product.base_price }, customerMessage, storeId, customerId,
         )
         startResult.draft.phone = customerMessage.trim()
         orderDraft = startResult.draft
@@ -706,7 +706,7 @@ export async function processAIChat(
               return score > bestScore ? p : best
             }, products[0])
             const p = bestProduct
-            const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage)
+            const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage, storeId, customerId)
             orderDraft = result.draft
             responseText = result.responseText
             intent = 'order_collection'
@@ -1002,11 +1002,14 @@ function buildInfoRequest(draft: OrderDraft): string {
 /**
  * Start a new order draft for a product. Fetches variants and resolves
  * any variant/address/phone info from the customer message.
+ * If customer has order history, pre-fills name/address/phone and skips to confirming.
  */
 async function startOrderDraft(
   supabase: SupabaseClient,
   product: StoredProduct,
-  customerMessage: string
+  customerMessage: string,
+  storeId?: string,
+  customerId?: string | null,
 ): Promise<{ draft: OrderDraft; responseText: string }> {
   const { data: variants } = await supabase
     .from('product_variants')
@@ -1067,7 +1070,41 @@ async function startOrderDraft(
     }
   }
 
-  // Step 1 of order collection: ask for customer name
+  // Check customer history — if returning customer, pre-fill and skip to confirming
+  if (storeId && customerId) {
+    const { data: lastOrder } = await supabase
+      .from('orders')
+      .select('shipping_address, notes')
+      .eq('store_id', storeId)
+      .eq('customer_id', customerId)
+      .not('shipping_address', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('name, phone')
+      .eq('id', customerId)
+      .single()
+
+    if (lastOrder?.shipping_address && customer?.name && customer?.phone) {
+      // Returning customer — offer to use previous info
+      draft.customer_name = customer.name
+      draft.address = lastOrder.shipping_address
+      draft.phone = customer.phone
+      draft.step = 'confirming'
+      return {
+        draft,
+        responseText: `📦 ${product.name} — ${formatPrice(draft.unit_price)}\n\n` +
+          `Өмнөх мэдээллээр захиалах уу?\n` +
+          `👤 ${customer.name}\n📍 ${lastOrder.shipping_address}\n📱 ${customer.phone}\n\n` +
+          `Тийм бол "Тийм", өөрчлөх бол шинэ мэдээллээ бичнэ үү.`,
+      }
+    }
+  }
+
+  // New customer — start with name collection
   return { draft, responseText: `📦 ${product.name} — ${formatPrice(draft.unit_price)}\n\nНэрээ бичнэ үү:` }
 }
 
