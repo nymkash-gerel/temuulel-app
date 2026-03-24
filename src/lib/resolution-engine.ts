@@ -46,6 +46,9 @@ export interface ResolutionContext {
   shippingFee?: number
   freeShippingThreshold?: number
 
+  // Product search meta
+  productsEmpty: boolean
+
   // Response tone
   tone: 'empathetic' | 'neutral'
 }
@@ -260,6 +263,9 @@ export async function resolve(
       bestProductName: bestProduct?.name,
       bestProductId: bestProduct?.id,
 
+      // Product search meta
+      productsEmpty: !ctx.products || ctx.products.length === 0,
+
       // Store
       storeAddress: storeSettings.storeAddress,
       storePhone: storeSettings.storePhone,
@@ -278,6 +284,7 @@ export async function resolve(
     return {
       hasHistory: false,
       isDeliveryOnly: true,
+      productsEmpty: false,
       tone: 'neutral',
     }
   }
