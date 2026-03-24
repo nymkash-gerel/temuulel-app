@@ -562,10 +562,49 @@ export async function processAIChat(
             && hasPriceKeyword
             && (priceTermWords.length === 0 || priceTermWords.every(w => BARE_PRICE_WORDS.has(w)))
 
-          if (isPriceOnlyQuery && state.last_products.length === 0) {
+          // Discount-only query: "Хямдрал байгаа юу" → surface any set/bundle products
+          // Don't show all products as if they're all discounted
+          let earlyResponseSet = false
+          if (intent === 'product_search') {
+            const msgNormDiscount = normalizeText(customerMessage).toLowerCase()
+            const DISCOUNT_WORDS = ['хямдрал байгаа', 'хямдрал бна', 'хямдарсан', 'sale байна', 'хямдрал бий', 'хямдрал вэ', 'хямдрал байна уу']
+            const isDiscountOnlyQuery = DISCOUNT_WORDS.some(w => msgNormDiscount.includes(w))
+              && !msgNormDiscount.includes('цамц') && !msgNormDiscount.includes('өмд')
+              && !msgNormDiscount.includes('leevchik') && !msgNormDiscount.includes('skims')
+            if (isDiscountOnlyQuery) {
+              const setProds = await searchProducts(supabase, 'сет', storeId, { maxProducts: 3 })
+              const bundles = setProds.filter(p => normalizeText(p.name).toLowerCase().includes('сет'))
+              if (bundles.length > 0) {
+                products = bundles  // LLM will explain set savings as value
+              } else {
+                responseText = 'Одоогоор тусгай хямдрал байхгүй байна. Шинэ санал гарвал мэдэгдэх болно 😊'
+                earlyResponseSet = true
+              }
+            }
+          }
+
+          // Bundle/set query: "цамц өмд хамт авах" → surface the set product explicitly
+          // so LLM can compare set price vs buying separately
+          if (intent === 'product_search') {
+            const msgNormLower = normalizeText(customerMessage).toLowerCase()
+            const hasCamts = msgNormLower.includes('цамц') || msgNormLower.includes('camts')
+            const hasUmd = msgNormLower.includes('өмд') || msgNormLower.includes('umd')
+            const hasBundleContext = /хамт|сет|set|нийлэ|bundle/i.test(msgNormLower) || /хямдард|хэмнэ|хямдрал/i.test(msgNormLower)
+            if (hasCamts && hasUmd && hasBundleContext) {
+              // Search for the set/bundle product (e.g. "Цамц + Тарпизан өмд сет")
+              const bundleProducts = await searchProducts(supabase, 'сет', storeId, { maxProducts: 3 })
+              const setProducts = bundleProducts.filter(p => normalizeText(p.name).toLowerCase().includes('сет'))
+              if (setProducts.length > 0) {
+                // Prepend set product so LLM sees it first
+                products = [...setProducts, ...products.filter(p => !setProducts.some(b => b.id === p.id))].slice(0, 5)
+              }
+            }
+          }
+
+          if (!earlyResponseSet && isPriceOnlyQuery && state.last_products.length === 0) {
             // No context — ask which product they're interested in
             responseText = 'Ямар бараа сонирхож байна вэ? Үнэ болон дэлгэрэнгүй мэдээлэл өгье 😊'
-          } else {
+          } else if (!earlyResponseSet) {
             if (isPriceOnlyQuery && state.last_products.length > 0) {
               // Re-fetch full product data for last discussed product (StoredProduct has no variants/desc)
               const refetched = await searchProducts(supabase, state.last_products[0].name, storeId, { maxProducts: 1 })

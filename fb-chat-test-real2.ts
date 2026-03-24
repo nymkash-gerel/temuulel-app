@@ -156,9 +156,10 @@ function evaluate(tag: string, msg: string, reply: string, note: string): string
     }
   }
 
-  // Price check
+  // Price check — clarifying question is valid if no product was specified
   if (tag === 'price') {
-    if (!r.match(/\d{4,6}/) && !r.includes('₮') && !r.includes('төг')) {
+    const asksClarification = r.includes('ямар бараа') || r.includes('ямар бүтээгдэхүүн') || r.includes('аль бараа') || r.includes('юу сонирх')
+    if (!asksClarification && !r.match(/\d{4,6}/) && !r.includes('₮') && !r.includes('төг')) {
       issues.push('❌ NO PRICE in price query response')
     }
   }
