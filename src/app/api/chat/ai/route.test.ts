@@ -179,7 +179,8 @@ describe('generateResponse', () => {
 
   it('generates order status with no results', () => {
     const resp = generateResponse('order_status', [], [], 'Store')
-    expect(resp).toContain('олдсонгүй')
+    // Response now asks for order/phone number instead of saying "not found"
+    expect(resp).toContain('Захиалгын дугаар')
   })
 
   it('generates complaint response', () => {

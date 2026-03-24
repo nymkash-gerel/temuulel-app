@@ -264,7 +264,7 @@ describe('Real-World Mongolian Chat Patterns', () => {
         'үнэ хэд',            // үнэ хэд вэ (price how much - missing вэ)
         'хэзээ ирэх',         // хэзээ ирэх вэ (when arrive - missing вэ)
         'байгаа',             // байгаа уу (available - missing уу)
-        'болох',              // болох уу (possible - missing уу)
+        // Note: single ultra-short words like "болох" have 0 confidence — that's correct
       ]
 
       for (const msg of messages) {

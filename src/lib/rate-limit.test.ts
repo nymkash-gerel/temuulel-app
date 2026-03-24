@@ -3,6 +3,8 @@ import { rateLimit, getClientIp } from './rate-limit'
 
 describe('rateLimit', () => {
   beforeEach(() => {
+    // Unset bypass so unit tests exercise real rate-limit logic
+    delete process.env.E2E_RATE_LIMIT_BYPASS
     // Reset module state between tests by using unique keys
     vi.useFakeTimers()
   })
