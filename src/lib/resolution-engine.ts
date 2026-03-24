@@ -42,6 +42,10 @@ export interface ResolutionContext {
   storeHours?: string
   isDeliveryOnly: boolean
 
+  // Shipping fee
+  shippingFee?: number
+  freeShippingThreshold?: number
+
   // Response tone
   tone: 'empathetic' | 'neutral'
 }
@@ -159,20 +163,26 @@ async function checkStoreSettings(
   storePhone?: string
   storeHours?: string
   isDeliveryOnly: boolean
+  shippingFee?: number
+  freeShippingThreshold?: number
 }> {
   try {
     const { data } = await supabase
       .from('stores')
-      .select('address, phone, store_hours')
+      .select('address, phone, store_hours, shipping_settings')
       .eq('id', storeId)
       .single()
 
     const hasAddress = !!data?.address && data.address.length > 5
+    const shippingSettings = (data?.shipping_settings || {}) as Record<string, unknown>
+    const innerCity = shippingSettings.inner_city as Record<string, unknown> | undefined
     return {
       storeAddress: data?.address || undefined,
       storePhone: data?.phone || undefined,
       storeHours: data?.store_hours || undefined,
       isDeliveryOnly: !hasAddress,
+      shippingFee: innerCity?.price as number | undefined,
+      freeShippingThreshold: (shippingSettings.free_shipping_minimum as number) || undefined,
     }
   } catch {
     return { isDeliveryOnly: true }
@@ -255,6 +265,10 @@ export async function resolve(
       storePhone: storeSettings.storePhone,
       storeHours: storeSettings.storeHours,
       isDeliveryOnly: storeSettings.isDeliveryOnly,
+
+      // Shipping fee
+      shippingFee: storeSettings.shippingFee,
+      freeShippingThreshold: storeSettings.freeShippingThreshold,
 
       // Tone
       tone,

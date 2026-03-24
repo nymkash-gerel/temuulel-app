@@ -118,7 +118,7 @@ export function generateResponse(
     }
 
     case 'return_exchange': {
-      let returnResponse = `🔄 **Бараа буцаах / солилт хийх**\n\n`
+      let returnResponse = `Маш харамсаж байна. 🔄 **Бараа буцаах / солилт хийх**\n\n`
 
       if (settings?.return_policy) {
         returnResponse += `📋 **Буцаалтын бодлого:**\n${settings.return_policy}\n\n`

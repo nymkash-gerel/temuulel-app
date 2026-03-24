@@ -541,7 +541,17 @@ export async function processAIChat(
               )
               if (!modifierInCatalog) {
                 unlistedProductDetected = true
-                responseText = 'Тийм бүтээгдэхүүн одоогоор манай жагсаалтад байхгүй байна. Ажилтан шалгаад тантай холбогдоно 😊'
+                let notFoundMsg = 'Тийм бүтээгдэхүүн одоогоор манай жагсаалтад байхгүй байна. Ажилтан шалгаад тантай холбогдоно 😊'
+                // Show top 3 products so the customer still gets useful info
+                const topProducts = products.slice(0, 3)
+                if (topProducts.length > 0) {
+                  notFoundMsg += '\n\nГэхдээ манай эрэлттэй бүтээгдэхүүнүүд:\n'
+                  topProducts.forEach((p, i) => {
+                    notFoundMsg += `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}\n`
+                  })
+                  notFoundMsg += '\nАль нэгийг сонирхож байвал бичнэ үү!'
+                }
+                responseText = notFoundMsg
                 void dispatchNotification(storeId, 'new_message', {
                   message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
                   conversationId,
@@ -578,7 +588,19 @@ export async function processAIChat(
               if (bundles.length > 0) {
                 products = bundles  // LLM will explain set savings as value
               } else {
-                responseText = 'Одоогоор тусгай хямдрал байхгүй байна. Шинэ санал гарвал мэдэгдэх болно 😊'
+                // Show current product prices so customer still gets useful info
+                let discountMsg = 'Одоогоор тусгай хямдрал байхгүй байна.'
+                const topForDiscount = products.slice(0, 3)
+                if (topForDiscount.length > 0) {
+                  discountMsg += ' Манай бараанууд:\n'
+                  topForDiscount.forEach((p, i) => {
+                    discountMsg += `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}\n`
+                  })
+                  discountMsg += '\nШинэ санал гарвал мэдэгдэх болно 😊'
+                } else {
+                  discountMsg += ' Шинэ санал гарвал мэдэгдэх болно 😊'
+                }
+                responseText = discountMsg
                 earlyResponseSet = true
               }
             }

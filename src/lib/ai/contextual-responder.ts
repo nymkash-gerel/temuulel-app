@@ -175,6 +175,23 @@ function buildSystemPrompt(input: ContextualInput): string {
     } else if (resolution.storeAddress) {
       prompt += `\n\n🏪 ДЭЛГҮҮРИЙН ХАЯГ: ${resolution.storeAddress}${resolution.storeHours ? ` | Цаг: ${resolution.storeHours}` : ''}`
     }
+
+    if (resolution.shippingFee) {
+      prompt += `\n\n💰 ХҮРГЭЛТИЙН ТӨЛБӨР: ${resolution.shippingFee}₮`
+      if (resolution.freeShippingThreshold) {
+        prompt += ` (${resolution.freeShippingThreshold}₮-өөс дээш захиалгад үнэгүй)`
+      }
+    }
+
+    // Pickup detection: if customer asks about picking up in person
+    const isPickupQuestion = /очоод|авч болох|байршил|хаана байдаг|дэлгүүр|салбар|ochij|ochd|awbal/i.test(input.currentMessage)
+    if (isPickupQuestion) {
+      if (resolution.isDeliveryOnly) {
+        prompt += '\n\n📍 ОЧИЖ АВАХ: Манайх зөвхөн хүргэлтээр бараа гарж байна. Очиж авах боломжгүй.'
+      } else if (resolution.storeAddress) {
+        prompt += `\n\n📍 ДЭЛГҮҮРИЙН БАЙРШИЛ: ${resolution.storeAddress}${resolution.storeHours ? ` | Ажлын цаг: ${resolution.storeHours}` : ''}`
+      }
+    }
   }
 
   // --- Size chart (only for size queries) ---
@@ -187,7 +204,8 @@ function buildSystemPrompt(input: ContextualInput): string {
 - Жин өндрөөс чухал. Хязгаараас давсан бол дараагийн том размер зөвлө.
 - "Тохирох магадлалтай" гэж бич (100% баталгаа бүү өг). Нөөцийн тоо бүү харуул.
 - Хувилбаруудад байхгүй размер/өнгийг бүү зохио.
-- ЧУХАЛ: Размер зөвлөсний дараа "Бараа дугаараа бичнэ үү (1, 2, 3...)" гэх мэт бараа сонгох хүсэлт БҮҮБИЧ — хэрэглэгч аль хэдийн бараа сонгосон байна.`
+- ЧУХАЛ: Размер зөвлөсний дараа "Бараа дугаараа бичнэ үү (1, 2, 3...)" гэх мэт бараа сонгох хүсэлт БҮҮБИЧ — хэрэглэгч аль хэдийн бараа сонгосон байна.
+- Хэрэв хэрэглэгч бараа сонгоогүй бол: "Аль барааны хэмжээг асууж байна вэ? Та бараагаа сонгоно уу." гэж асуу.`
   }
 
   // --- Mid-order product detail (color, material, etc.) — product already selected ---
