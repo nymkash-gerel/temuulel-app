@@ -30,6 +30,8 @@ export async function middleware(request: NextRequest) {
 
   // ── Global API rate limiting (before auth, before Supabase calls) ──
   if (pathname.startsWith('/api/')) {
+    const startTime = Date.now()
+
     if (shouldSkipRateLimit(pathname)) {
       return NextResponse.next({ request })
     }
@@ -58,7 +60,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // API routes handle their own auth — skip the Supabase auth block below
-    return withRateLimitHeaders(NextResponse.next({ request }), result)
+    const response = withRateLimitHeaders(NextResponse.next({ request }), result)
+    response.headers.set('X-Response-Time', `${Date.now() - startTime}ms`)
+    return response
   }
 
   // ── Page route auth (only for protected routes now) ────────────────
