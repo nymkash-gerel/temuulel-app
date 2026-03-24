@@ -8,6 +8,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildCustomerProfile } from './ai/customer-profile'
+import { resolve } from './resolution-engine'
 import { getLatestPurchase, formatPurchaseConfirmation, getExtendedCustomerInfo, formatExtendedProfileForAI, inferPreferencesFromMessage, savePreference, logInteraction } from './ai/customer-intelligence'
 import { hybridClassify } from '@/lib/ai/hybrid-classifier'
 import {
@@ -610,6 +611,14 @@ export async function processAIChat(
               const refetched = await searchProducts(supabase, state.last_products[0].name, storeId, { maxProducts: 1 })
               if (refetched.length > 0) products = refetched
             }
+        // Resolution Engine: enrich with business context (customer history, delivery status, etc.)
+        let resolution = null
+        try {
+          resolution = await resolve(supabase, {
+            intent, message: customerMessage, storeId, customerId, products,
+          })
+        } catch { /* non-critical — continue without resolution */ }
+
         responseText = await generateAIResponse(
           intent, products, orders, storeName, customerMessage, chatbotSettings, history,
           undefined,
@@ -617,6 +626,7 @@ export async function processAIChat(
           customerProfile,
           extendedProfile,
           latestPurchaseSummary,
+          resolution,
         )
 
         // If the LLM said "product not in catalog, staff will check" → fire staff notification.

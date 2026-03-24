@@ -10,6 +10,7 @@ import { isOpenAIConfigured, chatCompletion } from './openai-client'
 import type { ChatMessage } from './openai-client'
 import { normalizeText } from '../chat-ai'
 import type { CustomerProfile } from './customer-profile'
+import type { ResolutionContext } from '../resolution-engine'
 
 export interface MessageHistoryEntry {
   role: 'user' | 'assistant'
@@ -74,6 +75,8 @@ export interface ContextualInput {
   // Restaurant features
   availableTables?: TableContext[]
   busyMode?: BusyModeContext
+  // Resolution Engine context
+  resolution?: ResolutionContext | null
 }
 
 // ---------------------------------------------------------------------------
@@ -149,6 +152,29 @@ function buildSystemPrompt(input: ContextualInput): string {
   if (input.latestPurchaseSummary && (isResolution || input.intent === 'return_exchange')) {
     prompt += `\n\nСҮҮЛИЙН ЗАХИАЛГА: ${input.latestPurchaseSummary}
 Буцаалт/гомдол ирвэл эхлээд энэ захиалгатай холбоотой эсэхийг асуу.`
+  }
+
+  // --- Resolution Engine context (enriched business data) ---
+  const resolution = input.resolution
+  if (resolution) {
+    if (resolution.tone === 'empathetic') {
+      prompt += '\n\n⚠️ АНХААР: Харилцагч санаа зовж байна. Эхлээд өрөвдөл илэрхийлээд ("Тийм ээ, шалгая!" эсвэл "Маш харамсаж байна"), дараа нь тодорхой мэдээлэл өг.'
+    }
+
+    if (resolution.activeDelivery) {
+      const d = resolution.activeDelivery
+      prompt += `\n\n📦 ХҮРГЭЛТИЙН МЭДЭЭЛЭЛ: Статус: ${d.status}${d.driverName ? `, Жолооч: ${d.driverName}` : ''}${d.estimatedTime ? `, Хүлээгдэж буй: ${d.estimatedTime}` : ''}`
+    }
+
+    if (resolution.hasHistory && resolution.lastAddress) {
+      prompt += `\n\n📋 ӨМНӨХ МЭДЭЭЛЭЛ: Хаяг: ${resolution.lastAddress}${resolution.lastPhone ? `, Утас: ${resolution.lastPhone}` : ''}. Хэрэв захиалагч хаяг утсаа үлдээсэн гэвэл "Өмнөх хаяг руу хүргэх үү?" гэж асуу.`
+    }
+
+    if (resolution.isDeliveryOnly) {
+      prompt += '\n\n🏪 ДЭЛГҮҮР: Манайх зөвхөн хүргэлтээр бараа гарж байна. Очиж авах боломжгүй.'
+    } else if (resolution.storeAddress) {
+      prompt += `\n\n🏪 ДЭЛГҮҮРИЙН ХАЯГ: ${resolution.storeAddress}${resolution.storeHours ? ` | Цаг: ${resolution.storeHours}` : ''}`
+    }
   }
 
   // --- Size chart (only for size queries) ---

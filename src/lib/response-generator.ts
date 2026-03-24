@@ -340,6 +340,7 @@ export async function generateAIResponse(
   customerProfile?: CustomerProfile | null,
   extendedProfile?: string | null,
   latestPurchaseSummary?: string | null,
+  resolution?: import('./resolution-engine').ResolutionContext | null,
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history.
   // Also allow GPT on turn 1 for 'general' and 'complaint' intents — ambiguous and
@@ -385,6 +386,7 @@ export async function generateAIResponse(
         busyMode: restaurantContext?.busyMode,
         extendedProfile: extendedProfile ?? null,
         latestPurchaseSummary: latestPurchaseSummary ?? null,
+        resolution: resolution ?? null,
       })
       if (contextResult) return contextResult
     } catch {
