@@ -69,7 +69,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Availability check (very common in FB Messenger)
     // ('авч болох' removed — overlaps with "зээлээр авч болох уу" = payment intent)
     'байгаа юу', 'бий юу', 'бга юу', 'бгаа юу',
-    'байна уу', 'болох уу',
+    'байна уу',
+    // 'болох уу' removed — too generic, hijacks payment ("хуваан төлж болох уу?")
+    // and return_exchange ("солиулж болох уу?") intents
     // "юу байна" = "what do you have?" — browse all products (NOT a greeting in e-commerce context)
     // Added twice so keyword confidence=2, overriding ML which incorrectly learned return_exchange
     'юу байна', 'юу байна',
