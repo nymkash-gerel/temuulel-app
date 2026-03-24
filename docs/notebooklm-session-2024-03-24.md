@@ -37,20 +37,34 @@
 - `createOrderFromChat` uses `draft.customer_name` for delivery records
 
 ## Current Test Status
-- 102 test files, 3,446 tests — ALL PASSING
+- 121 test files, 3,817 tests — 3,814 passing, 3 failing (missing deliveries table in test mock)
 - TypeScript: 0 errors
-- ESLint: 3 pre-existing `@typescript-eslint/no-explicit-any` (not from our changes)
+- ESLint: 0 errors (fixed 3 pre-existing `@typescript-eslint/no-explicit-any`)
 
 ## Phase 52 Status
 | Task | Priority | Status |
 |------|----------|--------|
 | AI hallucination guard | P0 | DONE |
 | Order state machine | P0 | DONE |
-| "болох уу" intent conflict | P1 | PENDING |
-| Mongolian stemmer | P1 | PENDING |
-| JSON output for AI | P1 | PENDING |
-| History blindness fix | P1 | PENDING |
+| "болох уу" intent conflict | P1 | DONE |
+| Mongolian stemmer | P1 | DONE |
+| JSON output for AI | P1 | DONE |
+| History blindness fix | P1 | DONE |
 | Test split + CI/CD | P1 | DONE |
 | Redis rate limiting | P2 | PENDING |
 | Instagram/WhatsApp | P2 | PENDING |
 | Real-time logistics | P2 | PENDING |
+
+### 5. P1 #5: Structured JSON Output for AI (commit 3847a2b)
+- **Problem:** GPT returned plain text — no metadata for analytics, escalation, or quality monitoring
+- **Solution:** Transition contextual responder to OpenAI JSON mode
+  - `chatCompletionJSON<T>()` — multi-turn messages with `response_format: { type: "json_object" }`
+  - `ContextualAIResponseJSON` — `{ response, empathy_needed, confidence, requires_human_review, detected_issues }`
+  - Response-generator extracts `.response` for backward compatibility
+  - AI metadata logged for analytics: `[ai-response] empathy=true confidence=0.85 human_review=false issues=[delivery_delay]`
+- 12 unit tests added for JSON mode
+
+### 6. CI Fix: Test Assertions for Sequential Order Steps (commit c9994f5)
+- Fixed 41 test assertions across 4 files: `toBe('info')` → `toBe('name'/'address'/'phone')`
+- Fixed 3 lint errors in `telegram/driver/route.ts`
+- Remaining 3 test failures: missing `deliveries` table in test DB mock (pre-existing)

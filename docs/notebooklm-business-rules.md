@@ -231,7 +231,67 @@ When payment is declined:
 
 ---
 
-## 10. 24h Messenger Window
+## 10. AI Structured JSON Output (Phase 52 P1 #5)
+
+The contextual AI responder now returns structured JSON instead of plain text.
+
+### Response Format
+```json
+{
+  "response": "Харилцагчид илгээх Монгол хэлний хариулт",
+  "empathy_needed": true/false,
+  "confidence": 0.0-1.0,
+  "requires_human_review": true/false,
+  "detected_issues": []
+}
+```
+
+### Field Rules
+- **response**: Natural Mongolian text, 1-5 sentences — this is what the customer sees
+- **empathy_needed**: `true` when complaint, worried customer, or return request detected
+- **confidence**: 0.0 = uncertain (should escalate), 1.0 = fully confident
+- **requires_human_review**: `true` when complaint, dispute, or customer requests human agent
+- **detected_issues**: Array of tags from: `complaint`, `delivery_delay`, `wrong_item`, `needs_stock_check`, `customer_upset`, `return_request`, `payment_issue`. Empty `[]` means no issues.
+
+### How It Works
+- OpenAI JSON mode (`response_format: { type: "json_object" }`) guarantees valid JSON
+- `chatCompletionJSON<T>()` handles multi-turn conversation history with JSON output
+- Response-generator extracts `.response` string for backward compatibility (customers still get plain text)
+- AI metadata (empathy, confidence, issues) is logged for analytics and escalation signals
+
+### Fallback Chain
+1. **Contextual AI (JSON)** — multi-turn GPT with structured output
+2. **Recommendation Writer (JSON)** — single-turn product recommendations
+3. **Deterministic Template** — zero-cost, always works
+
+---
+
+## 11. Order Collection Flow — Sequential Steps (Phase 52 P0 #2)
+
+The order collection flow now uses sequential steps instead of a monolithic `info` step.
+
+### Step Sequence
+```
+product_select → variant (if has variants) → name → address → phone → confirming
+```
+
+### Step Details
+| Step | Collects | Validates | Next Step |
+|------|----------|-----------|-----------|
+| variant | Size/color selection | Must match available variant | name |
+| name | Customer name | Not phone, not address, >= 2 chars | address |
+| address | Delivery address | Must contain district/khoroo/bair | phone |
+| phone | Phone number | Must be 8 digits | confirming |
+| confirming | Confirmation (Тийм/Үгүй) | Affirmative or negative | order created |
+
+### Skip Rules
+- If customer sends **address** during `name` step → name is skipped, moves to `phone`
+- If customer sends **address+phone** combined → may skip to `confirming`
+- Mid-order questions (photo, size, color) at `name` step are treated as name input → moves to `address`
+
+---
+
+## 12. 24h Messenger Window
 
 Facebook Messenger has a 24-hour messaging window. After 24h without customer interaction:
 - Messenger send will FAIL
