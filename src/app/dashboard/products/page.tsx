@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { resolveStore } from '@/lib/resolve-store'
 import Image from 'next/image'
 import Link from 'next/link'
+import DeleteProductButton from '@/components/DeleteProductButton'
 
 export default async function ProductsPage() {
   const supabase = await createClient()
@@ -163,9 +164,7 @@ export default async function ProductsPage() {
                         >
                           ✏️
                         </Link>
-                        <button className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-all">
-                          🗑️
-                        </button>
+                        <DeleteProductButton productId={product.id} productName={product.name} />
                       </div>
                     </td>
                   </tr>
