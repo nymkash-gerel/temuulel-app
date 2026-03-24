@@ -322,12 +322,12 @@ describe('2. E2E Widget Response Quality', () => {
     // Step 1: search + select
     await chat(storeId, cid, 'арьсан цүнх авна')
     const step2 = await chat(storeId, cid, '1')
-    expect(step2.orderStep).toBe('info')
+    expect(step2.orderStep).toBe('name')
 
-    // Step 3: photo question
+    // Step 3: photo question — at 'name' step, non-phone/non-address text is treated as name → step becomes 'address'
     const r = await chat(storeId, cid, 'zurag ni bnu')
     expect(r.intent).toBe('order_collection')
-    expect(r.orderStep).toBe('info')  // draft still alive
+    expect(['name', 'address']).toContain(r.orderStep)  // draft still alive, may advance to 'address'
     // Must NOT be only an address prompt (should have answered the photo question)
     const isStuck = r.response?.trim().startsWith('📦') &&
       r.response?.split('\n').length < 5
@@ -344,11 +344,13 @@ describe('2. E2E Widget Response Quality', () => {
     expect(s1.intent).toMatch(/product_search|order_collection/)
 
     const s2 = await chat(storeId, cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
+    // Address at 'name' step → name skipped, address accepted → step becomes 'phone'
     const s3 = await chat(storeId, cid, 'БЗД 8 хороо 15 байр 23 тоот')
-    expect(s3.orderStep).toBe('info')
+    expect(s3.orderStep).toBe('phone')
 
+    // Phone at 'phone' step → step becomes 'confirming'
     const s4 = await chat(storeId, cid, '99112233')
     expect(s4.orderStep).toBe('confirming')
     expect(s4.response).toMatch(/баталгаажуулах|тийм|үгүй/i)
@@ -365,7 +367,7 @@ describe('2. E2E Widget Response Quality', () => {
     const cid = await newConv(storeId)
     await chat(storeId, cid, 'арьсан цүнх авна')
     const step2 = await chat(storeId, cid, '1')
-    expect(step2.orderStep).toBe('info')
+    expect(step2.orderStep).toBe('name')
 
     const greeting = await chat(storeId, cid, 'Сайн байна уу')
     expect(greeting.intent).toBe('greeting')
@@ -399,7 +401,7 @@ describe('2. E2E Widget Response Quality', () => {
 
     // Step 2: select product
     const s2 = await chat(storeId, cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
     // Step 3: ask size — must NOT re-show numbered product list
     const s3 = await chat(storeId, cid, 'bi ya tomtoi sulduu bvl zuger bh')
@@ -416,7 +418,7 @@ describe('2. E2E Widget Response Quality', () => {
     // Step 1: select a product
     await chat(storeId, cid, 'арьсан цүнх байгаа юу')
     const s2 = await chat(storeId, cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
     // Step 2: ask about material — should answer about the product, not reset
     const s3 = await chat(storeId, cid, 'материал нь юу вэ')
@@ -445,7 +447,7 @@ describe('2. E2E Widget Response Quality', () => {
     // Select product
     await chat(storeId, cid, 'арьсан цүнх авна')
     const s2 = await chat(storeId, cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
     // Q1: size
     const q1 = await chat(storeId, cid, '60кг 170см размер аль вэ')

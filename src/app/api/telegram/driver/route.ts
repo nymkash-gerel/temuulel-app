@@ -799,6 +799,7 @@ async function handleCallbackQuery(
           const { data: dtOrd } = await (supabase as any).from('orders').select('notes').eq('id', delayedDel.order_id).single()
           const dtExisting = (dtOrd?.notes as string) || ''
           const dtNote = `⏰ Хойшлуулсан: ${etaLabel}`
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSONB narrowing on service-role client
           await (supabase as any).from('orders')
             .update({ notes: dtExisting ? `${dtExisting}\n${dtNote}` : dtNote })
             .eq('id', delayedDel.order_id)
@@ -2102,6 +2103,7 @@ export async function POST(request: NextRequest) {
       const days = parseInt(RegExp.$1, 10)
       if (days > 0 && days <= 30) customEta = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSONB narrowing on service-role client
     await (supabase as any)
       .from('deliveries')
       .update({ status: 'delayed', notes: `Хоцрох: ${text}`, estimated_delivery_time: customEta.toISOString() })
@@ -2148,6 +2150,7 @@ export async function POST(request: NextRequest) {
         const { data: cdOrd } = await (supabase as any).from('orders').select('notes').eq('id', customDelDel.order_id).single()
         const cdExisting = (cdOrd?.notes as string) || ''
         const cdNote = `⏰ Хойшлуулсан: ${text}`
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSONB narrowing on service-role client
         await (supabase as any).from('orders')
           .update({ notes: cdExisting ? `${cdExisting}\n${cdNote}` : cdNote })
           .eq('id', customDelDel.order_id)

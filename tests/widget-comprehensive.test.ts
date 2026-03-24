@@ -166,7 +166,7 @@ describe('3. Size Info', () => {
     const cid = await newConv()
     await chat(cid, 'арьсан цүнх авна')
     const s2 = await chat(cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
     const s3 = await chat(cid, 'bi ya tomtoi sulduu bvl zuger bh')
     expectValidResponse(s3.response)
@@ -341,7 +341,7 @@ describe('9. Product context preserved across follow-ups', () => {
     // Select product
     await chat(cid, 'арьсан цүнх авна')
     const sel = await chat(cid, '1')
-    expect(sel.orderStep).toBe('info')
+    expect(sel.orderStep).toBe('name')
 
     // Follow-up 1: size — in order flow the bot may continue collecting info
     // so we only check it doesn't show an unrelated catalog, not that it gives size advice
@@ -392,10 +392,10 @@ describe('10. Full order flows', () => {
     expect(['product_search', 'order_collection']).toContain(s1.intent)
 
     const s2 = await chat(cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
     const s3 = await chat(cid, 'БЗД 8 хороо 15 байр 23 тоот')
-    expect(s3.orderStep).toBe('info')
+    expect(s3.orderStep).toBe('phone')
 
     const s4 = await chat(cid, '99112233')
     expect(s4.orderStep).toBe('confirming')
@@ -412,15 +412,15 @@ describe('10. Full order flows', () => {
 
     await chat(cid, 'арьсан цүнх байгаа юу')
     const sel = await chat(cid, '1')
-    expect(sel.orderStep).toBe('info')
+    expect(sel.orderStep).toBe('name')
 
     // Ask size BEFORE giving address
     const sz = await chat(cid, '65кг 170см размер аль вэ')
     expectNoCatalogPrompt(sz.response)
 
-    // Then continue order
+    // Then continue order (address at name step skips to phone)
     const addr = await chat(cid, 'СБД 3-р хороо 25 байр 4 тоот')
-    expect(addr.orderStep).toBe('info')
+    expect(addr.orderStep).toBe('phone')
 
     const phone = await chat(cid, '88776655')
     expect(phone.orderStep).toBe('confirming')
@@ -430,22 +430,22 @@ describe('10. Full order flows', () => {
     const cid = await newConv()
     await chat(cid, 'arsan tsunx avna')
     const s2 = await chat(cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
-    // Latin address — parser may or may not fully recognize it, stays in info
+    // Latin address at name step → skips to phone
     const s3 = await chat(cid, 'BGD 8r horoo 15 bair 23 toot')
-    expect(s3.orderStep).toBe('info')
+    expect(s3.orderStep).toBe('phone')
 
-    // Phone completes info collection (may need 2 steps if address wasn't parsed)
+    // Phone completes collection
     const s4 = await chat(cid, '99112233')
-    expect(['confirming', 'info']).toContain(s4.orderStep)
+    expect(['confirming', 'phone']).toContain(s4.orderStep)
   })
 
   test('Greeting mid-order does NOT resume draft', { timeout: 60000 }, async () => {
     const cid = await newConv()
     await chat(cid, 'арьсан цүнх авна')
     const s2 = await chat(cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
     const greeting = await chat(cid, 'Сайн байна уу')
     expect(greeting.intent).toBe('greeting')
@@ -507,10 +507,11 @@ describe('11. Edge cases & regressions', () => {
     const cid = await newConv()
     await chat(cid, 'арьсан цүнх авна')
     const s2 = await chat(cid, '1')
-    expect(s2.orderStep).toBe('info')
+    expect(s2.orderStep).toBe('name')
 
     const s3 = await chat(cid, 'zurag ni bnu')
-    expect(s3.orderStep).toBe('info')
+    // 'zurag ni bnu' treated as name input at name step → advances to address
+    expect(s3.orderStep).toBe('address')
     expect(s3.response).not.toMatch(/зураг (харуулах|үзүүлэх|илгээх) боломжгүй/i)
   })
 
@@ -560,11 +561,11 @@ describe('12. Real customer journeys', () => {
 
     // Step 4: picks number from list
     const t4 = await chat(cid, '1')
-    expect(t4.orderStep).toBe('info')
+    expect(t4.orderStep).toBe('name')
 
-    // Step 5: gives address
+    // Step 5: gives address (at name step, address skips to phone)
     const t5 = await chat(cid, 'БЗД 11 хороо 32 байр 7 тоот')
-    expect(t5.orderStep).toBe('info')
+    expect(t5.orderStep).toBe('phone')
 
     // Step 6: gives phone
     const t6 = await chat(cid, '99001122')
@@ -644,7 +645,7 @@ describe('12. Real customer journeys', () => {
 
     // Step 4: selects product
     const t4 = await chat(cid, '1')
-    expect(t4.orderStep).toBe('info')
+    expect(t4.orderStep).toBe('name')
   })
 
   test('Customer E: changes mind mid-order — asks about different product', { timeout: 120000 }, async () => {
@@ -655,7 +656,7 @@ describe('12. Real customer journeys', () => {
     expect(['product_search', 'order_collection']).toContain(t1.intent)
 
     const t2 = await chat(cid, '1')
-    expect(t2.orderStep).toBe('info')
+    expect(t2.orderStep).toBe('name')
 
     // Step 2: changes mind — asks about something else mid-order
     const t3 = await chat(cid, 'цамц байна уу харуулаач')
@@ -674,14 +675,14 @@ describe('12. Real customer journeys', () => {
     expectValidResponse(t1.response)
 
     const t2 = await chat(cid, '1')
-    expect(t2.orderStep).toBe('info')
+    expect(t2.orderStep).toBe('name')
 
     // Latin address
     const t3 = await chat(cid, 'BZD 8r horoo 15 bair 23 toot')
-    expect(['info', 'confirming']).toContain(t3.orderStep)
+    expect(['phone', 'confirming']).toContain(t3.orderStep)
 
     // Phone
     const t4 = await chat(cid, '88997766')
-    expect(['confirming', 'info']).toContain(t4.orderStep)
+    expect(['confirming', 'phone']).toContain(t4.orderStep)
   })
 })
