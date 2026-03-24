@@ -67,4 +67,20 @@
 ### 6. CI Fix: Test Assertions for Sequential Order Steps (commit c9994f5)
 - Fixed 41 test assertions across 4 files: `toBe('info')` → `toBe('name'/'address'/'phone')`
 - Fixed 3 lint errors in `telegram/driver/route.ts`
-- Remaining 3 test failures: missing `deliveries` table in test DB mock (pre-existing)
+- Applied pending DB migrations (015-059) — deliveries table created, 3 lifecycle tests now pass
+
+### 7. P2 #8: Redis-backed Rate Limiting (commit 4eb2a70)
+- Upgraded `middleware-rate-limit.ts` to use Upstash Redis (Edge-compatible)
+- `edgeRateLimit()` now async — tries Redis first, falls back to in-memory
+- Separate prefix `@temuulel/edge-ratelimit` from route-level limiter
+- All 300 API routes protected via tiered middleware (5-60 req/min)
+
+### 8. AI Response Quality Improvements (commit 7b3d804)
+- **Product narrowing**: 5+ products → show top 3, generic queries ask "Ямар бараа?"
+- **Discontinued items**: empathetic response + staff follow-up (not random suggestions)
+- **Delivery complaints**: force AI to use real delivery status/driver/ETA data
+
+### 9. Production Monitoring Hardening (commit 38f1ad3)
+- PII filtering via `beforeSend` — scrubs phone, password, address, credit card, auth headers
+- Configurable `tracesSampleRate` via `SENTRY_TRACES_SAMPLE_RATE` env var
+- `X-Response-Time` header added to all API responses for latency monitoring
