@@ -1713,4 +1713,4 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | P0 Revenue-Critical | 2 | 2 | 0 |
 | P1 AI Quality | 5 | 3 | 2 |
 | P2 Platform | 3 | 0 | 3 |
-| **Total** | **10** | **1** | **9** |
+| **Total** | **10** | **6** | **4** |
