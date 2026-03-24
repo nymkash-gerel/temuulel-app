@@ -1694,7 +1694,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 |---|------|--------|----------|-------|
 | 3 | ~~Fix "болох уу" intent conflict — remove from product_search~~ | **DONE** ✓ | P1 | Removed from product_search. Payment/return intents no longer hijacked. Commit `c53c060` |
 | 4 | ~~Implement Mongolian morphological stemmer~~ | **DONE** ✓ | P1 | Already existed: `mn-stemmer.ts` (97 suffixes), integrated into intent-classifier via `STEMMED_INTENT_KEYWORDS` |
-| 5 | Transition to structured JSON output for AI | PENDING | P1 | OpenAI JSON mode: `{ empathy_needed, intent, products[] }` → response-generator builds reply |
+| 5 | ~~Transition to structured JSON output for AI~~ | **DONE** ✓ | P1 | `chatCompletionJSON<T>()` + `ContextualAIResponseJSON { response, empathy_needed, confidence, requires_human_review, detected_issues }`. 12 tests. |
 | 6 | ~~Fix "history blindness" — remember returning customers~~ | **DONE** ✓ | P1 | Pre-fills name/address/phone from last order. Shows "Өмнөх мэдээллээр захиалах уу?" Commit `8400833` |
 | 7 | ~~Refactor test files & establish CI/CD~~ | **DONE** ✓ | P1 | Split test-real-life.ts → 4 files. CI/CD: lint + typecheck + test + build (commit b4d9132) |
 
@@ -1711,6 +1711,6 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Category | Total | Done | Pending |
 |----------|-------|------|---------|
 | P0 Revenue-Critical | 2 | 2 | 0 |
-| P1 AI Quality | 5 | 4 | 1 |
+| P1 AI Quality | 5 | 5 | 0 |
 | P2 Platform | 3 | 0 | 3 |
-| **Total** | **10** | **7** | **3** |
+| **Total** | **10** | **8** | **2** |

@@ -409,7 +409,16 @@ export async function generateAIResponse(
         latestPurchaseSummary: latestPurchaseSummary ?? null,
         resolution: resolution ?? null,
       })
-      if (contextResult) return contextResult
+      if (contextResult) {
+        // Log structured AI metadata for analytics/escalation
+        if (contextResult.requires_human_review || contextResult.detected_issues.length > 0) {
+          console.log(
+            `[ai-response] empathy=${contextResult.empathy_needed} confidence=${contextResult.confidence} ` +
+            `human_review=${contextResult.requires_human_review} issues=[${contextResult.detected_issues.join(',')}]`
+          )
+        }
+        return contextResult.response
+      }
     } catch {
       // Fall through to recommendation writer
     }

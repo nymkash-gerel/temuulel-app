@@ -76,6 +76,20 @@ export interface ComplaintClassificationOutput {
   suggested_response: string
 }
 
+// ContextualAIResponse (structured JSON output from contextual responder)
+export interface ContextualAIResponseJSON {
+  /** Natural Mongolian response text to send to customer */
+  response: string
+  /** Whether empathetic tone was used (complaint, worried customer) */
+  empathy_needed: boolean
+  /** AI's confidence in this response (0.0 = uncertain, 1.0 = certain) */
+  confidence: number
+  /** Whether this conversation needs human agent review */
+  requires_human_review: boolean
+  /** Detected issues for analytics/escalation */
+  detected_issues: string[]
+}
+
 // ProductEnricher
 export interface ProductEnrichmentInput {
   name: string

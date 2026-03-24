@@ -6,11 +6,14 @@
  * Context-dependent sections only included when relevant to the intent.
  */
 
-import { isOpenAIConfigured, chatCompletion } from './openai-client'
+import { isOpenAIConfigured, chatCompletionJSON } from './openai-client'
 import type { ChatMessage } from './openai-client'
 import { normalizeText } from '../chat-ai'
 import type { CustomerProfile } from './customer-profile'
 import type { ResolutionContext } from '../resolution-engine'
+import type { ContextualAIResponseJSON } from './types'
+
+export type { ContextualAIResponseJSON }
 
 export interface MessageHistoryEntry {
   role: 'user' | 'assistant'
@@ -351,6 +354,25 @@ function buildSystemPrompt(input: ContextualInput): string {
     })
   }
 
+  // --- JSON output schema (always last) ---
+  prompt += `
+
+ХАРИУЛТЫН ФОРМАТ — ЗААВАЛ JSON:
+{
+  "response": "Харилцагчид илгээх Монгол хэлний хариулт",
+  "empathy_needed": true/false,
+  "confidence": 0.0-1.0,
+  "requires_human_review": true/false,
+  "detected_issues": []
+}
+
+JSON ДҮРЭМ:
+- response: Байгалийн Монгол хариулт, 1-5 өгүүлбэр
+- empathy_needed: true = гомдол, санаа зовсон, буцаалт
+- confidence: 0.0 = мэдэхгүй, 1.0 = бүрэн итгэлтэй
+- requires_human_review: true = хүнд шилжүүлэх хэрэгтэй (гомдол, маргаан, хүн хүссэн)
+- detected_issues: ["complaint", "delivery_delay", "wrong_item", "needs_stock_check", "customer_upset", "return_request", "payment_issue"] зэргээс тохирохыг сонго, хоосон [] бол асуудалгүй`
+
   return prompt
 }
 
@@ -360,9 +382,9 @@ function buildSystemPrompt(input: ContextualInput): string {
 
 /**
  * Generate a contextual AI response using conversation history.
- * Returns null if OpenAI is not configured or on failure.
+ * Returns structured JSON with response text + metadata, or null on failure.
  */
-export async function contextualAIResponse(input: ContextualInput): Promise<string | null> {
+export async function contextualAIResponse(input: ContextualInput): Promise<ContextualAIResponseJSON | null> {
   if (!isOpenAIConfigured()) return null
   // Allow GPT on turn 1 for 'general' and 'complaint' — ambiguous and upset first
   // messages need GPT most. All other intents without history fall to templates.
@@ -396,8 +418,23 @@ export async function contextualAIResponse(input: ContextualInput): Promise<stri
       { role: 'user' as const, content: normalizeMsgContent(input.currentMessage) },
     ]
 
-    const result = await chatCompletion({ messages, maxTokens: 500 })
-    return result.content
+    const result = await chatCompletionJSON<ContextualAIResponseJSON>({ messages, maxTokens: 500 })
+    const data = result.data
+
+    // Validate the required 'response' field exists
+    if (!data.response || typeof data.response !== 'string') {
+      console.error('[contextual-responder] Invalid JSON: missing response field')
+      return null
+    }
+
+    // Normalize optional fields with safe defaults
+    return {
+      response: data.response,
+      empathy_needed: data.empathy_needed ?? false,
+      confidence: typeof data.confidence === 'number' ? data.confidence : 0.5,
+      requires_human_review: data.requires_human_review ?? false,
+      detected_issues: Array.isArray(data.detected_issues) ? data.detected_issues : [],
+    }
   } catch (error) {
     console.error('[contextual-responder] Failed:', error)
     return null

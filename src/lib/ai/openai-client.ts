@@ -91,6 +91,47 @@ export async function chatCompletion(req: ChatCompletionRequest): Promise<ChatCo
 }
 
 // ---------------------------------------------------------------------------
+// Chat completion with JSON output (multi-turn, structured JSON)
+// ---------------------------------------------------------------------------
+
+/**
+ * Send a multi-turn chat completion request with JSON output mode.
+ * Parses the response as JSON of type T.
+ */
+export async function chatCompletionJSON<T>(req: ChatCompletionRequest): Promise<CompletionResult<T>> {
+  return withSpan('openai.chatCompletionJSON', 'ai.completion', async () => {
+    const openai = getClient()
+
+    const response = await withCircuitBreaker(() => openai.chat.completions.create({
+      model: MODEL,
+      temperature: req.temperature ?? DEFAULT_TEMPERATURE,
+      max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
+      response_format: { type: 'json_object' },
+      messages: req.messages,
+    }))
+
+    const content = response.choices[0]?.message?.content
+    if (!content) throw new Error('Empty response from OpenAI')
+
+    const data = JSON.parse(content) as T
+    const usage = response.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+
+    console.log(
+      `[openai-chat-json] model=${MODEL} tokens=${usage.total_tokens} (prompt=${usage.prompt_tokens} completion=${usage.completion_tokens})`
+    )
+
+    return {
+      data,
+      usage: {
+        prompt_tokens: usage.prompt_tokens,
+        completion_tokens: usage.completion_tokens,
+        total_tokens: usage.total_tokens,
+      },
+    }
+  }, { 'ai.model': MODEL, 'ai.max_tokens': req.maxTokens ?? DEFAULT_MAX_TOKENS })
+}
+
+// ---------------------------------------------------------------------------
 // JSON completion (single-turn, JSON output)
 // ---------------------------------------------------------------------------
 
