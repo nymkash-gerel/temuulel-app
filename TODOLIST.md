@@ -1692,8 +1692,8 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | # | Task | Status | Priority | Notes |
 |---|------|--------|----------|-------|
-| 3 | Fix "болох уу" intent conflict — remove from size_info | PENDING | P1 | "болох уу" hijacks payment/return. Move to general modal handler |
-| 4 | Implement Mongolian morphological stemmer | PENDING | P1 | Suffix-stripping for -аа, -ийн, -ээр, -тай. Reduces manual keyword maintenance ~50% |
+| 3 | ~~Fix "болох уу" intent conflict — remove from product_search~~ | **DONE** ✓ | P1 | Removed from product_search. Payment/return intents no longer hijacked. Commit `c53c060` |
+| 4 | ~~Implement Mongolian morphological stemmer~~ | **DONE** ✓ | P1 | Already existed: `mn-stemmer.ts` (97 suffixes), integrated into intent-classifier via `STEMMED_INTENT_KEYWORDS` |
 | 5 | Transition to structured JSON output for AI | PENDING | P1 | OpenAI JSON mode: `{ empathy_needed, intent, products[] }` → response-generator builds reply |
 | 6 | Fix "history blindness" — remember returning customers | PENDING | P1 | Query `customers.last_shipping_address` at order start. Ask "Өмнөх хаяг руу хүргэх үү?" |
 | 7 | ~~Refactor test files & establish CI/CD~~ | **DONE** ✓ | P1 | Split test-real-life.ts → 4 files. CI/CD: lint + typecheck + test + build (commit b4d9132) |
@@ -1711,6 +1711,6 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Category | Total | Done | Pending |
 |----------|-------|------|---------|
 | P0 Revenue-Critical | 2 | 2 | 0 |
-| P1 AI Quality | 5 | 1 | 4 |
+| P1 AI Quality | 5 | 3 | 2 |
 | P2 Platform | 3 | 0 | 3 |
 | **Total** | **10** | **1** | **9** |
