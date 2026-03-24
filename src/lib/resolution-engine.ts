@@ -169,7 +169,7 @@ async function checkStoreSettings(
   try {
     const { data } = await supabase
       .from('stores')
-      .select('address, phone, store_hours, shipping_settings')
+      .select('address, phone, shipping_settings')
       .eq('id', storeId)
       .single()
 
