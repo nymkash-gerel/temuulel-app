@@ -200,7 +200,7 @@ function buildSystemPrompt(input: ContextualInput): string {
       'хар': 'хар', 'black': 'хар',
       'саарал': 'саарал', 'gray': 'саарал', 'grey': 'саарал',
       'ногоон': 'ногоон', 'green': 'ногоон',
-      'цэнхэр': 'цэнхэр', 'цэнхэр': 'цэнхэр',
+      'цэнхэр': 'цэнхэр', 'цайвар цэнхэр': 'цайвар цэнхэр',
       'улбар': 'улбар ягаан', 'orange': 'улбар ягаан',
     }
     const msgLower = input.currentMessage.toLowerCase()
@@ -209,7 +209,7 @@ function buildSystemPrompt(input: ContextualInput): string {
     )
     const requested = Object.entries(COLOR_MAP).find(([kw]) => msgLower.includes(kw))
     if (requested) {
-      const [kw, colorName] = requested
+      const [, colorName] = requested
       const hasColor = [...allColors].some(c => c && (c.includes(colorName) || colorName.includes(c.split(' ')[0])))
       if (!hasColor) {
         if (allColors.size === 0) {
