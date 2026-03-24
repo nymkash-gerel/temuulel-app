@@ -43,7 +43,8 @@ export function generateResponse(
   products: ProductMatch[],
   orders: OrderMatch[],
   storeName: string,
-  settings?: ChatbotSettings
+  settings?: ChatbotSettings,
+  resolution?: import('./resolution-engine').ResolutionContext | null,
 ): string {
   const showPrices = settings?.show_prices !== false
 
@@ -171,15 +172,31 @@ export function generateResponse(
     case 'shipping': {
       let shipResponse = `🚚 **Хүргэлтийн мэдээлэл**\n\n`
       shipResponse += `📍 **Хүргэлтийн бүсүүд:**\n`
-      shipResponse += `• Улаанбаатар хот — **1-2 ажлын өдөр**\n`
-      shipResponse += `• Хөдөө орон нутаг — **3-5 ажлын өдөр**\n\n`
-      shipResponse += `💰 **Хүргэлтийн төлбөр:**\n`
-      shipResponse += `• Захиалгын дүн болон бүсээс хамаарна\n`
-      shipResponse += `• Тодорхой дүнгээс дээш үнэгүй хүргэлт (дэлгүүрээс хамаарна)\n\n`
+
+      // Use resolution data for specific fees if available
+      if (resolution?.shippingFee) {
+        shipResponse += `• УБ хот дотор — **${resolution.shippingFee.toLocaleString()}₮** (24-48 цаг)\n`
+        shipResponse += `• Хөдөө орон нутаг — **3-7 ажлын өдөр**\n\n`
+        if (resolution.freeShippingThreshold) {
+          shipResponse += `🎁 **${resolution.freeShippingThreshold.toLocaleString()}₮**-өөс дээш захиалгад хүргэлт **ҮНЭГҮЙ!**\n\n`
+        }
+      } else {
+        shipResponse += `• Улаанбаатар хот — **1-2 ажлын өдөр**\n`
+        shipResponse += `• Хөдөө орон нутаг — **3-5 ажлын өдөр**\n\n`
+        shipResponse += `💰 **Хүргэлтийн төлбөр:**\n`
+        shipResponse += `• Захиалгын дүн болон бүсээс хамаарна\n\n`
+      }
+
+      // Store pickup info from resolution
+      if (resolution?.isDeliveryOnly) {
+        shipResponse += `🏪 Манайх зөвхөн хүргэлтээр бараа гарж байна.\n\n`
+      } else if (resolution?.storeAddress) {
+        shipResponse += `🏪 Очиж авах: **${resolution.storeAddress}**\n\n`
+      }
+
       shipResponse += `📦 **Захиалга хянах:**\n`
       shipResponse += `• Захиалгын дугаараа бичвэл статусыг шалгана\n`
-      shipResponse += `• Хүргэлт эхлэхэд трэкинг код илгээнэ\n`
-      shipResponse += `• Жолооч ойртоход мэдэгдэл авна\n\n`
+      shipResponse += `• Хүргэлт эхлэхэд трэкинг код илгээнэ\n\n`
       shipResponse += `📮 Хаягаа бичвэл хүргэлтийн төлбөрийг тооцоолж хэлж өгье!`
       return shipResponse
     }
@@ -415,7 +432,7 @@ export async function generateAIResponse(
   }
 
   // Tier 3: Deterministic template
-  return generateResponse(intent, products, orders, storeName, settings)
+  return generateResponse(intent, products, orders, storeName, settings, resolution)
 }
 
 // ---------------------------------------------------------------------------
