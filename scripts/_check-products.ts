@@ -1,19 +1,33 @@
+import { config } from 'dotenv'
+config({ path: '.env.production.local' })
 import { createClient } from '@supabase/supabase-js'
-const sb = createClient('http://127.0.0.1:54321', process.env.SUPABASE_SECRET_KEY!)
-async function main() {
-  const { data, error } = await sb
-    .from('products')
-    .select('id, name, status, store_id')
-    .eq('store_id', 'a1b2c3d4-e5f6-4789-ab01-234567890abc')
-  console.log('Products:', data?.length, error?.message)
-  console.log(data?.map(p => p.name))
 
-  // Check if product search works via ilike
-  const { data: search } = await sb
-    .from('products')
-    .select('id, name')
-    .eq('store_id', 'a1b2c3d4-e5f6-4789-ab01-234567890abc')
-    .ilike('name', '%цүнх%')
-  console.log('цүнх search:', search?.map(p => p.name))
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ''
+const sb = createClient(url, key)
+
+async function main() {
+  const { data: products } = await sb.from('products')
+    .select('name, ai_context, product_faqs, description')
+    .eq('store_id', '236636f3-0a44-4f04-aba1-312e00d03166')
+    .order('name')
+
+  if (!products) { console.log('No products found'); return }
+
+  for (const p of products) {
+    console.log(`\n${'='.repeat(50)}`)
+    console.log(`📦 ${p.name}`)
+    console.log(`  Тайлбар: ${p.description?.substring(0, 80) || '🔴 БАЙХГҮЙ'}`)
+    console.log(`  AI заавар: ${p.ai_context ? '✅ ' + p.ai_context.substring(0, 80) + '...' : '🔴 БАЙХГҮЙ'}`)
+    if (p.product_faqs && typeof p.product_faqs === 'object') {
+      const faqs = p.product_faqs as Record<string, string>
+      console.log(`  FAQ: ✅ ${Object.keys(faqs).length} асуулт`)
+      for (const [q, a] of Object.entries(faqs)) {
+        console.log(`    • ${q} → ${String(a).substring(0, 60)}`)
+      }
+    } else {
+      console.log(`  FAQ: 🔴 БАЙХГҮЙ`)
+    }
+  }
 }
 main()
