@@ -179,7 +179,7 @@ async function checkStoreSettings(
     return {
       storeAddress: data?.address || undefined,
       storePhone: data?.phone || undefined,
-      storeHours: data?.store_hours || undefined,
+      storeHours: undefined,
       isDeliveryOnly: !hasAddress,
       shippingFee: innerCity?.price as number | undefined,
       freeShippingThreshold: (shippingSettings.free_shipping_minimum as number) || undefined,
