@@ -1,7 +1,7 @@
 # Temuulel Platform - Master Progress Tracker (0-100%)
 
-**Last Updated:** 2026-02-19
-**Build:** Passing | **Tests:** 3291/3291 passing (82 files) | **Migrations:** 47 files (001-047) | **API Routes:** 275 | **Dashboard Pages:** 216 | **Detail Pages:** 80
+**Last Updated:** 2026-03-24
+**Build:** Passing | **Tests:** 3446/3446 passing (102 files) | **Migrations:** 47 files (001-047) | **API Routes:** 275 | **Dashboard Pages:** 216 | **Detail Pages:** 80
 
 ---
 
@@ -1672,3 +1672,45 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 | Security Hardening | 5 | 3 | 2 |
 | DevOps & Deployment | 4 | 1 | 3 |
 | **Total** | **25** | **7** | **18** |
+
+---
+
+## Phase 52: AI Quality & Production Hardening (NotebookLM Recommendations)
+
+**Goal:** Fix critical AI quality issues identified by NotebookLM analysis of 19 sources + operational test results.
+**Status:** In Progress
+**Source:** NotebookLM analysis (2026-03-24) + business-rules document
+
+### 52.1 P0 — Revenue-Critical Fixes
+
+| # | Task | Status | Priority | Notes |
+|---|------|--------|----------|-------|
+| 1 | Eliminate AI product hallucinations — Resolution Engine guard | PENDING | **P0** | Files: `resolution-engine.ts`, `chat-ai-handler.ts`, `contextual-responder.ts`. Add empty-result guard (products.length===0 → template), strict GPT prompt ("зохиохгүй"), color guard |
+| 2 | Enforce order state machine — strict step validation | PENDING | **P0** | File: `conversation-state.ts`. Add `current_step` field. Enforce: Product → Variant → Address → Phone → Confirm. Add validation guards (no phone before address). Fix `resolveFollowUp` priority |
+
+### 52.2 P1 — Intent Classification & AI Quality
+
+| # | Task | Status | Priority | Notes |
+|---|------|--------|----------|-------|
+| 3 | Fix "болох уу" intent conflict — remove from size_info | PENDING | P1 | "болох уу" hijacks payment/return. Move to general modal handler |
+| 4 | Implement Mongolian morphological stemmer | PENDING | P1 | Suffix-stripping for -аа, -ийн, -ээр, -тай. Reduces manual keyword maintenance ~50% |
+| 5 | Transition to structured JSON output for AI | PENDING | P1 | OpenAI JSON mode: `{ empathy_needed, intent, products[] }` → response-generator builds reply |
+| 6 | Fix "history blindness" — remember returning customers | PENDING | P1 | Query `customers.last_shipping_address` at order start. Ask "Өмнөх хаяг руу хүргэх үү?" |
+| 7 | ~~Refactor test files & establish CI/CD~~ | **DONE** ✓ | P1 | Split test-real-life.ts → 4 files. CI/CD: lint + typecheck + test + build (commit b4d9132) |
+
+### 52.3 P2 — Platform & Integration
+
+| # | Task | Status | Priority | Notes |
+|---|------|--------|----------|-------|
+| 8 | Deploy Redis-backed rate limiting on all routes | PENDING | P2 | 78% of API routes unprotected. Global baseline in middleware.ts |
+| 9 | Complete Instagram DM & WhatsApp receivers | PENDING | P2 | Create unified `multi-channel-sender.ts` from messenger.ts patterns |
+| 10 | Implement real-time logistics sync | PENDING | P2 | Resolution Engine queries deliveries + drivers tables for live ETA |
+
+### Phase 52 Summary
+
+| Category | Total | Done | Pending |
+|----------|-------|------|---------|
+| P0 Revenue-Critical | 2 | 0 | 2 |
+| P1 AI Quality | 5 | 1 | 4 |
+| P2 Platform | 3 | 0 | 3 |
+| **Total** | **10** | **1** | **9** |
