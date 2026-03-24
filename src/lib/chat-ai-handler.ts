@@ -77,7 +77,7 @@ export interface AIProcessingResult {
     orders_found: number
   }
   /** Active order draft step — used by webhook to send Quick Replies */
-  orderStep?: 'variant' | 'info' | 'confirming' | null
+  orderStep?: 'variant' | 'info' | 'name' | 'address' | 'phone' | 'confirming' | null
 }
 
 /**
@@ -173,10 +173,10 @@ export async function processAIChat(
               draft.variant_label = label
               draft.unit_price = resolved.price ?? draft.unit_price
 
-              // Move to info step — ask for address + phone next
-              draft.step = 'info'
+              // Move to name step — collect customer name first
+              draft.step = 'name'
               orderDraft = draft
-              responseText = buildInfoRequest(draft)
+              responseText = 'Нэрээ бичнэ үү:'
             } else {
               orderDraft = draft
               responseText = 'Аль хувилбарыг сонгохоо дугаараар бичнэ үү:'
@@ -184,67 +184,57 @@ export async function processAIChat(
             break
           }
 
-          case 'info': {
-            // Parse message for address and/or phone
+          case 'info':
+          case 'name': {
+            // Step: collect customer name
+            // Any non-empty text that isn't a phone/address is treated as name
+            const namePhone = extractPhone(customerMessage)
+            const nameAddr = extractAddress(customerMessage, namePhone)
+            if (!namePhone && !nameAddr && customerMessage.trim().length >= 2) {
+              draft.customer_name = customerMessage.trim()
+              draft.step = 'address'
+              orderDraft = draft
+              responseText = `${draft.customer_name}, хүргэлтийн хаягаа бичнэ үү (дүүрэг, хороо, байр):`
+            } else if (nameAddr) {
+              // Customer skipped name and sent address directly — accept it
+              draft.address = nameAddr
+              draft.step = 'phone'
+              orderDraft = draft
+              responseText = 'Утасны дугаараа бичнэ үү:'
+            } else {
+              orderDraft = draft
+              responseText = 'Нэрээ бичнэ үү:'
+            }
+            break
+          }
+
+          case 'address': {
+            // Step: collect delivery address
+            const addrPhone = extractPhone(customerMessage)
+            const addr = extractAddress(customerMessage, addrPhone)
+            if (addr) {
+              draft.address = addr
+              draft.step = 'phone'
+              orderDraft = draft
+              responseText = 'Утасны дугаараа бичнэ үү:'
+            } else {
+              orderDraft = draft
+              responseText = 'Хүргэлтийн хаягаа бичнэ үү (дүүрэг, хороо, байр):'
+            }
+            break
+          }
+
+          case 'phone': {
+            // Step: collect phone number (ONLY after address)
             const phone = extractPhone(customerMessage)
-            const addr = extractAddress(customerMessage, phone)
-
-            if (phone && !draft.phone) draft.phone = phone
-            if (addr && !draft.address) draft.address = addr
-
-            if (draft.address && draft.phone) {
-              // All info collected — show summary
+            if (phone) {
+              draft.phone = phone
               draft.step = 'confirming'
               orderDraft = draft
               responseText = buildOrderSummary(draft)
-            } else if (!phone && !addr && hasOrderIntent(customerMessage)) {
-              // No contact info found but customer seems to want a different product.
-              // Cancel current draft and start fresh order flow.
-              orderDraft = null
-              const searchTerms = extractSearchTerms(customerMessage)
-              const newProducts = await searchProducts(supabase, searchTerms || customerMessage, storeId, {
-                maxProducts: 5,
-              })
-              if (newProducts.length > 0) {
-                products = newProducts
-                // If specific product identified, start order draft directly
-                const msgWords = normalizeText(customerMessage).trim().split(/\s+/)
-                const nonOrderWords = msgWords.filter((w) =>
-                  !ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
-                  && !ORDER_EXACT_WORDS.some((ew) => w === normalizeText(ew))
-                )
-                if (nonOrderWords.some((w) => w.length >= 2) && newProducts.length === 1) {
-                  const result = await startOrderDraft(supabase, { id: newProducts[0].id, name: newProducts[0].name, base_price: newProducts[0].base_price }, customerMessage)
-                  orderDraft = result.draft
-                  responseText = result.responseText
-                  intent = 'order_collection'
-                } else {
-                  const productList = newProducts.map((p, i) => `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}`).join('\n')
-                  responseText = `Ямар бүтээгдэхүүн захиалмаар байна?\n\n${productList}\n\nДугаараа бичнэ үү:`
-                  intent = 'product_search'
-                }
-              } else {
-                responseText = buildInfoRequest(draft)
-                orderDraft = draft
-              }
-            } else if (!phone && !addr && isProductQuestion(customerMessage)) {
-              // User is asking about the product (color, variant, size) mid-order flow.
-              // Answer via GPT with current product context, then remind them to complete.
-              orderDraft = draft  // keep the draft alive
-              const [infoProducts, infoHistory] = await Promise.all([
-                searchProducts(supabase, draft.product_name, storeId, { maxProducts: 1 }),
-                isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId) : Promise.resolve(undefined),
-              ])
-              products = infoProducts
-              const answer = await generateAIResponse(
-                'product_detail', infoProducts, [], storeName, customerMessage,
-                chatbotSettings, infoHistory, undefined, undefined, customerProfile
-              )
-              responseText = `${answer}\n\nЗахиалгаа үргэлжлүүлэхийн тулд:\n${buildInfoRequest(draft)}`
-              intent = 'order_collection'
             } else {
               orderDraft = draft
-              responseText = buildInfoRequest(draft)
+              responseText = '8 оронтой утасны дугаараа бичнэ үү:'
             }
             break
           }
@@ -1040,7 +1030,7 @@ async function startOrderDraft(
         variant_label: label,
         unit_price: preselected.price ?? product.base_price,
         quantity: 1,
-        step: 'info',
+        step: 'name',
       }
     } else {
       draft = {
@@ -1073,12 +1063,12 @@ async function startOrderDraft(
       variant_label: label || undefined,
       unit_price: variant?.price ?? product.base_price,
       quantity: 1,
-      step: 'info',
+      step: 'name',
     }
   }
 
-  // Always ask for address + phone after product/variant selection
-  return { draft, responseText: buildInfoRequest(draft) }
+  // Step 1 of order collection: ask for customer name
+  return { draft, responseText: `📦 ${product.name} — ${formatPrice(draft.unit_price)}\n\nНэрээ бичнэ үү:` }
 }
 
 async function createOrderFromChat(
@@ -1123,9 +1113,9 @@ async function createOrderFromChat(
   // Create order item + delivery record in parallel
   const deliveryNumber = `DEL-${Date.now()}`
 
-  // Fetch customer name for delivery record
-  let customerName: string | null = null
-  if (customerId) {
+  // Use customer name from draft (collected during order flow), fallback to DB
+  let customerName: string | null = draft.customer_name || null
+  if (!customerName && customerId) {
     const { data: cust } = await supabase
       .from('customers')
       .select('name')

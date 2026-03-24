@@ -28,8 +28,11 @@ export interface OrderDraft {
   variant_label?: string
   unit_price: number
   quantity: number
-  /** 'variant' = pick size/color, 'info' = collecting address+phone, 'confirming' = summary shown */
-  step: 'variant' | 'info' | 'confirming'
+  /** Order collection step — enforced sequentially:
+   *  variant → name → address → phone → confirming
+   *  'info' is kept as alias for backward compat (treated as 'name') */
+  step: 'variant' | 'info' | 'name' | 'address' | 'phone' | 'confirming'
+  customer_name?: string
   address?: string
   phone?: string
 }
