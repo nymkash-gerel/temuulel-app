@@ -1685,8 +1685,8 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | # | Task | Status | Priority | Notes |
 |---|------|--------|----------|-------|
-| 1 | Eliminate AI product hallucinations — Resolution Engine guard | PENDING | **P0** | Files: `resolution-engine.ts`, `chat-ai-handler.ts`, `contextual-responder.ts`. Add empty-result guard (products.length===0 → template), strict GPT prompt ("зохиохгүй"), color guard |
-| 2 | Enforce order state machine — strict step validation | PENDING | **P0** | File: `conversation-state.ts`. Add `current_step` field. Enforce: Product → Variant → Address → Phone → Confirm. Add validation guards (no phone before address). Fix `resolveFollowUp` priority |
+| 1 | ~~Eliminate AI product hallucinations — Resolution Engine guard~~ | **DONE** ✓ | **P0** | 3-layer guard: handler short-circuit (products===0), resolution `productsEmpty` flag, GPT `noProductsRule`. Commit `962e63c` |
+| 2 | ~~Enforce order state machine — sequential step collection~~ | **DONE** ✓ | **P0** | Split 'info' → name/address/phone steps. Phone blocked before address. customer_name field added. Commit `61f3e0b` |
 
 ### 52.2 P1 — Intent Classification & AI Quality
 
@@ -1710,7 +1710,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | Category | Total | Done | Pending |
 |----------|-------|------|---------|
-| P0 Revenue-Critical | 2 | 0 | 2 |
+| P0 Revenue-Critical | 2 | 2 | 0 |
 | P1 AI Quality | 5 | 1 | 4 |
 | P2 Platform | 3 | 0 | 3 |
 | **Total** | **10** | **1** | **9** |
