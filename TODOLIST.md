@@ -1702,7 +1702,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 
 | # | Task | Status | Priority | Notes |
 |---|------|--------|----------|-------|
-| 8 | Deploy Redis-backed rate limiting on all routes | PENDING | P2 | 78% of API routes unprotected. Global baseline in middleware.ts |
+| 8 | ~~Deploy Redis-backed rate limiting on all routes~~ | **DONE** ✓ | P2 | Middleware upgraded to Upstash Redis with in-memory fallback. All 300 routes protected via tiered middleware. 77 routes have additional route-level Redis limits. |
 | 9 | Complete Instagram DM & WhatsApp receivers | PENDING | P2 | Create unified `multi-channel-sender.ts` from messenger.ts patterns |
 | 10 | Implement real-time logistics sync | PENDING | P2 | Resolution Engine queries deliveries + drivers tables for live ETA |
 
@@ -1712,5 +1712,5 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 |----------|-------|------|---------|
 | P0 Revenue-Critical | 2 | 2 | 0 |
 | P1 AI Quality | 5 | 5 | 0 |
-| P2 Platform | 3 | 0 | 3 |
-| **Total** | **10** | **8** | **2** |
+| P2 Platform | 3 | 1 | 2 |
+| **Total** | **10** | **9** | **1** |

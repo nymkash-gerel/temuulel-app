@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
 
     const clientIp = getEdgeClientIp(request)
     const tier = resolveTier(pathname)
-    const result = edgeRateLimit(`mw:${clientIp}:${pathname}`, tier)
+    const result = await edgeRateLimit(`mw:${clientIp}:${pathname}`, tier)
 
     if (!result.success) {
       Sentry.addBreadcrumb({

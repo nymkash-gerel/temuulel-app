@@ -1,14 +1,51 @@
 /**
  * Edge-compatible rate limiter for Next.js middleware.
  *
- * Uses an in-memory sliding window counter (Map-based).
- * Separate from src/lib/rate-limit.ts because middleware runs
- * in the Edge Runtime with its own memory space.
- *
- * Limitation: In-memory state does not persist across Vercel Edge
- * instances, so this provides approximate protection. Redis upgrade
- * is planned as a future step.
+ * Uses Upstash Redis when configured (production — shared across all Vercel
+ * Edge instances), falling back to an in-memory sliding window counter
+ * (development / when Redis is unavailable).
  */
+
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
+// ---------------------------------------------------------------------------
+// Upstash Redis rate limiter (production)
+// ---------------------------------------------------------------------------
+
+let edgeRedis: Redis | null = null
+
+function getEdgeRedis(): Redis | null {
+  if (edgeRedis) return edgeRedis
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) return null
+  edgeRedis = new Redis({ url, token })
+  return edgeRedis
+}
+
+const upstashLimiters = new Map<string, Ratelimit>()
+
+function getUpstashLimiter(limit: number, windowSeconds: number): Ratelimit | null {
+  const redis = getEdgeRedis()
+  if (!redis) return null
+
+  const cacheKey = `${limit}:${windowSeconds}`
+  let limiter = upstashLimiters.get(cacheKey)
+  if (!limiter) {
+    limiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.fixedWindow(limit, `${windowSeconds} s`),
+      prefix: '@temuulel/edge-ratelimit',
+    })
+    upstashLimiters.set(cacheKey, limiter)
+  }
+  return limiter
+}
+
+// ---------------------------------------------------------------------------
+// In-memory fallback (development / Redis unavailable)
+// ---------------------------------------------------------------------------
 
 interface RateLimitEntry {
   count: number
@@ -52,7 +89,7 @@ export interface RateLimitResult {
   resetAt: number
 }
 
-export function edgeRateLimit(key: string, options: RateLimitOptions): RateLimitResult {
+function memoryEdgeRateLimit(key: string, options: RateLimitOptions): RateLimitResult {
   cleanup()
 
   const now = Date.now()
@@ -79,6 +116,35 @@ export function edgeRateLimit(key: string, options: RateLimitOptions): RateLimit
     remaining,
     resetAt: entry.resetAt,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Public API — tries Redis first, falls back to in-memory
+// ---------------------------------------------------------------------------
+
+/**
+ * Rate limit a request. Uses Upstash Redis in production (shared across
+ * all Vercel Edge instances) or falls back to in-memory for development.
+ */
+export async function edgeRateLimit(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
+  const upstash = getUpstashLimiter(options.limit, options.windowSeconds)
+
+  if (upstash) {
+    try {
+      const result = await upstash.limit(key)
+      return {
+        success: result.success,
+        limit: result.limit,
+        remaining: result.remaining,
+        resetAt: result.reset,
+      }
+    } catch {
+      // Redis unavailable — fall back to in-memory
+      return memoryEdgeRateLimit(key, options)
+    }
+  }
+
+  return memoryEdgeRateLimit(key, options)
 }
 
 export function getEdgeClientIp(request: Request): string {

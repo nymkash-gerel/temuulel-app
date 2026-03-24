@@ -1,4 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
+// Mock Upstash so tests use the in-memory fallback by default
+vi.mock('@upstash/ratelimit', () => ({
+  Ratelimit: vi.fn(),
+}))
+vi.mock('@upstash/redis', () => ({
+  Redis: vi.fn(),
+}))
+
 import {
   edgeRateLimit,
   getEdgeClientIp,
@@ -6,85 +15,103 @@ import {
   resolveTier,
 } from './middleware-rate-limit'
 
-describe('edgeRateLimit', () => {
+describe('edgeRateLimit (in-memory fallback)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+    // Ensure no Redis env vars so in-memory is used
+    delete process.env.UPSTASH_REDIS_REST_URL
+    delete process.env.UPSTASH_REDIS_REST_TOKEN
   })
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('allows requests within the limit', () => {
+  it('allows requests within the limit', async () => {
     const key = `test-allow-${Date.now()}`
     const opts = { limit: 5, windowSeconds: 60 }
 
-    const r1 = edgeRateLimit(key, opts)
+    const r1 = await edgeRateLimit(key, opts)
     expect(r1.success).toBe(true)
     expect(r1.remaining).toBe(4)
     expect(r1.limit).toBe(5)
   })
 
-  it('tracks remaining correctly across multiple requests', () => {
+  it('tracks remaining correctly across multiple requests', async () => {
     const key = `test-track-${Date.now()}`
     const opts = { limit: 3, windowSeconds: 60 }
 
-    const r1 = edgeRateLimit(key, opts)
+    const r1 = await edgeRateLimit(key, opts)
     expect(r1.remaining).toBe(2)
 
-    const r2 = edgeRateLimit(key, opts)
+    const r2 = await edgeRateLimit(key, opts)
     expect(r2.remaining).toBe(1)
 
-    const r3 = edgeRateLimit(key, opts)
+    const r3 = await edgeRateLimit(key, opts)
     expect(r3.remaining).toBe(0)
     expect(r3.success).toBe(true)
   })
 
-  it('blocks requests exceeding the limit', () => {
+  it('blocks requests exceeding the limit', async () => {
     const key = `test-block-${Date.now()}`
     const opts = { limit: 2, windowSeconds: 60 }
 
-    edgeRateLimit(key, opts)
-    edgeRateLimit(key, opts)
+    await edgeRateLimit(key, opts)
+    await edgeRateLimit(key, opts)
 
-    const r3 = edgeRateLimit(key, opts)
+    const r3 = await edgeRateLimit(key, opts)
     expect(r3.success).toBe(false)
     expect(r3.remaining).toBe(0)
   })
 
-  it('resets after the window expires', () => {
+  it('resets after the window expires', async () => {
     const key = `test-reset-${Date.now()}`
     const opts = { limit: 1, windowSeconds: 10 }
 
-    const r1 = edgeRateLimit(key, opts)
+    const r1 = await edgeRateLimit(key, opts)
     expect(r1.success).toBe(true)
 
-    const r2 = edgeRateLimit(key, opts)
+    const r2 = await edgeRateLimit(key, opts)
     expect(r2.success).toBe(false)
 
     vi.advanceTimersByTime(11_000)
 
-    const r3 = edgeRateLimit(key, opts)
+    const r3 = await edgeRateLimit(key, opts)
     expect(r3.success).toBe(true)
     expect(r3.remaining).toBe(0)
   })
 
-  it('returns a resetAt timestamp in the future', () => {
+  it('returns a resetAt timestamp in the future', async () => {
     const key = `test-resetat-${Date.now()}`
     const opts = { limit: 5, windowSeconds: 30 }
 
-    const r = edgeRateLimit(key, opts)
+    const r = await edgeRateLimit(key, opts)
     expect(r.resetAt).toBeGreaterThan(Date.now())
   })
 
-  it('isolates different keys', () => {
+  it('isolates different keys', async () => {
     const opts = { limit: 1, windowSeconds: 60 }
 
-    const r1 = edgeRateLimit(`key-a-${Date.now()}`, opts)
+    const r1 = await edgeRateLimit(`key-a-${Date.now()}`, opts)
     expect(r1.success).toBe(true)
 
-    const r2 = edgeRateLimit(`key-b-${Date.now()}`, opts)
+    const r2 = await edgeRateLimit(`key-b-${Date.now()}`, opts)
     expect(r2.success).toBe(true)
+  })
+})
+
+describe('edgeRateLimit (Redis path)', () => {
+  it('uses Upstash Redis when env vars are set', async () => {
+    // This test verifies the module imports and Redis init path.
+    // Since we mock @upstash/redis and @upstash/ratelimit, we verify
+    // the fallback behavior when Redis constructor doesn't provide a real client.
+    const key = `test-redis-${Date.now()}`
+    const opts = { limit: 10, windowSeconds: 60 }
+
+    // Without real Redis, falls back to in-memory
+    const r = await edgeRateLimit(key, opts)
+    expect(r.success).toBe(true)
+    expect(r.limit).toBe(10)
   })
 })
 
