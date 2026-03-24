@@ -308,3 +308,49 @@ export function printSummary(label = 'TEST SUMMARY') {
   }
   console.log('')
 }
+
+export function section(title: string) {
+  console.log(title)
+}
+
+// ---------------------------------------------------------------------------
+// Facebook message extraction helpers
+// ---------------------------------------------------------------------------
+
+function decodeFB(s: string): string {
+  try {
+    return Buffer.from(s, 'latin1').toString('utf-8')
+  } catch {
+    return s
+  }
+}
+
+export function extractCustomerMessages(
+  filePath: string,
+  storeName: string,
+  maxMessages: number,
+): string[] {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require('fs')
+    const data = JSON.parse(readFileSync(filePath, 'utf-8'))
+    const messages: string[] = []
+    for (const m of [...data.messages].reverse()) {
+      const sender = decodeFB(m.sender_name || '')
+      const content = m.content ? decodeFB(m.content) : ''
+      if (sender === storeName || !content) continue
+      if (
+        content.includes('replied to') ||
+        content.includes('reacted') ||
+        content.includes('sent a photo')
+      )
+        continue
+      if (content.length >= 3 && content.length <= 200)
+        messages.push(content.trim())
+      if (messages.length >= maxMessages) break
+    }
+    return messages
+  } catch {
+    return []
+  }
+}
