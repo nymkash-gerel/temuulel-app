@@ -205,10 +205,10 @@ describe('Scenario: Multi-turn product context', () => {
     expect(state2.last_products).toEqual(ALL_PRODUCTS)
   })
 
-  it('complaint clears product context', () => {
+  it('complaint preserves product context', () => {
     const state1 = updateState(emptyState(), 'product_search', ALL_PRODUCTS, 'цамц')
     const state2 = updateState(state1, 'complaint', [], '')
-    expect(state2.last_products).toEqual([])
+    expect(state2.last_products).toEqual(ALL_PRODUCTS)
   })
 })
 
