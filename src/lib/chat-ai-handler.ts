@@ -10,7 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildCustomerProfile } from './ai/customer-profile'
 import { resolve } from './resolution-engine'
 import { getLatestPurchase, formatPurchaseConfirmation, getExtendedCustomerInfo, formatExtendedProfileForAI, inferPreferencesFromMessage, savePreference, logInteraction } from './ai/customer-intelligence'
-import { hybridClassify } from '@/lib/ai/hybrid-classifier'
+import { hybridClassify, hybridClassifyAsync } from '@/lib/ai/hybrid-classifier'
 import {
   extractSearchTerms,
   searchProducts,
@@ -382,7 +382,7 @@ export async function processAIChat(
       case 'prefer_llm': {
         intent = followUp.type === 'size_question' ? 'size_info'
           : followUp.type === 'contextual_question' ? 'general'
-          : hybridClassify(customerMessage).intent
+          : (await hybridClassifyAsync(customerMessage)).intent
         // Anchor to selected product for informational follow-ups (size, material, care, etc.)
         // product_search stays as a fresh search — user is explicitly looking for something new.
         const isInfoFollowUp = (intent === 'size_info' || intent === 'general') && state.last_products.length > 0
@@ -413,8 +413,8 @@ export async function processAIChat(
         responseText = generateResponse(intent, products, orders, storeName, chatbotSettings)
     }
   } else {
-    // Normal classification path
-    intent = hybridClassify(customerMessage).intent
+    // Normal classification path — async with GPT fallback for low confidence
+    intent = (await hybridClassifyAsync(customerMessage)).intent
 
     if (busyMode.busy_mode && ['product_search', 'table_reservation', 'menu_availability'].includes(intent)) {
       const waitMsg = busyMode.estimated_wait_minutes
