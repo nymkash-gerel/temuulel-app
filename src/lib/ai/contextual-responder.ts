@@ -174,8 +174,22 @@ function buildSystemPrompt(input: ContextualInput): string {
 
     if (resolution.activeDelivery) {
       const d = resolution.activeDelivery
-      prompt += `\n\n📦 ХҮРГЭЛТИЙН МЭДЭЭЛЭЛ: Статус: ${d.status}${d.driverName ? `, Жолооч: ${d.driverName}` : ''}${d.estimatedTime ? `, Хүлээгдэж буй: ${d.estimatedTime}` : ''}`
-      prompt += '\n  ☝️ ЗААВАЛ дээрх бодит мэдээллийг хариултдаа оруул. "Маш харамсаж байна" гэх ерөнхий хариу ХОРИОТОЙ — бодит статус, жолоочийн нэр, хүлээгдэж буй хугацааг хэл.'
+      const statusLabel: Record<string, string> = {
+        assigned: 'Жолоочид хуваарилагдсан',
+        at_store: 'Жолооч дэлгүүрт байна',
+        picked_up: 'Бараа авсан, хүргэлтэнд гарсан',
+        in_transit: 'Замд явж байна',
+      }
+      const humanStatus = statusLabel[d.status] || d.status
+      let deliveryInfo = `\n\n📦 ХҮРГЭЛТИЙН МЭДЭЭЛЭЛ:\n  Статус: ${humanStatus}`
+      if (d.driverName) deliveryInfo += `\n  Жолооч: ${d.driverName}`
+      if (d.liveETA) deliveryInfo += `\n  🕐 Live ETA: ${d.liveETA}`
+      else if (d.estimatedTime) deliveryInfo += `\n  Хүлээгдэж буй: ${d.estimatedTime}`
+      if (d.driverLocation) deliveryInfo += '\n  📍 Жолоочийн байрлал шинэ (GPS идэвхтэй)'
+      else deliveryInfo += '\n  📍 Жолоочийн байрлал тодорхойгүй'
+      if (d.deliveryNumber) deliveryInfo += `\n  Хүргэлтийн дугаар: ${d.deliveryNumber}`
+      prompt += deliveryInfo
+      prompt += '\n  ☝️ ЗААВАЛ дээрх бодит мэдээллийг хариултдаа оруул. Live ETA байвал заавал хэл. "Маш харамсаж байна" гэх ерөнхий хариу ХОРИОТОЙ — бодит статус, жолоочийн нэр, хугацааг хэл.'
     }
 
     if (resolution.hasHistory && resolution.lastAddress) {

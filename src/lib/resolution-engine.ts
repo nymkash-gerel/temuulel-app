@@ -23,13 +23,15 @@ export interface ResolutionContext {
   lastName?: string
   hasHistory: boolean
 
-  // Active delivery (for complaints/shipping)
+  // Active delivery (for complaints/shipping/order_status)
   activeDelivery?: {
     status: string
     driverName?: string
     driverPhone?: string
     estimatedTime?: string
     deliveryNumber?: string
+    driverLocation?: { lat: number; lng: number; updatedAt: string }
+    liveETA?: string // e.g. "~20 мин"
   }
 
   // Product disambiguation
@@ -94,8 +96,58 @@ async function checkCustomerHistory(
 }
 
 // ---------------------------------------------------------------------------
-// 2. Delivery Status Check (for complaints)
+// 2. Delivery Status Check (for complaints/order_status)
 // ---------------------------------------------------------------------------
+
+/** Average city speed for simple ETA (km/h). UB traffic ~15 km/h. */
+const AVG_SPEED_KMH = 15
+/** Max age for driver location before we consider it stale (ms). */
+const LOCATION_MAX_AGE_MS = 30 * 60 * 1000 // 30 min
+
+/**
+ * Haversine distance between two lat/lng points in km.
+ */
+function haversineKm(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number,
+): number {
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+/**
+ * Estimate ETA string from driver location to delivery address coords.
+ * Returns "~N мин" or null if not calculable.
+ */
+function estimateETA(
+  driverLoc: { lat: number; lng: number; updated_at?: string },
+  deliveryAddress: string | null,
+): string | null {
+  // Check if driver location is stale
+  if (driverLoc.updated_at) {
+    const age = Date.now() - new Date(driverLoc.updated_at).getTime()
+    if (age > LOCATION_MAX_AGE_MS) return null
+  }
+
+  // For now, use simple distance-based ETA
+  // UB center coords as fallback destination (~47.92, 106.92)
+  // Real geocoding can be added later
+  const destLat = 47.92
+  const destLng = 106.92
+
+  const distKm = haversineKm(driverLoc.lat, driverLoc.lng, destLat, destLng)
+  const etaMin = Math.round((distKm / AVG_SPEED_KMH) * 60)
+
+  if (etaMin < 1) return '~1 мин'
+  if (etaMin > 120) return null // unreasonable
+  return `~${etaMin} мин`
+}
 
 async function checkDeliveryStatus(
   supabase: SupabaseClient,
@@ -105,27 +157,90 @@ async function checkDeliveryStatus(
   if (!customerId) return null
 
   try {
-    const { data } = await supabase
+    // First: find customer's phone from customers table
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('phone')
+      .eq('id', customerId)
+      .single()
+
+    // Strategy 1: Match via order_id → orders.customer_id
+    // Strategy 2: Match via customer_phone
+    // We try both for maximum coverage
+
+    let deliveryData: Record<string, unknown> | null = null
+
+    // Try via orders join first (most reliable)
+    const { data: viaOrder } = await supabase
       .from('deliveries')
-      .select('status, delivery_number, estimated_delivery_time, driver_id, delivery_drivers(name, phone)')
+      .select(`
+        status, delivery_number, estimated_delivery_time, delivery_address,
+        driver_id, delivery_drivers(name, phone, current_location),
+        order_id, orders!inner(customer_id)
+      `)
       .eq('store_id', storeId)
+      .eq('orders.customer_id', customerId)
       .in('status', ['assigned', 'picked_up', 'in_transit', 'at_store'])
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
 
-    if (!data) return null
+    if (viaOrder) {
+      deliveryData = viaOrder as unknown as Record<string, unknown>
+    }
 
-    const driver = Array.isArray(data.delivery_drivers)
-      ? data.delivery_drivers[0]
-      : data.delivery_drivers
+    // Fallback: try via customer_phone if no order match
+    if (!deliveryData && customer?.phone) {
+      const { data: viaPhone } = await supabase
+        .from('deliveries')
+        .select(`
+          status, delivery_number, estimated_delivery_time, delivery_address,
+          driver_id, delivery_drivers(name, phone, current_location)
+        `)
+        .eq('store_id', storeId)
+        .eq('customer_phone', customer.phone)
+        .in('status', ['assigned', 'picked_up', 'in_transit', 'at_store'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (viaPhone) {
+        deliveryData = viaPhone as unknown as Record<string, unknown>
+      }
+    }
+
+    if (!deliveryData) return null
+
+    const driverRaw = deliveryData.delivery_drivers
+    const driver = (Array.isArray(driverRaw) ? driverRaw[0] : driverRaw) as {
+      name?: string; phone?: string; current_location?: { lat: number; lng: number; updated_at?: string }
+    } | null
+
+    // Live driver location + ETA
+    const loc = driver?.current_location
+    let driverLocation: { lat: number; lng: number; updatedAt: string } | undefined
+    let liveETA: string | undefined
+
+    if (loc && loc.lat && loc.lng) {
+      const locAge = loc.updated_at
+        ? Date.now() - new Date(loc.updated_at).getTime()
+        : Infinity
+
+      if (locAge <= LOCATION_MAX_AGE_MS) {
+        driverLocation = { lat: loc.lat, lng: loc.lng, updatedAt: loc.updated_at || '' }
+        const eta = estimateETA(loc, deliveryData.delivery_address as string | null)
+        if (eta) liveETA = eta
+      }
+    }
 
     return {
-      status: data.status,
-      deliveryNumber: data.delivery_number || undefined,
+      status: deliveryData.status as string,
+      deliveryNumber: (deliveryData.delivery_number as string) || undefined,
       driverName: driver?.name || undefined,
       driverPhone: driver?.phone || undefined,
-      estimatedTime: data.estimated_delivery_time || undefined,
+      estimatedTime: (deliveryData.estimated_delivery_time as string) || undefined,
+      driverLocation,
+      liveETA,
     }
   } catch {
     return null
@@ -237,7 +352,8 @@ export async function resolve(
 ): Promise<ResolutionContext> {
   try {
     // Run DB checks in parallel
-    const needsDelivery = EMPATHY_INTENTS.includes(ctx.intent)
+    const DELIVERY_INTENTS = [...EMPATHY_INTENTS, 'order_status']
+    const needsDelivery = DELIVERY_INTENTS.includes(ctx.intent)
 
     const [history, delivery, storeSettings] = await Promise.all([
       checkCustomerHistory(supabase, ctx.customerId, ctx.storeId),
