@@ -237,14 +237,7 @@ export async function POST(request: NextRequest) {
         : orderAssignedKeyboard(delivery.id)
     ).catch(err => console.error('[Telegram] Driver notification failed:', err))
 
-    // Send tracking SMS to customer
-    if (delivery.customer_phone) {
-      await sendDeliveryTrackingSMS(
-        delivery.customer_phone,
-        delivery.delivery_number,
-        delivery.customer_name,
-      ).catch(() => {})
-    }
+    // NOTE: SMS removed — chat message below replaces it (SMS is paid + redundant)
 
     // Send chat message to customer — "Жолооч гарлаа 🚗"
     if (delivery.order_id) {
