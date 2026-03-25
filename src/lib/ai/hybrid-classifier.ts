@@ -37,7 +37,12 @@ export async function gptClassifyIntent(message: string): Promise<IntentResult> 
         messages: [
           {
             role: 'system',
-            content: `Classify the user message intent. Reply with ONLY one of: ${VALID_INTENTS.join(', ')}. Mongolian language — Latin эсвэл Cyrillic бичсэн байж болно. "бараа хайх", "бга юу", "үзи", "хэдүү" гэх мэт = product_search. "сайн байна уу", "сн бну" = greeting.`,
+            content: `Classify the user message intent. Reply with ONLY one of: ${VALID_INTENTS.join(', ')}. Mongolian language — Latin эсвэл Cyrillic бичсэн байж болно.
+
+ДҮРЭМ:
+- "[бараа нэр] + бну/бнум/бга/байна уу/үзи/хэдүү" = product_search (бараа хайж байна)
+- "сн бну", "сайн байна уу", "hello" (бараа нэр БАЙХГҮЙ) = greeting
+- Жишээ: "Skims bnum" = product_search (Skims бараа хайж байна), "sn bnu" = greeting`,
           },
           { role: 'user', content: message },
         ],

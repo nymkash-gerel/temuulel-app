@@ -103,7 +103,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'үнэ хэд', 'байгаа',
     // Latin transliterations (common in Messenger)
     'tsunx', 'tsunh', 'puuz', 'hamt', 'hemjee', 'ongo', 'tsagaan',
-    'baraa', 'bga uu', 'bga yum', 'bgaa', 'bii uu', 'bn uu',
+    'baraa', 'bga uu', 'bga yum', 'bgaa', 'bii uu', 'bn uu', 'bnum', 'bnm', 'bnu uu',
     'haruulna uu', 'haruu', 'uzuul', 'uzi', 'uzii', 'uzuuleechi', 'uzuulee', 'uze', 'shine baraa',
     'hed turgurug', 'hed', 'une', 'yamr',
   ],
