@@ -150,7 +150,7 @@ describe('contextualAIResponse (JSON mode)', () => {
         messages: expect.arrayContaining([
           expect.objectContaining({ role: 'system' }),
         ]),
-        maxTokens: 500,
+        maxTokens: 700,
       })
     )
   })

@@ -167,17 +167,17 @@ describe('updateState', () => {
     expect(next.last_products).toEqual(PRODUCTS)
   })
 
-  it('clears products on topic-changing intent (complaint)', () => {
+  it('preserves products on complaint intent', () => {
     const next = updateState(stateWith(), 'complaint', [], '')
-    expect(next.last_products).toEqual([])
-    expect(next.last_query).toBe('')
-    expect(next.last_intent).toBe('complaint')
+    expect(next.last_products).toEqual(PRODUCTS)
+    expect(next.last_query).toBe('хувцас')
+    expect(next.last_intent).toBe('product_search') // preserveIntent keeps previous
   })
 
-  it('clears products on shipping intent', () => {
+  it('preserves products on shipping intent', () => {
     const next = updateState(stateWith(), 'shipping', [], '')
-    expect(next.last_products).toEqual([])
-    expect(next.last_query).toBe('')
+    expect(next.last_products).toEqual(PRODUCTS)
+    expect(next.last_query).toBe('хувцас')
   })
 
   it('increments turn_count', () => {
