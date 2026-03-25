@@ -264,12 +264,11 @@ export async function POST(request: NextRequest) {
             .single()
 
           const driverName = driverInfo?.name || 'Жолооч'
-          const driverPhone = driverInfo?.phone || ''
 
           await supabase.from('messages').insert({
             conversation_id: convId,
             role: 'assistant',
-            content: `🚗 ${driverName} жолооч таны захиалгыг хүргэхээр гарлаа!${driverPhone ? `\n📞 Жолоочийн утас: ${driverPhone}` : ''}\n📦 Захиалга: ${orderNumber || delivery.delivery_number}\n\nУтсаа нээлттэй байлгаарай 😊`,
+            content: `🚗 ${driverName} жолооч таны захиалгыг хүргэхээр гарлаа!\n📦 Захиалга: ${orderNumber || delivery.delivery_number}\n\nУтсаа нээлттэй байлгаарай 😊`,
           })
           // Trigger real-time refresh
           await supabase

@@ -188,8 +188,10 @@ function buildSystemPrompt(input: ContextualInput): string {
       if (d.driverLocation) deliveryInfo += '\n  📍 Жолоочийн байрлал шинэ (GPS идэвхтэй)'
       else deliveryInfo += '\n  📍 Жолоочийн байрлал тодорхойгүй'
       if (d.deliveryNumber) deliveryInfo += `\n  Хүргэлтийн дугаар: ${d.deliveryNumber}`
+      if (d.driverPhone) deliveryInfo += `\n  Жолоочийн утас: ${d.driverPhone} (ЗӨВХӨН хэрэглэгч шууд хүсвэл өг)`
       prompt += deliveryInfo
       prompt += '\n  ☝️ ЗААВАЛ дээрх бодит мэдээллийг хариултдаа оруул. Live ETA байвал заавал хэл. "Маш харамсаж байна" гэх ерөнхий хариу ХОРИОТОЙ — бодит статус, жолоочийн нэр, хугацааг хэл.'
+      prompt += '\n  📵 Жолоочийн утсыг ХЭЗЭЭ Ч өөрөөсөө санал болгохгүй. Зөвхөн хэрэглэгч "утас өгөөч", "дугаар нь хэд вэ?" гэж шууд хүсвэл өгнө.'
     }
 
     if (resolution.hasHistory && resolution.lastAddress) {
