@@ -40,6 +40,7 @@ export interface ProductContext {
   description?: string
   product_faqs?: Record<string, string> | null
   ai_context?: string | null
+  sales_script?: string | null
   variants?: ProductVariantContext[]
   // Restaurant features
   allergens?: string[]
@@ -315,7 +316,7 @@ function buildSystemPrompt(input: ContextualInput): string {
 
   // --- Products (always structured the same way) ---
   if (input.products.length > 0) {
-    prompt += `\n\n⚠️ ДООРХ ${input.products.length} БАРАА ОЛДСОН — "байхгүй" гэж ХЭЗЭЭ Ч хэлж болохгүй. Заавал жагсаалтаас дурд.`
+    prompt += `\n\n🚨🚨🚨 ДООРХ ${input.products.length} БАРАА ОЛДСОН. "байхгүй" / "олдсонгүй" / "жагсаалтад байхгүй" гэж хариулах нь ХОРИОТОЙ АЛДАА! Бараа ОЛДСОН учраас танилцуулна. Систем карт автомат илгээнэ тул нэр/үнэ давтахгүй — зөвхөн богино танилцуулга.`
     prompt += '\n\nБАРАА:'
     input.products.forEach((p, i) => {
       prompt += `\n${i + 1}. ${p.name} — ${p.base_price}₮`
@@ -350,6 +351,7 @@ function buildSystemPrompt(input: ContextualInput): string {
         }
       }
       if (p.ai_context) prompt += `\n   📌 ${p.ai_context}`
+      if (p.sales_script) prompt += `\n   🗣️ БОРЛУУЛАЛТЫН СКРИПТ (шууд ашигла): ${p.sales_script}`
     })
   }
 
