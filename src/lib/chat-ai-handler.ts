@@ -261,7 +261,7 @@ export async function processAIChat(
                 if (isIntercityOrder) {
                   responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Бараа: ${formatPrice(productTotal)}\n🚌 Хүргэлт: Автобус / шуудан\n   ⚠️ Тээврийн үнэ хүлээн авахдаа төлнө\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nАсуулт байвал дэлгүүртэй холбогдоно уу. Баярлалаа! 🙏`
                 } else {
-                  responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Бараа: ${formatPrice(productTotal)}\n🚚 Хүргэлт: ${formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nМенежер тантай холбогдож баталгаажуулна. Баярлалаа!`
+                  responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n📦 ${draft.product_name}${draft.variant_label ? ` (${draft.variant_label})` : ''} x${draft.quantity}\n💰 Бараа: ${formatPrice(productTotal)}\n🚚 Хүргэлт: ${formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nЖолооч тантай холбогдоно. Утсаа нээлттэй байлгаарай 📞 Баярлалаа!`
                 }
                 intent = 'order_created'
               } else {
