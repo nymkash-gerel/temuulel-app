@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { hybridClassify } from '@/lib/ai/hybrid-classifier'
+import { hybridClassifyAsync } from '@/lib/ai/hybrid-classifier'
 import {
   extractSearchTerms,
   searchProducts,
@@ -124,7 +124,7 @@ async function handleCommentAI(
     ? `[Контекст: ${additionalContext}]\n\n${customerMessage}`
     : customerMessage
 
-  const intent = hybridClassify(customerMessage).intent
+  const intent = (await hybridClassifyAsync(customerMessage)).intent
 
   let products: Awaited<ReturnType<typeof searchProducts>> = []
   if (intent === 'product_search' || intent === 'general' || intent === 'price_info') {
