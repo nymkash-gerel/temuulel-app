@@ -562,15 +562,17 @@ export async function processAIChat(
               )
               if (!modifierInCatalog) {
                 unlistedProductDetected = true
-                let notFoundMsg = 'Тийм бүтээгдэхүүн одоогоор манай жагсаалтад байхгүй байна. Ажилтан шалгаад тантай холбогдоно 😊'
-                // Show top 3 products so the customer still gets useful info
+                let notFoundMsg = 'Уучлаарай, тэр бараа одоогоор байхгүй байна 😊'
+                // Show top 3 products so the customer finds something useful
                 const topProducts = products.slice(0, 3)
                 if (topProducts.length > 0) {
-                  notFoundMsg += '\n\nГэхдээ манай эрэлттэй бүтээгдэхүүнүүд:\n'
+                  notFoundMsg += '\n\nМанай бараанууд:\n'
                   topProducts.forEach((p, i) => {
                     notFoundMsg += `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}\n`
                   })
-                  notFoundMsg += '\nАль нэгийг сонирхож байвал бичнэ үү!'
+                  notFoundMsg += '\nЭсвэл юу хайж байгаагаа тодруулж бичвэл туслая!'
+                } else {
+                  notFoundMsg += '\n\nЮу хайж байгаагаа тодруулж бичвэл тохирох бараа олоход туслая!'
                 }
                 responseText = notFoundMsg
                 void dispatchNotification(storeId, 'new_message', {
@@ -652,7 +654,7 @@ export async function processAIChat(
             // HALLUCINATION GUARD: No products found — use template instead of LLM.
             // This prevents GPT from inventing product names/prices when the database
             // returns 0 results for the customer's search query.
-            responseText = 'Уучлаарай, одоогоор таны хайсан бараа манай дэлгүүрт байхгүй байна. Та өөр бараа сонирхох уу? 😊'
+            responseText = 'Уучлаарай, тэр бараа одоогоор байхгүй байна. Юу хайж байгаагаа тодруулж бичвэл тохирох бараа олоход туслая! 😊'
             earlyResponseSet = true
 
             // Notify staff about unlisted product inquiry
@@ -686,7 +688,7 @@ export async function processAIChat(
         )
 
         // If the LLM said "product not in catalog, staff will check" → fire staff notification.
-        if (intent === 'product_search' && responseText.includes('Ажилтан шалгаад')) {
+        if (intent === 'product_search' && (responseText.includes('байхгүй байна') || responseText.includes('олдсонгүй'))) {
           void dispatchNotification(storeId, 'new_message', {
             message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
             conversationId,
