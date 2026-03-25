@@ -194,6 +194,13 @@ function buildSystemPrompt(input: ContextualInput): string {
       prompt += '\n  📵 Жолоочийн утсыг ХЭЗЭЭ Ч өөрөөсөө санал болгохгүй. Зөвхөн хэрэглэгч "утас өгөөч", "дугаар нь хэд вэ?" гэж шууд хүсвэл өгнө.'
     }
 
+    if (resolution.failedDelivery) {
+      const fd = resolution.failedDelivery
+      prompt += `\n\n⚠️ АМЖИЛТГҮЙ ХҮРГЭЛТ: ${fd.deliveryNumber}${fd.failureReason ? ` — ${fd.failureReason}` : ''}`
+      prompt += `${fd.address ? `\n  Хаяг: ${fd.address}` : ''}`
+      prompt += '\n  Хэрэглэгч дахин хүргүүлэхийг хүсч байна. Эелдэгээр "Тийм, ижил хаяг руу дахин хүргүүлэх үү?" гэж асуу.'
+    }
+
     if (resolution.hasHistory && resolution.lastAddress) {
       prompt += `\n\n📋 ӨМНӨХ МЭДЭЭЛЭЛ: Хаяг: ${resolution.lastAddress}${resolution.lastPhone ? `, Утас: ${resolution.lastPhone}` : ''}. Хэрэв захиалагч хаяг утсаа үлдээсэн гэвэл "Өмнөх хаяг руу хүргэх үү?" гэж асуу.`
     }

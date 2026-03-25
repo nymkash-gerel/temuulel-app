@@ -35,6 +35,13 @@ export interface ResolutionContext {
     liveETA?: string // e.g. "~20 мин"
   }
 
+  // Failed delivery (for redelivery requests)
+  failedDelivery?: {
+    deliveryNumber: string
+    failureReason?: string
+    address?: string
+  }
+
   // Product disambiguation
   bestProductName?: string
   bestProductId?: string
@@ -314,6 +321,77 @@ async function checkDeliveryStatus(
 }
 
 // ---------------------------------------------------------------------------
+// 2b. Failed Delivery Check (for redelivery requests)
+// ---------------------------------------------------------------------------
+
+async function checkFailedDelivery(
+  supabase: SupabaseClient,
+  customerId: string | null,
+  storeId: string,
+): Promise<ResolutionContext['failedDelivery'] | null> {
+  if (!customerId) return null
+
+  try {
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('phone')
+      .eq('id', customerId)
+      .single()
+
+    // Check for recently failed delivery (last 48 hours)
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+
+    const { data: viaOrder } = await supabase
+      .from('deliveries')
+      .select(`
+        delivery_number, failure_reason, delivery_address,
+        orders!inner(customer_id)
+      `)
+      .eq('store_id', storeId)
+      .eq('orders.customer_id', customerId)
+      .eq('status', 'failed')
+      .gte('updated_at', twoDaysAgo)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single() as { data: { delivery_number: string; failure_reason?: string; delivery_address?: string } | null }
+
+    if (viaOrder) {
+      return {
+        deliveryNumber: viaOrder.delivery_number,
+        failureReason: viaOrder.failure_reason || undefined,
+        address: viaOrder.delivery_address || undefined,
+      }
+    }
+
+    // Fallback: phone match
+    if (customer?.phone) {
+      const { data: viaPhone } = await supabase
+        .from('deliveries')
+        .select('delivery_number, failure_reason, delivery_address')
+        .eq('store_id', storeId)
+        .eq('customer_phone', customer.phone)
+        .eq('status', 'failed')
+        .gte('updated_at', twoDaysAgo)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (viaPhone) {
+        return {
+          deliveryNumber: viaPhone.delivery_number,
+          failureReason: viaPhone.failure_reason || undefined,
+          address: viaPhone.delivery_address || undefined,
+        }
+      }
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 3. Product Disambiguation
 // ---------------------------------------------------------------------------
 
@@ -421,10 +499,13 @@ export async function resolve(
     const DELIVERY_INTENTS = [...EMPATHY_INTENTS, 'order_status']
     const needsDelivery = DELIVERY_INTENTS.includes(ctx.intent)
 
-    const [history, delivery, storeSettings] = await Promise.all([
+    const isRedeliveryRequest = /дахин хүрг|дахин авах|дахин захиал|redelivery/i.test(ctx.message)
+
+    const [history, delivery, storeSettings, failedDelivery] = await Promise.all([
       checkCustomerHistory(supabase, ctx.customerId, ctx.storeId),
       needsDelivery ? checkDeliveryStatus(supabase, ctx.customerId, ctx.storeId) : null,
       checkStoreSettings(supabase, ctx.storeId),
+      isRedeliveryRequest ? checkFailedDelivery(supabase, ctx.customerId, ctx.storeId) : null,
     ])
 
     // Synchronous checks
@@ -440,6 +521,7 @@ export async function resolve(
 
       // Delivery
       activeDelivery: delivery || undefined,
+      failedDelivery: failedDelivery || undefined,
 
       // Product
       bestProductName: bestProduct?.name,

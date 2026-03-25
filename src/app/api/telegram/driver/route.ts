@@ -693,15 +693,72 @@ async function handleCallbackQuery(
 
     case 'unreachable': {
       const unreachableHeader = await getDeliveryHeader(supabase, deliveryId)
+
+      // Update delivery status to delayed + increment unreachable count
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('deliveries').update({ status: 'delayed', notes: 'Харилцагч утас авсангүй' }).eq('id', deliveryId)
+      const { data: delData } = await (supabase as any)
+        .from('deliveries')
+        .select('order_id, store_id, delivery_number, metadata')
+        .eq('id', deliveryId)
+        .single()
+
+      const unreachableCount = ((delData?.metadata as Record<string, unknown>)?.unreachable_count as number || 0) + 1
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('deliveries').update({
+        status: 'delayed',
+        notes: 'Харилцагч утас авсангүй',
+        metadata: { ...(delData?.metadata || {}), unreachable_count: unreachableCount },
+      }).eq('id', deliveryId)
+
       await tgAnswerCallback(cb.id, 'Бүртгэгдлээ')
       if (messageId) {
         await tgEdit(chatId, messageId,
-          `${unreachableHeader}📵 <b>Утас авсангүй — бүртгэгдлээ.</b>\n\nДэлгүүрт мэдэгдлээ. Удахгүй зааварчилгаа ирнэ.\n\nЕрдийн хүргэлтийг үргэлжлүүлнэ үү:`,
+          `${unreachableHeader}📵 <b>Утас авсангүй — бүртгэгдлээ.</b>\n\n5 минут хүлээнэ. Хариу ирэхгүй бол дараагийн руу явна.\n\nБусад хүргэлтийг үргэлжлүүлнэ үү:`,
           { replyMarkup: enRouteKeyboard(deliveryId) }
         )
       }
+
+      // Send chat message to customer
+      if (delData?.order_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: orderRow } = await (supabase as any)
+          .from('orders')
+          .select('conversation_id')
+          .eq('id', delData.order_id)
+          .single()
+
+        const convId = (orderRow as { conversation_id?: string } | null)?.conversation_id
+        if (convId) {
+          await supabase.from('messages').insert({
+            conversation_id: convId,
+            role: 'assistant',
+            content: `📞 Жолооч тан руу залгасан боловч холбогдож чадсангүй.\n\n5 минутын дотор хариу өгнө үү! Хариу ирэхгүй бол барааг дэлгүүр рүү буцаана.`,
+          })
+          await supabase
+            .from('conversations')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', convId)
+        }
+      }
+
+      // Schedule 5-min timeout via QStash
+      try {
+        const { Client: QStashClient } = await import('@upstash/qstash')
+        const qstashToken = process.env.QSTASH_TOKEN
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
+        if (qstashToken && appUrl) {
+          const qstash = new QStashClient({ token: qstashToken })
+          await qstash.publishJSON({
+            url: `${appUrl.startsWith('http') ? appUrl : `https://${appUrl}`}/api/deliveries/unreachable-timeout`,
+            body: { delivery_id: deliveryId, store_id: delData?.store_id },
+            delay: 300, // 5 minutes in seconds
+            retries: 1,
+          })
+        }
+      } catch (err) {
+        console.error('[QStash] Failed to schedule unreachable timeout:', err)
+      }
+
       break
     }
 
