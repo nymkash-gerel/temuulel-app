@@ -45,6 +45,8 @@ export default function EditProductPage() {
   const [facebookPostId, setFacebookPostId] = useState('')
   const [instagramPostId, setInstagramPostId] = useState('')
   const [aiContext, setAiContext] = useState('')
+  const [searchAliases, setSearchAliases] = useState<string[]>([])
+  const [newAlias, setNewAlias] = useState('')
 
   const categories = [
     { value: 'clothing', label: 'Хувцас', subcategories: ['Цамц', 'Өмд', 'Даашинз', 'Пальто', 'Куртка'] },
@@ -92,6 +94,7 @@ export default function EditProductPage() {
         setFacebookPostId(product.facebook_post_id || '')
         setInstagramPostId(product.instagram_post_id || '')
         setAiContext(product.ai_context || '')
+        setSearchAliases((product.search_aliases || []) as string[])
 
         if (product.product_variants?.length > 0) {
           setVariants(product.product_variants.map((v: Record<string, unknown>) => ({
@@ -155,6 +158,7 @@ export default function EditProductPage() {
           facebook_post_id: facebookPostId || null,
           instagram_post_id: instagramPostId || null,
           ai_context: aiContext || null,
+          search_aliases: searchAliases,
           updated_at: new Date().toISOString(),
         })
         .eq('id', productId)
@@ -424,6 +428,67 @@ export default function EditProductPage() {
                 rows={3}
                 className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-all resize-none"
               />
+            </div>
+
+            {/* Search Aliases */}
+            <div className="bg-gradient-to-r from-green-500/10 to-teal-500/10 border border-green-500/30 rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <span>🔍</span> Хайлтын түлхүүр үгс
+              </h2>
+              <p className="text-slate-400 text-sm mb-4">
+                AI автомат үүсгэсэн. Хэрэглэгч эдгээр үгсээр хайхад энэ бараа олдоно. Гараар нэмж бас болно.
+              </p>
+              {searchAliases.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {searchAliases.map((alias, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-slate-700/50 border border-slate-600 rounded-full text-sm text-slate-300"
+                    >
+                      {alias}
+                      <button
+                        type="button"
+                        onClick={() => setSearchAliases(prev => prev.filter((_, idx) => idx !== i))}
+                        className="ml-1 text-slate-500 hover:text-red-400 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newAlias}
+                  onChange={(e) => setNewAlias(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const trimmed = newAlias.trim().toLowerCase()
+                      if (trimmed && !searchAliases.includes(trimmed)) {
+                        setSearchAliases(prev => [...prev, trimmed])
+                        setNewAlias('')
+                      }
+                    }
+                  }}
+                  placeholder="Шинэ түлхүүр үг нэмэх..."
+                  className="flex-1 px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-green-500 transition-all text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trimmed = newAlias.trim().toLowerCase()
+                    if (trimmed && !searchAliases.includes(trimmed)) {
+                      setSearchAliases(prev => [...prev, trimmed])
+                      setNewAlias('')
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-medium transition-colors"
+                >
+                  Нэмэх
+                </button>
+              </div>
             </div>
 
             {/* Images */}
