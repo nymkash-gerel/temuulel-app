@@ -1,4 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
+// Mock Redis so rate-limit tests always use in-memory fallback (no Upstash in CI)
+vi.mock('./redis', () => ({
+  getRedis: vi.fn(() => null),
+}))
+
 import { rateLimit, getClientIp } from './rate-limit'
 
 describe('rateLimit', () => {
