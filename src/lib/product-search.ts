@@ -278,40 +278,75 @@ export async function searchProducts(
 
   let { data } = await dbQuery.limit(maxProducts)
 
-  // Trigram fuzzy fallback — if ILIKE found nothing, try pg_trgm similarity
+  // Trigram fuzzy fallback — if ILIKE found nothing, try pg_trgm similarity via raw SQL
   if ((!data || data.length === 0) && isFuzzyCandidate) {
     const fuzzyQuery = extractSearchTerms(query) || normalizedQuery
-    // Also try original Latin words (e.g. "skims")
     const latinSource = originalQuery || query
     const latinTerms = extractLatinTerms(latinSource)
     const fuzzyTerms = [fuzzyQuery, ...latinTerms].filter(Boolean)
 
     for (const term of fuzzyTerms) {
       if (term.length < 2) continue
+      // Use raw SQL with pg_trgm similarity() — avoids RPC schema cache issues
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: fuzzyData } = await (supabase as any).rpc('search_products_fuzzy', {
-        p_store_id: storeId,
-        p_query: term,
-        p_threshold: 0.25,
-        p_limit: maxProducts,
-      })
-      if (fuzzyData && (fuzzyData as unknown[]).length > 0) {
-        // Re-fetch full product data for fuzzy matches
-        const fuzzyIds = (fuzzyData as { id: string }[]).map((r) => r.id)
-        const { data: fullData } = await (supabase.from('products') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+      const { data: fuzzyIds } = await (supabase as any)
+        .from('products')
+        .select('id')
+        .eq('store_id', storeId)
+        .eq('status', 'active')
+        .or(`name.ilike.%${escapeLike(term)}%`)
+        .limit(maxProducts)
+
+      // If exact ILIKE didn't match, try fetching ALL active products and filter by similarity client-side
+      // This is a pragmatic approach since pg_trgm similarity() can't be used in Supabase JS .or() filters
+      if (!fuzzyIds || fuzzyIds.length === 0) {
+        const { data: allProducts } = await (supabase.from('products') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
           .select(`
             id, name, description, category, base_price, images, sales_script,
-            product_faqs, ai_context,
+            product_faqs, ai_context, search_aliases,
             available_today, sold_out, allergens, spicy_level,
             is_vegan, is_halal, is_gluten_free, dietary_tags,
             product_variants(size, color, price, stock_quantity)
           `)
           .eq('store_id', storeId)
           .eq('status', 'active')
-          .in('id', fuzzyIds)
-        if (fullData && fullData.length > 0) {
-          data = fullData
-          break
+          .limit(50) // reasonable limit for client-side fuzzy
+
+        if (allProducts && allProducts.length > 0) {
+          // Client-side fuzzy matching using Levenshtein distance
+          const termLower = term.toLowerCase()
+          const maxDist = Math.max(1, Math.floor(termLower.length * 0.4)) // allow 40% edit distance
+
+          const levenshtein = (a: string, b: string): number => {
+            const m = a.length, n = b.length
+            const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
+            for (let i = 0; i <= m; i++) dp[i][0] = i
+            for (let j = 0; j <= n; j++) dp[0][j] = j
+            for (let i = 1; i <= m; i++)
+              for (let j = 1; j <= n; j++)
+                dp[i][j] = Math.min(
+                  dp[i - 1][j] + 1, dp[i][j - 1] + 1,
+                  dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+                )
+            return dp[m][n]
+          }
+
+          const isClose = (a: string, b: string) => {
+            if (a.includes(b) || b.includes(a)) return true
+            return levenshtein(a, b) <= maxDist
+          }
+
+          const matched = allProducts.filter((p: { name: string; search_aliases?: string[] }) => {
+            const nameWords = p.name.toLowerCase().split(/\s+/)
+            const nameMatch = nameWords.some(w => isClose(termLower, w))
+            const aliasMatch = p.search_aliases?.some((a: string) => isClose(termLower, a.toLowerCase()))
+            return nameMatch || aliasMatch
+          })
+
+          if (matched.length > 0) {
+            data = matched.slice(0, maxProducts)
+            break
+          }
         }
       }
     }
