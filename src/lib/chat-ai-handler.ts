@@ -652,17 +652,27 @@ export async function processAIChat(
             responseText = 'Ямар бараа сонирхож байна вэ? Үнэ болон дэлгэрэнгүй мэдээлэл өгье 😊'
           } else if (!earlyResponseSet && intent === 'product_search' && products.length === 0) {
             // HALLUCINATION GUARD: No products found — use template instead of LLM.
-            // This prevents GPT from inventing product names/prices when the database
-            // returns 0 results for the customer's search query.
             responseText = 'Уучлаарай, тэр бараа одоогоор байхгүй байна. Юу хайж байгаагаа тодруулж бичвэл тохирох бараа олоход туслая! 😊'
             earlyResponseSet = true
 
-            // Notify staff about unlisted product inquiry
             void dispatchNotification(storeId, 'new_message', {
               message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
               conversationId,
               storeId,
             }).catch(() => {})
+          } else if (!earlyResponseSet && intent === 'product_search' && products.length > 0) {
+            // PRODUCTS FOUND — use template, skip GPT entirely.
+            // This prevents GPT from saying "байхгүй" when products ARE found.
+            const p = products[0]
+            const salesScript = (p as { sales_script?: string }).sales_script
+            if (salesScript) {
+              responseText = salesScript
+            } else if (products.length === 1) {
+              responseText = `Байна! Сонирхвол дугаараа бичнэ үү 😊`
+            } else {
+              responseText = `${products.length} бараа олдлоо! Аль нэгийг сонирхвол дугаараа бичнэ үү 😊`
+            }
+            earlyResponseSet = true
           } else if (!earlyResponseSet) {
             if (isPriceOnlyQuery && state.last_products.length > 0) {
               // Re-fetch full product data for last discussed product (StoredProduct has no variants/desc)
