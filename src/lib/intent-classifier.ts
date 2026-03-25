@@ -58,7 +58,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'авах', 'авъя', 'авья', 'авмааар',
     'хайж', 'хайна', 'хайлт',
     // stemmer handles: үзүүлээд→үзүүл
-    'харуул', 'үзүүл', 'үзүүлнэ үү',
+    'харуул', 'үзүүл', 'үзүүлнэ үү', 'үзи', 'узи', 'үзье', 'узье',
     'каталог', 'жагсаалт',
     // Interest/desire expressions (stemmer handles: сонирхоод→сонирх, сонирхож→сонирхо)
     'сонирхож', 'сонирхох', 'сонирхи', 'сонирх',
@@ -104,7 +104,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Latin transliterations (common in Messenger)
     'tsunx', 'tsunh', 'puuz', 'hamt', 'hemjee', 'ongo', 'tsagaan',
     'baraa', 'bga uu', 'bga yum', 'bgaa', 'bii uu', 'bn uu',
-    'haruulna uu', 'haruu', 'uzuul', 'shine baraa',
+    'haruulna uu', 'haruu', 'uzuul', 'uzi', 'uzii', 'uzuuleechi', 'uzuulee', 'uze', 'shine baraa',
     'hed turgurug', 'hed', 'une', 'yamr',
   ],
   order_status: [
