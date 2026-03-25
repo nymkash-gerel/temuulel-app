@@ -21,13 +21,18 @@ export interface StoredProduct {
   base_price: number
 }
 
-export interface OrderDraft {
+export interface CartItem {
   product_id: string
   product_name: string
   variant_id?: string
   variant_label?: string
   unit_price: number
   quantity: number
+}
+
+export interface OrderDraft {
+  /** Cart items — supports multiple products/variants in one order */
+  items: CartItem[]
   /** Order collection step — enforced sequentially:
    *  variant → name → address → phone → confirming
    *  'info' is kept as alias for backward compat (treated as 'name') */
@@ -35,6 +40,41 @@ export interface OrderDraft {
   customer_name?: string
   address?: string
   phone?: string
+
+  // Legacy single-item fields — kept for backward compat with existing drafts in DB
+  // New code should use items[] instead
+  product_id?: string
+  product_name?: string
+  variant_id?: string
+  variant_label?: string
+  unit_price?: number
+  quantity?: number
+}
+
+/**
+ * Get cart items from an OrderDraft, handling legacy single-item format.
+ */
+export function getDraftItems(draft: OrderDraft): CartItem[] {
+  if (draft.items && draft.items.length > 0) return draft.items
+  // Legacy format — convert single item to array
+  if (draft.product_id && draft.product_name) {
+    return [{
+      product_id: draft.product_id,
+      product_name: draft.product_name,
+      variant_id: draft.variant_id,
+      variant_label: draft.variant_label,
+      unit_price: draft.unit_price ?? 0,
+      quantity: draft.quantity ?? 1,
+    }]
+  }
+  return []
+}
+
+/**
+ * Get the total price of all items in the draft.
+ */
+export function getDraftTotal(draft: OrderDraft): number {
+  return getDraftItems(draft).reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
 }
 
 export type GiftCardStep =
