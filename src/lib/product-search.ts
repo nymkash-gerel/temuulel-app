@@ -271,7 +271,52 @@ export async function searchProducts(
     }
   }
 
-  const { data } = await dbQuery.limit(maxProducts)
+  // --- Trigram fuzzy search fallback ---
+  // If ILIKE search returns nothing, try pg_trgm similarity search
+  // This catches "скимс" → "SKIMS", "цамц" → "Цамц эмэгтэй" etc.
+  const isFuzzyCandidate = !isBrowseAll && !mappedCategory && normalizedQuery.length >= 2
+
+  let { data } = await dbQuery.limit(maxProducts)
+
+  // Trigram fuzzy fallback — if ILIKE found nothing, try pg_trgm similarity
+  if ((!data || data.length === 0) && isFuzzyCandidate) {
+    const fuzzyQuery = extractSearchTerms(query) || normalizedQuery
+    // Also try original Latin words (e.g. "skims")
+    const latinSource = originalQuery || query
+    const latinTerms = extractLatinTerms(latinSource)
+    const fuzzyTerms = [fuzzyQuery, ...latinTerms].filter(Boolean)
+
+    for (const term of fuzzyTerms) {
+      if (term.length < 2) continue
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: fuzzyData } = await (supabase as any).rpc('search_products_fuzzy', {
+        p_store_id: storeId,
+        p_query: term,
+        p_threshold: 0.25,
+        p_limit: maxProducts,
+      })
+      if (fuzzyData && (fuzzyData as unknown[]).length > 0) {
+        // Re-fetch full product data for fuzzy matches
+        const fuzzyIds = (fuzzyData as { id: string }[]).map((r) => r.id)
+        const { data: fullData } = await (supabase.from('products') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+          .select(`
+            id, name, description, category, base_price, images, sales_script,
+            product_faqs, ai_context,
+            available_today, sold_out, allergens, spicy_level,
+            is_vegan, is_halal, is_gluten_free, dietary_tags,
+            product_variants(size, color, price, stock_quantity)
+          `)
+          .eq('store_id', storeId)
+          .eq('status', 'active')
+          .in('id', fuzzyIds)
+        if (fullData && fullData.length > 0) {
+          data = fullData
+          break
+        }
+      }
+    }
+  }
+
   if (!data) return []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results = (data as any[]).map((row: any) => {
