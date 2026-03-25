@@ -11,6 +11,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getGoogleMapsETA, isGoogleMapsConfigured } from './google-maps'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -101,8 +102,62 @@ async function checkCustomerHistory(
 
 /** Average city speed for simple ETA (km/h). UB traffic ~15 km/h. */
 const AVG_SPEED_KMH = 15
+/** Road winding factor: road distance ≈ 1.4× air distance in UB. */
+const ROAD_FACTOR = 1.4
 /** Max age for driver location before we consider it stale (ms). */
 const LOCATION_MAX_AGE_MS = 30 * 60 * 1000 // 30 min
+
+// ---------------------------------------------------------------------------
+// UB District Center Coordinates (GPS)
+// ---------------------------------------------------------------------------
+
+const DISTRICT_CENTERS: Record<string, { lat: number; lng: number }> = {
+  'сүхбаатар': { lat: 47.9184, lng: 106.9177 },
+  'чингэлтэй': { lat: 47.9280, lng: 106.8950 },
+  'баянгол': { lat: 47.9080, lng: 106.8690 },
+  'хан-уул': { lat: 47.8820, lng: 106.9060 },
+  'баянзүрх': { lat: 47.9350, lng: 107.0020 },
+  'сонгинохайрхан': { lat: 47.9100, lng: 106.7700 },
+  'налайх': { lat: 47.7460, lng: 107.2650 },
+  'багануур': { lat: 47.8290, lng: 108.3530 },
+  'багахангай': { lat: 47.4210, lng: 107.6270 },
+}
+
+/** Aliases map — short/Latin/colloquial names → canonical district name. */
+const DISTRICT_ALIASES: Record<string, string> = {
+  // Abbreviations
+  'сбд': 'сүхбаатар', 'чд': 'чингэлтэй', 'бгд': 'баянгол',
+  'худ': 'хан-уул', 'бзд': 'баянзүрх', 'схд': 'сонгинохайрхан',
+  'нд': 'налайх', 'бн': 'багануур', 'бх': 'багахангай',
+  // Latin
+  'sbd': 'сүхбаатар', 'chd': 'чингэлтэй', 'bgd': 'баянгол',
+  'hud': 'хан-уул', 'bzd': 'баянзүрх', 'shd': 'сонгинохайрхан',
+  // Colloquial
+  'сухбаатар': 'сүхбаатар', 'хануул': 'хан-уул', 'хан уул': 'хан-уул',
+  'баянзурх': 'баянзүрх', 'сонгино': 'сонгинохайрхан',
+  'зайсан': 'хан-уул', // Зайсан is in Хан-Уул district
+}
+
+/**
+ * Parse district name from a delivery address string.
+ * Returns canonical district key or null.
+ */
+function parseDistrictFromAddress(address: string | null): string | null {
+  if (!address) return null
+  const lower = address.toLowerCase().trim()
+
+  // Direct match against canonical names
+  for (const district of Object.keys(DISTRICT_CENTERS)) {
+    if (lower.includes(district)) return district
+  }
+
+  // Alias match
+  for (const [alias, canonical] of Object.entries(DISTRICT_ALIASES)) {
+    if (lower.includes(alias)) return canonical
+  }
+
+  return null
+}
 
 /**
  * Haversine distance between two lat/lng points in km.
@@ -122,27 +177,38 @@ function haversineKm(
 }
 
 /**
- * Estimate ETA string from driver location to delivery address coords.
- * Returns "~N мин" or null if not calculable.
+ * Estimate ETA from driver location to delivery address.
+ *
+ * Strategy (in order):
+ * 1. Google Maps Distance Matrix API (if GOOGLE_MAPS_API_KEY set) — real road ETA
+ * 2. Parse district from address → use district center coords + haversine
+ * 3. Fallback: UB center (47.92, 106.92) + haversine
  */
-function estimateETA(
+async function estimateETA(
   driverLoc: { lat: number; lng: number; updated_at?: string },
   deliveryAddress: string | null,
-): string | null {
+): Promise<string | null> {
   // Check if driver location is stale
   if (driverLoc.updated_at) {
     const age = Date.now() - new Date(driverLoc.updated_at).getTime()
     if (age > LOCATION_MAX_AGE_MS) return null
   }
 
-  // For now, use simple distance-based ETA
-  // UB center coords as fallback destination (~47.92, 106.92)
-  // Real geocoding can be added later
-  const destLat = 47.92
-  const destLng = 106.92
+  // Strategy 1: Google Maps API (real road ETA)
+  if (isGoogleMapsConfigured() && deliveryAddress) {
+    const googleETA = await getGoogleMapsETA(driverLoc, deliveryAddress)
+    if (googleETA) return googleETA
+  }
 
-  const distKm = haversineKm(driverLoc.lat, driverLoc.lng, destLat, destLng)
-  const etaMin = Math.round((distKm / AVG_SPEED_KMH) * 60)
+  // Strategy 2: District center coords (haversine + road factor)
+  const district = parseDistrictFromAddress(deliveryAddress)
+  const dest = district
+    ? DISTRICT_CENTERS[district]
+    : { lat: 47.92, lng: 106.92 } // UB center fallback
+
+  const airDistKm = haversineKm(driverLoc.lat, driverLoc.lng, dest.lat, dest.lng)
+  const roadDistKm = airDistKm * ROAD_FACTOR
+  const etaMin = Math.round((roadDistKm / AVG_SPEED_KMH) * 60)
 
   if (etaMin < 1) return '~1 мин'
   if (etaMin > 120) return null // unreasonable
@@ -228,7 +294,7 @@ async function checkDeliveryStatus(
 
       if (locAge <= LOCATION_MAX_AGE_MS) {
         driverLocation = { lat: loc.lat, lng: loc.lng, updatedAt: loc.updated_at || '' }
-        const eta = estimateETA(loc, deliveryData.delivery_address as string | null)
+        const eta = await estimateETA(loc, deliveryData.delivery_address as string | null)
         if (eta) liveETA = eta
       }
     }
