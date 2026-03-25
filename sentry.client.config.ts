@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs'
+import { beforeBreadcrumb, beforeSend } from '@/lib/sentry-pii'
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -14,7 +15,11 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 
   integrations: [
-    Sentry.replayIntegration(),
+    Sentry.replayIntegration({
+      // Mask all text and inputs in replays for privacy
+      maskAllText: true,
+      maskAllInputs: true,
+    }),
   ],
 
   // Filter out noisy errors
@@ -25,15 +30,7 @@ Sentry.init({
     'Load failed',
   ],
 
-  // PII filtering — scrub sensitive customer data before sending to Sentry
-  beforeSend(event) {
-    if (event.request?.data) {
-      const data = event.request.data as Record<string, unknown>
-      const sensitiveKeys = ['phone', 'password', 'address', 'credit_card', 'card_number', 'cvv']
-      for (const key of sensitiveKeys) {
-        if (key in data) data[key] = '[REDACTED]'
-      }
-    }
-    return event
-  },
+  // PII filtering — scrub phone, email, address, card numbers
+  beforeBreadcrumb,
+  beforeSend,
 })
