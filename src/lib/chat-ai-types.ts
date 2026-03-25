@@ -44,6 +44,8 @@ export interface ProductMatch {
   is_halal?: boolean
   is_gluten_free?: boolean
   dietary_tags?: string[]
+  /** Search match confidence: 1.0 = exact, 0.85 = 1 typo, 0.7 = 2 typos, < 0.6 = weak */
+  searchConfidence?: number
 }
 
 export interface TableMatch {

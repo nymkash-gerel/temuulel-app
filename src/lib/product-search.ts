@@ -336,15 +336,48 @@ export async function searchProducts(
             return levenshtein(a, b) <= maxDist
           }
 
-          const matched = allProducts.filter((p: { name: string; search_aliases?: string[] }) => {
-            const nameWords = p.name.toLowerCase().split(/\s+/)
-            const nameMatch = nameWords.some(w => isClose(termLower, w))
-            const aliasMatch = p.search_aliases?.some((a: string) => isClose(termLower, a.toLowerCase()))
-            return nameMatch || aliasMatch
-          })
+          // Score each product by best Levenshtein distance
+          const scored = allProducts
+            .map((p: { name: string; search_aliases?: string[] }) => {
+              const nameWords = p.name.toLowerCase().split(/\s+/)
+              let bestDist = Infinity
 
-          if (matched.length > 0) {
-            data = matched.slice(0, maxProducts)
+              // Check name words
+              for (const w of nameWords) {
+                if (w.includes(termLower) || termLower.includes(w)) { bestDist = 0; break }
+                const d = levenshtein(termLower, w)
+                if (d < bestDist) bestDist = d
+              }
+
+              // Check aliases
+              if (p.search_aliases) {
+                for (const a of p.search_aliases) {
+                  const aLower = a.toLowerCase()
+                  if (aLower.includes(termLower) || termLower.includes(aLower)) { bestDist = 0; break }
+                  const d = levenshtein(termLower, aLower)
+                  if (d < bestDist) bestDist = d
+                }
+              }
+
+              // Convert distance to confidence: 0 → 1.0, 1 → 0.85, 2 → 0.7, 3 → 0.55, 4+ → 0.4
+              const confidence = bestDist === 0 ? 1.0
+                : bestDist === 1 ? 0.85
+                : bestDist === 2 ? 0.7
+                : bestDist === 3 ? 0.55
+                : 0.4
+
+              return { product: p, bestDist, confidence }
+            })
+            .filter(s => s.bestDist <= maxDist)
+            .sort((a, b) => a.bestDist - b.bestDist)
+
+          if (scored.length > 0) {
+            // Tag products with searchConfidence
+            const fuzzyMatched = scored.slice(0, maxProducts).map(s => ({
+              ...s.product,
+              _searchConfidence: s.confidence,
+            }))
+            data = fuzzyMatched
             break
           }
         }
@@ -376,6 +409,8 @@ export async function searchProducts(
       is_halal: row.is_halal ?? false,
       is_gluten_free: row.is_gluten_free ?? false,
       dietary_tags: (row.dietary_tags ?? []) as string[],
+      // Fuzzy match confidence (1.0 for ILIKE/alias, lower for Levenshtein)
+      searchConfidence: row._searchConfidence ?? (isFuzzyCandidate ? 0.9 : 1.0),
     } as ProductMatch
   })
 

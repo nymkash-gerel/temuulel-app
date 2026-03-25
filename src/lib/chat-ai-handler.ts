@@ -661,16 +661,26 @@ export async function processAIChat(
               storeId,
             }).catch(() => {})
           } else if (!earlyResponseSet && intent === 'product_search' && products.length > 0) {
-            // PRODUCTS FOUND — use template, skip GPT entirely.
-            // This prevents GPT from saying "байхгүй" when products ARE found.
+            // PRODUCTS FOUND — use confidence-based template, skip GPT entirely.
             const p = products[0]
+            const confidence = (p as { searchConfidence?: number }).searchConfidence ?? 1.0
             const salesScript = (p as { sales_script?: string }).sales_script
-            if (salesScript) {
-              responseText = salesScript
-            } else if (products.length === 1) {
-              responseText = `Байна! Сонирхвол дугаараа бичнэ үү 😊`
+
+            if (confidence >= 0.85) {
+              // High confidence — exact or near-exact match
+              if (salesScript) {
+                responseText = salesScript
+              } else if (products.length === 1) {
+                responseText = `Байна! Сонирхвол дугаараа бичнэ үү 😊`
+              } else {
+                responseText = `${products.length} бараа олдлоо! Аль нэгийг сонирхвол дугаараа бичнэ үү 😊`
+              }
+            } else if (confidence >= 0.6) {
+              // Medium confidence — "Энэ мөн үү?"
+              responseText = `Таны хайсан бараа энэ мөн үү? 👇`
             } else {
-              responseText = `${products.length} бараа олдлоо! Аль нэгийг сонирхвол дугаараа бичнэ үү 😊`
+              // Low confidence — soft suggestion
+              responseText = `Яг таны хайсан бараа олдсонгүй. Гэхдээ энэ бараа таалагдаж магадгүй 👇`
             }
             earlyResponseSet = true
           } else if (!earlyResponseSet) {
