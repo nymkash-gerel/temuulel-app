@@ -25,7 +25,10 @@ export async function DELETE(
 
   if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
-  // Delete variants first (FK constraint)
+  // Nullify order_items references (preserve order history)
+  await supabase.from('order_items').update({ product_id: null }).eq('product_id', id)
+
+  // Delete variants (FK constraint)
   await supabase.from('product_variants').delete().eq('product_id', id)
 
   // Delete product
