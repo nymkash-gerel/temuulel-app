@@ -245,6 +245,42 @@ export async function POST(request: NextRequest) {
         delivery.customer_name,
       ).catch(() => {})
     }
+
+    // Send chat message to customer — "Жолооч гарлаа 🚗"
+    if (delivery.order_id) {
+      try {
+        const { data: orderRow } = await supabase
+          .from('orders')
+          .select('conversation_id')
+          .eq('id', delivery.order_id)
+          .single() as { data: { conversation_id?: string | null } | null }
+
+        const convId = orderRow?.conversation_id
+        if (convId) {
+          const { data: driverInfo } = await supabase
+            .from('delivery_drivers')
+            .select('name, phone')
+            .eq('id', result.recommended_driver_id!)
+            .single()
+
+          const driverName = driverInfo?.name || 'Жолооч'
+          const driverPhone = driverInfo?.phone || ''
+
+          await supabase.from('messages').insert({
+            conversation_id: convId,
+            role: 'assistant',
+            content: `🚗 ${driverName} жолооч таны захиалгыг хүргэхээр гарлаа!${driverPhone ? `\n📞 Жолоочийн утас: ${driverPhone}` : ''}\n📦 Захиалга: ${orderNumber || delivery.delivery_number}\n\nУтсаа нээлттэй байлгаарай 😊`,
+          })
+          // Trigger real-time refresh
+          await supabase
+            .from('conversations')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', convId)
+        }
+      } catch (err) {
+        console.error('[Chat] Driver assigned notification failed:', err)
+      }
+    }
   }
 
   return NextResponse.json({
