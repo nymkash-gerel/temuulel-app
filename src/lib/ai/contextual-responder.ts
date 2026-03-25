@@ -122,14 +122,20 @@ function buildSystemPrompt(input: ContextualInput): string {
 
   // --- Mode-specific rules (only one active at a time) ---
   const isHumanAgentRequest = /хүнтэй ярих|хүн хэрэгтэй|хүн дуудах|оператор|менежер|хүнтэй холбогд|амьд хүн|huntei yarih|hun heregteii|operator/i.test(input.currentMessage)
+  const isAggressiveComplaint = (input.currentMessage.match(/!/g) || []).length >= 3 || /мөнгөө буцааж|мөнгөө буцаа|мөнгө буцаа|mongoo butaa/i.test(input.currentMessage)
 
   if (isResolution) {
+    const escalationRule = isHumanAgentRequest
+      ? '\n4. Хэрэглэгч хүнтэй ярихыг хүссэн тул: "Таны хүсэлтийг хүлээн авлаа. Манай менежер тантай удахгүй холбогдоно." гэж товч хариул.'
+      : isAggressiveComplaint
+        ? '\n4. Хэрэглэгч маш их бухимдсан байна. Хариултдаа заавал: "Менежертэй холбогдож асуудлыг шийдье" гэсэн утга оруул.'
+        : ''
     prompt += `
 
 ГОМДОЛ ГОРИМ:
 1. Эхлээд сэтгэлийг хүлээн зөвшөөр ("Маш харамсаж байна")
 2. Нэг асуулт тавьж дэлгэрэнгүй ав, эсвэл шийдэл санал болго
-3. Бараа зарах/санал болгох ХОРИОТОЙ. Хэт эерэг хариу БОЛОХГҮЙ.${isHumanAgentRequest ? '\n4. Хэрэглэгч хүнтэй ярихыг хүссэн тул: "Таны хүсэлтийг хүлээн авлаа. Манай менежер тантай удахгүй холбогдоно." гэж товч хариул.' : ''}`
+3. Бараа зарах/санал болгох ХОРИОТОЙ. Хэт эерэг хариу БОЛОХГҮЙ.${escalationRule}`
   } else if (isCare) {
     prompt += `
 

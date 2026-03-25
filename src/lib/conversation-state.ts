@@ -214,7 +214,7 @@ const SELECT_WORDS = [
 const PRICE_WORDS = [
   'үнэ', 'хэд', 'хэдтэй', 'үнэтэй', 'ямар үнэ', 'үнийг',
   // Slang/abbreviations
-  'хэдвэ', 'хэд вэ', 'үнэнь', 'үнэ нь', 'хэдэн төг', 'хэдэн төгрөг',
+  'хэдвэ', 'хэд вэ', 'хэдүү', 'үнэнь', 'үнэ нь', 'хэдэн төг', 'хэдэн төгрөг',
   'ямар үнэтэй', 'хямдруулна',
 ]
 
@@ -570,22 +570,33 @@ export function resolveFollowUp(
     }
   }
 
+  // Detect if message contains a NEW product noun not in the previous query
+  // e.g. "кашемир малгай хэдүү?" after searching "офис өмд" → new search, not follow-up
+  const NEW_PRODUCT_NOUNS = ['бараа', 'цүнх', 'хувцас', 'гутал', 'пүүз', 'цамц', 'бүтээгдэхүүн', 'куртка', 'малгай', 'өмд', 'пальто', 'даашинз', 'жинс']
+  const lastQ = normalizeText(state.last_query || '')
+  const hasNewProductNoun = NEW_PRODUCT_NOUNS.some(
+    noun => normalized.includes(noun) && !lastQ.includes(noun)
+  )
+
   // 4. Contextual question — delivery, order, payment, material, etc. when products exist
+  //    Skip if message contains a new product noun (should be a new search instead)
   if (products.length > 0) {
-    const paddedCtx = ` ${normalized} `
-    for (const group of CONTEXT_KEYWORDS) {
-      let found = false
-      for (const word of group.words) {
-        if (paddedIncludes(paddedCtx, word)) {
-          candidates.push({
-            score: FOLLOWUP_WEIGHTS.contextual_question,
-            result: { type: 'contextual_question', products, contextTopic: group.topic }
-          })
-          found = true
-          break
+    if (!hasNewProductNoun) {
+      const paddedCtx = ` ${normalized} `
+      for (const group of CONTEXT_KEYWORDS) {
+        let found = false
+        for (const word of group.words) {
+          if (paddedIncludes(paddedCtx, word)) {
+            candidates.push({
+              score: FOLLOWUP_WEIGHTS.contextual_question,
+              result: { type: 'contextual_question', products, contextTopic: group.topic }
+            })
+            found = true
+            break
+          }
         }
+        if (found) break // Only match first context topic
       }
-      if (found) break // Only match first context topic
     }
   }
 
@@ -606,7 +617,8 @@ export function resolveFollowUp(
   }
 
   // 5. Price question — "үнэ хэд?" when products exist
-  if (products.length > 0) {
+  //    Skip if message has a new product noun (should be a new product search)
+  if (products.length > 0 && !hasNewProductNoun) {
     const paddedPrice = ` ${normalized} `
     for (const word of PRICE_WORDS) {
       if (paddedIncludes(paddedPrice, word)) {
