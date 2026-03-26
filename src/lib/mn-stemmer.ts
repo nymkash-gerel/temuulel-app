@@ -29,72 +29,128 @@
  *  Negative inf.:          -хгүй
  */
 
+import { KNOWN_ROOTS } from './mn-roots'
+
 /** Minimum characters the stem must retain after stripping. */
 const MIN_STEM_LEN = 4
 
+/** Maximum suffix layers to strip in deep stemming. */
+const MAX_DEEP_LAYERS = 3
+
+/** Suffix category for morphological feature extraction. */
+export type SuffixCategory =
+  | 'tense_past'
+  | 'tense_past_spoken'
+  | 'passive'
+  | 'completive'      // "already done" (-чихсан)
+  | 'negative'        // -хгүй
+  | 'desiderative'    // -маар (want to)
+  | 'converb'         // -ж, -жаад
+  | 'case_genitive'
+  | 'case_accusative'
+  | 'case_instrumental'
+  | 'case_ablative'
+  | 'case_comitative'
+  | 'case_directive'
+  | 'case_dative'
+  | 'plural'
+  | 'possessive'
+  | 'topic'
+
+/** A suffix entry with its morphological category. */
+export interface SuffixEntry {
+  suffix: string
+  category: SuffixCategory
+}
+
+/** Result of deep stemming — stem + ordered suffix chain (outermost first). */
+export interface DeepStemResult {
+  stem: string
+  suffixes: SuffixEntry[]
+}
+
 /**
- * Suffixes ordered longest → shortest.
+ * Suffix entries ordered longest → shortest, with category tags.
  * Within each length, back-vowel variants precede front-vowel variants.
  */
-const SUFFIXES: readonly string[] = [
-  // ── 6-char ──────────────────────────────────────────────────────────────
-  'чихсан', 'чихлаа', 'чихлоо', 'чихлөө', // "already did" (аваачихсан)
-  'аасаа', 'ээсээ',                         // ablative + possessive (аасаа = а+а+с+а+а, 5-char but check before аас)
+export const SUFFIX_ENTRIES: readonly SuffixEntry[] = [
+  // ── 6-char ──
+  { suffix: 'чихсан', category: 'completive' },
+  { suffix: 'чихлаа', category: 'completive' },
+  { suffix: 'чихлоо', category: 'completive' },
+  { suffix: 'чихлөө', category: 'completive' },
+  { suffix: 'аасаа', category: 'case_ablative' },
+  { suffix: 'ээсээ', category: 'case_ablative' },
 
-  // ── 5-char ──────────────────────────────────────────────────────────────
-  'гдсан', 'гдсэн', 'гдсон', 'гдсөн',      // passive past (буцаагдсан)
+  // ── 5-char ──
+  { suffix: 'гдсан', category: 'passive' },
+  { suffix: 'гдсэн', category: 'passive' },
+  { suffix: 'гдсон', category: 'passive' },
+  { suffix: 'гдсөн', category: 'passive' },
 
-  // ── 4-char ──────────────────────────────────────────────────────────────
-  'хгүй', 'хгуй',                           // neg. infinitive (явахгүй)
-  'жаад', 'жоод',                           // converb sequence (явжаад, ирж оод)
-  'маар', 'мээр',                           // desiderative mood (-маар/-мээр = "want to X")
+  // ── 4-char ──
+  { suffix: 'хгүй', category: 'negative' },
+  { suffix: 'хгуй', category: 'negative' },
+  { suffix: 'жаад', category: 'converb' },
+  { suffix: 'жоод', category: 'converb' },
+  { suffix: 'маар', category: 'desiderative' },
+  { suffix: 'мээр', category: 'desiderative' },
 
-  // ── 3-char ──────────────────────────────────────────────────────────────
-  // Past participle
-  'сан', 'сэн', 'сон', 'сөн',
-  // Spoken past tense
-  'лаа', 'лээ', 'лоо', 'лөө',
-  // Past converb (formal register)
-  'жээ',
-  // Instrumental case (by/with)
-  // NOTE: -аар also appears in -маар desiderative (handled above, longest-first)
-  'аар', 'ээр', 'оор', 'өөр',
-  // Ablative case (from)
-  'аас', 'ээс', 'оос', 'өөс',
-  // Comitative case (with X)
-  'тай', 'тэй', 'той',
-  // Directive case (towards)
-  'руу', 'рүү', 'луу', 'лүү',
-  // Plural
-  'ууд', 'үүд',
-  // Genitive (front-vowel stem)
-  'ийн',
-  // Accusative (front-vowel stem)
-  'ийг',
-  // Converb continuation (явж оод, ирж аад in spoken form)
-  'оод', 'аад', 'ээд',
-  // NOTE: -гаа/-гээ/-гоо/-гөө removed — ambiguous with root-final г.
-  //   e.g. захиалгаа (захиалга + аа) would wrongly stem to захиал via -гаа.
-  //   Plain -аа (2-char) handles this correctly with MIN_STEM_LEN protection.
+  // ── 3-char ──
+  { suffix: 'сан', category: 'tense_past' },
+  { suffix: 'сэн', category: 'tense_past' },
+  { suffix: 'сон', category: 'tense_past' },
+  { suffix: 'сөн', category: 'tense_past' },
+  { suffix: 'лаа', category: 'tense_past_spoken' },
+  { suffix: 'лээ', category: 'tense_past_spoken' },
+  { suffix: 'лоо', category: 'tense_past_spoken' },
+  { suffix: 'лөө', category: 'tense_past_spoken' },
+  { suffix: 'жээ', category: 'tense_past_spoken' },
+  { suffix: 'аар', category: 'case_instrumental' },
+  { suffix: 'ээр', category: 'case_instrumental' },
+  { suffix: 'оор', category: 'case_instrumental' },
+  { suffix: 'өөр', category: 'case_instrumental' },
+  { suffix: 'аас', category: 'case_ablative' },
+  { suffix: 'ээс', category: 'case_ablative' },
+  { suffix: 'оос', category: 'case_ablative' },
+  { suffix: 'өөс', category: 'case_ablative' },
+  { suffix: 'тай', category: 'case_comitative' },
+  { suffix: 'тэй', category: 'case_comitative' },
+  { suffix: 'той', category: 'case_comitative' },
+  { suffix: 'руу', category: 'case_directive' },
+  { suffix: 'рүү', category: 'case_directive' },
+  { suffix: 'луу', category: 'case_directive' },
+  { suffix: 'лүү', category: 'case_directive' },
+  { suffix: 'ууд', category: 'plural' },
+  { suffix: 'үүд', category: 'plural' },
+  { suffix: 'ийн', category: 'case_genitive' },
+  { suffix: 'ийг', category: 'case_accusative' },
+  { suffix: 'оод', category: 'converb' },
+  { suffix: 'аад', category: 'converb' },
+  { suffix: 'ээд', category: 'converb' },
+  { suffix: 'гүй', category: 'negative' },
+  { suffix: 'гуй', category: 'negative' },
 
-  // ── 2-char ──────────────────────────────────────────────────────────────
-  // Genitive (back-vowel stem)
-  'ын',
-  // Accusative (back-vowel stem)
-  'ыг',
-  // Possessive / topic (most common conversational suffix)
-  'аа', 'ээ', 'оо', 'өө',
-  // Dative-locative
-  'ад', 'эд',
-  // Topic/3rd-person possessive (after vowel)
-  'нь',
+  // ── 2-char ──
+  { suffix: 'ын', category: 'case_genitive' },
+  { suffix: 'ыг', category: 'case_accusative' },
+  { suffix: 'аа', category: 'possessive' },
+  { suffix: 'ээ', category: 'possessive' },
+  { suffix: 'оо', category: 'possessive' },
+  { suffix: 'өө', category: 'possessive' },
+  { suffix: 'ад', category: 'case_dative' },
+  { suffix: 'эд', category: 'case_dative' },
+  { suffix: 'нь', category: 'topic' },
 
-  // ── 1-char ──────────────────────────────────────────────────────────────
-  // Converb (most productive verbal suffix: захиалж, буцааж, хийж)
-  'ж',
-  // Short genitive (after vowel: манайн, дэлгүүрн — informal)
-  'н',
+  // ── 1-char ──
+  { suffix: 'ж', category: 'converb' },
+  { suffix: 'н', category: 'case_genitive' },
 ]
+
+/**
+ * Flat suffix list derived from SUFFIX_ENTRIES for backward compatibility.
+ */
+const SUFFIXES: readonly string[] = SUFFIX_ENTRIES.map(e => e.suffix)
 
 /**
  * Strip one outermost suffix from a single (already-normalized) Mongolian word.
@@ -131,5 +187,74 @@ export function stemKeyword(keyword: string): string {
   return keyword
     .split(' ')
     .map(mnStem)
+    .join(' ')
+}
+
+// ── Deep (multi-level) stemming ──────────────────────────────────────────────
+
+/**
+ * Check if a stem is valid: either meets MIN_STEM_LEN or is a known root.
+ */
+function isValidStem(stem: string): boolean {
+  return stem.length >= MIN_STEM_LEN || KNOWN_ROOTS.has(stem)
+}
+
+/**
+ * Strip one suffix and return the entry, or null if no suffix applies.
+ * Uses isValidStem() which allows known short roots.
+ */
+function stripOneSuffix(word: string): { stem: string; entry: SuffixEntry } | null {
+  for (const entry of SUFFIX_ENTRIES) {
+    if (word.endsWith(entry.suffix)) {
+      const stem = word.slice(0, word.length - entry.suffix.length)
+      if (stem.length > 0 && isValidStem(stem)) {
+        return { stem, entry }
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Deep-stem a single word: iteratively strip up to MAX_DEEP_LAYERS suffixes.
+ * Returns the root stem and the ordered suffix chain (outermost first).
+ *
+ * Example:
+ *   "захиалсангүй" → { stem: "захиал", suffixes: [{suffix:"гүй",…}, {suffix:"сан",…}] }
+ *   "авмаар"       → { stem: "ав",     suffixes: [{suffix:"маар",…}] }
+ */
+export function mnStemDeep(word: string, maxLayers: number = MAX_DEEP_LAYERS): DeepStemResult {
+  const suffixes: SuffixEntry[] = []
+  let current = word
+
+  for (let i = 0; i < maxLayers; i++) {
+    const result = stripOneSuffix(current)
+    if (!result) break
+    suffixes.push(result.entry)
+    current = result.stem
+  }
+
+  return { stem: current, suffixes }
+}
+
+/**
+ * Deep-stem each space-separated token.
+ * Returns just the stems joined by spaces.
+ */
+export function stemTextDeep(text: string): string {
+  return text
+    .split(' ')
+    .map(w => mnStemDeep(w).stem)
+    .join(' ')
+}
+
+/**
+ * Deep-stem a multi-word keyword.
+ * Use for pre-computing deep-stemmed keyword sets at module load.
+ */
+export function stemKeywordDeep(keyword: string): string {
+  return keyword
+    .split(' ')
+    .map(w => mnStemDeep(w).stem)
     .join(' ')
 }

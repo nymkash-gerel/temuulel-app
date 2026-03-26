@@ -7,6 +7,7 @@
 import { classifyIntentWithConfidence, IntentResult } from '../intent-classifier'
 import { mlClassify } from './ml-classifier'
 import { normalizeText } from '../text-normalizer'
+import { extractMorphFeatures, deriveMorphIntentSignals, type MorphIntentSignal } from '../morphological-features'
 
 // ---------------------------------------------------------------------------
 // GPT Fallback Intent Classification
@@ -66,11 +67,45 @@ export async function gptClassifyIntent(message: string): Promise<IntentResult> 
 const AVAILABILITY_SUFFIXES = /(?:^|\s)(бну|бнуу|бгаа|бгааю|байна уу|байгаа юу|байгаа уу|бий юу)(?:\s|$)/
 
 /**
+ * Apply morphological intent signals to adjust classification.
+ * Returns an adjusted IntentResult if morph signals are strong enough,
+ * or null if morph signals don't override.
+ */
+function applyMorphSignals(
+  keywordResult: IntentResult,
+  morphSignals: MorphIntentSignal[],
+): IntentResult | null {
+  if (morphSignals.length === 0) return null
+
+  // Find the strongest morphological signal
+  const strongest = morphSignals.reduce((a, b) => a.weight > b.weight ? a : b)
+
+  // If morph signal agrees with keyword result, boost confidence
+  if (strongest.intent === keywordResult.intent) {
+    return {
+      intent: keywordResult.intent,
+      confidence: keywordResult.confidence + strongest.weight,
+    }
+  }
+
+  // If morph signal is strong enough (>= 1.0) and disagrees, override
+  if (strongest.weight >= 1.0 && keywordResult.confidence < 1.5) {
+    return {
+      intent: strongest.intent,
+      confidence: strongest.weight + 0.5,
+    }
+  }
+
+  return null
+}
+
+/**
  * Hybrid classification strategy:
  * 1. If keyword confidence >= 2.0, use keyword result (high confidence)
- * 2. If ML says "greeting" but message has a noun + availability question → product_search
- * 3. If ML confidence >= 0.7, use ML result (medium-high confidence)
- * 4. Otherwise, use keyword result (fallback)
+ * 2. Apply morphological signals for medium-confidence disambiguation
+ * 3. If ML says "greeting" but message has a noun + availability question → product_search
+ * 4. If ML confidence >= 0.7, use ML result (medium-high confidence)
+ * 5. Otherwise, use keyword result (fallback)
  */
 export function hybridClassify(message: string): IntentResult {
   // Get both classifications
@@ -83,12 +118,22 @@ export function hybridClassify(message: string): IntentResult {
     return keywordResult
   }
 
+  // Morphological analysis — extract features and derive intent signals
+  const normalized = normalizeText(message)
+  const morphFeatures = extractMorphFeatures(normalized)
+  const morphSignals = deriveMorphIntentSignals(morphFeatures)
+  const morphResult = applyMorphSignals(keywordResult, morphSignals)
+
+  // If morphological signals produce a strong result, use it
+  if (morphResult && morphResult.confidence >= 1.5) {
+    return morphResult
+  }
+
   if (mlResult.confidence >= 0.7) {
     // Guard: ML says "greeting" but message contains a noun + availability question
     // e.g. "Skims бну?" → "скимс бну" → ML thinks greeting because "бну" ≈ "сн бну"
     // Override to product_search when a non-greeting word precedes the suffix.
     if (mlResult.intent === 'greeting') {
-      const normalized = normalizeText(message)
       const words = normalized.split(/\s+/)
       const hasAvailabilitySuffix = AVAILABILITY_SUFFIXES.test(normalized)
       // Check that words before the suffix are NOT greeting words (сн, сайн, мэнд, etc.)
@@ -100,11 +145,21 @@ export function hybridClassify(message: string): IntentResult {
       }
     }
 
+    // If morph signals are moderate, prefer morph over ML
+    if (morphResult && morphResult.confidence >= 1.0) {
+      return morphResult
+    }
+
     // High ML confidence and keyword confidence is low - use ML
     return {
       intent: mlResult.intent,
       confidence: mlResult.confidence * 2 // Scale to match keyword confidence range
     }
+  }
+
+  // If morph signals exist but weren't strong enough to override above, still use them
+  if (morphResult) {
+    return morphResult
   }
 
   // Low confidence from both - fall back to keyword classifier
