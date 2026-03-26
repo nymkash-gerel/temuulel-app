@@ -47,9 +47,29 @@ export class SupervisorAgent {
 
       // Phase 3: Route based on follow-up type
       if (triage.followUpType === 'order_step_input' && ctx.state.order_draft) {
-        // Order collection is still handled by processAIChat for now
-        // (complex state machine — will be extracted in Step 4)
         return this.handleOrderStep(ctx, triage)
+      }
+
+      // Phase 3b: Order-related follow-ups routed to OrderCollectionAgent
+      if (triage.followUpType === 'order_intent' && triage.followUpData) {
+        return this.orderCollectionAgent.handleOrderIntent(
+          ctx,
+          triage.followUpData as { id: string; name: string; base_price: number },
+        )
+      }
+
+      if (
+        (triage.followUpType === 'number_reference' || triage.followUpType === 'select_single')
+        && triage.followUpData
+      ) {
+        return this.orderCollectionAgent.handleNumberReference(
+          ctx,
+          triage.followUpData as { id: string; name: string; base_price: number },
+        )
+      }
+
+      if (triage.followUpType === 'order_cancel') {
+        return this.orderCollectionAgent.handleOrderCancel()
       }
 
       // Phase 4: Route based on intent
