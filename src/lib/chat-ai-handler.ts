@@ -52,7 +52,26 @@ import { isOpenAIConfigured } from '@/lib/ai/openai-client'
 import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
 import { createQPayInvoice, checkQPayPayment, isQPayConfigured } from '@/lib/qpay'
 
+import { SupervisorAgent } from '@/lib/agents'
+import type { AgentContext } from '@/lib/agents'
+
 const DEFAULT_DELIVERY_FEE = 5000
+
+/**
+ * Feature flag: enable Supervisor agent routing.
+ * - 'off': use existing pipeline (default, safe)
+ * - 'shadow': run both, log comparison, return old result
+ * - 'on': fully delegate to SupervisorAgent
+ *
+ * Set via SUPERVISOR_MODE env var or chatbot_settings.
+ */
+type SupervisorMode = 'off' | 'shadow' | 'on'
+
+function getSupervisorMode(): SupervisorMode {
+  const env = process.env.SUPERVISOR_MODE
+  if (env === 'on' || env === 'shadow') return env
+  return 'off'
+}
 
 export interface AIProcessingContext {
   conversationId: string
@@ -93,6 +112,13 @@ export async function processAIChat(
   supabase: SupabaseClient,
   ctx: AIProcessingContext
 ): Promise<AIProcessingResult> {
+  const mode = getSupervisorMode()
+
+  // ── SUPERVISOR_MODE=on → fully delegate to SupervisorAgent ──
+  if (mode === 'on') {
+    return processViaSupervisor(supabase, ctx)
+  }
+
   const {
     conversationId,
     customerMessage,
@@ -101,6 +127,18 @@ export async function processAIChat(
     customerId,
     chatbotSettings,
   } = ctx
+
+  // ── SUPERVISOR_MODE=shadow → run both, compare, return old ──
+  if (mode === 'shadow') {
+    // Fire-and-forget: run supervisor in background for comparison logging
+    processViaSupervisor(supabase, ctx)
+      .then(supervisorResult => {
+        console.log('[shadow] Supervisor intent:', supervisorResult.intent, 'products:', supervisorResult.metadata.products_found)
+      })
+      .catch(err => {
+        console.error('[shadow] Supervisor error:', err?.message || err)
+      })
+  }
 
   // --- Parallel: fetch conversation state + busy mode + customer profile ---
   const [state, busyMode, customerProfile] = await Promise.all([
@@ -839,6 +877,86 @@ export async function processAIChat(
       orders_found: orders.length,
     },
     orderStep: orderDraft?.step ?? null,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Supervisor delegation
+// ---------------------------------------------------------------------------
+
+/**
+ * Process a message through the SupervisorAgent pipeline.
+ * Used when SUPERVISOR_MODE=on or for shadow comparison.
+ */
+async function processViaSupervisor(
+  supabase: SupabaseClient,
+  ctx: AIProcessingContext
+): Promise<AIProcessingResult> {
+  const { conversationId, customerMessage, storeId, storeName, customerId, chatbotSettings } = ctx
+
+  // Load state (same as main pipeline)
+  const state = await readState(supabase, conversationId)
+
+  // Build agent context
+  const agentCtx: AgentContext = {
+    supabase,
+    message: customerMessage,
+    normalizedMessage: normalizeText(customerMessage),
+    storeId,
+    storeName,
+    conversationId,
+    customerId,
+    chatbotSettings,
+    state: {
+      last_intent: state.last_intent ?? null,
+      last_products: state.last_products ?? [],
+      last_query: state.last_query ?? null,
+      turn_count: state.turn_count ?? 0,
+      order_draft: state.order_draft ?? null,
+      gift_card_draft: state.gift_card_draft ?? null,
+    },
+  }
+
+  // Delegate to supervisor
+  const supervisor = new SupervisorAgent()
+  const result = await supervisor.process(agentCtx)
+
+  // Save state + message
+  const nextState = updateState(state, result.intent, [], customerMessage)
+  if (result.stateUpdates?.order_draft !== undefined) {
+    nextState.order_draft = result.stateUpdates.order_draft
+  }
+
+  const [savedMsg] = await Promise.all([
+    supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        content: result.response,
+        is_from_customer: false,
+        is_ai_response: true,
+        metadata: {
+          intent: result.intent,
+          products_found: result.metadata.products_found,
+          orders_found: result.metadata.orders_found,
+          agent: 'supervisor',
+        },
+      })
+      .select('id, created_at')
+      .single(),
+    writeState(supabase, conversationId, nextState),
+  ])
+
+  return {
+    response: result.response,
+    intent: result.intent,
+    messageId: savedMsg.data?.id,
+    products: result.products,
+    metadata: {
+      products_found: result.metadata.products_found,
+      orders_found: result.metadata.orders_found,
+    },
+    orderStep: result.orderStep ?? null,
   }
 }
 
