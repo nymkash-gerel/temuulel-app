@@ -894,5 +894,1573 @@
   {
     "text": "үнэ хэд вэ",
     "intent": "product_search"
+  },
+  {
+    "text": "бараа авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бараа авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бараа захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бараа захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бараа авах гэсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бараа авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бараа захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бараа авахаар шийдсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ бараа авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ авах гэсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ авахаар шийдсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ энэ авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "цамц авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "цамц авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "цамц захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "цамц захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "цамц авах гэсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "цамц авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "цамц захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "цамц авахаар шийдсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ цамц авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "гутал авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "гутал авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "гутал захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "гутал захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "гутал авах гэсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "гутал авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "гутал захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "гутал авахаар шийдсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ гутал авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "куртка авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "куртка авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "куртка захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "куртка захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "куртка авах гэсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "куртка авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "куртка захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "куртка авахаар шийдсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ куртка авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "даашинз авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "даашинз авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "даашинз захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "даашинз захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "даашинз авах гэсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "даашинз авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "даашинз захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "даашинз авахаар шийдсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ даашинз авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бэлэг авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бэлэг авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бэлэг захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бэлэг захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бэлэг авах гэсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бэлэг авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бэлэг захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бэлэг авахаар шийдсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ бэлэг авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "малгай авмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "малгай авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "малгай захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "малгай захиалмаар байна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "малгай авах гэсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "малгай авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "малгай захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "малгай авахаар шийдсэн",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ малгай авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "захиалга ирсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга ирсэн уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга бэлэн болсон уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга хаана явж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга илгээсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга хүлээж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга хэзээ бэлэн болох вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа ирсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа ирсэн уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа хэзээ ирэх вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа бэлэн болсон уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа хаана явж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа илгээсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа хүлээж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа хэзээ бэлэн болох вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "миний захиалга ирсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "миний захиалга ирсэн уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "миний захиалга хэзээ ирэх вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "миний захиалга бэлэн болсон уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "миний захиалга хаана явж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "миний захиалга илгээсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "миний захиалга хүлээж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "миний захиалга хэзээ бэлэн болох вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "илгээмж ирсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "илгээмж ирсэн уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "илгээмж хэзээ ирэх вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "илгээмж бэлэн болсон уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "илгээмж хаана явж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "илгээмж илгээсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "илгээмж хүлээж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "илгээмж хэзээ бэлэн болох вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "багц ирсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "багц ирсэн уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "багц хэзээ ирэх вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "багц бэлэн болсон уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "багц хаана явж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "багц илгээсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "багц хүлээж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "багц хэзээ бэлэн болох вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "захиалга ирээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "захиалга хийгдээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "захиалга хүргэгдсэнгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "захиалга буцаагаагүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "захиалга өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "захиалга удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "захиалга яагаад удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "захиалга хариу өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа ирээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа ирэхгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа хийгдээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа хүргэгдсэнгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа буцаагаагүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа яагаад удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа хариу өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт ирээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт ирэхгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт хийгдээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт хүргэгдсэнгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт буцаагаагүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт яагаад удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэлт хариу өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө ирээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө ирэхгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө хийгдээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө хүргэгдсэнгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө буцаагаагүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө яагаад удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "мөнгө хариу өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр ирээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр ирэхгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр хийгдээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр хүргэгдсэнгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр буцаагаагүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр яагаад удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлбөр хариу өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу ирээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу ирэхгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу хийгдээгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу хүргэгдсэнгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу буцаагаагүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу яагаад удаж байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу хариу өгөөгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "бараа солимоор байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "бараа буцаамаар байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "бараа буцааж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "бараа солиулж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "бараа тохирохгүй байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "бараа буцааж өгнө үү",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "бараа солих боломжтой юу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "хувцас солимоор байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "хувцас буцаамаар байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "хувцас буцааж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "хувцас солиулж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "хувцас тохирохгүй байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "хувцас буцааж өгнө үү",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "хувцас солих боломжтой юу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "гутал солимоор байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "гутал буцаамаар байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "гутал буцааж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "гутал солиулж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "гутал тохирохгүй байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "гутал буцааж өгнө үү",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "гутал солих боломжтой юу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "энэ бараа солимоор байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "энэ бараа буцаамаар байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "энэ бараа буцааж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "энэ бараа солиулж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "энэ бараа тохирохгүй байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "энэ бараа буцааж өгнө үү",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "энэ бараа солих боломжтой юу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "цамц солимоор байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "цамц буцаамаар байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "цамц буцааж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "цамц солиулж болох уу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "цамц тохирохгүй байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "цамц буцааж өгнө үү",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "цамц солих боломжтой юу",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "төлбөр төлсөн",
+    "intent": "payment"
+  },
+  {
+    "text": "төлбөр төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "төлбөр шилжүүлсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "төлбөр шилжүүлж байна",
+    "intent": "payment"
+  },
+  {
+    "text": "төлбөр хуваан төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "төлбөр төлбөр хийсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "төлбөр төлөгдсөн үү",
+    "intent": "payment"
+  },
+  {
+    "text": "мөнгө төлсөн",
+    "intent": "payment"
+  },
+  {
+    "text": "мөнгө төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "мөнгө шилжүүлсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "мөнгө шилжүүлж байна",
+    "intent": "payment"
+  },
+  {
+    "text": "мөнгө хуваан төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "мөнгө төлбөр хийсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "мөнгө төлөгдсөн үү",
+    "intent": "payment"
+  },
+  {
+    "text": "данс төлсөн",
+    "intent": "payment"
+  },
+  {
+    "text": "данс төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "данс шилжүүлсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "данс шилжүүлж байна",
+    "intent": "payment"
+  },
+  {
+    "text": "данс хуваан төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "данс төлбөр хийсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "данс төлөгдсөн үү",
+    "intent": "payment"
+  },
+  {
+    "text": "QPay төлсөн",
+    "intent": "payment"
+  },
+  {
+    "text": "QPay төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "QPay шилжүүлсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "QPay шилжүүлж байна",
+    "intent": "payment"
+  },
+  {
+    "text": "QPay хуваан төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "QPay төлбөр хийсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "QPay төлөгдсөн үү",
+    "intent": "payment"
+  },
+  {
+    "text": "картаар төлсөн",
+    "intent": "payment"
+  },
+  {
+    "text": "картаар шилжүүлсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "картаар шилжүүлж байна",
+    "intent": "payment"
+  },
+  {
+    "text": "картаар хуваан төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "картаар төлбөр хийсэн",
+    "intent": "payment"
+  },
+  {
+    "text": "картаар төлөгдсөн үү",
+    "intent": "payment"
+  },
+  {
+    "text": "бараа хүргэж болох уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "бараа хүргүүлмээр байна",
+    "intent": "shipping"
+  },
+  {
+    "text": "бараа илгээгээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "бараа хүргээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "бараа хүргэлт хэзээ ирэх вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "бараа яаж хүлээн авах вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "захиалга хүргэж болох уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "захиалга хүргүүлмээр байна",
+    "intent": "shipping"
+  },
+  {
+    "text": "захиалга илгээгээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "захиалга хүргээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "захиалга хүргэлт хэзээ ирэх вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "захиалга яаж хүлээн авах вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "илгээмж хүргэж болох уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "илгээмж хүргүүлмээр байна",
+    "intent": "shipping"
+  },
+  {
+    "text": "илгээмж илгээгээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "илгээмж хүргээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "илгээмж хүргэлт хэзээ ирэх вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "илгээмж яаж хүлээн авах вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлт хүргэж болох уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлт хүргүүлмээр байна",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлт илгээгээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлт хүргээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлт хүргэлт хэзээ ирэх вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "хүргэлт яаж хүлээн авах вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "энэ хэмжээтэй юу",
+    "intent": "size_info"
+  },
+  {
+    "text": "энэ хэмжээ ямар вэ",
+    "intent": "size_info"
+  },
+  {
+    "text": "энэ хэд размертэй вэ",
+    "intent": "size_info"
+  },
+  {
+    "text": "энэ тохирох размер байна уу",
+    "intent": "size_info"
+  },
+  {
+    "text": "цамц хэмжээтэй юу",
+    "intent": "size_info"
+  },
+  {
+    "text": "цамц хэмжээ ямар вэ",
+    "intent": "size_info"
+  },
+  {
+    "text": "цамц хэд размертэй вэ",
+    "intent": "size_info"
+  },
+  {
+    "text": "цамц тохирох размер байна уу",
+    "intent": "size_info"
+  },
+  {
+    "text": "гутал хэмжээтэй юу",
+    "intent": "size_info"
+  },
+  {
+    "text": "гутал хэмжээ ямар вэ",
+    "intent": "size_info"
+  },
+  {
+    "text": "гутал хэд размертэй вэ",
+    "intent": "size_info"
+  },
+  {
+    "text": "гутал тохирох размер байна уу",
+    "intent": "size_info"
+  },
+  {
+    "text": "куртка хэмжээтэй юу",
+    "intent": "size_info"
+  },
+  {
+    "text": "куртка хэмжээ ямар вэ",
+    "intent": "size_info"
+  },
+  {
+    "text": "куртка хэд размертэй вэ",
+    "intent": "size_info"
+  },
+  {
+    "text": "куртка тохирох размер байна уу",
+    "intent": "size_info"
+  },
+  {
+    "text": "скимс байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "скимс байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "скимс бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "скимс бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "скимс харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "скимс үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "скимс үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "скимс ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "цамц байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "цамц байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "цамц бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "цамц бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "цамц харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "цамц үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "цамц үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "цамц ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "гутал байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "гутал байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "гутал бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "гутал бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "гутал харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "гутал үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "гутал үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "гутал ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "куртка байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "куртка байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "куртка бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "куртка бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "куртка харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "куртка үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "куртка үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "куртка ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "малгай байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "малгай байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "малгай бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "малгай бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "малгай харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "малгай үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "малгай үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "малгай ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "цүнх байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "цүнх байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "цүнх бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "цүнх бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "цүнх харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "цүнх үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "цүнх үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "цүнх ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "даашинз байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "даашинз байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "даашинз бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "даашинз бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "даашинз харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "даашинз үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "даашинз үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "даашинз ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "бэлэг байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "бэлэг байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "бэлэг бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "бэлэг бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "бэлэг харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "бэлэг үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "бэлэг үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "бэлэг ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "ном байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "ном байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "ном бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "ном бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "ном харуулна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "ном үзүүлээч",
+    "intent": "product_search"
+  },
+  {
+    "text": "ном үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "ном ямар төрөл байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "худалдаж авмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "авахаар шийдлээ",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энийг захиалмаар",
+    "intent": "order_collection"
+  },
+  {
+    "text": "захиалга ирээгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "хариу өгөхгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "чанар муутай",
+    "intent": "complaint"
+  },
+  {
+    "text": "эвдэрсэн ирсэн",
+    "intent": "complaint"
+  },
+  {
+    "text": "илгээсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "бэлэн болсон уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "баталгаажсан уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "хүргэсэн үү",
+    "intent": "order_status"
+  },
+  {
+    "text": "хүлээж байна",
+    "intent": "order_status"
+  },
+  {
+    "text": "бараа хайж байна",
+    "intent": "product_search"
+  },
+  {
+    "text": "хурдан хүргээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "буцаагаарай",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "шилжүүлээрэй",
+    "intent": "payment"
+  },
+  {
+    "text": "солимоор байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "буцаамаар байна",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "тохирохгүй солимоор",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "хэмжээ тохирохгүй солих",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "braa bnu",
+    "intent": "product_search"
+  },
+  {
+    "text": "zahialga haana bn",
+    "intent": "order_status"
+  },
+  {
+    "text": "tulbur tuluh",
+    "intent": "payment"
+  },
+  {
+    "text": "hurgeltiig hurdan hiine uu",
+    "intent": "shipping"
+  },
+  {
+    "text": "butsaaj bolhu",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "avmaar bn",
+    "intent": "order_collection"
+  },
+  {
+    "text": "sn bnu",
+    "intent": "greeting"
+  },
+  {
+    "text": "bayrlalaa",
+    "intent": "thanks"
+  },
+  {
+    "text": "захиалсангүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "хүргэгдсэнгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "буцаагдаагүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "төлөгдсөнгүй",
+    "intent": "complaint"
+  },
+  {
+    "text": "өчигдөр захиалсан бараа хэзээ ирэх вэ",
+    "intent": "order_status"
+  },
+  {
+    "text": "энэ долоо хоногт хүргэж чадах уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "QPay-аар төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "хуваан төлж болох уу",
+    "intent": "payment"
+  },
+  {
+    "text": "бусад өнгө байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "хар өнгөтэй байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "XL размер байна уу",
+    "intent": "size_info"
+  },
+  {
+    "text": "M хэмжээтэй байна уу",
+    "intent": "size_info"
+  },
+  {
+    "text": "юу байна",
+    "intent": "greeting"
+  },
+  {
+    "text": "мэнд",
+    "intent": "greeting"
+  },
+  {
+    "text": "амар байна уу",
+    "intent": "greeting"
+  },
+  {
+    "text": "оройн мэнд",
+    "intent": "greeting"
+  },
+  {
+    "text": "гайхалтай баярлалаа",
+    "intent": "thanks"
+  },
+  {
+    "text": "амжилт хүсье",
+    "intent": "thanks"
+  },
+  {
+    "text": "ойлголоо баярлалаа",
+    "intent": "thanks"
   }
 ]
