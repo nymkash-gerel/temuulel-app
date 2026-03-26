@@ -8,6 +8,7 @@
 export { SupervisorAgent } from './supervisor'
 export { TriageAgent } from './triage'
 export { GiftCardAgent } from './gift-card'
+export { OrderCollectionAgent } from './order-collection'
 export { ProductAgent } from './product-search'
 export { ResponseAgent } from './response'
 export { EscalationAgent } from './escalation'

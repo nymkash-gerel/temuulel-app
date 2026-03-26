@@ -14,6 +14,7 @@
 
 import { TriageAgent } from './triage'
 import { GiftCardAgent } from './gift-card'
+import { OrderCollectionAgent } from './order-collection'
 import { ProductAgent } from './product-search'
 import { ResponseAgent } from './response'
 import { EscalationAgent } from './escalation'
@@ -27,6 +28,7 @@ const MAX_REDIRECTS = 3
 export class SupervisorAgent {
   private triageAgent = new TriageAgent()
   private giftCardAgent = new GiftCardAgent()
+  private orderCollectionAgent = new OrderCollectionAgent()
   private productAgent = new ProductAgent()
   private responseAgent = new ResponseAgent()
   private escalationAgent = new EscalationAgent()
@@ -119,13 +121,8 @@ export class SupervisorAgent {
     return this.responseAgent.generate(ctx, triage)
   }
 
-  /** Handle order collection step (placeholder — delegates back for now). */
+  /** Handle order collection step via OrderCollectionAgent. */
   private async handleOrderStep(ctx: AgentContext, triage: TriageResult): Promise<AgentResult> {
-    // TODO: Extract full order state machine into OrderCollectionAgent
-    // For now, return a generic response indicating the order flow
-    return emptyResult(
-      'order_collection',
-      'Захиалгын мэдээллийг оруулна уу.'
-    )
+    return this.orderCollectionAgent.handle(ctx, triage)
   }
 }
