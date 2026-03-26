@@ -1,0 +1,209 @@
+{
+  "timestamp": "2026-03-26T07:11:41.923Z",
+  "duration_ms": 23843,
+  "scenarios_run": 10,
+  "scenarios_passed": 10,
+  "scenarios_failed": 0,
+  "quality_scores": {
+    "mean": 4.6,
+    "min": 3.55,
+    "max": 5
+  },
+  "intent_accuracy": 1,
+  "bugs_detected": [],
+  "scenario_results": [
+    {
+      "name": "full_order_flow",
+      "persona": "VIP худалдан авагч",
+      "passed": true,
+      "steps": 7,
+      "duration_ms": 2542,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
+        "issues": []
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "complaint_escalation",
+      "persona": "Ууртай хэрэглэгч",
+      "passed": true,
+      "steps": 4,
+      "duration_ms": 3828,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 4,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 4,
+        "overall": 4.4,
+        "issues": [
+          "The bot does not provide specific information about the order status, which may lead to customer frustration."
+        ]
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "return_exchange",
+      "persona": "Буцаалт хийгч",
+      "passed": true,
+      "steps": 3,
+      "duration_ms": 77,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
+        "issues": []
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "morphological_search",
+      "persona": "Эелдэг хэрэглэгч",
+      "passed": true,
+      "steps": 3,
+      "duration_ms": 78,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 3,
+        "relevance": 4,
+        "tone": 5,
+        "completeness": 3,
+        "overall": 3.55,
+        "issues": [
+          "The bot did not provide the specific shoes requested by the customer.",
+          "The response could have included a suggestion for similar products."
+        ]
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "latin_script",
+      "persona": "Латин бичигч",
+      "passed": true,
+      "steps": 3,
+      "duration_ms": 82,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 4,
+        "overall": 4.75,
+        "issues": [
+          "Could provide more details about the products found."
+        ]
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "mid_order_abandon",
+      "persona": "Төөрөлдсөн хэрэглэгч",
+      "passed": true,
+      "steps": 4,
+      "duration_ms": 2304,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
+        "issues": []
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "greeting_then_product",
+      "persona": "Эелдэг хэрэглэгч",
+      "passed": true,
+      "steps": 2,
+      "duration_ms": 47,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 4,
+        "overall": 4.75,
+        "issues": [
+          "Could provide more details about the products found"
+        ]
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "payment_inquiry",
+      "persona": "Эелдэг хэрэглэгч",
+      "passed": true,
+      "steps": 2,
+      "duration_ms": 37,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 3,
+        "relevance": 4,
+        "tone": 5,
+        "completeness": 3,
+        "overall": 3.55,
+        "issues": [
+          "No products found to pay for",
+          "Response does not address the customer's question about installment payments"
+        ]
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "size_inquiry",
+      "persona": "Эелдэг хэрэглэгч",
+      "passed": true,
+      "steps": 2,
+      "duration_ms": 69,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
+        "issues": []
+      },
+      "bugs": [],
+      "errors": []
+    },
+    {
+      "name": "adversarial",
+      "persona": "Халдагч",
+      "passed": true,
+      "steps": 3,
+      "duration_ms": 2316,
+      "intentAccuracy": 1,
+      "qualityScore": {
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
+        "issues": []
+      },
+      "bugs": [],
+      "errors": []
+    }
+  ],
+  "summary": "=== SIMULATION REPORT ===\nTime: 2026-03-26T07:11:41.923Z\nDuration: 23.8s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4.6/5.0 (min: 3.55, max: 5)\nBugs Detected: 0"
+}

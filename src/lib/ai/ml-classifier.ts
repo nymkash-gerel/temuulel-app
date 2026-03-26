@@ -4,7 +4,8 @@
  */
 
 import { normalizeText } from '../text-normalizer'
-import { stemText } from '../mn-stemmer'
+import { stemTextDeep } from '../mn-stemmer'
+import { extractMorphFeatures } from '../morphological-features'
 import trainingData from './training-data.json'
 
 interface TrainingExample {
@@ -39,14 +40,28 @@ class MLClassifier {
   }
 
   /**
-   * Tokenize text: normalize -> stem -> split -> filter
+   * Tokenize text: normalize -> deep-stem -> split -> filter + morph features
+   * Morphological feature tokens (__MORPH_*) inject suffix-based intent signals
+   * into the TF-IDF feature space.
    */
   private tokenize(text: string): string[] {
     const normalized = normalizeText(text)
-    const stemmed = stemText(normalized)
-    return stemmed
+    const stemmed = stemTextDeep(normalized)
+    const tokens = stemmed
       .split(' ')
-      .filter(token => token.length >= 2)  // Filter short tokens
+      .filter(token => token.length >= 2)
+
+    // Inject morphological feature tokens
+    const features = extractMorphFeatures(normalized)
+    if (features.hasNegative) tokens.push('__MORPH_NEG__')
+    if (features.hasDesiderative) tokens.push('__MORPH_DESIRE__')
+    if (features.hasPastQuestion) tokens.push('__MORPH_PASTQ__')
+    if (features.hasProgressive) tokens.push('__MORPH_PROG__')
+    if (features.hasImperative) tokens.push('__MORPH_IMP__')
+    if (features.hasPassive) tokens.push('__MORPH_PASSIVE__')
+    if (features.hasPast) tokens.push('__MORPH_PAST__')
+
+    return tokens
   }
 
   /**

@@ -4,7 +4,7 @@
  */
 
 import { normalizeText, neutralizeVowels } from './text-normalizer'
-import { stemText, stemKeyword } from './mn-stemmer'
+import { stemText, stemKeyword, stemTextDeep, stemKeywordDeep } from './mn-stemmer'
 // Note: trie-based optimization explored but padded.includes() approach needed
 // for substring matching behavior. Current perf is <1ms per classification.
 
@@ -490,6 +490,14 @@ const STEMMED_INTENT_KEYWORDS: Record<string, string[]> = Object.fromEntries(
   ])
 )
 
+/** Pre-compute deep-stemmed keyword lists for morphology-aware matching */
+const DEEP_STEMMED_INTENT_KEYWORDS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(NORMALIZED_INTENT_KEYWORDS).map(([intent, keywords]) => [
+    intent,
+    [...new Set(keywords.map((kw) => stemKeywordDeep(kw)))],
+  ])
+)
+
 // ---------------------------------------------------------------------------
 // Matching helpers
 // ---------------------------------------------------------------------------
@@ -571,6 +579,8 @@ export function classifyIntentWithConfidence(
   const neutralPadded = ` ${neutralizeVowels(normalized)} `
   const stemmedMsg = stemText(normalized)
   const stemmedPadded = ` ${stemmedMsg} `
+  const deepStemmedMsg = stemTextDeep(normalized)
+  const deepStemmedPadded = ` ${deepStemmedMsg} `
 
   let bestIntent = 'general'
   let bestScore = 0
@@ -607,6 +617,20 @@ export function classifyIntentWithConfidence(
         if (!alreadyCounted) {
           score += 0.75
           skw.split(' ').forEach((w) => stemMatchedWords.add(w))
+        }
+      }
+    }
+
+    // Deep-stem matching (morphology-aware: strips multiple suffix layers)
+    const deepStemmedKws = DEEP_STEMMED_INTENT_KEYWORDS[intent] || []
+    for (const dkw of deepStemmedKws) {
+      if (deepStemmedPadded.includes(` ${dkw} `)) {
+        const alreadyCounted = dkw.split(' ').every((w) =>
+          fullyMatchedWords.has(w) || stemMatchedWords.has(w)
+        )
+        if (!alreadyCounted) {
+          score += 0.6
+          dkw.split(' ').forEach((w) => stemMatchedWords.add(w))
         }
       }
     }

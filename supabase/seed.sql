@@ -15,20 +15,28 @@ INSERT INTO auth.users (
   raw_app_meta_data,
   raw_user_meta_data,
   is_super_admin,
-  role
+  role,
+  confirmation_token,
+  recovery_token,
+  email_change_token_new,
+  email_change
 ) VALUES (
   '00000000-0000-0000-0000-000000000001',
   'authenticated',
   '00000000-0000-0000-0000-000000000000',
   'shop@temuulel.com',
-  '$2a$10$5fZ5Z5Z5Z5Z5Z5Z5Z5Z5ZOqK4qK4qK4qK4qK4qK4qK4qK4qK4qK4q', -- Test1234
+  crypt('Test1234', gen_salt('bf')), -- Test1234
   NOW(),
   NOW(),
   NOW(),
   '{"provider":"email","providers":["email"]}',
   '{"name":"Монгол Маркет"}',
   false,
-  'authenticated'
+  'authenticated',
+  '',
+  '',
+  '',
+  ''
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Create identity for email auth
@@ -51,6 +59,27 @@ INSERT INTO auth.identities (
   NOW(),
   NOW()
 ) ON CONFLICT (provider_id, provider) DO NOTHING;
+
+-- Create public.users row (stores.owner_id references public.users, not auth.users)
+INSERT INTO public.users (
+  id,
+  email,
+  full_name,
+  role,
+  is_verified,
+  email_verified,
+  created_at,
+  updated_at
+) VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  'shop@temuulel.com',
+  'Монгол Маркет',
+  'owner',
+  true,
+  true,
+  NOW(),
+  NOW()
+) ON CONFLICT (id) DO NOTHING;
 
 -- Create ecommerce store
 INSERT INTO stores (
