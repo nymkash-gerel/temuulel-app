@@ -72,6 +72,13 @@ export class SupervisorAgent {
       return this.responseAgent.quickReply(ctx, intent)
     }
 
+    // Complaint/escalation path (checked before search to avoid type narrowing issues)
+    if (intent === 'complaint' || intent === 'return_exchange') {
+      const result = await this.responseAgent.generate(ctx, triage)
+      this.escalationAgent.evaluate(ctx).catch(() => {})
+      return result
+    }
+
     // Search path: intents that need product/order data
     if (
       intent === 'product_search' ||
@@ -90,21 +97,7 @@ export class SupervisorAgent {
       }
 
       // Generate response with search results
-      const result = await this.responseAgent.generate(ctx, triage, searchResult)
-
-      // Escalation check for complaint-related intents (fire-and-forget)
-      if (intent === 'complaint' || intent === 'return_exchange') {
-        this.escalationAgent.evaluate(ctx).catch(() => {})
-      }
-
-      return result
-    }
-
-    // Complaint/escalation path
-    if (intent === 'complaint' || intent === 'return_exchange') {
-      const result = await this.responseAgent.generate(ctx, triage)
-      this.escalationAgent.evaluate(ctx).catch(() => {})
-      return result
+      return this.responseAgent.generate(ctx, triage, searchResult)
     }
 
     // Payment path

@@ -15,7 +15,7 @@ import { resolve } from '@/lib/resolution-engine'
 import type { AgentContext, AgentResult, TriageResult, AgentProductCard } from './types'
 import { emptyResult } from './types'
 import type { SearchResult } from './product-search'
-import type { ProductMatch } from '@/lib/chat-ai-types'
+import type { ProductMatch, OrderMatch } from '@/lib/chat-ai-types'
 
 export class ResponseAgent {
   readonly name = 'response'
@@ -60,7 +60,7 @@ export class ResponseAgent {
       const response = await generateAIResponse(
         triage.intent,
         products as unknown as ProductMatch[],
-        orders,
+        orders as unknown as OrderMatch[],
         ctx.storeName,
         ctx.message,
         ctx.chatbotSettings,
@@ -87,7 +87,7 @@ export class ResponseAgent {
       const response = generateResponse(
         triage.intent,
         products as unknown as ProductMatch[],
-        orders,
+        orders as unknown as OrderMatch[],
         ctx.storeName,
         ctx.chatbotSettings
       )

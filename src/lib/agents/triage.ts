@@ -30,15 +30,15 @@ export class TriageAgent {
     // 3. Extract morphological features for downstream agents
     const morphFeatures = extractMorphFeatures(ctx.normalizedMessage)
 
-    // If follow-up detected, use its intent override with full confidence
-    const intent = followUp?.intent ?? classification.intent
-    const confidence = followUp?.intent ? 1.0 : classification.confidence
+    // If follow-up detected, use its type as intent override with full confidence
+    const intent = followUp?.type ?? classification.intent
+    const confidence = followUp?.type ? 1.0 : classification.confidence
 
     return {
       intent,
       confidence,
       followUpType: followUp?.type ?? null,
-      followUpData: followUp?.data ?? null,
+      followUpData: followUp ?? null,
       morphFeatures,
     }
   }

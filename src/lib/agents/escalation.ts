@@ -9,6 +9,7 @@ import {
   evaluateEscalation,
   processEscalation,
 } from '@/lib/escalation'
+import type { RecentMessage } from '@/lib/escalation'
 import { fetchRecentMessages } from '@/lib/chat-ai'
 import type { AgentContext } from './types'
 
@@ -31,10 +32,17 @@ export class EscalationAgent {
         threshold: ctx.chatbotSettings.escalation_threshold ?? 70,
       }
 
+      // Map MessageHistoryEntry[] to RecentMessage[] for escalation evaluation
+      const recentMessages: RecentMessage[] = history.map(h => ({
+        content: h.content,
+        is_from_customer: h.role === 'user',
+        is_ai_response: h.role === 'assistant',
+      }))
+
       const result = evaluateEscalation(
         0, // current score — loaded from conversation in real impl
         ctx.message,
-        history,
+        recentMessages,
         config
       )
 
