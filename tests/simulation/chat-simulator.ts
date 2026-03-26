@@ -27,14 +27,16 @@ export class SimulationClient {
   private supabase: SupabaseClient
   private storeId: string
   private storeName: string
+  private customerId: string | null
   private conversationId: string
   private metrics: StepMetric[] = []
   private stepCounter = 0
 
-  constructor(supabase: SupabaseClient, storeId: string, storeName: string) {
+  constructor(supabase: SupabaseClient, storeId: string, storeName: string, customerId?: string | null) {
     this.supabase = supabase
     this.storeId = storeId
     this.storeName = storeName
+    this.customerId = customerId ?? null
     this.conversationId = crypto.randomUUID()
   }
 
@@ -43,6 +45,7 @@ export class SimulationClient {
       {
         id: this.conversationId,
         store_id: this.storeId,
+        customer_id: this.customerId,
         channel: 'simulation',
         status: 'active',
       },
@@ -51,6 +54,14 @@ export class SimulationClient {
   }
 
   async send(message: string): Promise<SimulationStepResult> {
+    // Save customer message to DB first (processAIChat expects it in history)
+    await this.supabase.from('messages').insert({
+      conversation_id: this.conversationId,
+      content: message,
+      is_from_customer: true,
+      is_ai_response: false,
+    })
+
     const stepIndex = this.stepCounter++
     const start = performance.now()
 
@@ -59,7 +70,7 @@ export class SimulationClient {
       customerMessage: message,
       storeId: this.storeId,
       storeName: this.storeName,
-      customerId: null,
+      customerId: this.customerId,
       chatbotSettings: {},
     })
 
@@ -118,4 +129,15 @@ export async function getTestStoreId(supabase: SupabaseClient): Promise<string> 
     .single()
   if (!data?.id) throw new Error('Test store "Монгол Маркет" not found. Run supabase db reset.')
   return data.id
+}
+
+/** Get the test customer ID. */
+export async function getTestCustomerId(supabase: SupabaseClient, storeId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('store_id', storeId)
+    .limit(1)
+    .single()
+  return data?.id ?? null
 }

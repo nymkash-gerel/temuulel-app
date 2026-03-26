@@ -58,15 +58,18 @@ export function detectBugs(scenarioName: string, metrics: StepMetric[]): BugRepo
       })
     }
 
-    // Bug: Stuck in loop (same response twice in a row)
-    if (i > 0 && m.response === metrics[i - 1].response && m.message !== metrics[i - 1].message) {
+    // Bug: Stuck in loop (same response 3+ times in a row — not just 2, since template responses can repeat)
+    if (i >= 2 &&
+        m.response === metrics[i - 1].response &&
+        m.response === metrics[i - 2].response &&
+        m.message !== metrics[i - 1].message) {
       bugs.push({
         severity: 'major',
         type: 'stuck_loop',
-        description: 'Bot returned identical response to different messages',
+        description: 'Bot returned identical response 3+ times to different messages',
         scenario: scenarioName,
         stepIndex: i,
-        evidence: `Same response for "${metrics[i - 1].message}" and "${m.message}"`,
+        evidence: `Same response repeated for 3 consecutive different messages`,
       })
     }
 

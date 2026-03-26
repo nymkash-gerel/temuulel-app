@@ -6,7 +6,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { SimulationClient, getTestStoreId } from './chat-simulator'
+import { SimulationClient, getTestStoreId, getTestCustomerId } from './chat-simulator'
 import { SCENARIOS, type Scenario } from './scenarios'
 import { validateIntent } from './validators/intent-checker'
 import { scoreResponse } from './validators/quality-scorer'
@@ -23,6 +23,7 @@ import { join } from 'path'
 export class SimulationBot {
   private supabase: SupabaseClient
   private storeId: string | null = null
+  private customerId: string | null = null
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase
@@ -34,6 +35,7 @@ export class SimulationBot {
 
     if (!this.storeId) {
       this.storeId = await getTestStoreId(this.supabase)
+      this.customerId = await getTestCustomerId(this.supabase, this.storeId)
     }
 
     const results: ScenarioResult[] = []
@@ -51,7 +53,7 @@ export class SimulationBot {
 
   /** Run a single scenario. */
   async runScenario(scenario: Scenario): Promise<ScenarioResult> {
-    const client = new SimulationClient(this.supabase, this.storeId!, 'Монгол Маркет')
+    const client = new SimulationClient(this.supabase, this.storeId!, 'Монгол Маркет', this.customerId)
     await client.init()
 
     const scenarioStart = performance.now()

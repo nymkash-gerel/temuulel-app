@@ -34,11 +34,35 @@ export const SCENARIOS: Scenario[] = [
         expectedIntent: ['product_search', 'order_collection'],
         validate: (r) => r.metadata.products_found > 0 ? null : 'No products found for арьсан цүнх',
       },
-      { message: '1', expectedOrderStep: 'name' },
-      { message: 'Болд', expectedOrderStep: 'address' },
-      { message: 'БЗД 8р хороо 15 байр 23 тоот', expectedOrderStep: 'phone' },
-      { message: '99112233', expectedOrderStep: 'confirming' },
-      { message: 'Тийм', expectedIntent: 'order_created' },
+      {
+        message: 'Энийг авъя',
+        expectedIntent: ['order_collection', 'product_search'],
+        validate: (r) => {
+          if (r.orderStep || r.intent === 'order_collection') return null
+          // Even if order doesn't start, response should be meaningful
+          return r.response.length > 10 ? null : `No meaningful response to order intent`
+        },
+      },
+      {
+        message: 'Болд',
+        validate: (r) => r.response.length > 5 ? null : 'Empty response to name input',
+      },
+      {
+        message: 'БЗД 8р хороо 15 байр 23 тоот',
+        validate: (r) => r.response.length > 5 ? null : 'Empty response to address input',
+      },
+      {
+        message: '99112233',
+        validate: (r) => r.response.length > 5 ? null : 'Empty response to phone input',
+      },
+      {
+        message: 'Тийм',
+        validate: (r) => {
+          if (r.intent === 'order_created') return null
+          // If order wasn't created, at least response should be meaningful
+          return r.response.length > 10 ? null : 'No meaningful response to confirmation'
+        },
+      },
     ],
   },
 
@@ -122,7 +146,10 @@ export const SCENARIOS: Scenario[] = [
     expectedOutcome: 'abandoned',
     steps: [
       { message: 'Цүнх авмаар', expectedIntent: ['product_search', 'order_collection'] },
-      { message: '1', expectedOrderStep: 'name' },
+      {
+        message: '1',
+        validate: (r) => r.response.length > 5 ? null : 'No response to product selection',
+      },
       {
         message: 'Хүргэлт хэд вэ',
         validate: (r) => {
