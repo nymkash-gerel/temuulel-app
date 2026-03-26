@@ -7,10 +7,6 @@
 
 import {
   purchaseGiftCard,
-  lookupGiftCard,
-  redeemGiftCard,
-  transferGiftCard,
-  extractGiftCardCode,
   parseGiftCardAmount,
   formatGiftCardBalance,
   GIFT_CARD_DENOMINATIONS,
@@ -47,8 +43,17 @@ export class GiftCardAgent {
       }
 
       if (step === 'confirm') {
-        const result = await purchaseGiftCard(ctx.supabase, ctx.storeId, ctx.customerId!, draft.amount!)
-        response = `Бэлгийн карт амжилттай! Код: ${result.code}, Үлдэгдэл: ${formatGiftCardBalance(result.balance)}`
+        if (!ctx.customerId) {
+          response = 'Бэлгийн карт авахын тулд нэвтрэх шаардлагатай.'
+          return { ...emptyResult('gift_card_purchase', response), stateUpdates: { gift_card_draft: null } }
+        }
+        const result = await purchaseGiftCard(ctx.supabase, {
+          storeId: ctx.storeId,
+          customerId: ctx.customerId,
+          amount: draft.amount!,
+          purchasedVia: 'chat',
+        })
+        response = `Бэлгийн карт амжилттай! Код: ${result.code}, Үлдэгдэл: ${formatGiftCardBalance(result.giftCard.current_balance)}`
         return { ...emptyResult('gift_card_purchase', response), stateUpdates: { gift_card_draft: null } }
       }
 

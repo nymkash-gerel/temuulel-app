@@ -130,8 +130,8 @@ export async function processAIChat(
 
   // ── SUPERVISOR_MODE=shadow → run both, compare, return old ──
   if (mode === 'shadow') {
-    // Fire-and-forget: run supervisor in background for comparison logging
-    processViaSupervisor(supabase, ctx)
+    // Dry-run: run supervisor for comparison logging only — no DB writes
+    processViaSupervisorDryRun(supabase, ctx)
       .then(supervisorResult => {
         console.log('[shadow] Supervisor intent:', supervisorResult.intent, 'products:', supervisorResult.metadata.products_found)
       })
@@ -888,6 +888,54 @@ export async function processAIChat(
  * Process a message through the SupervisorAgent pipeline.
  * Used when SUPERVISOR_MODE=on or for shadow comparison.
  */
+/**
+ * Dry-run supervisor: runs the agent pipeline for comparison logging only.
+ * Does NOT write to the messages table or persist state — safe for shadow mode.
+ */
+async function processViaSupervisorDryRun(
+  supabase: SupabaseClient,
+  ctx: AIProcessingContext
+): Promise<AIProcessingResult> {
+  const { conversationId, customerMessage, storeId, storeName, customerId, chatbotSettings } = ctx
+
+  const state = await readState(supabase, conversationId)
+
+  const agentCtx: AgentContext = {
+    supabase,
+    message: customerMessage,
+    normalizedMessage: normalizeText(customerMessage),
+    storeId,
+    storeName,
+    conversationId,
+    customerId,
+    chatbotSettings,
+    state: {
+      last_intent: state.last_intent ?? null,
+      last_products: state.last_products ?? [],
+      last_query: state.last_query ?? null,
+      turn_count: state.turn_count ?? 0,
+      order_draft: state.order_draft ?? null,
+      gift_card_draft: state.gift_card_draft ?? null,
+    },
+  }
+
+  const supervisor = new SupervisorAgent()
+  const result = await supervisor.process(agentCtx)
+
+  // No DB writes — dry-run only returns the result for comparison
+  return {
+    response: result.response,
+    intent: result.intent,
+    messageId: undefined,
+    products: result.products,
+    metadata: {
+      products_found: result.metadata.products_found,
+      orders_found: result.metadata.orders_found,
+    },
+    orderStep: result.orderStep ?? null,
+  }
+}
+
 async function processViaSupervisor(
   supabase: SupabaseClient,
   ctx: AIProcessingContext
@@ -922,7 +970,7 @@ async function processViaSupervisor(
   const result = await supervisor.process(agentCtx)
 
   // Save state + message
-  const nextState = updateState(state, result.intent, [], customerMessage)
+  const nextState = updateState(state, result.intent, state.last_products ?? [], customerMessage)
   if (result.stateUpdates?.order_draft !== undefined) {
     nextState.order_draft = result.stateUpdates.order_draft
   }

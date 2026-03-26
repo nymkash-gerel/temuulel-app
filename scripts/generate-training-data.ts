@@ -191,7 +191,7 @@ const EXTRA_EXAMPLES: Example[] = [
   { text: 'M хэмжээтэй байна уу', intent: 'size_info' },
 
   // Greetings and thanks
-  { text: 'юу байна', intent: 'greeting' },
+  { text: 'юу байна', intent: 'product_search' },
   { text: 'мэнд', intent: 'greeting' },
   { text: 'амар байна уу', intent: 'greeting' },
   { text: 'өглөөний мэнд', intent: 'greeting' },

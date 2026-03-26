@@ -67,5 +67,4 @@ export const KNOWN_ROOTS: ReadonlySet<string> = new Set([
   'бар',  // product (бараа stem)
   'зах',  // order, market (захиалга stem)
   'ач',   // load, delivery (ачаа stem)
-  'төл',  // payment (төлбөр stem)
 ])

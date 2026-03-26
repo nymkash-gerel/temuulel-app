@@ -12,10 +12,10 @@ import {
   fetchRecentMessages,
 } from '@/lib/chat-ai'
 import { resolve } from '@/lib/resolution-engine'
-import { buildCustomerProfile } from '@/lib/ai/customer-profile'
 import type { AgentContext, AgentResult, TriageResult, AgentProductCard } from './types'
 import { emptyResult } from './types'
 import type { SearchResult } from './product-search'
+import type { ProductMatch } from '@/lib/chat-ai-types'
 
 export class ResponseAgent {
   readonly name = 'response'
@@ -45,26 +45,29 @@ export class ResponseAgent {
       // Fetch conversation history for AI context
       const history = await fetchRecentMessages(ctx.supabase, ctx.conversationId, 10)
 
-      // Build resolution context
+      // Build resolution context (ResolveInput does not accept 'orders')
       const resolution = await resolve(ctx.supabase, {
         intent: triage.intent,
         storeId: ctx.storeId,
         customerId: ctx.customerId,
         message: ctx.message,
         products,
-        orders,
       })
 
       // Generate AI response (3-tier fallback handled inside)
+      // generateAIResponse expects ProductMatch[] — cast since AgentProductCard
+      // has the same shape for the fields used by the response generator.
       const response = await generateAIResponse(
         triage.intent,
-        products,
+        products as unknown as ProductMatch[],
         orders,
         ctx.storeName,
         ctx.message,
         ctx.chatbotSettings,
         history,
-        undefined, // customerProfile — loaded inside if needed
+        undefined, // activeVouchers
+        undefined, // restaurantContext
+        undefined, // customerProfile
         undefined, // extendedProfile
         undefined, // latestPurchaseSummary
         resolution,
@@ -83,7 +86,7 @@ export class ResponseAgent {
       // Fallback to template response
       const response = generateResponse(
         triage.intent,
-        products,
+        products as unknown as ProductMatch[],
         orders,
         ctx.storeName,
         ctx.chatbotSettings

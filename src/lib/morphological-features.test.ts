@@ -106,6 +106,7 @@ describe('deriveMorphIntentSignals', () => {
     const s = signals('хүлээж байна')
     // "хүлээ" is not in ROOT_DOMAINS, so this may not fire the delivery signal
     // But hasPastQuestion is false, progressive is true
+    expect(Array.isArray(s)).toBe(true)
     const f = features('хүлээж байна')
     expect(f.hasProgressive).toBe(true)
   })

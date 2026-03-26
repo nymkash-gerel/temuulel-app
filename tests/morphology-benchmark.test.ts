@@ -308,7 +308,7 @@ describe('Performance', () => {
 
     const start = performance.now()
     for (const msg of messages) {
-      classifyIntentWithConfidence(msg)
+      hybridClassify(msg)
     }
     const elapsed = performance.now() - start
 

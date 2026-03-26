@@ -125,7 +125,7 @@ export function extractMorphFeatures(normalizedMessage: string): MorphFeatures {
     const d = decompositions[i]
     const nextToken = tokens[i + 1]
     const hasPastSuffix = d.suffixes.some(
-      s => s.category === 'tense_past' || s.category === 'tense_past_spoken'
+      s => s.category === 'tense_past' || s.category === 'tense_past_spoken' || s.category === 'completive'
     )
     if (hasPastSuffix && (nextToken === 'уу' || nextToken === 'үү' || nextToken === 'юу')) {
       hasPastQuestion = true

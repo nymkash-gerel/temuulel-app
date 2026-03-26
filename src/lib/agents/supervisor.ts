@@ -18,7 +18,6 @@ import { OrderCollectionAgent } from './order-collection'
 import { ProductAgent } from './product-search'
 import { ResponseAgent } from './response'
 import { EscalationAgent } from './escalation'
-import { CustomerIntelAgent } from './customer-intel'
 import type { AgentContext, AgentResult, TriageResult } from './types'
 import { emptyResult } from './types'
 
@@ -32,7 +31,6 @@ export class SupervisorAgent {
   private productAgent = new ProductAgent()
   private responseAgent = new ResponseAgent()
   private escalationAgent = new EscalationAgent()
-  private customerIntelAgent = new CustomerIntelAgent()
 
   /**
    * Process a customer message through the agent pipeline.
@@ -90,9 +88,6 @@ export class SupervisorAgent {
         const waitMin = searchResult.busyMode.estimated_wait_minutes ?? 30
         return emptyResult(intent, `Уучлаарай, одоогоор завгүй байна. Хүлээх хугацаа: ~${waitMin} мин.`)
       }
-
-      // Customer intelligence (parallel, non-blocking)
-      this.customerIntelAgent.gather(ctx, intent).catch(() => {})
 
       // Generate response with search results
       const result = await this.responseAgent.generate(ctx, triage, searchResult)

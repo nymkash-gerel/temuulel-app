@@ -10,6 +10,7 @@ import {
   getExtendedCustomerInfo,
   formatExtendedProfileForAI,
   inferPreferencesFromMessage,
+  savePreference,
 } from '@/lib/ai/customer-intelligence'
 import { buildCustomerProfile } from '@/lib/ai/customer-profile'
 import type { AgentContext } from './types'
@@ -46,25 +47,19 @@ export class CustomerIntelAgent {
       result.latestPurchaseSummary = purchase
       result.extendedProfile = extended ? formatExtendedProfileForAI(extended) : null
 
-      // Infer and save preferences (fire-and-forget)
-      inferPreferencesFromMessage(ctx.message, intent)
-        .then(prefs => {
-          if (prefs) {
-            for (const pref of prefs) {
-              savePreference(ctx.supabase, ctx.customerId!, ctx.storeId, pref).catch(() => {})
-            }
-          }
-        })
-        .catch(() => {})
+      // Infer and save preferences (synchronous inference, async save)
+      const prefs = inferPreferencesFromMessage(ctx.message)
+      if (prefs && prefs.length > 0) {
+        for (const pref of prefs) {
+          savePreference(ctx.supabase, ctx.customerId!, ctx.storeId, pref).catch(err => {
+            console.error('[customer-intel] savePreference failed:', err?.message || err)
+          })
+        }
+      }
     } catch {
       // Non-critical — return empty result
     }
 
     return result
   }
-}
-
-// Re-export for fire-and-forget preference saving
-async function savePreference(supabase: unknown, customerId: string, storeId: string, pref: unknown) {
-  // Delegated to customer-intelligence module
 }

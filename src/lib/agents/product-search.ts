@@ -26,12 +26,12 @@ export class ProductAgent {
 
   async search(ctx: AgentContext, triage: TriageResult): Promise<SearchResult> {
     const searchTerms = extractSearchTerms(ctx.normalizedMessage)
-    const maxProducts = ctx.chatbotSettings.max_products_shown ?? 5
+    const maxProducts = ctx.chatbotSettings.max_products ?? 5
 
     // Parallel search based on intent
     const [products, orders, tables, busyMode] = await Promise.all([
-      triage.intent === 'product_search' || triage.intent === 'order_collection'
-        ? searchProducts(ctx.supabase, ctx.storeId, searchTerms, { limit: maxProducts })
+      triage.intent === 'product_search' || triage.intent === 'order_collection' || triage.intent === 'size_info' || triage.intent === 'shipping'
+        ? searchProducts(ctx.supabase, searchTerms, ctx.storeId, { maxProducts })
         : Promise.resolve([]),
       triage.intent === 'order_status' && ctx.customerId
         ? searchOrders(ctx.supabase, ctx.storeId, ctx.customerId, ctx.message)

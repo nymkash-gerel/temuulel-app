@@ -76,7 +76,9 @@ export interface DeepStemResult {
 export const SUFFIX_ENTRIES: readonly SuffixEntry[] = [
   // ── 6-char ──
   { suffix: 'чихсан', category: 'completive' },
+  { suffix: 'чихсэн', category: 'completive' },
   { suffix: 'чихлаа', category: 'completive' },
+  { suffix: 'чихлээ', category: 'completive' },
   { suffix: 'чихлоо', category: 'completive' },
   { suffix: 'чихлөө', category: 'completive' },
   { suffix: 'аасаа', category: 'case_ablative' },
