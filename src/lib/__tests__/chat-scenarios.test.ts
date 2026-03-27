@@ -270,7 +270,7 @@ describe('Known Classifier Gaps & Ambiguities', () => {
     // "маш сайн" is an exact thanks keyword — correctly classified as thanks
     ['Маш сайн', 'thanks'],                              // "маш сайн" = "very good" = thanks/feedback
     // "размер" matches size_info; "солиж" (conjugated) doesn't match "солих"
-    ['Өөр размертай солиж болох уу?', 'size_info'],    // Ideal: return_exchange
+    ['Өөр размертай солиж болох уу?', 'return_exchange'],    // "солиж болох уу" = "can I exchange?" → return_exchange is correct
     // "авах" matches product_search; "размер" size_info loses priority
     ['Ямар размер авах вэ?', 'product_search'],        // Ideal: size_info
     // Classifier now correctly identifies payment method questions

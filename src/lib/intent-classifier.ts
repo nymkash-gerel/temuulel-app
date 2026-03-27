@@ -201,6 +201,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хүнтэй ярих', 'хүн дуудах', 'хүн хэрэгтэй', 'хүнтэй холбогдох',
     'амьд хүн', 'оператор дуудах', 'менежер дуудах', 'менежер хэрэгтэй',
     'ярих уу', 'яриад болох уу', 'хүнтэй харилцах',
+    // Typo: захирлаа → захрлаа (missing и), дуудаач (informal дуудаарай)
+    'захрлаа дуудаач', 'захрлаа', 'дуудаач',
     // Non-delivery complaints — Latin transliterations
     'irehgui', 'ireegui', 'ireedgui',
     'baraa irehgui', 'baraa ireegui',
@@ -653,21 +655,24 @@ export function classifyIntentWithConfidence(
   // Priority tiebreaker: return_exchange/complaint beat product_search when both match
   // e.g. "бараа буцаах" has "бараа" (product_search) + "буцаах" (return_exchange)
   // Only override for strong return/complaint signals (exact keyword match, not prefix)
-  if (bestIntent === 'product_search' && bestScore > 0) {
+  if ((bestIntent === 'product_search' || bestIntent === 'size_info') && bestScore > 0) {
     const RETURN_SIGNALS = ['буцаах', 'буцаалт', 'буцаан', 'солих', 'солилт', 'солиулах', 'буцааж',
       'буцай', 'буцаж',  // colloquial/imperative: "буцай" = "return it!" (e.g. "bara butsay")
       'return', 'refund', 'exchange', 'swap', 'butsaa', 'butsaah', 'butsaalt', 'butaah', 'butaa', 'butay', 'butsay', 'бутай', 'бутаах', 'бутаа', 'solih',
-      'тохирохгүй', 'буруу ирсэн', 'гэмтэлтэй',
+      'тохирохгүй', 'тохирхгүй', 'буруу ирсэн', 'гэмтэлтэй',
+      'soliulj', 'солулж', 'том байна', 'tom baina', 'хэмжэ том',
       // Wrong product delivered
       'буруу бараа', 'бараа буруу', 'өөр бараа ирсэн', 'захиалаагүй бараа']
     // Note: 'эвдэрсэн' removed from RETURN_SIGNALS — it belongs to complaint (product is broken = complaint, not return request)
     const COMPLAINT_SIGNALS = ['гомдол', 'асуудал', 'муу', 'луйвар', 'хуурамч', 'complaint',
       'эвдэрсэн', 'гэмтсэн', 'гэмтэл',
-      'мөнгө буцаа', 'мөнгөө буцаа', 'mongoo butaaj', 'yaagaad', 'zahirlaa', 'hun heregteii', 'operator',
+      'мөнгө буцаа', 'мөнгөө буцаа', 'mongoo butaaj', 'yaagaad', 'яагаад', 'zahirlaa', 'hun heregteii', 'operator',
+      'бухимд', 'уурла', 'удаан',
       // Non-delivery complaint — normalized forms of 'irehgui'/'ireegui' (product didn't arrive)
       'ирехгуи', 'иреегуи',
       // Human agent request
-      'хүнтэй ярих', 'хүн хэрэгтэй', 'хүн дуудах', 'оператор дуудах', 'менежер дуудах']
+      'хүнтэй ярих', 'хүн хэрэгтэй', 'хүн дуудах', 'оператор дуудах', 'менежер дуудах',
+      'захирал', 'zahiral', 'zahiral hun', 'захирал хүн']
     const normalizedWords = normalized.split(/\s+/)
     const stemmedWords = stemmedMsg.split(/\s+/)
 

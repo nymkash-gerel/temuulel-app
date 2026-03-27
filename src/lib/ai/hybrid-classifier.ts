@@ -129,6 +129,16 @@ export function hybridClassify(message: string): IntentResult {
     return morphResult
   }
 
+  // Medium keyword confidence (1.0–1.99): keyword matched real domain vocabulary.
+  // Trust keyword over ML for complaint/return_exchange — ML often confuses typos/Latin
+  // with wrong intents (e.g. "tom baina"→ML:product_search, but KW:return_exchange is correct).
+  // Only apply to these high-value intents; other intents (size_info, order_collection)
+  // benefit from ML's broader pattern matching.
+  const KW_PRIORITY_INTENTS = ['complaint', 'return_exchange']
+  if (keywordResult.confidence >= 1.0 && KW_PRIORITY_INTENTS.includes(keywordResult.intent)) {
+    return keywordResult
+  }
+
   if (mlResult.confidence >= 0.7) {
     // Guard: ML says "greeting" but message contains a noun + availability question
     // e.g. "Skims бну?" → "скимс бну" → ML thinks greeting because "бну" ≈ "сн бну"
