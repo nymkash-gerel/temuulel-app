@@ -540,7 +540,7 @@ export async function processAIChat(
           void logInteraction(supabase, customerId, storeId, {
             type: intent === 'return_exchange' ? 'return_request' : 'complaint',
             summary: customerMessage,
-          }).catch(() => {})
+          }).catch(err => console.error("[silent-catch]", err))
         }
 
         // Build extended profile for AI personalization
@@ -555,7 +555,7 @@ export async function processAIChat(
                 type: p.type, key: p.key, value: p.value,
                 confidence: 0.5, source: 'inferred',
               })
-            )).catch(() => {})
+            )).catch(err => console.error("[silent-catch]", err))
           }
         }
       } catch (err) {
@@ -617,7 +617,7 @@ export async function processAIChat(
                   message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
                   conversationId,
                   storeId,
-                }).catch(() => {})
+                }).catch(err => console.error("[silent-catch]", err))
               }
             }
           }
@@ -697,7 +697,7 @@ export async function processAIChat(
               message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
               conversationId,
               storeId,
-            }).catch(() => {})
+            }).catch(err => console.error("[silent-catch]", err))
           } else if (!earlyResponseSet && intent === 'product_search' && products.length > 0) {
             // PRODUCTS FOUND — use confidence-based template, skip GPT entirely.
             const p = products[0]
@@ -751,7 +751,7 @@ export async function processAIChat(
             message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
             conversationId,
             storeId,
-          }).catch(() => {})
+          }).catch(err => console.error("[silent-catch]", err))
         }
           } // end else (generateAIResponse path)
         } // end !unlistedProductDetected

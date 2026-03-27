@@ -66,15 +66,20 @@ export async function PATCH(request: NextRequest) {
     updateData.tracking_number = tracking_number
   }
 
+  // Optimistic lock: only update if status hasn't changed since we read it
   const { data: updated, error } = await supabase
     .from('orders')
     .update(updateData)
     .eq('id', order_id)
+    .eq('status', previousStatus) // Prevent concurrent status changes
     .select('id, status, tracking_number, updated_at')
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error || !updated) {
+    return NextResponse.json(
+      { error: 'Order status was modified concurrently. Please refresh and try again.' },
+      { status: 409 }
+    )
   }
 
   // Decrement stock when order transitions to "confirmed"
@@ -108,7 +113,7 @@ export async function PATCH(request: NextRequest) {
       if (!existingCount || existingCount === 0) {
         const shippingAddr = orderDetail?.shipping_address as { address?: string } | null
         const deliveryAddress = shippingAddr?.address || 'Хаяг тодорхойгүй'
-        const deliveryNumber = `DEL-${Date.now()}`
+        const deliveryNumber = `DEL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
 
         const { data: newDelivery } = await supabase.from('deliveries').insert({
           store_id: store.id,
@@ -145,34 +150,37 @@ export async function PATCH(request: NextRequest) {
                 .in('status', ['active', 'on_delivery'])
 
               if (activeDrivers && activeDrivers.length > 0) {
-                const driverCandidates: DriverCandidate[] = await Promise.all(
-                  activeDrivers.map(async (d) => {
-                    const { count: activeCount } = await supabase
-                      .from('deliveries')
-                      .select('id', { count: 'exact', head: true })
-                      .eq('driver_id', d.id)
-                      .in('status', ['assigned', 'picked_up', 'in_transit'])
-                    const { count: completedCount } = await supabase
-                      .from('deliveries')
-                      .select('id', { count: 'exact', head: true })
-                      .eq('driver_id', d.id)
-                      .eq('status', 'delivered')
-                    const { count: totalDone } = await supabase
-                      .from('deliveries')
-                      .select('id', { count: 'exact', head: true })
-                      .eq('driver_id', d.id)
-                      .in('status', ['delivered', 'failed'])
-                    return {
-                      id: d.id,
-                      name: d.name,
-                      location: d.current_location as { lat: number; lng: number } | null,
-                      active_delivery_count: activeCount || 0,
-                      vehicle_type: d.vehicle_type,
-                      completion_rate: totalDone && totalDone > 0 ? Math.round(((completedCount || 0) / totalDone) * 100) : 100,
-                      delivery_zones: [] as string[],
-                    }
-                  })
-                )
+                // Single query: get delivery stats for all active drivers at once
+                const driverIds = activeDrivers.map(d => d.id)
+                const { data: allDeliveries } = await supabase
+                  .from('deliveries')
+                  .select('driver_id, status')
+                  .in('driver_id', driverIds)
+                  .in('status', ['assigned', 'picked_up', 'in_transit', 'delivered', 'failed'])
+
+                // Aggregate stats in memory
+                const statsMap = new Map<string, { active: number; completed: number; total: number }>()
+                for (const d of allDeliveries || []) {
+                  if (!d.driver_id) continue
+                  const s = statsMap.get(d.driver_id) || { active: 0, completed: 0, total: 0 }
+                  if (['assigned', 'picked_up', 'in_transit'].includes(d.status)) s.active++
+                  if (d.status === 'delivered') { s.completed++; s.total++ }
+                  if (d.status === 'failed') s.total++
+                  statsMap.set(d.driver_id, s)
+                }
+
+                const driverCandidates: DriverCandidate[] = activeDrivers.map((d) => {
+                  const stats = statsMap.get(d.id) || { active: 0, completed: 0, total: 0 }
+                  return {
+                    id: d.id,
+                    name: d.name,
+                    location: d.current_location as { lat: number; lng: number } | null,
+                    active_delivery_count: stats.active,
+                    vehicle_type: d.vehicle_type,
+                    completion_rate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 100,
+                    delivery_zones: [] as string[],
+                  }
+                })
 
                 const result = await assignDriver(
                   { address: deliveryAddress, customer_zone: customer?.name || undefined },

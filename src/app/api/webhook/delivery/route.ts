@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
         orderNumber: delivery.order_number || delivery.delivery_number,
         cancelReason: failure_reason || 'Хүргэлт амжилтгүй болсон гэж тэмдэглэгдлээ',
       }),
-    ).catch(() => {}) // Non-blocking
+    ).catch(err => console.error("[silent-catch]", err)) // Non-blocking
   }
 
   return NextResponse.json({ success: true, delivery_id: delivery.id, status })

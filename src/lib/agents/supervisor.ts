@@ -95,7 +95,7 @@ export class SupervisorAgent {
     // Complaint/escalation path (checked before search to avoid type narrowing issues)
     if (intent === 'complaint' || intent === 'return_exchange') {
       const result = await this.responseAgent.generate(ctx, triage)
-      this.escalationAgent.evaluate(ctx).catch(() => {})
+      this.escalationAgent.evaluate(ctx).catch(err => console.error("[silent-catch]", err))
       return result
     }
 

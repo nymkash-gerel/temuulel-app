@@ -791,6 +791,6 @@ async function notifyStaffResolution(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: cid, text: tgMsg, parse_mode: 'HTML' }),
-    }).catch(() => {})
+    }).catch(err => console.error("[silent-catch]", err))
   }
 }

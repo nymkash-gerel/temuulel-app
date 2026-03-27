@@ -155,7 +155,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
       // Mark message as seen (fire-and-forget — visual only)
       if (pageToken) {
-        void markSeen(senderId, pageToken).catch(() => {})
+        void markSeen(senderId, pageToken).catch(err => console.error("[silent-catch]", err))
       }
 
       // Find or create customer
@@ -341,7 +341,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
                     await fetch(`https://api.telegram.org/bot${rdBotToken}/sendMessage`, {
                       method: 'POST', headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ chat_id: cid, text: rdTgMsg, parse_mode: 'HTML' }),
-                    }).catch(() => {})
+                    }).catch(err => console.error("[silent-catch]", err))
                   }
                 }
               }
@@ -405,7 +405,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
         try {
           // Show typing indicator (fire-and-forget — visual only)
-          void sendTypingIndicator(senderId, true, pageToken).catch(() => {})
+          void sendTypingIndicator(senderId, true, pageToken).catch(err => console.error("[silent-catch]", err))
 
           console.log('[Messenger] Starting AI processing for:', messageText, 'store:', store.id, 'customer:', customer.id)
           const aiResult = await processAIChat(supabase, {
@@ -486,7 +486,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
           }
 
           // Turn off typing (fire-and-forget)
-          void sendTypingIndicator(senderId, false, pageToken).catch(() => {})
+          void sendTypingIndicator(senderId, false, pageToken).catch(err => console.error("[silent-catch]", err))
         } catch (aiErr) {
           console.error('[AI] Exception:', aiErr instanceof Error ? aiErr.message : String(aiErr))
           // Send fallback response so customer isn't left hanging

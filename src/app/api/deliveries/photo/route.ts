@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
           console.error('[PhotoProxy] Cache upload failed:', uploadErr.message)
         }
       })
-      .catch(() => {})
+      .catch(err => console.error("[silent-catch]", err))
 
     return new NextResponse(photoBuffer, {
       headers: {

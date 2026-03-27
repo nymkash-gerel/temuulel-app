@@ -357,7 +357,7 @@ export async function PATCH(
           orderNumber: orderNumber || current.delivery_number,
           cancelReason: body.failure_reason || body.notes || undefined,
         }),
-      ).catch(() => {})
+      ).catch(err => console.error("[silent-catch]", err))
     }
   }
 

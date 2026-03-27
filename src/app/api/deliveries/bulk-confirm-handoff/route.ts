@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       driver_id,
       cardText,
       handoffReadyKeyboard(delivery.id)
-    ).catch(() => {})
+    ).catch(err => console.error("[silent-catch]", err))
   }
 
   return NextResponse.json({ confirmed: deliveries.length, delivery_ids: ids })

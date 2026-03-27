@@ -115,7 +115,7 @@ export async function POST(
 
   // Forward message via Telegram — await before returning (serverless: function dies after response)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await sendToDriver(supabase as any, driverId, message).catch(() => {})
+  await sendToDriver(supabase as any, driverId, message).catch(err => console.error("[silent-catch]", err))
 
   return NextResponse.json({ message: msg })
 }
