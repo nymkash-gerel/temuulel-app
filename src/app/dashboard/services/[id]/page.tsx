@@ -198,7 +198,7 @@ export default function EditServicePage() {
 
       if (error) throw error
       router.push('/dashboard/services')
-    } catch (err) {
+    } catch (_err) {
       setError('Устгахад алдаа гарлаа')
       setSaving(false)
     }

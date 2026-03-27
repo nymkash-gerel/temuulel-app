@@ -13,9 +13,7 @@
  *  -гд          (passive)       → "was X-ed" → order_status, complaint
  */
 
-import { mnStemDeep, type SuffixCategory, type DeepStemResult } from './mn-stemmer'
-import { normalizeText } from './text-normalizer'
-import { KNOWN_ROOTS } from './mn-roots'
+import { mnStemDeep, type DeepStemResult } from './mn-stemmer'
 
 /** Morphological features extracted from a message. */
 export interface MorphFeatures {

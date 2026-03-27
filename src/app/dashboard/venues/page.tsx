@@ -33,7 +33,7 @@ function formatPrice(amount: number) {
 }
 
 export default function VenuesPage() {
-  const supabase = createClient()
+  const _supabase = createClient()
 
   const [loading, setLoading] = useState(true)
   const [venues, setVenues] = useState<Venue[]>([])

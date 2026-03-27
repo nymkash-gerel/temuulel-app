@@ -73,7 +73,6 @@ export async function GET(request: NextRequest) {
     if (reminderCount === 0 || !lastReminderAt) continue
 
     // Calculate hours since first reminder
-    const firstReminderTime = new Date(lastReminderAt)
     // For reminder_count > 1, we need to track the original first reminder time
     // We use first_reminder_at if available, otherwise fall back to last_reminder_at for count=1
     const firstReminderAt = (meta.first_reminder_at as string) || lastReminderAt

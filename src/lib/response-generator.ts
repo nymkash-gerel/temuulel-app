@@ -10,7 +10,6 @@ import type {
   ChatbotSettings,
   ProductMatch,
   OrderMatch,
-  TableMatch,
   MessageHistoryEntry,
   ActiveVoucherInfo,
   RestaurantContext,

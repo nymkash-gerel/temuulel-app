@@ -240,7 +240,7 @@ export default function EditProductPage() {
       await supabase.from('products').delete().eq('id', productId)
       router.push('/dashboard/products')
       router.refresh()
-    } catch (err) {
+    } catch (_err) {
       setError('Устгахад алдаа гарлаа')
     } finally {
       setDeleting(false)

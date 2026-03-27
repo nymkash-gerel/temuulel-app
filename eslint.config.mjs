@@ -22,6 +22,11 @@ const eslintConfig = defineConfig([
       "react-hooks/purity": "warn",
       "react-hooks/static-components": "warn",
       "no-console": ["warn", { allow: ["warn", "error"] }],
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
     },
   },
   // Allow 'any' type in test files

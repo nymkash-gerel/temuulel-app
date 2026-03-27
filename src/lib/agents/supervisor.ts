@@ -23,7 +23,7 @@ import { emptyResult } from './types'
 import { logger } from '@/lib/logger'
 
 /** Maximum agent redirects per request (loop protection). */
-const MAX_REDIRECTS = 3
+const _MAX_REDIRECTS = 3
 
 export class SupervisorAgent {
   private triageAgent = new TriageAgent()
@@ -75,7 +75,7 @@ export class SupervisorAgent {
 
       // Phase 4: Route based on intent
       return this.routeByIntent(ctx, triage)
-    } catch (error) {
+    } catch (_error) {
       // Graceful degradation — return a safe fallback
       return emptyResult(
         'general',

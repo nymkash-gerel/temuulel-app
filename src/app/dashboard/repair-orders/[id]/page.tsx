@@ -90,7 +90,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_FLOW = ['received', 'diagnosing', 'quoted', 'approved', 'in_repair', 'completed', 'delivered']
 
-const NEXT_STATUS_LABELS: Record<string, string> = {
+const _NEXT_STATUS_LABELS: Record<string, string> = {
   received: '\u041E\u043D\u043E\u0448\u043B\u043E\u0433\u043E\u043E \u044D\u0445\u043B\u04AF\u04AF\u043B\u044D\u0445',
   diagnosing: '\u04AE\u043D\u044D \u0442\u043E\u0433\u0442\u043E\u043E\u0445',
   quoted: '\u0417\u04E9\u0432\u0448\u04E9\u04E9\u0440\u04E9\u0445',
@@ -104,7 +104,7 @@ function formatPrice(amount: number | null | undefined): string {
   return new Intl.NumberFormat('mn-MN').format(amount) + '\u20AE'
 }
 
-function formatDate(date: string | null | undefined): string {
+function _formatDate(date: string | null | undefined): string {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('mn-MN', {
     year: 'numeric',
@@ -133,7 +133,7 @@ export default function RepairOrderDetailPage() {
   const [order, setOrder] = useState<RepairOrder | null>(null)
   const [parts, setParts] = useState<RepairPart[]>([])
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState(false)
+  const [_actionLoading, setActionLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<Record<string, unknown>>({})
   const [saving, setSaving] = useState(false)
@@ -188,7 +188,7 @@ export default function RepairOrderDetailPage() {
     load()
   }, [load])
 
-  async function handleStatusChange(newStatus: string) {
+  async function _handleStatusChange(newStatus: string) {
     if (!order) return
 
     const confirmMessages: Record<string, string> = {
@@ -318,8 +318,8 @@ export default function RepairOrderDetailPage() {
 
   const sc = STATUS_CONFIG[order.status] || STATUS_CONFIG.received
   const pc = PRIORITY_CONFIG[order.priority] || PRIORITY_CONFIG.normal
-  const nextStatus = getNextStatus()
-  const isTerminal = ['delivered', 'cancelled'].includes(order.status)
+  const _nextStatus = getNextStatus()
+  const _isTerminal = ['delivered', 'cancelled'].includes(order.status)
 
   const balance = (order.actual_cost ?? order.estimated_cost ?? 0) - (order.deposit_amount ?? 0)
   const partsTotalCost = parts.reduce((sum, p) => sum + (p.quantity * p.unit_cost), 0)

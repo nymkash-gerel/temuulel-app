@@ -7,7 +7,6 @@
 
 import { hybridClassify } from '@/lib/ai/hybrid-classifier'
 import { resolveFollowUp } from '@/lib/conversation-state'
-import { normalizeText } from '@/lib/text-normalizer'
 import { extractMorphFeatures } from '@/lib/morphological-features'
 import type { AgentContext, TriageResult } from './types'
 

@@ -9,7 +9,7 @@
  * The scoring is additive — each message can only raise the score, never lower it.
  * A human agent resets the score by taking over the conversation.
  */
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
 import { dispatchNotification } from './notifications'
 import type { ChatbotSettings } from './chat-ai'
 import { matchesAnyKeyword, findAllMatches } from './keyword-matcher'

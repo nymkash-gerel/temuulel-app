@@ -7,7 +7,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendToDriver, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
+import { sendToDriver } from '@/lib/driver-telegram'
 import { Receiver } from '@upstash/qstash'
 
 const receiver = new Receiver({

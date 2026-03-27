@@ -21,7 +21,7 @@ export default function ServicesPage() {
   const supabase = createClient()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
-  const [storeId, setStoreId] = useState<string>('')
+  const [_storeId, setStoreId] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 

@@ -86,7 +86,7 @@ export default function PurchaseOrdersPage() {
   const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
-  const [storeId, setStoreId] = useState<string>('')
+  const [_storeId, setStoreId] = useState<string>('')
   const [orders, setOrders] = useState<PurchaseOrderRow[]>([])
   const [statusFilter, setStatusFilter] = useState('')
   const [supplierFilter, setSupplierFilter] = useState('')

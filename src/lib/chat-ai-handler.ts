@@ -1030,7 +1030,7 @@ const ORDER_EXACT_WORDS = ['авна', 'авах', 'авйа', 'ави', 'авм
  * availability, or specs — typically mid-order when they want more info before
  * giving their address/phone.
  */
-function isProductQuestion(msg: string): boolean {
+function _isProductQuestion(msg: string): boolean {
   const n = normalizeText(msg).toLowerCase()
   const questionWords = ['ямар', 'юу', 'ямар өнгө', 'өнгө', 'хэдэн', 'яагаад', 'хэрхэн', 'байна уу', 'bn', 'bnu', 'baina uu',
     'харуул', 'үзүүл', 'харуулна уу', 'үзүүлнэ үү']  // imperative photo/info requests

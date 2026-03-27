@@ -12,7 +12,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { sendToDriverWithLog, tgSend } from './driver-telegram'
+import { tgSend } from './driver-telegram'
 import { dispatchNotification } from './notifications'
 
 // ---------------------------------------------------------------------------

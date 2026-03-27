@@ -6,7 +6,7 @@ import { assignDriver, DEFAULT_DELIVERY_SETTINGS } from '@/lib/ai/delivery-assig
 import type { DriverCandidate, AssignmentRules } from '@/lib/ai/delivery-assigner'
 import { dispatchNotification } from '@/lib/notifications'
 import { sendPushToUser } from '@/lib/push'
-import { sendDeliveryTrackingSMS } from '@/lib/sms'
+// sendDeliveryTrackingSMS removed — not currently used; re-import when SMS tracking is enabled
 import { sendToDriver, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard, intercityKeyboard } from '@/lib/driver-telegram'
 import { resolveStore } from '@/lib/resolve-store'
 

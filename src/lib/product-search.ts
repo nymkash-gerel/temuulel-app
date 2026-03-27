@@ -331,7 +331,7 @@ export async function searchProducts(
             return dp[m][n]
           }
 
-          const isClose = (a: string, b: string) => {
+          const _isClose = (a: string, b: string) => {
             if (a.includes(b) || b.includes(a)) return true
             return levenshtein(a, b) <= maxDist
           }

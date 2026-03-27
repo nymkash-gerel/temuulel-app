@@ -271,7 +271,7 @@ function buildOrderSummary(draft: OrderDraft): string {
 /**
  * 9. Build a message asking for missing info (address and/or phone).
  */
-function buildInfoRequest(draft: OrderDraft): string {
+function _buildInfoRequest(draft: OrderDraft): string {
   const items = getDraftItems(draft)
   const missing: string[] = []
   if (!draft.address) missing.push('хүргэлтийн хаяг (дүүрэг, хороо, байр, тоот)')
@@ -516,7 +516,7 @@ async function createOrderFromChat(
 }
 
 /** 12. Detect if the user is asking a question about a product mid-order */
-function isProductQuestion(msg: string): boolean {
+function _isProductQuestion(msg: string): boolean {
   const n = normalizeText(msg).toLowerCase()
   const questionWords = ['ямар', 'юу', 'ямар өнгө', 'өнгө', 'хэдэн', 'яагаад', 'хэрхэн', 'байна уу', 'bn', 'bnu', 'baina uu',
     'харуул', 'үзүүл', 'харуулна уу', 'үзүүлнэ үү']  // imperative photo/info requests
@@ -529,7 +529,7 @@ function isProductQuestion(msg: string): boolean {
 }
 
 /** 13. Detect order intent in message */
-function hasOrderIntent(msg: string): boolean {
+function _hasOrderIntent(msg: string): boolean {
   const words = normalizeText(msg).trim().split(/\s+/)
   // Mongolian negation suffixes: -гүй, -хгүй, -аагүй, etc. mean "did NOT"
   const NEGATION_SUFFIXES = ['гүй', 'хгүй', 'ахгүй', 'охгүй', 'ээгүй', 'оогүй', 'аагүй']
@@ -569,7 +569,7 @@ export class OrderCollectionAgent {
   /**
    * Handle an order collection step — full state machine.
    */
-  async handle(ctx: AgentContext, triage: TriageResult): Promise<AgentResult> {
+  async handle(ctx: AgentContext, _triage: TriageResult): Promise<AgentResult> {
     const draft = ctx.state.order_draft
     if (!draft) {
       return emptyResult('order_collection', 'Захиалга эхлүүлэхийн тулд бараа сонгоно уу.')

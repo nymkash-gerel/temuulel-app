@@ -406,7 +406,7 @@ export async function handlePartialPaymentReply(params: {
   pageToken: string
   conversationId: string
 }): Promise<{ handled: boolean; response?: string }> {
-  const { supabase, deliveryId, storeId, customerId, customerMessage, quickReplyPayload, senderId, pageToken, conversationId } = params
+  const { supabase, deliveryId, storeId, customerId: _customerId, customerMessage, quickReplyPayload, senderId, pageToken, conversationId } = params
 
   const { data: deliveryData } = await supabase
     .from('deliveries')

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { classifyIntentWithConfidence, LOW_CONFIDENCE_THRESHOLD } from '@/lib/intent-classifier'
 import { searchProducts } from '@/lib/product-search'
-import { generateAIResponse, generateResponse, matchesHandoffKeywords } from '@/lib/response-generator'
+import { generateAIResponse, matchesHandoffKeywords } from '@/lib/response-generator'
 import type { ChatbotSettings } from '@/lib/chat-ai-types'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { validateBody, chatWidgetSchema } from '@/lib/validations'
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   // 2. Check if conversation was already escalated
   if (conversation_id) {
-    const { data: conv } = await supabase
+    const { data: _conv } = await supabase
       .from('conversations')
       .select('status, escalation_level')
       .eq('id', conversation_id)

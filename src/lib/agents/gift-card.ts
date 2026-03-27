@@ -60,7 +60,7 @@ export class GiftCardAgent {
       // Default: return info about the flow
       response = 'Бэлгийн картын үйлдэл хийгдэж байна...'
       return emptyResult('gift_card_purchase', response)
-    } catch (error) {
+    } catch (_error) {
       return emptyResult('gift_card_purchase', 'Бэлгийн картын алдаа гарлаа. Дахин оролдоно уу.')
     }
   }

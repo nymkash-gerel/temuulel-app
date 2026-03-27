@@ -343,7 +343,7 @@ export default function PhotoSessionDetailPage() {
 
   const statusCfg = STATUS_CONFIG[session.status] ?? { label: session.status, color: 'bg-slate-500/20 text-slate-400' }
   const balance = session.total_amount - (session.deposit_amount ?? 0)
-  const statusActions = getStatusActions(session.status)
+  const _statusActions = getStatusActions(session.status)
 
   // -----------------------------------------------------------------------
   // Render

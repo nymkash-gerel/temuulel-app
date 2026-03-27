@@ -33,8 +33,8 @@ const TRIGGER_TYPE_LABELS: Record<string, string> = {
 }
 
 export default function CommentAutoReplyPage() {
-  const router = useRouter()
-  const supabase = createClient()
+  const _router = useRouter()
+  const _supabase = createClient()
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -237,7 +237,7 @@ export default function CommentAutoReplyPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {rules.map((rule, index) => (
+            {rules.map((rule, _index) => (
               <div
                 key={rule.id}
                 className={`bg-slate-800/50 border rounded-2xl p-5 transition-all ${

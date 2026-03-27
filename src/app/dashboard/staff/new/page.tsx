@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function NewStaffPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const _supabase = createClient()
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

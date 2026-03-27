@@ -67,7 +67,7 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_FLOW = ['pending', 'confirmed', 'assigned', 'in_progress', 'completed']
 
-const NEXT_STATUS_LABELS: Record<string, string> = {
+const _NEXT_STATUS_LABELS: Record<string, string> = {
   pending: 'Баталгаажуулах',
   confirmed: 'Хуваарилах',
   assigned: 'Эхлүүлэх',
@@ -79,7 +79,7 @@ function formatPrice(amount: number | null | undefined): string {
   return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
 }
 
-function formatDate(date: string | null | undefined): string {
+function _formatDate(date: string | null | undefined): string {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('mn-MN', {
     year: 'numeric',
