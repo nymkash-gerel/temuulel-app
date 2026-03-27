@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { validateBody, createCustomerSchema, parsePagination } from '@/lib/validations'
+import { validateBody, createCustomerSchema, parsePagination, sanitizeSearch } from '@/lib/validations'
 
 const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
 
@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
 
   if (channel) query = query.eq('channel', channel)
   if (search) {
-    query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`)
+    const s = sanitizeSearch(search)
+    if (s) query = query.or(`name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`)
   }
 
   const { data: customers, error, count } = await query.range(offset, offset + limit - 1)

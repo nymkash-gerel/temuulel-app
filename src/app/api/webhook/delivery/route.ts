@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { dispatchNotification } from '@/lib/notifications'
 import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { timingSafeEqual } from 'crypto'
 
 /**
  * POST /api/webhook/delivery
@@ -23,6 +25,11 @@ import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-tel
  * Authentication: X-Webhook-Secret header must match the store's webhook_secret.
  */
 export async function POST(request: NextRequest) {
+  const rl = await rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
   if (!url || !key) {
@@ -68,9 +75,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Store not found' }, { status: 404 })
   }
 
-  // Authenticate via webhook secret
-  const secret = request.headers.get('x-webhook-secret')
-  if (store.webhook_secret && secret !== store.webhook_secret) {
+  // Authenticate via webhook secret (required — stores without a secret reject all webhook calls)
+  const secret = request.headers.get('x-webhook-secret') || ''
+  if (!store.webhook_secret) {
+    return NextResponse.json({ error: 'Webhook secret not configured for this store' }, { status: 403 })
+  }
+  // Timing-safe comparison to prevent brute-force via timing side-channel
+  const a = Buffer.from(secret)
+  const b = Buffer.from(store.webhook_secret)
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return NextResponse.json({ error: 'Invalid webhook secret' }, { status: 401 })
   }
 

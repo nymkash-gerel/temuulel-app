@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { validateBody, createDeliverySchema, parsePagination } from '@/lib/validations'
+import { validateBody, createDeliverySchema, parsePagination, sanitizeSearch } from '@/lib/validations'
 import { dispatchNotification } from '@/lib/notifications'
 import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
 import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard } from '@/lib/driver-telegram'
@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
     query = query.eq('delivery_type', deliveryType as Database['public']['Tables']['deliveries']['Row']['delivery_type'])
   }
   if (search) {
-    query = query.or(`delivery_number.ilike.%${search}%,customer_name.ilike.%${search}%,customer_phone.ilike.%${search}%`)
+    const s = sanitizeSearch(search)
+    if (s) query = query.or(`delivery_number.ilike.%${s}%,customer_name.ilike.%${s}%,customer_phone.ilike.%${s}%`)
   }
 
   const { data: deliveries, error, count } = await query.range(offset, offset + limit - 1)

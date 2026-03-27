@@ -33,6 +33,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'order_id required' }, { status: 400 })
   }
 
+  // Validate order_id is a valid UUID to prevent enumeration
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
+    return NextResponse.json({ error: 'Invalid order_id format' }, { status: 400 })
+  }
+
   if (!isQPayConfigured()) {
     return NextResponse.json({ error: 'QPay not configured' }, { status: 500 })
   }
@@ -41,13 +46,14 @@ export async function GET(request: NextRequest) {
     .from('orders')
     .select('id, store_id, order_number, payment_status, notes, total_amount, payment_method')
     .eq('id', orderId)
+    .eq('payment_method', 'qpay')
     .single()
 
   if (!order) {
-    return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    return NextResponse.json({ status: 'not_paid' })
   }
 
-  // Already paid — nothing to do
+  // Already paid — nothing to do (same response as not-found to prevent enumeration)
   if (order.payment_status === 'paid') {
     return NextResponse.json({ status: 'already_paid' })
   }
@@ -74,8 +80,8 @@ export async function GET(request: NextRequest) {
     if (checkResult.count > 0 && checkResult.paid_amount >= order.total_amount) {
       const paymentRow = checkResult.rows[0]
 
-      // Update order as paid
-      await supabase
+      // Update order as paid (with optimistic lock to prevent double-processing)
+      const { data: updated, error: updateError } = await supabase
         .from('orders')
         .update({
           payment_status: 'paid',
@@ -90,6 +96,14 @@ export async function GET(request: NextRequest) {
           }),
         })
         .eq('id', orderId)
+        .neq('payment_status', 'paid') // Prevent double-processing
+        .select('id')
+        .single()
+
+      // If no row was updated, another request already processed this payment
+      if (updateError || !updated) {
+        return NextResponse.json({ status: 'already_paid' })
+      }
 
       // Decrement stock and trigger low_stock notifications if needed
       await decrementStockAndNotify(supabase, orderId, order.store_id)

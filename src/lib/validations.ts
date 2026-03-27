@@ -474,6 +474,14 @@ export function parsePagination(
   return { limit, offset }
 }
 
+/**
+ * Sanitize search input for use in PostgREST .or() filters.
+ * Removes characters that could manipulate filter logic.
+ */
+export function sanitizeSearch(input: string): string {
+  return input.slice(0, 200).replace(/[%_.*(),\\":;<>]/g, '').trim()
+}
+
 // --- Return schemas ---
 
 export const createReturnSchema = z.object({

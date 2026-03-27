@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { validateBody, createGuestSchema, parsePagination } from '@/lib/validations'
+import { validateBody, createGuestSchema, parsePagination, sanitizeSearch } from '@/lib/validations'
 
 /**
  * GET /api/guests
@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1)
 
   if (search) {
-    query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%`)
+    const s = sanitizeSearch(search)
+    if (s) query = query.or(`first_name.ilike.%${s}%,last_name.ilike.%${s}%`)
   }
 
   const { data, count, error } = await query

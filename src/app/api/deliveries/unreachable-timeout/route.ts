@@ -8,10 +8,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendToDriver, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
+import { Receiver } from '@upstash/qstash'
+
+const receiver = new Receiver({
+  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || '',
+  nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
+})
 
 export async function POST(request: NextRequest) {
-  // Verify QStash signature in production (optional — QStash signs requests)
-  const body = await request.json()
+  // Verify QStash signature (fail-closed: reject if signing keys not configured)
+  let body: Record<string, unknown>
+  if (!process.env.QSTASH_CURRENT_SIGNING_KEY) {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'QStash signing keys not configured' }, { status: 500 })
+    }
+    // Only allow unauthenticated in development
+    body = await request.json()
+  } else {
+    const signature = request.headers.get('upstash-signature') || ''
+    const rawBody = await request.text()
+    try {
+      await receiver.verify({ signature, body: rawBody })
+    } catch {
+      return NextResponse.json({ error: 'Invalid QStash signature' }, { status: 401 })
+    }
+    body = JSON.parse(rawBody)
+  }
   const { delivery_id, store_id } = body as { delivery_id: string; store_id: string }
 
   if (!delivery_id || !store_id) {
