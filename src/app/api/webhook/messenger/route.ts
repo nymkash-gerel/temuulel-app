@@ -18,6 +18,7 @@ import type { ChatbotSettings } from '@/lib/chat-ai'
 import { interceptWithFlow } from '@/lib/flow-middleware'
 import { findActivePartialPayment, handlePartialPaymentReply } from '@/lib/partial-payment-agent'
 import { processAIChat, type AIProductCard } from '@/lib/chat-ai-handler'
+import { logger } from '@/lib/logger'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -155,7 +156,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
       // Mark message as seen (fire-and-forget — visual only)
       if (pageToken) {
-        void markSeen(senderId, pageToken).catch(err => console.error("[silent-catch]", err))
+        void markSeen(senderId, pageToken).catch(err => logger.error("markSeen failed", err))
       }
 
       // Find or create customer
@@ -318,12 +319,13 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
               // Notify staff
               const { data: rdel } = await supabase.from('deliveries').select('delivery_number, store_id').eq('id', delId).single()
               if (rdel) {
-                await supabase.from('notifications').insert({
+                const { error: notifErr } = await supabase.from('notifications').insert({
                   store_id: rdel.store_id, type: 'delivery_assigned',
                   title: '📦 Дахин хүргэлт баталгаажлаа',
                   body: `#${rdel.delivery_number}: Харилцагч "${etaLabel}" гэж баталлаа.`,
                   data: { delivery_id: delId },
-                }).then(null, () => {})
+                })
+                if (notifErr) logger.error("Notification insert failed", notifErr.message)
                 // Telegram notify
                 const rdBotToken = process.env.TELEGRAM_BOT_TOKEN
                 if (rdBotToken) {
@@ -341,7 +343,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
                     await fetch(`https://api.telegram.org/bot${rdBotToken}/sendMessage`, {
                       method: 'POST', headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ chat_id: cid, text: rdTgMsg, parse_mode: 'HTML' }),
-                    }).catch(err => console.error("[silent-catch]", err))
+                    }).catch(err => logger.error("Telegram send failed", err))
                   }
                 }
               }
@@ -388,13 +390,14 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
             }
             // Save flow response to messages so it appears in dashboard chat
             if (flowResult.response) {
-              await supabase.from('messages').insert({
+              const { error: msgErr } = await supabase.from('messages').insert({
                 conversation_id: conversation.id,
                 content: flowResult.response,
                 is_from_customer: false,
                 is_ai_response: true,
                 metadata: { type: 'flow_response' },
-              }).then(null, () => {})
+              })
+              if (msgErr) logger.error("Flow message insert failed", msgErr.message)
             }
             continue
           }
@@ -405,7 +408,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
         try {
           // Show typing indicator (fire-and-forget — visual only)
-          void sendTypingIndicator(senderId, true, pageToken).catch(err => console.error("[silent-catch]", err))
+          void sendTypingIndicator(senderId, true, pageToken).catch(err => logger.error("Typing indicator failed", err))
 
           console.log('[Messenger] Starting AI processing for:', messageText, 'store:', store.id, 'customer:', customer.id)
           const aiResult = await processAIChat(supabase, {
@@ -486,7 +489,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
           }
 
           // Turn off typing (fire-and-forget)
-          void sendTypingIndicator(senderId, false, pageToken).catch(err => console.error("[silent-catch]", err))
+          void sendTypingIndicator(senderId, false, pageToken).catch(err => logger.error("Typing indicator failed", err))
         } catch (aiErr) {
           console.error('[AI] Exception:', aiErr instanceof Error ? aiErr.message : String(aiErr))
           // Send fallback response so customer isn't left hanging

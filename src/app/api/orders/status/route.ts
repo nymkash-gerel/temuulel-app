@@ -113,7 +113,7 @@ export async function PATCH(request: NextRequest) {
       if (!existingCount || existingCount === 0) {
         const shippingAddr = orderDetail?.shipping_address as { address?: string } | null
         const deliveryAddress = shippingAddr?.address || 'Хаяг тодорхойгүй'
-        const deliveryNumber = `DEL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+        const deliveryNumber = `DEL-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`
 
         const { data: newDelivery } = await supabase.from('deliveries').insert({
           store_id: store.id,

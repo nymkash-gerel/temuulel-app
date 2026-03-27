@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendToDriver, handoffReadyKeyboard } from '@/lib/driver-telegram'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
       driver_id,
       cardText,
       handoffReadyKeyboard(delivery.id)
-    ).catch(err => console.error("[silent-catch]", err))
+    ).catch(err => logger.warn("Silent catch error", err))
   }
 
   return NextResponse.json({ confirmed: deliveries.length, delivery_ids: ids })

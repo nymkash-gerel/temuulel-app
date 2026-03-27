@@ -20,6 +20,7 @@ import { ResponseAgent } from './response'
 import { EscalationAgent } from './escalation'
 import type { AgentContext, AgentResult, TriageResult } from './types'
 import { emptyResult } from './types'
+import { logger } from '@/lib/logger'
 
 /** Maximum agent redirects per request (loop protection). */
 const MAX_REDIRECTS = 3
@@ -95,7 +96,7 @@ export class SupervisorAgent {
     // Complaint/escalation path (checked before search to avoid type narrowing issues)
     if (intent === 'complaint' || intent === 'return_exchange') {
       const result = await this.responseAgent.generate(ctx, triage)
-      this.escalationAgent.evaluate(ctx).catch(err => console.error("[silent-catch]", err))
+      this.escalationAgent.evaluate(ctx).catch(err => logger.warn("Silent catch error", err))
       return result
     }
 

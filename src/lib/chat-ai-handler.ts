@@ -54,6 +54,7 @@ import { createQPayInvoice, checkQPayPayment, isQPayConfigured } from '@/lib/qpa
 
 import { SupervisorAgent } from '@/lib/agents'
 import type { AgentContext } from '@/lib/agents'
+import { logger } from '@/lib/logger'
 
 const DEFAULT_DELIVERY_FEE = 5000
 
@@ -145,7 +146,7 @@ export async function processAIChat(
     readState(supabase, conversationId),
     checkStoreBusyMode(supabase, storeId),
     customerId
-      ? buildCustomerProfile(supabase, customerId, storeId).catch(() => null)
+      ? buildCustomerProfile(supabase, customerId, storeId).catch(err => { console.error('[customer-profile]', err); return null })
       : Promise.resolve(null),
   ])
 
@@ -540,7 +541,7 @@ export async function processAIChat(
           void logInteraction(supabase, customerId, storeId, {
             type: intent === 'return_exchange' ? 'return_request' : 'complaint',
             summary: customerMessage,
-          }).catch(err => console.error("[silent-catch]", err))
+          }).catch(err => logger.warn("Silent catch error", err))
         }
 
         // Build extended profile for AI personalization
@@ -555,7 +556,7 @@ export async function processAIChat(
                 type: p.type, key: p.key, value: p.value,
                 confidence: 0.5, source: 'inferred',
               })
-            )).catch(err => console.error("[silent-catch]", err))
+            )).catch(err => logger.warn("Silent catch error", err))
           }
         }
       } catch (err) {
@@ -617,7 +618,7 @@ export async function processAIChat(
                   message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
                   conversationId,
                   storeId,
-                }).catch(err => console.error("[silent-catch]", err))
+                }).catch(err => logger.warn("Silent catch error", err))
               }
             }
           }
@@ -697,7 +698,7 @@ export async function processAIChat(
               message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
               conversationId,
               storeId,
-            }).catch(err => console.error("[silent-catch]", err))
+            }).catch(err => logger.warn("Silent catch error", err))
           } else if (!earlyResponseSet && intent === 'product_search' && products.length > 0) {
             // PRODUCTS FOUND — use confidence-based template, skip GPT entirely.
             const p = products[0]
@@ -751,7 +752,7 @@ export async function processAIChat(
             message: `🔍 Chatbot: Жагсаалтад байхгүй бүтээгдэхүүн асуусан: "${customerMessage}"`,
             conversationId,
             storeId,
-          }).catch(err => console.error("[silent-catch]", err))
+          }).catch(err => logger.warn("Silent catch error", err))
         }
           } // end else (generateAIResponse path)
         } // end !unlistedProductDetected

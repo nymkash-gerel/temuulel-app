@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/deliveries/photo?file_id=xxx&bot=driver
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
           console.error('[PhotoProxy] Cache upload failed:', uploadErr.message)
         }
       })
-      .catch(err => console.error("[silent-catch]", err))
+      .catch(err => logger.warn("Silent catch error", err))
 
     return new NextResponse(photoBuffer, {
       headers: {

@@ -6,6 +6,7 @@ import { dispatchNotification } from '@/lib/notifications'
 import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES, orderAssignedKeyboard } from '@/lib/driver-telegram'
 import { resolveStoreId } from '@/lib/resolve-store'
 import type { Database } from '@/lib/database.types'
+import { logger } from '@/lib/logger'
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   pending: ['assigned', 'cancelled'],
@@ -357,7 +358,7 @@ export async function PATCH(
           orderNumber: orderNumber || current.delivery_number,
           cancelReason: body.failure_reason || body.notes || undefined,
         }),
-      ).catch(err => console.error("[silent-catch]", err))
+      ).catch(err => logger.warn("Silent catch error", err))
     }
   }
 

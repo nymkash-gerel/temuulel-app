@@ -4,6 +4,7 @@ import { dispatchNotification } from '@/lib/notifications'
 import { sendToDriverWithLog, DRIVER_PROACTIVE_MESSAGES } from '@/lib/driver-telegram'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { timingSafeEqual } from 'crypto'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/webhook/delivery
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest) {
         orderNumber: delivery.order_number || delivery.delivery_number,
         cancelReason: failure_reason || 'Хүргэлт амжилтгүй болсон гэж тэмдэглэгдлээ',
       }),
-    ).catch(err => console.error("[silent-catch]", err)) // Non-blocking
+    ).catch(err => logger.warn("Silent catch error", err)) // Non-blocking
   }
 
   return NextResponse.json({ success: true, delivery_id: delivery.id, status })

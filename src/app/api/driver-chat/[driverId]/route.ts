@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { sendToDriver } from '@/lib/driver-telegram'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/driver-chat/:driverId
@@ -115,7 +116,7 @@ export async function POST(
 
   // Forward message via Telegram — await before returning (serverless: function dies after response)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await sendToDriver(supabase as any, driverId, message).catch(err => console.error("[silent-catch]", err))
+  await sendToDriver(supabase as any, driverId, message).catch(err => logger.warn("Silent catch error", err))
 
   return NextResponse.json({ message: msg })
 }

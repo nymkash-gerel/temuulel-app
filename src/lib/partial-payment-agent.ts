@@ -17,6 +17,7 @@ import { sendTextMessage, sendQuickReplies, sendButtonMessage } from '@/lib/mess
 // Note: HUMAN_AGENT tag requires Facebook approval; sending without tag works within 24h window
 import { createQPayInvoice } from '@/lib/qpay'
 import { sendSMS } from '@/lib/sms'
+import { logger } from '@/lib/logger'
 
 // ---------- Types ----------
 
@@ -271,7 +272,7 @@ export async function initiatePartialPaymentResolution(params: {
             .join('\n')
         }
       }
-    } catch { /* ignore */ }
+    } catch(err) { logger.warn("Silent catch error", err) }
   }
 
   // Generate AI message based on context
@@ -469,7 +470,7 @@ export async function handlePartialPaymentReply(params: {
         .map(m => `[${m.is_from_customer ? 'Харилцагч' : 'Дэлгүүр'}]: ${m.content}`)
         .join('\n')
     }
-  } catch { /* ignore */ }
+  } catch(err) { logger.warn("Silent catch error", err) }
 
   // Evaluate with GPT
   const evaluation = await evaluateCustomerReason({
@@ -747,13 +748,14 @@ async function notifyStaffResolution(
     : `#${orderNumber}: ${fmtRemaining}₮ үлдэгдэл. QPay илгээсэн. Шалтгаан: "${customerReason}" → ${evaluation.category}`
 
   // Dashboard notification
-  await supabase.from('notifications').insert({
+  const { error: notifErr } = await supabase.from('notifications').insert({
     store_id: storeId,
     type: 'partial_payment_resolved',
     title,
     body,
     metadata: { order_number: orderNumber, evaluation, resolution_status: evaluation.justified ? 'justified' : 'payment_requested' },
-  }).then(null, () => {})
+  })
+  if (notifErr) logger.error("Notification insert failed", notifErr.message)
 
   // Telegram notification to staff + members
   const storeBotToken = process.env.TELEGRAM_BOT_TOKEN
@@ -791,6 +793,6 @@ async function notifyStaffResolution(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: cid, text: tgMsg, parse_mode: 'HTML' }),
-    }).catch(err => console.error("[silent-catch]", err))
+    }).catch(err => logger.error("Telegram send failed", err))
   }
 }

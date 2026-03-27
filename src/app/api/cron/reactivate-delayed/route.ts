@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTextMessage, sendQuickReplies } from '@/lib/messenger'
+import { logger } from '@/lib/logger'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
       status: 'pending',
       changed_by: 'system/cron',
       notes: 'Хойшлуулсан хугацаа дууслаа — автоматаар идэвхжүүлэв',
-    }).then(null, () => {})
+    }).then(r => { if (r.error) logger.error("DB operation failed", r.error) })
 
     // Update order notes
     if (orderId) {
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
       title: `🔔 Хойшлуулсан хүргэлт бэлэн боллоо`,
       body: `#${deliveryNumber} — хойшлуулсан хугацаа дууслаа. Жолооч оноож хүргүүлнэ үү.`,
       data: { delivery_id: deliveryId, reason: 'delayed_reactivated' },
-    }).then(null, () => {})
+    }).then(r => { if (r.error) logger.error("DB operation failed", r.error) })
 
     // --- Telegram notification to staff ---
     const botToken = process.env.TELEGRAM_BOT_TOKEN
@@ -129,7 +130,7 @@ export async function GET(request: NextRequest) {
         await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: cid, text: tgMsg, parse_mode: 'HTML' }),
-        }).catch(err => console.error("[silent-catch]", err))
+        }).catch(err => logger.error("Telegram send failed", err))
       }
     }
 
