@@ -1,13 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendDailyReportEmail, type DailyReportData } from '@/lib/email'
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase credentials not configured')
-  return createClient(url, key)
-}
+import { getSupabase } from '@/lib/supabase/service'
 
 /**
  * GET /api/cron/daily-report

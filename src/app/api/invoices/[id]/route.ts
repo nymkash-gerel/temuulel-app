@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   const { data: invoice, error } = await supabase
     .from('invoices')
-    .select('*')
+    .select('id, invoice_number, store_id, party_id, party_type, source_id, source_type, status, subtotal, discount_amount, tax_amount, total_amount, amount_paid, amount_due, currency, issued_at, due_date, notes, metadata, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()
@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   // Fetch line items
   const { data: items } = await supabase
     .from('invoice_items')
-    .select('*')
+    .select('id, invoice_id, description, quantity, unit_price, discount, tax_rate, line_total, item_id, item_type, sort_order')
     .eq('invoice_id', id)
     .order('sort_order', { ascending: true })
 
@@ -84,7 +84,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     .update(updateData)
     .eq('id', id)
     .eq('store_id', store.id)
-    .select('*')
+    .select('id, invoice_number, store_id, party_id, party_type, source_id, source_type, status, subtotal, discount_amount, tax_amount, total_amount, amount_paid, amount_due, currency, issued_at, due_date, notes, metadata, created_at, updated_at')
     .single()
 
   if (error) {

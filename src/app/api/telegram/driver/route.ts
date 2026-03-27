@@ -15,8 +15,8 @@
  *   - Natural language → driver intent engine (delivered, picked up, etc.)
  */
 
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { getSupabase } from '@/lib/supabase/service'
 import {
   tgSend,
   tgSendButtons,
@@ -56,14 +56,6 @@ import { createQPayInvoice, isQPayConfigured } from '@/lib/qpay'
 import { assignDriver, DEFAULT_DELIVERY_SETTINGS } from '@/lib/ai/delivery-assigner'
 import { initiatePartialPaymentResolution } from '@/lib/partial-payment-agent'
 
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase not configured')
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
 
 /** Fetch delivery metadata and merge with new fields (prevents overwriting existing metadata) */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

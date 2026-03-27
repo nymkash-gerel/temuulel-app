@@ -1,14 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTextMessage, sendQuickReplies } from '@/lib/messenger'
 import { logger } from '@/lib/logger'
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase credentials not configured')
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
-}
+import { getSupabase } from '@/lib/supabase/service'
 
 /**
  * GET /api/cron/reactivate-delayed

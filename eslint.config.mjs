@@ -21,6 +21,7 @@ const eslintConfig = defineConfig([
       "react-hooks/refs": "warn",
       "react-hooks/purity": "warn",
       "react-hooks/static-components": "warn",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
   // Allow 'any' type in test files

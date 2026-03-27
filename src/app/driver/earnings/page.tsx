@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatPrice } from '@/lib/format'
 
 interface EarningsSummary {
   today: number
@@ -22,9 +23,6 @@ interface DeliveryHistory {
   created_at: string
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function DriverEarningsPage() {
   const [summary, setSummary] = useState<EarningsSummary | null>(null)

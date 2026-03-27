@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import {
@@ -19,13 +18,7 @@ import { interceptWithFlow } from '@/lib/flow-middleware'
 import { findActivePartialPayment, handlePartialPaymentReply } from '@/lib/partial-payment-agent'
 import { processAIChat, type AIProductCard } from '@/lib/chat-ai-handler'
 import { logger } from '@/lib/logger'
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase credentials not configured')
-  return createClient(url, key)
-}
+import { getSupabase } from '@/lib/supabase/service'
 
 // GET - Webhook verification (Facebook sends this when you set up the webhook)
 export async function GET(request: NextRequest) {

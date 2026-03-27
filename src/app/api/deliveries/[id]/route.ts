@@ -38,7 +38,7 @@ export async function GET(
   // Fetch delivery and related data separately to avoid deep type instantiation
   const { data: deliveryRaw, error: delError } = await supabase
     .from('deliveries')
-    .select('*')
+    .select('id, store_id, order_id, driver_id, status, delivery_number, delivery_type, delivery_address, delivery_fee, customer_name, customer_phone, notes, estimated_delivery_time, actual_delivery_time, scheduled_date, scheduled_time_slot, pickup_address, proof_photo_url, failure_reason, provider_name, provider_tracking_id, metadata, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()
@@ -98,7 +98,7 @@ export async function PATCH(
   // Fetch current delivery + related data
   const { data: currentRaw } = await supabase
     .from('deliveries')
-    .select('*')
+    .select('id, store_id, order_id, driver_id, status, delivery_number, delivery_fee, delivery_address, customer_name, customer_phone, metadata, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

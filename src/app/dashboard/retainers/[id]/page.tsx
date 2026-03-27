@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface LegalCase {
   id: string
@@ -37,10 +38,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   refunded: { label: 'Буцаагдсан', color: 'bg-yellow-500/20 text-yellow-400' },
 }
 
-function formatPrice(amount: number | null): string {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '-'

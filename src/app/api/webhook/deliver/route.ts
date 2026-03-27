@@ -11,8 +11,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { Receiver } from '@upstash/qstash'
-import { createClient } from '@supabase/supabase-js'
 import { signPayload, type WebhookPayload } from '@/lib/webhook'
+import { getSupabase } from '@/lib/supabase/service'
 
 function getReceiver(): Receiver | null {
   const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY
@@ -52,12 +52,6 @@ function isSafeWebhookUrl(urlStr: string): boolean {
   return true
 }
 
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase credentials not configured')
-  return createClient(url, key)
-}
 
 export async function POST(request: NextRequest) {
   // 1. Verify QStash signature

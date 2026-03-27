@@ -1,17 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { createQPayInvoice, isQPayConfigured } from '@/lib/qpay'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { validateBody, createPaymentSchema } from '@/lib/validations'
+import { getSupabase } from '@/lib/supabase/service'
 
 const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase credentials not configured')
-  return createClient(url, key)
-}
 
 /**
  * POST /api/payments/create

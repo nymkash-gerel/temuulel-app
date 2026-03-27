@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { formatPrice } from '@/lib/format'
 
 interface CoworkingSpace {
   id: string
@@ -37,9 +38,6 @@ const SPACE_TYPE_COLORS: Record<string, string> = {
   phone_booth: 'bg-green-500/20 text-green-400',
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 export default function CoworkingPage() {
   const router = useRouter()

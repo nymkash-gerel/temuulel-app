@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { getSupabase } from '@/lib/supabase/service'
 import { dispatchNotification } from '@/lib/notifications'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { analyzeMessage, analyzeMessageKeyword } from '@/lib/ai/message-tagger'
@@ -109,16 +109,6 @@ async function checkActiveVouchers(
   }
 }
 
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-
-  if (!url || !key) {
-    throw new Error('Supabase credentials not configured')
-  }
-
-  return createClient(url, key)
-}
 
 /**
  * Resolve or create a customer and conversation for a given sender.

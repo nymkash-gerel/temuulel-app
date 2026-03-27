@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { exportToFile } from '@/lib/export-utils'
+import { formatPrice } from '@/lib/format'
 import BatchDispatchModal from '@/components/BatchDispatchModal'
 import type { BatchPreview } from '@/app/api/deliveries/batch-assign/route'
 
@@ -54,13 +55,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   delayed: { label: 'Хоцорсон', color: 'bg-orange-500/20 text-orange-400', icon: '⚠️' },
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
-
 export default function DeliveriesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [deliveries, setDeliveries] = useState<Delivery[]>([])

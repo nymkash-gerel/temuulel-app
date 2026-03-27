@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface DeliveryDetail {
   id: string
@@ -82,9 +83,6 @@ const NEXT_ACTIONS: Record<string, { status: string; label: string; color: strin
   ],
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 export default function DeliveryDetailPage() {
   const router = useRouter()

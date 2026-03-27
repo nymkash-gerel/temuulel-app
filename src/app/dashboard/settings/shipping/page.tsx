@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toJson } from '@/lib/supabase/json'
 import { INTERCITY_CITIES } from '@/lib/delivery-fee-calculator'
 import { resolveStore } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 // Leaflet can't SSR — load dynamically
 const DeliveryZoneMap = dynamic(() => import('@/components/DeliveryZoneMap'), { ssr: false })
@@ -37,9 +38,6 @@ interface FreeShippingSettings {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 // ---------------------------------------------------------------------------
 // Page

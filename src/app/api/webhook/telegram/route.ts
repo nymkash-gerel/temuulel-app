@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   sendTelegramMessage,
   answerCallbackQuery,
   editMessageText,
 } from '@/lib/telegram'
+import { getSupabase } from '@/lib/supabase/service'
 
 /**
  * POST /api/webhook/telegram
@@ -95,12 +96,6 @@ interface CallbackQuery {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase credentials not configured')
-  return createClient(url, key)
-}
 
 /**
  * Handle /start PARAM — Links Telegram to a staff or store member.

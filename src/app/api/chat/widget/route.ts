@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { classifyIntentWithConfidence, LOW_CONFIDENCE_THRESHOLD } from '@/lib/intent-classifier'
 import { searchProducts } from '@/lib/product-search'
@@ -9,15 +8,9 @@ import { validateBody, chatWidgetSchema } from '@/lib/validations'
 import { interceptWithFlow } from '@/lib/flow-middleware'
 import { processEscalation } from '@/lib/escalation'
 import { processAIChat } from '@/lib/chat-ai-handler'
+import { getSupabase } from '@/lib/supabase/service'
 
 const RATE_LIMIT = { limit: 20, windowSeconds: 60 }
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase credentials not configured')
-  return createClient(url, key)
-}
 
 export async function POST(request: NextRequest) {
   const rl = await rateLimit(getClientIp(request), RATE_LIMIT)

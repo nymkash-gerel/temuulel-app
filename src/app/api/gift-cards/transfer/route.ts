@@ -3,11 +3,11 @@
  * Public endpoint — marks a gift card as transferred to a recipient contact.
  * Auth: gift card code acts as its own token.
  */
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { transferGiftCard } from '@/lib/gift-card-engine'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { getSupabase } from '@/lib/supabase/service'
 
 const RATE_LIMIT = { limit: 10, windowSeconds: 60 }
 
@@ -16,13 +16,6 @@ const schema = z.object({
   store_id:           z.string().uuid(),
   recipient_contact:  z.string().min(1),
 })
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY)
-  if (!url || !key) throw new Error('Supabase not configured')
-  return createClient(url, key)
-}
 
 export async function POST(request: NextRequest) {
   const rl = await rateLimit(getClientIp(request), RATE_LIMIT)

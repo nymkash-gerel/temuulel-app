@@ -29,6 +29,42 @@ export async function resolveStoreId(
   return membership?.store_id ?? null
 }
 
+/** Columns returned by resolveStore – every field callers actually read. */
+const STORE_COLUMNS = [
+  'id',
+  'name',
+  'slug',
+  'owner_id',
+  'address',
+  'phone',
+  'email',
+  'website',
+  'description',
+  'logo_url',
+  'business_type',
+  'ai_auto_reply',
+  'busy_mode',
+  'busy_message',
+  'estimated_wait_minutes',
+  'api_key',
+  'chatbot_settings',
+  'delivery_settings',
+  'delivery_time_slots',
+  'shipping_settings',
+  'payment_settings',
+  'product_settings',
+  'enabled_modules',
+  'webhook_url',
+  'webhook_secret',
+  'webhook_events',
+  'facebook_page_id',
+  'facebook_page_name',
+  'facebook_connected_at',
+  'instagram_business_account_id',
+  'instagram_page_name',
+  'instagram_connected_at',
+].join(', ')
+
 /**
  * Resolve the full store object for the current user.
  */
@@ -39,7 +75,7 @@ export async function resolveStore(
   // Check as owner first
   const { data: store } = await supabase
     .from('stores')
-    .select('*')
+    .select(STORE_COLUMNS)
     .eq('owner_id', userId)
     .single()
 
@@ -56,7 +92,7 @@ export async function resolveStore(
 
   const { data: memberStore } = await supabase
     .from('stores')
-    .select('*')
+    .select(STORE_COLUMNS)
     .eq('id', membership.store_id)
     .single()
 
