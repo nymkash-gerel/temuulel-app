@@ -6,6 +6,7 @@
 
 import { classifyIntentWithConfidence, IntentResult } from '../intent-classifier'
 import { mlClassify } from './ml-classifier'
+import { bertClassify } from './bert-classifier'
 import { normalizeText } from '../text-normalizer'
 import { extractMorphFeatures, deriveMorphIntentSignals, type MorphIntentSignal } from '../morphological-features'
 
@@ -178,17 +179,28 @@ export function hybridClassify(message: string): IntentResult {
 }
 
 /**
- * Async hybrid classification with GPT fallback.
- * Same as hybridClassify but when both keyword + ML return low confidence (< 1),
- * calls GPT-4o-mini to classify the intent.
+ * Async hybrid classification with BERT + GPT fallback.
+ * 3-tier strategy:
+ *   1. Keyword + ML (synchronous, free, <1ms)
+ *   2. BERT API (async, ~50ms, requires BERT_API_URL)
+ *   3. GPT-4o-mini (async, ~500ms, ~$0.001/request)
  */
 export async function hybridClassifyAsync(message: string): Promise<IntentResult> {
   const result = hybridClassify(message)
 
-  // If confidence is decent, trust keyword/ML
+  // Tier 1: If keyword/ML confidence is high, trust it
+  if (result.confidence >= 1.5) return result
+
+  // Tier 2: Try BERT API (fast, cheap, 83% accuracy)
+  const bertResult = await bertClassify(message)
+  if (bertResult && bertResult.confidence >= 0.8) {
+    return { intent: bertResult.intent, confidence: bertResult.confidence * 2 }
+  }
+
+  // If keyword/ML had decent confidence, use it before GPT
   if (result.confidence >= 1) return result
 
-  // Low confidence — try GPT fallback
+  // Tier 3: GPT-4o-mini fallback (slow, accurate, costs per request)
   const gptResult = await gptClassifyIntent(message)
   if (gptResult.confidence > 0 && gptResult.intent !== 'general') {
     return gptResult
