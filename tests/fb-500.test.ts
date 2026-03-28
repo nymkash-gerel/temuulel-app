@@ -1,10 +1,17 @@
 import { it } from 'vitest'
 import { hybridClassify } from '../src/lib/ai/hybrid-classifier'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 
-const messages: string[] = JSON.parse(readFileSync('/tmp/fb_500_messages.json', 'utf-8'))
+const DATA_FILE = '/tmp/fb_500_messages.json'
+const messages: string[] = existsSync(DATA_FILE)
+  ? JSON.parse(readFileSync(DATA_FILE, 'utf-8'))
+  : []
 
 it('classifies 500 real FB messages — distribution + suspects', () => {
+  if (messages.length === 0) {
+    console.log('SKIP: /tmp/fb_500_messages.json not found — provide real FB data to run this test')
+    return
+  }
   const byIntent: Record<string, string[]> = {}
 
   for (const msg of messages) {

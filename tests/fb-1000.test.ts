@@ -2,14 +2,15 @@
  * Real Facebook chat data test — 1000 sampled customer messages
  * Flags suspicious/wrong classifications for manual review
  */
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { it, expect } from 'vitest'
 import { classifyIntentWithConfidence } from '../src/lib/intent-classifier'
 import { normalizeText } from '../src/lib/text-normalizer'
 
-const messages: string[] = JSON.parse(
-  readFileSync('/tmp/fb_1000_messages.json', 'utf-8')
-)
+const DATA_FILE = '/tmp/fb_1000_messages.json'
+const messages: string[] = existsSync(DATA_FILE)
+  ? JSON.parse(readFileSync(DATA_FILE, 'utf-8'))
+  : []
 
 // Known false-positive patterns: (regex on normalized message, wrongly-expected intent)
 // maxConfidence: only flag if classified confidence is <= this value (undefined = always flag)
@@ -25,6 +26,10 @@ const FALSE_POSITIVE_PATTERNS: Array<{ pattern: RegExp; wrongIntent: string; not
 ]
 
 it('classify 1000 real FB messages — report suspicious results', () => {
+  if (messages.length === 0) {
+    console.log('SKIP: /tmp/fb_1000_messages.json not found — provide real FB data to run this test')
+    return
+  }
   const intentCounts: Record<string, number> = {}
   const suspicious: Array<{ msg: string; intent: string; confidence: number; note: string }> = []
   const lowConfidence: Array<{ msg: string; intent: string; confidence: number }> = []

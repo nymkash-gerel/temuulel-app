@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // External skill/tool files (Claude skills, sample codebases)
+    ".claude/**",
+    // Development utility scripts (not production code)
+    "scripts/**",
+    "fb-chat-test-real2.ts",
+    "test-classify-tmp.mts",
   ]),
   // Downgrade React compiler strict rules to warnings (not using React Compiler yet)
   {

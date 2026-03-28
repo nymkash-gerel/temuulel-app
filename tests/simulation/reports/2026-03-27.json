@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-03-27T15:47:32.778Z",
-  "duration_ms": 30358,
+  "timestamp": "2026-03-27T16:37:39.737Z",
+  "duration_ms": 27939,
   "scenarios_run": 10,
   "scenarios_passed": 10,
   "scenarios_failed": 0,
@@ -17,7 +17,7 @@
       "persona": "VIP худалдан авагч",
       "passed": true,
       "steps": 7,
-      "duration_ms": 3638,
+      "duration_ms": 2181,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -35,7 +35,7 @@
       "persona": "Ууртай хэрэглэгч",
       "passed": true,
       "steps": 4,
-      "duration_ms": 5410,
+      "duration_ms": 3985,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -44,7 +44,7 @@
         "completeness": 4,
         "overall": 4.4,
         "issues": [
-          "Could provide more context about the issue being addressed."
+          "The bot does not provide specific information about the order status due to no products found."
         ]
       },
       "bugs": [],
@@ -55,7 +55,7 @@
       "persona": "Буцаалт хийгч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 75,
+      "duration_ms": 88,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -73,7 +73,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 65,
+      "duration_ms": 68,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 3,
@@ -82,7 +82,7 @@
         "completeness": 3,
         "overall": 3.55,
         "issues": [
-          "The bot incorrectly states that the requested shoes are unavailable despite having found 5 products."
+          "The bot incorrectly states that the requested shoes are unavailable despite having found 5 products. It should have listed the shoes found."
         ]
       },
       "bugs": [],
@@ -93,7 +93,7 @@
       "persona": "Латин бичигч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 86,
+      "duration_ms": 91,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -102,7 +102,7 @@
         "completeness": 4,
         "overall": 4.75,
         "issues": [
-          "Could provide more details about the products found"
+          "Could provide more details about the products found."
         ]
       },
       "bugs": [],
@@ -113,7 +113,7 @@
       "persona": "Төөрөлдсөн хэрэглэгч",
       "passed": true,
       "steps": 4,
-      "duration_ms": 2763,
+      "duration_ms": 2460,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -131,7 +131,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 58,
+      "duration_ms": 68,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -151,7 +151,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 61,
+      "duration_ms": 35,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 3,
@@ -160,8 +160,8 @@
         "completeness": 3,
         "overall": 3.55,
         "issues": [
-          "The response does not directly address the customer's question about installment payments.",
-          "No information about installment payment options is provided."
+          "No products found to pay for",
+          "Response does not address the customer's question about installment payments"
         ]
       },
       "bugs": [],
@@ -172,7 +172,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 78,
+      "duration_ms": 66,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -190,7 +190,7 @@
       "persona": "Халдагч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 4113,
+      "duration_ms": 3448,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -204,5 +204,5 @@
       "errors": []
     }
   ],
-  "summary": "=== SIMULATION REPORT ===\nTime: 2026-03-27T15:47:32.778Z\nDuration: 30.4s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4.6/5.0 (min: 3.55, max: 5)\nBugs Detected: 0"
+  "summary": "=== SIMULATION REPORT ===\nTime: 2026-03-27T16:37:39.737Z\nDuration: 27.9s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4.6/5.0 (min: 3.55, max: 5)\nBugs Detected: 0"
 }
