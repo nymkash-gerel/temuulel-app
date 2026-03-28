@@ -104,7 +104,7 @@ function formatPrice(amount: number | null | undefined): string {
   return new Intl.NumberFormat('mn-MN').format(amount) + '\u20AE'
 }
 
-function _formatDate(date: string | null | undefined): string {
+function formatDate(date: string | null | undefined): string {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('mn-MN', {
     year: 'numeric',
