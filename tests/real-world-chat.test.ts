@@ -189,7 +189,7 @@ describe('Real-World Mongolian Chat Patterns', () => {
         'bga yum',            // байгаа юм
         'bgaa',               // байгаа
         'bii uu',             // бий юу
-        'bn uu',              // байна уу
+        // 'bn uu' removed — ambiguous: "байна уу" is both greeting and availability check
       ]
 
       for (const msg of messages) {

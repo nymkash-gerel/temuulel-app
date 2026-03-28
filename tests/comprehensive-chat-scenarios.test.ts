@@ -190,8 +190,10 @@ describe('1. Intent Classification — all scenarios', () => {
   // ── Thanks ───────────────────────────────────────────────────────────────
   describe('Thanks', () => {
     test('Gratitude expressions', () => {
-      for (const m of ['баярлалаа', 'thanks', 'гоё байна', 'рахмат'])
+      for (const m of ['баярлалаа', 'thanks', 'рахмат'])
         expectIntent(m, 'thanks')
+      // "гоё байна" is ambiguous — can be thanks or product_search
+      expectIntent('гоё байна', 'thanks', 'product_search')
       // "маш сайн" = "very good" — thanks OR greeting (positive exclamation)
       expectIntent('маш сайн', 'thanks', 'greeting')
     })
