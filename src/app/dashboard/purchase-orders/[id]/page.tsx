@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
 import { purchaseOrderTransitions } from '@/lib/status-machine'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface PurchaseOrderItem {
   id: string
@@ -69,9 +70,6 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Цуцлагдсан',
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '-'

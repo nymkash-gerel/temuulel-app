@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { formatPrice } from '@/lib/format'
 
 interface LegalExpenseDetail {
   id: string
@@ -27,10 +28,6 @@ const EXPENSE_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   other: { label: 'Бусад', color: 'bg-slate-500/20 text-slate-400' },
 }
 
-function formatPrice(amount: number | null) {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(date: string | null) {
   if (!date) return '-'

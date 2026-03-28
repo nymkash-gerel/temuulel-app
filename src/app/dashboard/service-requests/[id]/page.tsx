@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
 import { serviceRequestTransitions } from '@/lib/status-machine'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface ServiceRequest {
   id: string
@@ -74,10 +75,6 @@ const _NEXT_STATUS_LABELS: Record<string, string> = {
   in_progress: 'Дуусгах',
 }
 
-function formatPrice(amount: number | null | undefined): string {
-  if (amount == null) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function _formatDate(date: string | null | undefined): string {
   if (!date) return '-'

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
 import { consultationTransitions } from '@/lib/status-machine'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface Consultation {
   id: string
@@ -56,9 +57,6 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('mn-MN', {

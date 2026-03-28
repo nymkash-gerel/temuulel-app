@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface MembershipPlan {
   id: string
@@ -34,9 +35,6 @@ const BILLING_LABELS: Record<string, string> = {
   one_time: 'One Time',
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function MembershipsPage() {
   const router = useRouter()

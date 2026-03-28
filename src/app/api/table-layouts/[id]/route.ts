@@ -33,7 +33,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('table_layouts')
-    .select('*')
+    .select('id, name, section, capacity, shape, position_x, position_y, qr_code_token, qr_enabled, status, is_active, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface LaundryOrder {
   id: string
@@ -36,9 +37,6 @@ const SERVICE_TYPES: Record<string, string> = {
   express: 'Express',
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {

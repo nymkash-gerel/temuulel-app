@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import CalendarView from '@/components/ui/CalendarView'
 import type { CalendarEvent } from '@/components/ui/CalendarView'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface DeskBookingRow {
   id: string
@@ -29,9 +30,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Цуцлагдсан', color: 'bg-red-500/20 text-red-400' },
 }
 
-function formatPrice(amount: number): string {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('mn-MN', {

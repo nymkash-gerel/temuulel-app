@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { formatPrice } from '@/lib/format'
 
 interface ReturnItem {
   id: string
@@ -69,9 +70,6 @@ const REFUND_METHOD_LABELS: Record<string, string> = {
   original: 'Анхны хэлбэрээр',
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 export default function ReturnDetailPage() {
   const params = useParams()

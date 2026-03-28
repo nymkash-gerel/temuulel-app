@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface LeaseRow {
   id: string
@@ -38,9 +39,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   terminated: { label: 'Terminated', color: 'bg-red-500/20 text-red-400' },
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {

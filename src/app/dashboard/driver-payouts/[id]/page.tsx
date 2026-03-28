@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface DriverPayoutDetail {
   id: string
@@ -30,10 +31,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Цуцалсан', color: 'bg-red-500/20 text-red-400' },
 }
 
-function formatPrice(amount: number | null) {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(date: string | null) {
   if (!date) return '-'

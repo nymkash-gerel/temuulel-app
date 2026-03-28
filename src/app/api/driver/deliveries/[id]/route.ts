@@ -34,7 +34,7 @@ export async function GET(
   // Fetch delivery
   const { data: delivery, error: delError } = await supabase
     .from('deliveries')
-    .select('*')
+    .select('id, delivery_number, delivery_type, delivery_address, pickup_address, customer_name, customer_phone, order_id, driver_id, status, delivery_fee, scheduled_date, scheduled_time_slot, estimated_delivery_time, actual_delivery_time, proof_photo_url, failure_reason, notes, metadata, ai_assignment, provider_name, provider_tracking_id, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('driver_id', driver.id)
     .single()

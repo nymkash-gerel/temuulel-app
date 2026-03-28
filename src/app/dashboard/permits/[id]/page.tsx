@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface Permit {
   id: string
@@ -42,9 +43,6 @@ const TYPE_LABELS: Record<string, string> = {
 
 const STATUS_FLOW = ['applied', 'under_review', 'approved']
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function PermitDetailPage() {
   const params = useParams()

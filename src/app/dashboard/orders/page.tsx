@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { exportToFile } from '@/lib/export-utils'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,9 +44,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   cancelled:  { label: 'Цуцлагдсан',     color: 'bg-red-500/20 text-red-400 border-red-500/30',        icon: '❌' },
 }
 
-function fmtPrice(n: number) {
-  return new Intl.NumberFormat('mn-MN').format(n) + '₮'
-}
+
 function fmtDate(d: string) {
   return new Date(d).toLocaleString('mn-MN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
@@ -215,7 +214,7 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
                     <button onClick={() => setEdit(p => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, quantity: it.quantity + 1 } : it) }))}
                       className="w-6 h-6 rounded bg-slate-600 hover:bg-slate-500 text-white text-xs flex items-center justify-center">+</button>
                   </div>
-                  <span className="text-slate-400 text-xs w-20 text-right flex-shrink-0">{fmtPrice(item.unit_price * item.quantity)}</span>
+                  <span className="text-slate-400 text-xs w-20 text-right flex-shrink-0">{formatPrice(item.unit_price * item.quantity)}</span>
                 </div>
               ))
             ) : (
@@ -224,7 +223,7 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
                   <span className="text-white truncate flex-1">{itemName(item)}</span>
                   {itemVariant(item) && <span className="text-slate-500 text-xs">{itemVariant(item)}</span>}
                   <span className="text-slate-400 flex-shrink-0">x{item.quantity}</span>
-                  <span className="text-white font-medium flex-shrink-0">{fmtPrice(item.unit_price * item.quantity)}</span>
+                  <span className="text-white font-medium flex-shrink-0">{formatPrice(item.unit_price * item.quantity)}</span>
                 </div>
               ))
             )}
@@ -270,7 +269,7 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
             <div className="flex justify-between">
               <span className="text-slate-400">Дэд дүн</span>
               <span className="text-white">
-                {isEditing ? fmtPrice(editSubtotal) : fmtPrice(order.order_items?.reduce((s, i) => s + i.quantity * i.unit_price, 0) ?? 0)}
+                {isEditing ? formatPrice(editSubtotal) : formatPrice(order.order_items?.reduce((s, i) => s + i.quantity * i.unit_price, 0) ?? 0)}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -280,13 +279,13 @@ function OrderCard({ order, onSaved }: { order: Order; onSaved: (updated: Order)
                   onChange={e => setEdit(p => ({ ...p, shippingAmount: parseFloat(e.target.value) || 0 }))}
                   className="w-24 text-right bg-slate-700 border border-amber-500/40 rounded px-2 py-0.5 text-white text-sm focus:outline-none" />
               ) : (
-                <span className="text-white">{fmtPrice(order.shipping_amount ?? 0)}</span>
+                <span className="text-white">{formatPrice(order.shipping_amount ?? 0)}</span>
               )}
             </div>
             <div className="flex justify-between pt-1.5 border-t border-slate-700">
               <span className="text-white font-medium">Нийт</span>
               <span className={`font-bold text-base ${isEditing ? 'text-amber-400' : 'text-white'}`}>
-                {isEditing ? fmtPrice(editSubtotal + edit.shippingAmount) : fmtPrice(order.total_amount)}
+                {isEditing ? formatPrice(editSubtotal + edit.shippingAmount) : formatPrice(order.total_amount)}
               </span>
             </div>
           </div>

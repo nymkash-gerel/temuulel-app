@@ -25,7 +25,7 @@ export async function GET(
 
   const { data: flow, error } = await supabase
     .from('flows')
-    .select('*')
+    .select('id, name, description, trigger_type, trigger_config, nodes, edges, viewport, status, priority, is_template, business_type, times_triggered, times_completed, last_triggered_at, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

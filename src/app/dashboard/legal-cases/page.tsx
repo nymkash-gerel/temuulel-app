@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface LegalCase {
   id: string
@@ -64,10 +65,6 @@ const CASE_TYPE_LABELS: Record<string, string> = {
   other: 'Бусад',
 }
 
-function formatPrice(amount: number | null) {
-  if (!amount) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function LegalCasesPage() {
   const supabase = useMemo(() => createClient(), [])

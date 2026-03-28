@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
 import { photoSessionTransitions } from '@/lib/status-machine'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -87,9 +88,6 @@ const GALLERY_STATUS_LABELS: Record<string, { label: string; color: string }> = 
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatPrice(amount: number): string {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('mn-MN', {

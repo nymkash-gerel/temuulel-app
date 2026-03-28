@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface Service {
   id: string
@@ -58,9 +59,6 @@ export default function ServicesPage() {
     return matchesSearch && matchesStatus
   })
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-  }
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes} мин`

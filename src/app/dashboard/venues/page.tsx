@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { formatPrice } from '@/lib/format'
 
 interface Venue {
   id: string
@@ -28,9 +29,6 @@ interface NewVenueForm {
   is_active: boolean
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function VenuesPage() {
   const _supabase = createClient()

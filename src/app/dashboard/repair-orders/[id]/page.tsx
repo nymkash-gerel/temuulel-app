@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
 import { repairOrderTransitions } from '@/lib/status-machine'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface RepairOrder {
   id: string
@@ -99,10 +100,6 @@ const _NEXT_STATUS_LABELS: Record<string, string> = {
   completed: '\u0425\u04AF\u043B\u044D\u044D\u043B\u0433\u044D\u0445',
 }
 
-function formatPrice(amount: number | null | undefined): string {
-  if (amount == null) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '\u20AE'
-}
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return '-'

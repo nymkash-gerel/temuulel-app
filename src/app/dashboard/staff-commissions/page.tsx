@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface StaffCommission {
   id: string
@@ -38,9 +39,6 @@ const SALE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   membership: { label: 'Membership', color: 'bg-amber-500/20 text-amber-400' },
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function StaffCommissionsPage() {
   const router = useRouter()

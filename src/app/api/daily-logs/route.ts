@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('daily_logs')
-    .select('*', { count: 'exact' })
+    .select('id, log_date, weather, work_completed, issues, author_id, project_id, store_id, created_at, updated_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('log_date', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       issues: body.issues || null,
       author_id: body.author_id || null,
     })
-    .select('*')
+    .select('id, log_date, weather, work_completed, issues, author_id, project_id, store_id, created_at, updated_at')
     .single()
 
   if (error) {

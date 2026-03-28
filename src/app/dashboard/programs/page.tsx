@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { formatPrice } from '@/lib/format'
 
 interface Program {
   id: string
@@ -34,9 +35,6 @@ const PROGRAM_TYPE_LABELS: Record<string, string> = {
   tutoring: 'Tutoring',
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function ProgramsPage() {
   const supabase = createClient()

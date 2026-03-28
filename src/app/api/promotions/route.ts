@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('promotions')
-    .select('*', { count: 'exact' })
+    .select('id, name, promo_type, discount_type, discount_value, start_date, end_date, is_active, description, min_order_amount, max_discount_amount, max_usage, usage_count, applicable_products, applicable_categories, conditions, store_id, created_at, updated_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)

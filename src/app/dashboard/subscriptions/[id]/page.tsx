@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
 import { subscriptionTransitions } from '@/lib/status-machine'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface Subscription {
   id: string
@@ -53,9 +54,6 @@ const BILLING_PERIOD_LABELS: Record<string, string> = {
   yearly: 'Жил бүр',
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '-'

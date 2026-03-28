@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,9 +56,6 @@ const BOOKING_STATUS: Record<string, { label: string; color: string }> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatPrice(amount: number): string {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString('mn-MN', {

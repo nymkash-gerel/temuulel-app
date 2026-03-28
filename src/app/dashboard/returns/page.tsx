@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface ReturnRequest {
   id: string
@@ -26,9 +27,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   completed: { label: 'Дууссан', color: 'bg-green-500/20 text-green-400', icon: '✓' },
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 export default function ReturnsPage() {
   const router = useRouter()

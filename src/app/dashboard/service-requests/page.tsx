@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface ServiceRequest {
   id: string
@@ -50,9 +51,6 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   other: 'Бусад',
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 export default function ServiceRequestsPage() {
   const router = useRouter()

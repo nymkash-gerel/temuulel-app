@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('staff')
-    .select('*', { count: 'exact' })
+    .select('id, name, phone, email, avatar_url, specialties, status, user_id, messenger_psid, telegram_chat_id, working_hours, store_id, created_at, updated_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('name', { ascending: true })
 

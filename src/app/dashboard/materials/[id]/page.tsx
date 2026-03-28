@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface MaterialOrder {
   id: string
@@ -31,9 +32,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 const STATUS_FLOW = ['ordered', 'shipped', 'delivered']
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function MaterialOrderDetailPage() {
   const params = useParams()

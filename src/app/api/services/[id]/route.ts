@@ -24,7 +24,7 @@ export async function GET(
 
   const { data: service, error } = await supabase
     .from('services')
-    .select('*')
+    .select('id, name, description, base_price, category, duration_minutes, images, status, ai_context, facebook_post_id, instagram_post_id, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

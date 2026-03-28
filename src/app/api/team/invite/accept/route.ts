@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   // Find and validate pending invite
   const { data: invite } = await supabase
     .from('pending_invites')
-    .select('*')
+    .select('id, store_id, email, role, permissions, token, invited_by, expires_at, created_at')
     .eq('token', token)
     .single()
 

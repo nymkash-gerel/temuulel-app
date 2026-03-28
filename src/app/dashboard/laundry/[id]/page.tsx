@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import StatusActions from '@/components/ui/StatusActions'
 import { laundryOrderTransitions } from '@/lib/status-machine'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface LaundryItem {
   id: string
@@ -69,9 +70,6 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Цуцлагдсан',
 }
 
-function formatPrice(amount: number): string {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '\u20AE'
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('mn-MN', {

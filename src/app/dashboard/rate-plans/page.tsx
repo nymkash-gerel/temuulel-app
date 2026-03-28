@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface RatePlanRow {
   id: string
@@ -37,9 +38,6 @@ const PRICING_MODELS = [
   { value: 'flat', label: 'Flat Rate' },
 ]
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function RatePlansPage() {
   const router = useRouter()

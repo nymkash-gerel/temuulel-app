@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('leases')
-    .select('*', { count: 'exact' })
+    .select('id, unit_id, tenant_name, tenant_phone, tenant_email, lease_start, lease_end, monthly_rent, deposit_amount, notes, status, store_id, created_at, updated_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       deposit_amount: body.deposit_amount || null,
       notes: body.notes || null,
     })
-    .select('*')
+    .select('id, unit_id, tenant_name, tenant_phone, tenant_email, lease_start, lease_end, monthly_rent, deposit_amount, notes, status, store_id, created_at, updated_at')
     .single()
 
   if (error) {

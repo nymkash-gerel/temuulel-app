@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('crew_members')
-    .select('*', { count: 'exact' })
+    .select('id, name, role, phone, hourly_rate, certifications, status, store_id, created_at, updated_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('name', { ascending: true })
     .range(offset, offset + limit - 1)
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       hourly_rate: body.hourly_rate ?? null,
       certifications: body.certifications || null,
     })
-    .select('*')
+    .select('id, name, role, phone, hourly_rate, certifications, status, store_id, created_at, updated_at')
     .single()
 
   if (error) {

@@ -25,7 +25,7 @@ export async function GET(
 
   const { data: resource, error } = await supabase
     .from('bookable_resources')
-    .select('*')
+    .select('id, name, type, description, capacity, price_per_unit, features, images, sort_order, status, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

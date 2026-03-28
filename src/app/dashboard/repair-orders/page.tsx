@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface StaffMember {
   id: string
@@ -80,10 +81,6 @@ const DEVICE_TYPE_LABELS: Record<string, string> = {
   other: 'Бусад',
 }
 
-function formatPrice(amount: number | null) {
-  if (amount == null) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function RepairOrdersPage() {
   const router = useRouter()

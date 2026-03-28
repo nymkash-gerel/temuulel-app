@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface Subscription {
   id: string
@@ -45,9 +46,6 @@ const BILLING_PERIOD_LABELS: Record<string, string> = {
   yearly: 'Жил бүр',
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 export default function SubscriptionsPage() {
   const router = useRouter()

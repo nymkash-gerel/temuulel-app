@@ -30,7 +30,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
   const { data: lease, error } = await supabase
     .from('leases')
-    .select('*')
+    .select('id, unit_id, tenant_name, tenant_phone, tenant_email, lease_start, lease_end, monthly_rent, deposit_amount, notes, status, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()
@@ -74,7 +74,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     .update({ ...body, updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('store_id', store.id)
-    .select('*')
+    .select('id, unit_id, tenant_name, tenant_phone, tenant_email, lease_start, lease_end, monthly_rent, deposit_amount, notes, status, store_id, created_at, updated_at')
     .single()
 
   if (error) {

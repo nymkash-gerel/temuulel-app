@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface DeskBookingDetail {
   id: string
@@ -37,10 +38,6 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = 
   refunded: { label: 'Буцаагдсан', color: 'bg-slate-500/20 text-slate-400' },
 }
 
-function formatPrice(amount: number | null) {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(date: string | null) {
   if (!date) return '-'

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import CalendarView from '@/components/ui/CalendarView'
 import type { CalendarEvent } from '@/components/ui/CalendarView'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface Customer {
   id: string
@@ -55,9 +56,6 @@ const SESSION_TYPE_LABELS: Record<string, string> = {
   other: 'Бусад',
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 function formatDateTime(dateStr: string) {
   const d = new Date(dateStr)

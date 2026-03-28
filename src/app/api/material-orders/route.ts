@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('material_orders')
-    .select('*', { count: 'exact' })
+    .select('id, project_id, supplier_name, order_date, expected_delivery, total_cost, status, notes, store_id, created_at, updated_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       total_cost: body.total_cost || 0,
       notes: body.notes || null,
     })
-    .select('*')
+    .select('id, project_id, supplier_name, order_date, expected_delivery, total_cost, status, notes, store_id, created_at, updated_at')
     .single()
 
   if (error) {

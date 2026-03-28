@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface VoucherDetail {
   id: string
@@ -54,9 +55,6 @@ const COMP_TYPE_LABELS: Record<string, string> = {
   free_item: 'Үнэгүй бараа',
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('mn-MN').format(price) + '₮'
-}
 
 export default function VoucherDetailPage() {
   const router = useRouter()

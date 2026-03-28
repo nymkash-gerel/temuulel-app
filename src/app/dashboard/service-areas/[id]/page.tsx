@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface ServiceAreaDetail {
   id: string
@@ -22,10 +23,6 @@ interface ServiceAreaDetail {
   updated_at: string
 }
 
-function formatPrice(amount: number | null) {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDateTime(date: string | null) {
   if (!date) return '-'

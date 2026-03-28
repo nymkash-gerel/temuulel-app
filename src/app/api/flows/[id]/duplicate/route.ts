@@ -30,7 +30,7 @@ export async function POST(
   // Fetch original flow
   const { data: original } = await supabase
     .from('flows')
-    .select('*')
+    .select('id, name, description, trigger_type, trigger_config, nodes, edges, viewport')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { formatPrice } from '@/lib/format'
 
 interface DamageReportDetail {
   id: string
@@ -48,10 +49,6 @@ const DAMAGE_TYPE_LABELS: Record<string, string> = {
   other: 'Бусад',
 }
 
-function formatPrice(amount: number | null) {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDateTime(date: string | null) {
   if (!date) return '-'

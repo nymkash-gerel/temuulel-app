@@ -34,7 +34,7 @@ export async function GET(
 
   const { data: promotion, error } = await supabase
     .from('promotions')
-    .select('*')
+    .select('id, name, promo_type, discount_type, discount_value, start_date, end_date, is_active, description, min_order_amount, max_discount_amount, max_usage, usage_count, applicable_products, applicable_categories, conditions, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

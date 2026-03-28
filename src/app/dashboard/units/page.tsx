@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface UnitRow {
   id: string
@@ -34,9 +35,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   blocked: { label: 'Blocked', color: 'bg-red-500/20 text-red-400' },
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function UnitsPage() {
   const router = useRouter()

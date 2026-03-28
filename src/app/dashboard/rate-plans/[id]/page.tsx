@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface SeasonalAdjustment {
   name?: string
@@ -36,10 +37,6 @@ const PRICING_MODELS: Record<string, string> = {
   flat: 'Flat Rate',
 }
 
-function formatPrice(amount: number | null): string {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '-'

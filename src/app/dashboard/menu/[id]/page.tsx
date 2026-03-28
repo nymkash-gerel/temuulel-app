@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { formatPrice } from '@/lib/format'
 
 interface MenuItem {
   id: string
@@ -42,10 +43,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   archived: { label: 'Архивлагдсан', color: 'bg-red-500/20 text-red-400' },
 }
 
-function formatPrice(amount: number | null) {
-  if (amount == null) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDateTime(date: string | null) {
   if (!date) return '-'

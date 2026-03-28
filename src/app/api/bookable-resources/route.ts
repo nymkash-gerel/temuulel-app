@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('bookable_resources')
-    .select('*', { count: 'exact' })
+    .select('id, name, type, description, capacity, price_per_unit, features, images, sort_order, status, store_id, created_at, updated_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('sort_order', { ascending: true })
 

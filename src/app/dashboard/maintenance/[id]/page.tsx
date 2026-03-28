@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { formatPrice } from '@/lib/format'
 
 interface MaintenanceDetail {
   id: string
@@ -37,10 +38,6 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   urgent: { label: 'Яаралтай', color: 'bg-red-500/20 text-red-400' },
 }
 
-function formatPrice(amount: number | null) {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(date: string | null) {
   if (!date) return '-'

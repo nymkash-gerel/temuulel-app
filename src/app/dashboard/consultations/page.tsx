@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import CalendarView from '@/components/ui/CalendarView'
 import type { CalendarEvent } from '@/components/ui/CalendarView'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface StaffMember {
   id: string
@@ -70,10 +71,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   no_show: { label: 'Ирээгүй', color: 'bg-gray-500/20 text-gray-400' },
 }
 
-function formatPrice(amount: number | null) {
-  if (amount == null) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDateTime(dateStr: string | null) {
   if (!dateStr) return '-'

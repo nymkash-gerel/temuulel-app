@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface CrewMember {
   id: string
@@ -27,9 +28,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   inactive: { label: 'Идэвхгүй', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function CrewMemberDetailPage() {
   const params = useParams()

@@ -30,7 +30,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
   const { data: ratePlan, error } = await supabase
     .from('rate_plans')
-    .select('*')
+    .select('id, name, base_price, weekend_price, pricing_model, unit_type, min_stay, max_stay, seasonal_adjustments, is_active, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()
@@ -74,7 +74,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     .update({ ...body, updated_at: new Date().toISOString() } as Record<string, unknown>)
     .eq('id', id)
     .eq('store_id', store.id)
-    .select('*')
+    .select('id, name, base_price, weekend_price, pricing_model, unit_type, min_stay, max_stay, seasonal_adjustments, is_active, store_id, created_at, updated_at')
     .single()
 
   if (error) {

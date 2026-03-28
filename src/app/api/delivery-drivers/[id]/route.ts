@@ -26,7 +26,7 @@ export async function GET(
 
   const { data: driver, error } = await supabase
     .from('delivery_drivers')
-    .select('*')
+    .select('id, name, phone, email, vehicle_type, vehicle_number, status, user_id, avg_rating, rating_count, current_location, metadata, store_id, created_at, updated_at')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

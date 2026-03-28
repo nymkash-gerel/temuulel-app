@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { formatPrice } from '@/lib/format'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -77,10 +78,6 @@ function fmt(d: string | null) {
 function fmtTime(d: string | null) {
   if (!d) return '—'
   return new Date(d).toLocaleString('mn-MN', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
-}
-function fmtPrice(n: number | null | undefined) {
-  if (n == null) return '—'
-  return new Intl.NumberFormat('mn-MN').format(n) + '₮'
 }
 
 const ACTIVE_STATUSES = ['assigned', 'at_store', 'picked_up', 'in_transit', 'delayed']
@@ -446,7 +443,7 @@ export default function DriverDetailPage() {
               { label: 'Нийт захиалга',  value: analytics.today.length,         color: 'text-white',      sub: 'Өнөөдөр' },
               { label: 'Хүргэсэн',       value: analytics.todayDelivered,        color: 'text-green-400',  sub: `${analytics.yesterdayDelivered} өчигдөр` },
               { label: 'Замд яваа',      value: analytics.todayActive,           color: 'text-blue-400',   sub: 'Идэвхтэй' },
-              { label: 'Орлого',         value: fmtPrice(analytics.todayEarnings), color: 'text-yellow-400', sub: 'Хүргэлтийн хөлс' },
+              { label: 'Орлого',         value: formatPrice(analytics.todayEarnings), color: 'text-yellow-400', sub: 'Хүргэлтийн хөлс' },
             ].map(c => (
               <div key={c.label} className="bg-slate-800/60 rounded-xl p-3">
                 <p className="text-slate-400 text-xs">{c.label}</p>
@@ -630,11 +627,11 @@ export default function DriverDetailPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-400">Нийт орлого</span>
-              <span className="text-yellow-400 font-bold">{fmtPrice(analytics.totalEarnings)}</span>
+              <span className="text-yellow-400 font-bold">{formatPrice(analytics.totalEarnings)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Өнөөдрийн орлого</span>
-              <span className="text-green-400 font-medium">{fmtPrice(analytics.todayEarnings)}</span>
+              <span className="text-green-400 font-medium">{formatPrice(analytics.todayEarnings)}</span>
             </div>
             <div className="h-px bg-slate-700 my-1"/>
             <div className="flex justify-between">
@@ -671,7 +668,7 @@ export default function DriverDetailPage() {
                 }`}
               >
                 <p className="text-xs font-medium">{label}</p>
-                <p className="text-sm font-bold mt-0.5">{fmtPrice(fee)}</p>
+                <p className="text-sm font-bold mt-0.5">{formatPrice(fee)}</p>
                 <p className="text-xs opacity-60 mt-0.5">{count} хүргэлт</p>
               </button>
             ))}
@@ -835,7 +832,7 @@ export default function DriverDetailPage() {
                             <p className="text-xs text-slate-500 mt-0.5">#{del.orders.order_number}</p>
                           )}
                           {del.delivery_fee != null && (
-                            <p className="text-xs text-slate-400">{fmtPrice(del.delivery_fee)}</p>
+                            <p className="text-xs text-slate-400">{formatPrice(del.delivery_fee)}</p>
                           )}
                           {payBadge && <p className={`text-xs ${payBadge.color}`}>{payBadge.label}</p>}
                         </td>

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
+import { formatPrice } from '@/lib/format'
 
 interface CrewMember {
   id: string
@@ -22,9 +23,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   inactive: { label: 'Идэвхгүй', color: 'bg-slate-500/20 text-slate-400' },
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function CrewPage() {
   const router = useRouter()

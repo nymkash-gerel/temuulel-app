@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { formatPrice } from '@/lib/format'
 
 interface DealDetail {
   id: string
@@ -72,10 +73,6 @@ const NEXT_LABELS: Record<string, string> = {
   contract: 'Хэлцэл хаах',
 }
 
-function formatPrice(amount: number | null) {
-  if (!amount) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(date: string | null) {
   if (!date) return '-'

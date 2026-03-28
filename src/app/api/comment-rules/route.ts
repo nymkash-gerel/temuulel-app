@@ -28,7 +28,7 @@ export async function GET() {
   // Get rules ordered by priority
   const { data: rules, error } = await supabase
     .from('comment_auto_rules')
-    .select('*')
+    .select('id, name, enabled, trigger_type, keywords, match_mode, reply_comment, reply_dm, comment_template, dm_template, delay_seconds, platforms, post_filter, use_ai, ai_context, priority, matches_count, replies_sent, last_triggered_at, store_id, created_at, updated_at')
     .eq('store_id', store.id)
     .order('priority', { ascending: true })
 

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('rate_plans')
-    .select('*', { count: 'exact' })
+    .select('id, name, base_price, weekend_price, pricing_model, unit_type, min_stay, max_stay, seasonal_adjustments, is_active, store_id, created_at, updated_at', { count: 'exact' })
     .eq('store_id', store.id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       max_stay: body.max_stay || null,
       is_active: body.is_active ?? true,
     })
-    .select('*')
+    .select('id, name, base_price, weekend_price, pricing_model, unit_type, min_stay, max_stay, seasonal_adjustments, is_active, store_id, created_at, updated_at')
     .single()
 
   if (error) {

@@ -95,7 +95,7 @@ export async function PATCH(
   // Fetch current deal
   const { data: deal } = await supabase
     .from('deals')
-    .select('*')
+    .select('id, status, viewing_date, offer_date, contract_date, final_price, offer_price, asking_price, commission_rate, agent_share_rate')
     .eq('id', id)
     .eq('store_id', store.id)
     .single()

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface Reservation {
   id: string
@@ -42,9 +43,6 @@ const DEPOSIT_STATUS_CONFIG: Record<string, { label: string; color: string }> = 
   refunded: { label: 'Буцаагдсан', color: 'bg-slate-500/20 text-slate-400' },
 }
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('mn-MN', {

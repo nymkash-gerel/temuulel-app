@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { exportToFile } from '@/lib/export-utils'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface Deal {
   id: string
@@ -68,10 +69,6 @@ const STATUS_TABS = [
   { key: 'lost', label: 'Алдагдсан' },
 ]
 
-function formatPrice(amount: number | null) {
-  if (!amount) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function DealsPage() {
   const supabase = useMemo(() => createClient(), [])

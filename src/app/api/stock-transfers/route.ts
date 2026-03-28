@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       initiated_by: body.initiated_by || null,
       notes: body.notes || null,
     })
-    .select('*')
+    .select('id, store_id, from_location_id, to_location_id, status, initiated_by, notes, created_at, updated_at')
     .single()
 
   if (transferError || !transfer) {

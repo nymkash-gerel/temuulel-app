@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 import { resolveStoreId } from '@/lib/resolve-store'
+import { formatPrice } from '@/lib/format'
 
 interface TimeEntry {
   id: string
@@ -29,10 +30,6 @@ interface Staff {
   name: string
 }
 
-function formatPrice(amount: number | null) {
-  if (!amount) return '-'
-  return new Intl.NumberFormat('mn-MN').format(amount) + '₮'
-}
 
 export default function TimeTrackingPage() {
   const supabase = useMemo(() => createClient(), [])
