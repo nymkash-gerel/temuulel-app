@@ -163,11 +163,33 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'perfect', 'wonderful',
     // Aliases (stemmer handles: баярласан→баярла, баярлсан/баярлж→баярл, баяртай→баяр)
     'баярлаа', 'баярлж',
-    'гоё', 'гое', 'гое байна',
+    'гоё', 'гое', 'гое байна', 'гой',
     'сайн байна лээ', 'зүгээр', 'за',
     'маш гоё', 'маш зөв',
     'рахмэт',
     'мерси',
+    // Latin thanks (common in FB Messenger)
+    'thanx', 'thx', 'thnx', 'thnks',
+    'goy', 'goyo', 'goye', 'goe',
+    'bayrlaa', 'bayarlalaa', 'bayrlalaa',
+    // Satisfaction expressions
+    'сэтгэл ханамжтай', 'ханамжтай',
+    'дахиж захиална', 'дахин захиална',
+    'mundag', 'мундаг',
+  ],
+  general: [
+    // Short affirmatives/responses that are NOT product searches
+    'тийм', 'үгүй', 'мэдэхгүй', 'ойлголоо', 'ойлгосон',
+    'бодоод үзье', 'бодоод узье', 'дараа хэлье', 'дараа хэлэх',
+    'хаха', 'ха ха', 'хахаха', 'ахаха',
+    // Latin short responses
+    'ok', 'oke', 'okay', 'tiim', 'ugui', 'medehgui',
+    'haha', 'hahaha', 'hahhaha', 'lol',
+    'bodood uzye', 'daraa heleh', 'daraa helye',
+    // Emoji-only or very short
+    'oo', 'ooo',
+    // Confirmations (not escalation)
+    'бга гсн бзд', 'бну гсн шдэ',
   ],
   complaint: [
     // Core — negative sentiment (return keywords moved to return_exchange)
@@ -188,8 +210,12 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хариуцлага', 'хариуцлагагүй',
     // Money refund complaints (strong complaint signal)
     'мөнгө буцаах', 'мөнгөө буцааж өг', 'мөнгө буцаа',
+    // Strong anger signals
+    'авахгүй', 'авахгүй байна', 'авахгүй бол',
+    'чанаргүй юм', 'сүүлийн удаа', 'ene l udaa',
     // Latin transliterations (common in Messenger complaints)
     'yaagaad', 'yaagad', 'yagaad',
+    'chnargui', 'chanargui',
     'mongoo butaaj ug', 'mongoo butaaj', 'mongoo butaa', 'mungu butaaj',
     'muu uilchilgee', 'muu uilchilge', 'muuhay',
     'zahirlaa duudaach', 'zahirlaa duu', 'zahiral hun',
@@ -329,6 +355,12 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'hesgchlen', 'hesgchilen', 'hesgch',
     'QPay-aar', 'QPay-eer', 'qpayaar',
     'belneer', 'belnaar', 'belen mungu',
+    // Cash discount / payment method questions
+    'кашаар авах', 'кашаар', 'cashaar',
+    'хүргэлтийн мөнгө шилжүүлэх', 'шилжүүлэх үү',
+    'хуваан төлж болох', 'huvaaj tulj boloh',
+    'dans', 'dansaa', 'dansruu',
+    'ali bankaar', 'ямар банк',
   ],
   shipping: [
     // Core
@@ -370,6 +402,13 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'сонгинохайрхан', 'налайх', 'багануур',
     // Address structure (customer providing delivery address)
     'байр', 'баир', 'давхар', 'тоот', 'орц', 'хотхон', 'хороолол',
+    // Pickup — customer wants to pick up instead of delivery
+    'очиж авах', 'очиж авч', 'очиж авмаар', 'очих', 'очно',
+    'ochij awah', 'ochij', 'ochno',
+    'биеэр очих', 'биеэр авах', 'биеэр ирж',
+    'хаанаас авах', 'хаанаас авч',
+    // Latin address patterns
+    'hayag', 'haygaa', 'horoo', 'bair', 'davhar', 'toot',
   ],
   // Restaurant-specific intents
   table_reservation: [

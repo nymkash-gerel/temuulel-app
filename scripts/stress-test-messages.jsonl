@@ -1,0 +1,143 @@
+{"text": "sbnuu", "intent": "greeting", "scenario": "greeting_ultra_short"}
+{"text": "sain uu ta nar", "intent": "greeting", "scenario": "greeting_latin"}
+{"text": "Оройн мэнд", "intent": "greeting", "scenario": "greeting_evening"}
+{"text": "hii", "intent": "greeting", "scenario": "greeting_typo"}
+{"text": "байнуу", "intent": "greeting", "scenario": "greeting_merged"}
+{"text": "ени цамц бнуу", "intent": "product_search", "scenario": "product_cyrillic_typo"}
+{"text": "skims bnumuu", "intent": "product_search", "scenario": "product_latin_typo"}
+{"text": "har ungu bguyu", "intent": "product_search", "scenario": "product_color_latin"}
+{"text": "хар өнгөтэй юмаа бну", "intent": "product_search", "scenario": "product_color_cyrillic"}
+{"text": "une hedee ve ene", "intent": "product_search", "scenario": "product_price_latin"}
+{"text": "үнэ хэдий вэ?", "intent": "product_search", "scenario": "product_price_cyrillic"}
+{"text": "leevchik set bnuu", "intent": "product_search", "scenario": "product_specific_latin"}
+{"text": "левчик сет бну", "intent": "product_search", "scenario": "product_specific_cyrillic_typo"}
+{"text": "корсет бгаа ю", "intent": "product_search", "scenario": "product_korset"}
+{"text": "turshik bnu 4sh iig", "intent": "product_search", "scenario": "product_turshik_latin"}
+{"text": "бензэн турсик байгаа юу?", "intent": "product_search", "scenario": "product_benzin_full"}
+{"text": "daashnz bgayu goe zurag haruulaach", "intent": "product_search", "scenario": "product_dress_latin_typo"}
+{"text": "даашинз загвар нь ямар бэ?", "intent": "product_search", "scenario": "product_dress_style"}
+{"text": "zara ni ym bnuu", "intent": "product_search", "scenario": "product_brand_search"}
+{"text": "хямдралтай юм бну?", "intent": "product_search", "scenario": "product_sale"}
+{"text": "шинэ ирсэн юм бну?", "intent": "product_search", "scenario": "product_new_arrival"}
+{"text": "ene omd hed we", "intent": "product_search", "scenario": "product_pants_price"}
+{"text": "tsamts ymar uneteii we", "intent": "product_search", "scenario": "product_shirt_price"}
+{"text": "ene yag yu bilee ene bichleg deerh yum", "intent": "product_search", "scenario": "product_from_post"}
+{"text": "Malstory dr tawisan yumiig awmaar bna", "intent": "product_search", "scenario": "product_from_story"}
+{"text": "энэ юмнуудыг хамт авбал хямдрах уу?", "intent": "product_search", "scenario": "product_bundle_discount"}
+{"text": "2sh hamtdaa awbal ymar une bolgoh we?", "intent": "product_search", "scenario": "product_bundle_latin"}
+{"text": "хамгийн хямд юм юу бэ?", "intent": "product_search", "scenario": "product_cheapest"}
+{"text": "50k dotor ymym bnuu", "intent": "product_search", "scenario": "product_budget"}
+{"text": "avya ene", "intent": "order_collection", "scenario": "order_short_latin"}
+{"text": "авъяаа", "intent": "order_collection", "scenario": "order_short_cyrillic"}
+{"text": "захиалъя шүү", "intent": "order_collection", "scenario": "order_zahialya"}
+{"text": "1r bараагаа awya", "intent": "order_collection", "scenario": "order_by_number"}
+{"text": "benz xxs guytai 2sh awya", "intent": "order_collection", "scenario": "order_with_variant"}
+{"text": "leevchik M хар аваа", "intent": "order_collection", "scenario": "order_specific_mixed"}
+{"text": "корсет S/M авмаар бна", "intent": "order_collection", "scenario": "order_korset_size"}
+{"text": "3 давхар тайл гаргагч L авъя", "intent": "order_collection", "scenario": "order_product_full"}
+{"text": "ene set iig buhliig n awya", "intent": "order_collection", "scenario": "order_full_set"}
+{"text": "2sh leevchik + 4sh turshik awya", "intent": "order_collection", "scenario": "order_combo"}
+{"text": "өмд цамц хоёулыг авъя L", "intent": "order_collection", "scenario": "order_two_items"}
+{"text": "нэмж 1 ширхэг аваа", "intent": "order_collection", "scenario": "order_add_more"}
+{"text": "бэлэгнд авмаар бна гоё юмаа олоод өгөөч", "intent": "order_collection", "scenario": "order_gift"}
+{"text": "өчигдрийн захиалгадаа 1 нэмж авъя", "intent": "order_collection", "scenario": "order_add_to_existing"}
+{"text": "S razmer", "intent": "size_info", "scenario": "size_short_latin"}
+{"text": "М хэмжээ", "intent": "size_info", "scenario": "size_short_cyrillic"}
+{"text": "55 кг хүнд ямар размер тааарх вэ", "intent": "size_info", "scenario": "size_by_weight"}
+{"text": "65kg yamr razmer we", "intent": "size_info", "scenario": "size_by_weight_latin"}
+{"text": "хэмжээний хүснэгт бий юу", "intent": "size_info", "scenario": "size_chart"}
+{"text": "bi 170sm 60kg yuug awah we", "intent": "size_info", "scenario": "size_height_weight"}
+{"text": "L oos deeesh razmer bnuu? XL?", "intent": "size_info", "scenario": "size_above_L"}
+{"text": "хүүхдэд тохирох хэмжээ бий юу 10 настай", "intent": "size_info", "scenario": "size_kids"}
+{"text": "бэлхүүс 76см бол ямар размер вэ?", "intent": "size_info", "scenario": "size_by_measurement"}
+{"text": "freesize yumuu ene?", "intent": "size_info", "scenario": "size_freesize"}
+{"text": "M нь биед нааж дарах уу том уу?", "intent": "size_info", "scenario": "size_fit_question"}
+{"text": "энийг бага зэрэг том авах уу яг хэмжээгээрээ авах уу?", "intent": "size_info", "scenario": "size_advice"}
+{"text": "БЗД 4р хороо 12р байр 34тоот", "intent": "shipping", "scenario": "shipping_address_cyrillic"}
+{"text": "bzd 8r horoo 15 bair 23 toot", "intent": "shipping", "scenario": "shipping_address_latin"}
+{"text": "СХД Зайсан хотхон 4 байр", "intent": "shipping", "scenario": "shipping_address_shd"}
+{"text": "Хан уул дүүрэг 11р хороо", "intent": "shipping", "scenario": "shipping_address_khanuul"}
+{"text": "hurgelt hed we?", "intent": "shipping", "scenario": "shipping_cost_latin"}
+{"text": "хүргэлтийн төлбөр хэд вэ?", "intent": "shipping", "scenario": "shipping_cost_cyrillic"}
+{"text": "oron nutag hurgej chdahu?", "intent": "shipping", "scenario": "shipping_rural_latin"}
+{"text": "дархан хот руу хүргэж чадах уу?", "intent": "shipping", "scenario": "shipping_rural_city"}
+{"text": "88001122 энэ утасруу залгаарай", "intent": "shipping", "scenario": "shipping_phone"}
+{"text": "hayagaa helye CHD galt tergenii buudal oroltsoo", "intent": "shipping", "scenario": "shipping_landmark"}
+{"text": "маргааш авч болох уу?", "intent": "shipping", "scenario": "shipping_timing"}
+{"text": "оройн 6 цагаас хойш гэртээ байна очиж ирээрэй", "intent": "shipping", "scenario": "shipping_time_request"}
+{"text": "ажлын газар руу хүргүүлж болох уу?", "intent": "shipping", "scenario": "shipping_work_address"}
+{"text": "очиж авч болох уу хаанаас?", "intent": "shipping", "scenario": "shipping_pickup"}
+{"text": "haygaa ogoyo ghdee irheer msj bicheerei", "intent": "shipping", "scenario": "shipping_will_provide"}
+{"text": "dans ygye", "intent": "payment", "scenario": "payment_bank_latin"}
+{"text": "дансаа өгнө үү?", "intent": "payment", "scenario": "payment_bank_cyrillic"}
+{"text": "qpay boluuu?", "intent": "payment", "scenario": "payment_qpay_latin"}
+{"text": "QPay-аар төлж болох уу?", "intent": "payment", "scenario": "payment_qpay_cyrillic"}
+{"text": "кашаар авахаар хямдрах уу?", "intent": "payment", "scenario": "payment_cash_discount"}
+{"text": "shiljuulsen shuu 50k", "intent": "payment", "scenario": "payment_transferred_latin"}
+{"text": "хаан банк руу шилжүүлсэн шалгаач", "intent": "payment", "scenario": "payment_transferred_cyrillic"}
+{"text": "hurgeltiin unt tugrug iig shiljuuleh uu esvel hurj ireed tuluh uu?", "intent": "payment", "scenario": "payment_method_question"}
+{"text": "huvaaj tulj boloh uu?", "intent": "payment", "scenario": "payment_installment"}
+{"text": "zahialga hezee ireh we?", "intent": "order_status", "scenario": "status_when_latin"}
+{"text": "захиалга маань хэзээ ирэх юм?", "intent": "order_status", "scenario": "status_when_cyrillic"}
+{"text": "yawsan uu manai zahialga?", "intent": "order_status", "scenario": "status_sent_latin"}
+{"text": "хүргэлт хаана явж бна?", "intent": "order_status", "scenario": "status_tracking"}
+{"text": "ORD-1234567 ene zahialga yamar bolson?", "intent": "order_status", "scenario": "status_by_ordernumber"}
+{"text": "өчигдөр захиалсан юмаа өнөөдөр авч болох уу?", "intent": "order_status", "scenario": "status_yesterday_order"}
+{"text": "3 хоног болсон юм яагаад удааж бна?", "intent": "order_status", "scenario": "status_complaint_delay"}
+{"text": "манайх ирсэн үү тэр юм?", "intent": "order_status", "scenario": "status_arrived"}
+{"text": "утсаар залгасан боловч авахгүй бна", "intent": "order_status", "scenario": "status_no_answer"}
+{"text": "баярлалааа маш гоё юмаа", "intent": "thanks", "scenario": "thanks_great"}
+{"text": "thanx", "intent": "thanks", "scenario": "thanks_latin"}
+{"text": "goy shuu", "intent": "thanks", "scenario": "thanks_goy_latin"}
+{"text": "Маш сайн чанартай юм байна баярлалаа", "intent": "thanks", "scenario": "thanks_quality"}
+{"text": "дахиж захиална шүү", "intent": "thanks", "scenario": "thanks_will_reorder"}
+{"text": "сэтгэл ханамжтай байнаа", "intent": "thanks", "scenario": "thanks_satisfied"}
+{"text": "энэ юм буруу ирлээ шүү", "intent": "complaint", "scenario": "complaint_wrong_item"}
+{"text": "muuhii chanar bna tanaih yum", "intent": "complaint", "scenario": "complaint_quality_latin"}
+{"text": "3 хоног боллоо яагаад хүргэхгүй байгаа юм!!!", "intent": "complaint", "scenario": "complaint_delay_angry"}
+{"text": "хагарсан юм ирсэн бна яах вэ??", "intent": "complaint", "scenario": "complaint_damaged"}
+{"text": "ene yum bas l yawuulsangui bdaa???", "intent": "complaint", "scenario": "complaint_not_shipped"}
+{"text": "ХҮРГЭЛТ 1 ДОЛОО ХОНОГ БОЛЛОО АВАХГҮЙ БАЙНА!!", "intent": "complaint", "scenario": "complaint_caps_angry"}
+{"text": "мөнгөө буцааж өгнө үү?", "intent": "complaint", "scenario": "complaint_refund_request"}
+{"text": "tanaih bx yum chnargui ene l udaa zahialj bna", "intent": "complaint", "scenario": "complaint_last_time"}
+{"text": "хүнтэй ярих боломжтой юу менежертэй холбогдох уу?", "intent": "complaint", "scenario": "complaint_human_agent"}
+{"text": "буцаах боломжтой юу?", "intent": "return_exchange", "scenario": "return_question"}
+{"text": "razmer taarahgui solij boloh uu?", "intent": "return_exchange", "scenario": "return_size_exchange_latin"}
+{"text": "Размер тохирохгүй солино уу?", "intent": "return_exchange", "scenario": "return_size_exchange_cyrillic"}
+{"text": "өөр өнгөөр солиулмаар бна", "intent": "return_exchange", "scenario": "return_color_exchange"}
+{"text": "mongoo butsaaj ugch bolhuu?", "intent": "return_exchange", "scenario": "return_refund_latin"}
+{"text": "хэзээ дотор нь буцааж болдог юм?", "intent": "return_exchange", "scenario": "return_policy_question"}
+{"text": "авсанаасаа 3 хоногийн дараа буцаах гэсэн", "intent": "return_exchange", "scenario": "return_timeframe"}
+{"text": "hmm yaaadag ym ene", "intent": "general", "scenario": "general_confused_latin"}
+{"text": "юу гэсэн үг вэ?", "intent": "general", "scenario": "general_confused_cyrillic"}
+{"text": "za", "intent": "general", "scenario": "general_ok"}
+{"text": "tiim", "intent": "general", "scenario": "general_yes"}
+{"text": "medehgui", "intent": "general", "scenario": "general_dunno"}
+{"text": "daraа heleх", "intent": "general", "scenario": "general_later"}
+{"text": "bi bodood uzye", "intent": "general", "scenario": "general_thinking"}
+{"text": "hahhaha", "intent": "general", "scenario": "general_laugh"}
+{"text": "👍", "intent": "general", "scenario": "general_emoji"}
+{"text": "oke", "intent": "general", "scenario": "general_ok_latin"}
+{"text": "skims bnu?", "intent": "product_search", "scenario": "edge_greeting_vs_product"}
+{"text": "sn bnu?", "intent": "greeting", "scenario": "edge_greeting_vs_product2"}
+{"text": "энэ бну", "intent": "product_search", "scenario": "edge_product_short"}
+{"text": "bga gsn bzd?", "intent": "general", "scenario": "edge_confirmation_not_escalation"}
+{"text": "энэ хэзээ дуусах юм?", "intent": "product_search", "scenario": "edge_stock_question"}
+{"text": "2 ш skims + 2sh leevchik нийт хэд вэ?", "intent": "product_search", "scenario": "edge_multi_product_price"}
+{"text": "манай ээж бэлэг авах гэсэн 60 настай эмэгтэйд юу тааарх вэ?", "intent": "product_search", "scenario": "edge_gift_recommendation"}
+{"text": "instagramiin зургаан дээрх юмуудыг яж авах вэ?", "intent": "product_search", "scenario": "edge_from_instagram"}
+{"text": "zahialga ugsiin uildsen ymiig tsutslah", "intent": "order_status", "scenario": "edge_cancel_order"}
+{"text": "tusuv ni 100k bga ghdee 2 yum awmaar bna", "intent": "product_search", "scenario": "edge_budget_multiple"}
+{"text": "Xar ungu M razmer bgaa esehiig shalgaach", "intent": "size_info", "scenario": "edge_stock_check_variant"}
+{"text": "Бэлэг болгож боож өгч чадах уу?", "intent": "general", "scenario": "edge_gift_wrapping"}
+{"text": "ene ym setgel hanamjgui bolbol butsaaж boloh uu?", "intent": "return_exchange", "scenario": "edge_conditional_return"}
+{"text": "2sh iig avval hyamdrah uu? neg ymiig 2 awna gsen", "intent": "product_search", "scenario": "edge_bulk_discount"}
+{"text": "urjigdr tanii page dr tawisan shinehen omd haana bn?", "intent": "product_search", "scenario": "edge_post_reference"}
+{"text": "утсыг чинь аваагүй очиж авмаар бна хаана бдаг юм?", "intent": "shipping", "scenario": "edge_phone_missed_pickup"}
+{"text": "манай захиалга яагаад canceled болсон бэ???", "intent": "complaint", "scenario": "edge_cancelled_order_complaint"}
+{"text": "skims ni huuramch yumuu orignal yumuu?", "intent": "product_search", "scenario": "edge_authenticity"}
+{"text": "eniig ugaalahad yaj ugaah ve?", "intent": "product_search", "scenario": "edge_care_instructions"}
+{"text": "hereg bolbol 3 oor ongooor awya L M S tusdaa tusdaa", "intent": "order_collection", "scenario": "edge_multi_variant_order"}
+{"text": "энэ доторхоос L нь дуусчихсан юмуу?", "intent": "size_info", "scenario": "edge_specific_size_stock"}
+{"text": "ene pic dr haragdaj bga yumiig awmaar bn", "intent": "product_search", "scenario": "edge_from_photo"}
+{"text": "bi mongol bank shiljuuleh heregtei yuu ali bankaar baina?", "intent": "payment", "scenario": "edge_bank_options"}
