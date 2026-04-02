@@ -601,17 +601,16 @@ export async function processAIChat(
               )
               if (!modifierInCatalog) {
                 unlistedProductDetected = true
-                let notFoundMsg = 'Уучлаарай, тэр бараа одоогоор байхгүй байна 😊'
-                // Show top 3 products so the customer finds something useful
+                let notFoundMsg = 'Яг тэр бараа одоогоор байхгүй байна.'
+                // Show top 3 related products as suggestions
                 const topProducts = products.slice(0, 3)
                 if (topProducts.length > 0) {
-                  notFoundMsg += '\n\nМанай бараанууд:\n'
+                  notFoundMsg += ' Гэхдээ эдгээр таалагдаж магадгүй 👇\n'
                   topProducts.forEach((p, i) => {
                     notFoundMsg += `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}\n`
                   })
-                  notFoundMsg += '\nЭсвэл юу хайж байгаагаа тодруулж бичвэл туслая!'
                 } else {
-                  notFoundMsg += '\n\nЮу хайж байгаагаа тодруулж бичвэл тохирох бараа олоход туслая!'
+                  notFoundMsg += ' Юу хайж байгаагаа тодруулж бичвэл тохирох бараа олоход туслая!'
                 }
                 responseText = notFoundMsg
                 void dispatchNotification(storeId, 'new_message', {
