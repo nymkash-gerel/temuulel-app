@@ -379,12 +379,11 @@ function buildSystemPrompt(input: ContextualInput): string {
       }
       if (p.ai_context) {
         const cleanCtx = stripOwnerInstructions(p.ai_context as string)
-        if (cleanCtx) prompt += `\n   📌 [ДОТООД — хэрэглэгчид харуулахгүй]: ${cleanCtx}`
+        if (cleanCtx) prompt += `\n   📌 Нэмэлт мэдээлэл: ${cleanCtx}`
       }
-      if (p.sales_script) {
-        const cleanScript = stripOwnerInstructions(p.sales_script as string)
-        if (cleanScript) prompt += `\n   🗣️ [ДОТООД — copy хийхгүй, утгыг нь ашиглах]: ${cleanScript}`
-      }
+      // sales_script: DO NOT include in prompt — GPT regenerates owner instructions.
+      // Size/weight data is already in ai_context. sales_script used only for
+      // deterministic template responses (line ~710 in chat-ai-handler.ts).
     })
   }
 
