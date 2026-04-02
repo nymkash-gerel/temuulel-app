@@ -109,9 +109,27 @@ function detectBugs(message: string, intent: string, response: string): Bug[] {
   return bugs
 }
 
-// ── Load FB Messages ──
-function loadMessages(): { text: string; intent: string }[] {
-  // Try self-labeled first (has intents), then raw
+// ── Load Messages ──
+const sourceArg = args.indexOf('--source') >= 0 ? args[args.indexOf('--source') + 1] : undefined
+
+function loadMessages(): { text: string; intent: string; scenario?: string }[] {
+  // --source stress / stress2 / all-stress → use stress test messages
+  if (sourceArg?.startsWith('stress')) {
+    const files: string[] = []
+    if (sourceArg === 'stress' || sourceArg === 'all-stress') files.push('stress-test-messages.jsonl')
+    if (sourceArg === 'stress2' || sourceArg === 'all-stress') files.push('stress-test-v2.jsonl')
+    const all: { text: string; intent: string; scenario?: string }[] = []
+    for (const file of files) {
+      const p = path.join(__dirname, file)
+      if (fs.existsSync(p)) {
+        console.log(`${c.dim}Loading: ${file}${c.reset}`)
+        const lines = fs.readFileSync(p, 'utf-8').trim().split('\n')
+        all.push(...lines.map(l => JSON.parse(l)))
+      }
+    }
+    if (all.length > 0) return all
+  }
+
   const paths = [
     path.join(__dirname, 'fb-self-labeled.jsonl'),
     path.join(__dirname, '..', '.claude', 'worktrees', 'mystifying-payne', 'scripts', 'fb-self-labeled.jsonl'),
@@ -216,6 +234,28 @@ async function main() {
 
       // Bug detection
       const bugs = detectBugs(msg.text, result.intent, result.response)
+
+      // Intent mismatch detection (for stress test with expected intents)
+      if (msg.intent && msg.intent !== 'unknown' && result.intent !== msg.intent) {
+        // Allow some flexible mappings
+        const flexMap: Record<string, string[]> = {
+          'order_collection': ['product_search'],
+          'product_search': ['order_collection', 'size_info'],
+          'complaint': ['order_status', 'return_exchange'],
+          'order_status': ['complaint'],
+          'general': ['greeting'],
+          'greeting': ['general'],
+        }
+        const allowed = flexMap[msg.intent] || []
+        if (!allowed.includes(result.intent)) {
+          bugs.push({
+            type: 'INTENT_MISMATCH',
+            severity: 'warning',
+            description: `Expected: ${msg.intent}, Got: ${result.intent}${msg.scenario ? ` [${msg.scenario}]` : ''}`,
+          })
+        }
+      }
+
       for (const bug of bugs) {
         stats.bugs[bug.severity]++
       }

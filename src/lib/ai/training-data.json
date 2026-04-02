@@ -100110,5 +100110,425 @@
   {
     "text": "bi mongol bank shiljuuleh heregtei yuu ali bankaar baina?",
     "intent": "payment"
+  },
+  {
+    "text": "sn bnu skims bnuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "sain bnuu ene leevchik set hed we",
+    "intent": "product_search"
+  },
+  {
+    "text": "sbnuu tarpzan omd bguyu",
+    "intent": "product_search"
+  },
+  {
+    "text": "бензэн турсик 4ш юмуу 2ш юмуу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "skims deer bichsen 1+1 gej yu gesen ug ve?",
+    "intent": "product_search"
+  },
+  {
+    "text": "leevchik turshik set ni yag yuu ordog we?",
+    "intent": "product_search"
+  },
+  {
+    "text": "3 davhar korset gej yu ve? zuragaas harahad bodywrap shig haragdaj bna",
+    "intent": "product_search"
+  },
+  {
+    "text": "kashmiriin tsamtsand yamr materialtai ve 100% nooluurai yum uu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "zara daashinz ni yag zara brand uu huuramch uu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene buh yumnii zurag haruulaach",
+    "intent": "product_search"
+  },
+  {
+    "text": "galbar gargadag tsamts ni togloom hiihed umsuj boloh uu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "usny boolt kom 86sh dotorh n yu yu ordog we?",
+    "intent": "product_search"
+  },
+  {
+    "text": "kashmir 189k ugui ugui hetreed bn 100k dotor yumiig haruulaach",
+    "intent": "product_search"
+  },
+  {
+    "text": "hamgiin ih zarugddug baraa n yuub?",
+    "intent": "product_search"
+  },
+  {
+    "text": "shine irsen yum bnu sonin saihan?",
+    "intent": "product_search"
+  },
+  {
+    "text": "neg yum awahaar belen avch ywuuldag yumuu esvel dans shiljuuldg yumuu",
+    "intent": "payment"
+  },
+  {
+    "text": "2 yum awbal unegui hurgelt bnuu?",
+    "intent": "shipping"
+  },
+  {
+    "text": "100k ees deeesh zahialbal hurgelt unegui yumuu?",
+    "intent": "shipping"
+  },
+  {
+    "text": "undur aimgaas bn hurgej chadah uu Ulaanbaataraas gadna?",
+    "intent": "shipping"
+  },
+  {
+    "text": "darhan hurgej ugnu uu? oron nutag",
+    "intent": "shipping"
+  },
+  {
+    "text": "hurgelt huhdee yamar shiidvereer baina hezee ireh?",
+    "intent": "order_status"
+  },
+  {
+    "text": "skims awya benz M guytai",
+    "intent": "order_collection"
+  },
+  {
+    "text": "leevchik 2sh + turshik 4sh hamtdaa awya harin dans ogch",
+    "intent": "order_collection"
+  },
+  {
+    "text": "3 davhar korset S/M + galbar tsamts M avna",
+    "intent": "order_collection"
+  },
+  {
+    "text": "tsamts+omd set iig L size awya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "usny boolt 2 kom avya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "SKIMS + leevchik + turshik 3uuliig hamtdaa awya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "buh baraa awsan huniig hyamdaldg yumuu VIP gedg yum bnuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "belegnii tsaashtai bogloj ugch boloh uu?",
+    "intent": "general"
+  },
+  {
+    "text": "5 yum awahaar belen niit une n hed boloh?",
+    "intent": "product_search"
+  },
+  {
+    "text": "zara daashinz bor M + skims XXS benz guytai avya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "koshlagttai tsunh yamr ungu bnuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene tsunh ni A4 tsaas bagtsahuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "leevchik ni M yu L yu ali n taarah ym 57kg 164sm",
+    "intent": "size_info"
+  },
+  {
+    "text": "benz turshik S ni 45kg huuhded taarh uu?",
+    "intent": "size_info"
+  },
+  {
+    "text": "корсет S/M L/XL 2iin yalgaa yu bilee?",
+    "intent": "size_info"
+  },
+  {
+    "text": "tsamts omd set L avsan bol M ruu solij boloh uu?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "ochigdor awsan leevchik ni hemjee tom bna solino uu?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "butsaalt hed honogiin dotor hiideg we?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "butsaaval mongoo butsaaj ugdg uu esvel credit ugdg uu?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "awsan baraag zadlaagui unuurtii baidal hurgeej ugeh bolomjtoi yu?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "mangaaш awch boloh uu 88991122 ene utsiig oroiluu zalg",
+    "intent": "shipping"
+  },
+  {
+    "text": "БГД 3р хороо 52р байр 7 давхар 23 тоот утас 99887766",
+    "intent": "shipping"
+  },
+  {
+    "text": "хаягаа өөрчилж болох уу? Өмнө нь СБД гэсэн байсан одоо БЗД рүү явуулна уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "ene zahialgiin hurgeltiin dugaar ogch boloh uu? track hiih",
+    "intent": "order_status"
+  },
+  {
+    "text": "urgeljluuleed 1r baraagaa awya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "umnu zahialsan yum deer nemj zahialj boloh uu?",
+    "intent": "order_collection"
+  },
+  {
+    "text": "zurahiig ni tom bolgoodo haruulaach",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene bus uniig yalgahgui herhen hamgiiin hyamdaar avah ve?",
+    "intent": "product_search"
+  },
+  {
+    "text": "qpay deer tullee shalgaach 50k tulsen",
+    "intent": "payment"
+  },
+  {
+    "text": "5990260533 haanbank shiljuulsen shuu",
+    "intent": "payment"
+  },
+  {
+    "text": "shiljuuleh dans herhen ogoh ve? golmt bank bnuu?",
+    "intent": "payment"
+  },
+  {
+    "text": "hurgeltiin 7k iig tulj bn undsen baraa ni avahad tulnu",
+    "intent": "payment"
+  },
+  {
+    "text": "3 udaa zahialsan setgel hannmjtai",
+    "intent": "thanks"
+  },
+  {
+    "text": "маш хурдан хүргэсэн баярлалаа найзууддаа зөвлөнө",
+    "intent": "thanks"
+  },
+  {
+    "text": "чанар гоё юм байна лаа дараагийн удаад ч захиалъя",
+    "intent": "thanks"
+  },
+  {
+    "text": "энэ юмаа аваад 2 хоног болоогүй урагдчихлаа",
+    "intent": "complaint"
+  },
+  {
+    "text": "М захиалсан L ирсэн яагаад тийм юм бэ?",
+    "intent": "complaint"
+  },
+  {
+    "text": "яагаад утасаа авахгүй байгаа юм хүргэлтийн хүн?",
+    "intent": "complaint"
+  },
+  {
+    "text": "2 долоо хоног боллоо хүргээгүй мөнгөө буцааж өг",
+    "intent": "complaint"
+  },
+  {
+    "text": "бусад хүн нэг л юм хэлж бна чанар муу гэж",
+    "intent": "complaint"
+  },
+  {
+    "text": "сошиал dr tawisan zurag belen oor haragdaj bna huuramch yumuu?",
+    "intent": "complaint"
+  },
+  {
+    "text": "ямар хурдан ирсэн юм 👍👍",
+    "intent": "thanks"
+  },
+  {
+    "text": "odoo yawuulsan bnuu?",
+    "intent": "order_status"
+  },
+  {
+    "text": "hezee garsan ym? gants tsag l bga chin",
+    "intent": "order_status"
+  },
+  {
+    "text": "tracker link bnuu hurgeltiin?",
+    "intent": "order_status"
+  },
+  {
+    "text": "zurag awch yawuulaarai irsen bairshild n",
+    "intent": "order_status"
+  },
+  {
+    "text": "ugui bn odoo",
+    "intent": "general"
+  },
+  {
+    "text": "bi haag ywj bna daraa oroiluu bichne",
+    "intent": "general"
+  },
+  {
+    "text": "aaa tiim uu? ok za",
+    "intent": "general"
+  },
+  {
+    "text": "neg asuult asuuya яаж захиалга ugdug yum?",
+    "intent": "general"
+  },
+  {
+    "text": "tanii delguur haa bdag yum?",
+    "intent": "shipping"
+  },
+  {
+    "text": "facebook page ruu zuragiig ni tawihad share hiij boloh uu?",
+    "intent": "general"
+  },
+  {
+    "text": "hervee taarahgui bol solij boloh uu gej asuuh geed bilee",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "hervee awsan bolbol belen solij bolodog bolhoor awya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "shiljuuleh ghdee dans ogch doo bi haanbank ashigladag",
+    "intent": "payment"
+  },
+  {
+    "text": "бэлэн мөнгөөр тулж чадах уу? qpay данс алга",
+    "intent": "payment"
+  },
+  {
+    "text": "ene set avval turshikiig oor unguur avch boloh uu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "skims yag yu gej umsdag yum undurluu yumuuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "zuny uldaasand ene turshik umsuj boloh uu haluu bnuu dotroosoo?",
+    "intent": "product_search"
+  },
+  {
+    "text": "bi umnu n taniihiig awj bsan uchir hyamdruulj boloh uu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "энэ яг FB дээр тавьсан зурагтай адилхан харагдах уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "niit 3 yum awahaar belen hurgelt unegui bolgooch",
+    "intent": "shipping"
+  },
+  {
+    "text": "hurgeltiin hun herhen nadtai holboo barih we? utas zalgah uu msj uu?",
+    "intent": "shipping"
+  },
+  {
+    "text": "oroiluu 7 tsagaas hoish l geertee bna teriig ni anhaarch ogooch",
+    "intent": "shipping"
+  },
+  {
+    "text": "tanaih yum hurgeltiig khuuhed huleej awch boloh uu?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Erdenet hot ruu hurgej boloh uu? yamr une nemegdeh we?",
+    "intent": "shipping"
+  },
+  {
+    "text": "hi bi tanai baraa sonirhoj bn 2 asuult bn",
+    "intent": "greeting"
+  },
+  {
+    "text": "oroiin mend tanaa shineer neelee yumuu?",
+    "intent": "greeting"
+  },
+  {
+    "text": "sain bn uu bid buulgiin zahialga ugmuur bn",
+    "intent": "order_collection"
+  },
+  {
+    "text": "leevchik + turshik set + skims + korset 4 uuliig buhliig hamtdaa niit hed boloh?",
+    "intent": "product_search"
+  },
+  {
+    "text": "энэ baraa mongoloosoo hiigtei yumuu import yumuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "umnu n neg huniig tanaihaas awsan yum mash muuhay chanarty gj helj blee bi itgej boloh uu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "hervee avsan yum 1 dolhnog dtor urgudsun bol yamr harutsalga baina?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "ugui bi ayaandaa zahialga hurgeltiig tsutslah geed bilee",
+    "intent": "order_status"
+  },
+  {
+    "text": "huderee oron nutagt bga tanai yahniih l unaar hurgeh we?",
+    "intent": "shipping"
+  },
+  {
+    "text": "gadaadiin kartaar tulj boloh uu?",
+    "intent": "payment"
+  },
+  {
+    "text": "hicheel togloom leevchik set 3iig hamtad awbal 50k bolgooch dai",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Bolshuudee odoo mn mashgui bgan hurgeltiin huniig iruuleech",
+    "intent": "order_status"
+  },
+  {
+    "text": "yavj ochson bol geriin ur avna gj heleerei",
+    "intent": "shipping"
+  },
+  {
+    "text": "yaasan be? hayagaa ugsun hunii? bnuu oruulah yum?",
+    "intent": "order_status"
+  },
+  {
+    "text": "joloochiin utas n hed we? zalguulaad ugch",
+    "intent": "order_status"
+  },
+  {
+    "text": "ene 2 zurag dr harangdaj bga 2 oor yum bnuu neg yumuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "yamr app aar tulhuu?",
+    "intent": "payment"
+  },
+  {
+    "text": "shuud qpay ni yawuulch bi odoo tulnu",
+    "intent": "payment"
   }
 ]

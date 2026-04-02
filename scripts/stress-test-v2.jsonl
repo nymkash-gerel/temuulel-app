@@ -1,0 +1,105 @@
+{"text": "sn bnu skims bnuu?", "intent": "product_search", "scenario": "mixed_greeting_product"}
+{"text": "sain bnuu ene leevchik set hed we", "intent": "product_search", "scenario": "greeting_then_price"}
+{"text": "sbnuu tarpzan omd bguyu", "intent": "product_search", "scenario": "greeting_then_availability"}
+{"text": "бензэн турсик 4ш юмуу 2ш юмуу?", "intent": "product_search", "scenario": "quantity_confusion"}
+{"text": "skims deer bichsen 1+1 gej yu gesen ug ve?", "intent": "product_search", "scenario": "promo_confusion"}
+{"text": "leevchik turshik set ni yag yuu ordog we?", "intent": "product_search", "scenario": "set_contents_question"}
+{"text": "3 davhar korset gej yu ve? zuragaas harahad bodywrap shig haragdaj bna", "intent": "product_search", "scenario": "product_description_question"}
+{"text": "kashmiriin tsamtsand yamr materialtai ve 100% nooluurai yum uu?", "intent": "product_search", "scenario": "material_question"}
+{"text": "zara daashinz ni yag zara brand uu huuramch uu?", "intent": "product_search", "scenario": "authenticity_brand"}
+{"text": "ene buh yumnii zurag haruulaach", "intent": "product_search", "scenario": "all_photos_request"}
+{"text": "galbar gargadag tsamts ni togloom hiihed umsuj boloh uu?", "intent": "product_search", "scenario": "use_case_question"}
+{"text": "usny boolt kom 86sh dotorh n yu yu ordog we?", "intent": "product_search", "scenario": "kit_contents"}
+{"text": "kashmir 189k ugui ugui hetreed bn 100k dotor yumiig haruulaach", "intent": "product_search", "scenario": "budget_rejection"}
+{"text": "hamgiin ih zarugddug baraa n yuub?", "intent": "product_search", "scenario": "bestseller_question"}
+{"text": "shine irsen yum bnu sonin saihan?", "intent": "product_search", "scenario": "new_arrivals"}
+{"text": "neg yum awahaar belen avch ywuuldag yumuu esvel dans shiljuuldg yumuu", "intent": "payment", "scenario": "payment_method_delivery"}
+{"text": "2 yum awbal unegui hurgelt bnuu?", "intent": "shipping", "scenario": "free_shipping_condition"}
+{"text": "100k ees deeesh zahialbal hurgelt unegui yumuu?", "intent": "shipping", "scenario": "free_shipping_threshold"}
+{"text": "undur aimgaas bn hurgej chadah uu Ulaanbaataraas gadna?", "intent": "shipping", "scenario": "rural_delivery"}
+{"text": "darhan hurgej ugnu uu? oron nutag", "intent": "shipping", "scenario": "rural_city_darhan"}
+{"text": "hurgelt huhdee yamar shiidvereer baina hezee ireh?", "intent": "order_status", "scenario": "status_urgent"}
+{"text": "skims awya benz M guytai", "intent": "order_collection", "scenario": "order_full_spec"}
+{"text": "leevchik 2sh + turshik 4sh hamtdaa awya harin dans ogch", "intent": "order_collection", "scenario": "order_combo_payment"}
+{"text": "3 davhar korset S/M + galbar tsamts M avna", "intent": "order_collection", "scenario": "order_two_different"}
+{"text": "tsamts+omd set iig L size awya", "intent": "order_collection", "scenario": "order_set_with_size"}
+{"text": "usny boolt 2 kom avya", "intent": "order_collection", "scenario": "order_multiple_same"}
+{"text": "SKIMS + leevchik + turshik 3uuliig hamtdaa awya", "intent": "order_collection", "scenario": "order_three_items"}
+{"text": "buh baraa awsan huniig hyamdaldg yumuu VIP gedg yum bnuu?", "intent": "product_search", "scenario": "loyalty_question"}
+{"text": "belegnii tsaashtai bogloj ugch boloh uu?", "intent": "general", "scenario": "gift_wrapping"}
+{"text": "5 yum awahaar belen niit une n hed boloh?", "intent": "product_search", "scenario": "bulk_order_price"}
+{"text": "zara daashinz bor M + skims XXS benz guytai avya", "intent": "order_collection", "scenario": "order_two_brands"}
+{"text": "koshlagttai tsunh yamr ungu bnuu?", "intent": "product_search", "scenario": "color_options"}
+{"text": "ene tsunh ni A4 tsaas bagtsahuu?", "intent": "product_search", "scenario": "size_practical"}
+{"text": "leevchik ni M yu L yu ali n taarah ym 57kg 164sm", "intent": "size_info", "scenario": "size_between_two"}
+{"text": "benz turshik S ni 45kg huuhded taarh uu?", "intent": "size_info", "scenario": "size_for_teen"}
+{"text": "корсет S/M L/XL 2iin yalgaa yu bilee?", "intent": "size_info", "scenario": "size_comparison"}
+{"text": "tsamts omd set L avsan bol M ruu solij boloh uu?", "intent": "return_exchange", "scenario": "exchange_size_down"}
+{"text": "ochigdor awsan leevchik ni hemjee tom bna solino uu?", "intent": "return_exchange", "scenario": "exchange_too_big"}
+{"text": "butsaalt hed honogiin dotor hiideg we?", "intent": "return_exchange", "scenario": "return_policy_days"}
+{"text": "butsaaval mongoo butsaaj ugdg uu esvel credit ugdg uu?", "intent": "return_exchange", "scenario": "return_refund_vs_credit"}
+{"text": "awsan baraag zadlaagui unuurtii baidal hurgeej ugeh bolomjtoi yu?", "intent": "return_exchange", "scenario": "return_unopened"}
+{"text": "mangaaш awch boloh uu 88991122 ene utsiig oroiluu zalg", "intent": "shipping", "scenario": "shipping_phone_evening"}
+{"text": "БГД 3р хороо 52р байр 7 давхар 23 тоот утас 99887766", "intent": "shipping", "scenario": "shipping_full_address"}
+{"text": "хаягаа өөрчилж болох уу? Өмнө нь СБД гэсэн байсан одоо БЗД рүү явуулна уу", "intent": "shipping", "scenario": "shipping_address_change"}
+{"text": "ene zahialgiin hurgeltiin dugaar ogch boloh uu? track hiih", "intent": "order_status", "scenario": "status_tracking_number"}
+{"text": "urgeljluuleed 1r baraagaa awya", "intent": "order_collection", "scenario": "continue_previous_order"}
+{"text": "umnu zahialsan yum deer nemj zahialj boloh uu?", "intent": "order_collection", "scenario": "add_to_previous"}
+{"text": "zurahiig ni tom bolgoodo haruulaach", "intent": "product_search", "scenario": "zoom_photo_request"}
+{"text": "ene bus uniig yalgahgui herhen hamgiiin hyamdaar avah ve?", "intent": "product_search", "scenario": "cheapest_way"}
+{"text": "qpay deer tullee shalgaach 50k tulsen", "intent": "payment", "scenario": "payment_verify_qpay"}
+{"text": "5990260533 haanbank shiljuulsen shuu", "intent": "payment", "scenario": "payment_bank_transferred"}
+{"text": "shiljuuleh dans herhen ogoh ve? golmt bank bnuu?", "intent": "payment", "scenario": "payment_which_bank"}
+{"text": "hurgeltiin 7k iig tulj bn undsen baraa ni avahad tulnu", "intent": "payment", "scenario": "payment_delivery_separate"}
+{"text": "3 udaa zahialsan setgel hannmjtai", "intent": "thanks", "scenario": "thanks_repeat_customer"}
+{"text": "маш хурдан хүргэсэн баярлалаа найзууддаа зөвлөнө", "intent": "thanks", "scenario": "thanks_will_recommend"}
+{"text": "чанар гоё юм байна лаа дараагийн удаад ч захиалъя", "intent": "thanks", "scenario": "thanks_quality_reorder"}
+{"text": "энэ юмаа аваад 2 хоног болоогүй урагдчихлаа", "intent": "complaint", "scenario": "complaint_tore_quickly"}
+{"text": "М захиалсан L ирсэн яагаад тийм юм бэ?", "intent": "complaint", "scenario": "complaint_wrong_size_arrived"}
+{"text": "яагаад утасаа авахгүй байгаа юм хүргэлтийн хүн?", "intent": "complaint", "scenario": "complaint_driver_no_answer"}
+{"text": "2 долоо хоног боллоо хүргээгүй мөнгөө буцааж өг", "intent": "complaint", "scenario": "complaint_2week_refund"}
+{"text": "бусад хүн нэг л юм хэлж бна чанар муу гэж", "intent": "complaint", "scenario": "complaint_others_say_bad"}
+{"text": "сошиал dr tawisan zurag belen oor haragdaj bna huuramch yumuu?", "intent": "complaint", "scenario": "complaint_photo_vs_reality"}
+{"text": "ямар хурдан ирсэн юм 👍👍", "intent": "thanks", "scenario": "thanks_fast_delivery"}
+{"text": "odoo yawuulsan bnuu?", "intent": "order_status", "scenario": "status_just_sent"}
+{"text": "hezee garsan ym? gants tsag l bga chin", "intent": "order_status", "scenario": "status_impatient"}
+{"text": "tracker link bnuu hurgeltiin?", "intent": "order_status", "scenario": "status_tracker_link"}
+{"text": "zurag awch yawuulaarai irsen bairshild n", "intent": "order_status", "scenario": "status_delivery_proof"}
+{"text": "ugui bn odoo", "intent": "general", "scenario": "general_not_now"}
+{"text": "bi haag ywj bna daraa oroiluu bichne", "intent": "general", "scenario": "general_busy_later"}
+{"text": "aaa tiim uu? ok za", "intent": "general", "scenario": "general_acknowledge"}
+{"text": "neg asuult asuuya яаж захиалга ugdug yum?", "intent": "general", "scenario": "general_how_to_order"}
+{"text": "tanii delguur haa bdag yum?", "intent": "shipping", "scenario": "store_location_question"}
+{"text": "facebook page ruu zuragiig ni tawihad share hiij boloh uu?", "intent": "general", "scenario": "general_social_share"}
+{"text": "hervee taarahgui bol solij boloh uu gej asuuh geed bilee", "intent": "return_exchange", "scenario": "return_hypothetical"}
+{"text": "hervee awsan bolbol belen solij bolodog bolhoor awya", "intent": "order_collection", "scenario": "order_conditional_on_return"}
+{"text": "shiljuuleh ghdee dans ogch doo bi haanbank ashigladag", "intent": "payment", "scenario": "payment_my_bank"}
+{"text": "бэлэн мөнгөөр тулж чадах уу? qpay данс алга", "intent": "payment", "scenario": "payment_no_qpay"}
+{"text": "ene set avval turshikiig oor unguur avch boloh uu?", "intent": "product_search", "scenario": "set_customization"}
+{"text": "skims yag yu gej umsdag yum undurluu yumuuu?", "intent": "product_search", "scenario": "how_to_wear"}
+{"text": "zuny uldaasand ene turshik umsuj boloh uu haluu bnuu dotroosoo?", "intent": "product_search", "scenario": "seasonal_suitability"}
+{"text": "bi umnu n taniihiig awj bsan uchir hyamdruulj boloh uu?", "intent": "product_search", "scenario": "returning_customer_discount"}
+{"text": "энэ яг FB дээр тавьсан зурагтай адилхан харагдах уу?", "intent": "product_search", "scenario": "photo_accuracy"}
+{"text": "niit 3 yum awahaar belen hurgelt unegui bolgooch", "intent": "shipping", "scenario": "negotiate_free_shipping"}
+{"text": "hurgeltiin hun herhen nadtai holboo barih we? utas zalgah uu msj uu?", "intent": "shipping", "scenario": "delivery_contact_method"}
+{"text": "oroiluu 7 tsagaas hoish l geertee bna teriig ni anhaarch ogooch", "intent": "shipping", "scenario": "delivery_time_window"}
+{"text": "tanaih yum hurgeltiig khuuhed huleej awch boloh uu?", "intent": "shipping", "scenario": "delivery_child_receive"}
+{"text": "Erdenet hot ruu hurgej boloh uu? yamr une nemegdeh we?", "intent": "shipping", "scenario": "rural_erdenet_cost"}
+{"text": "hi bi tanai baraa sonirhoj bn 2 asuult bn", "intent": "greeting", "scenario": "greeting_with_intent"}
+{"text": "oroiin mend tanaa shineer neelee yumuu?", "intent": "greeting", "scenario": "greeting_new_store"}
+{"text": "sain bn uu bid buulgiin zahialga ugmuur bn", "intent": "order_collection", "scenario": "greeting_then_bulk_order"}
+{"text": "leevchik + turshik set + skims + korset 4 uuliig buhliig hamtdaa niit hed boloh?", "intent": "product_search", "scenario": "total_price_4_items"}
+{"text": "энэ baraa mongoloosoo hiigtei yumuu import yumuu?", "intent": "product_search", "scenario": "origin_question"}
+{"text": "umnu n neg huniig tanaihaas awsan yum mash muuhay chanarty gj helj blee bi itgej boloh uu?", "intent": "product_search", "scenario": "trust_question_after_review"}
+{"text": "hervee avsan yum 1 dolhnog dtor urgudsun bol yamr harutsalga baina?", "intent": "return_exchange", "scenario": "warranty_question"}
+{"text": "ugui bi ayaandaa zahialga hurgeltiig tsutslah geed bilee", "intent": "order_status", "scenario": "cancel_delivery"}
+{"text": "huderee oron nutagt bga tanai yahniih l unaar hurgeh we?", "intent": "shipping", "scenario": "rural_own_delivery_cost"}
+{"text": "gadaadiin kartaar tulj boloh uu?", "intent": "payment", "scenario": "payment_foreign_card"}
+{"text": "hicheel togloom leevchik set 3iig hamtad awbal 50k bolgooch dai", "intent": "order_collection", "scenario": "order_negotiate_price"}
+{"text": "Bolshuudee odoo mn mashgui bgan hurgeltiin huniig iruuleech", "intent": "order_status", "scenario": "status_send_driver_now"}
+{"text": "yavj ochson bol geriin ur avna gj heleerei", "intent": "shipping", "scenario": "delivery_family_receive"}
+{"text": "yaasan be? hayagaa ugsun hunii? bnuu oruulah yum?", "intent": "order_status", "scenario": "status_address_given_waiting"}
+{"text": "joloochiin utas n hed we? zalguulaad ugch", "intent": "order_status", "scenario": "status_driver_phone"}
+{"text": "ene 2 zurag dr harangdaj bga 2 oor yum bnuu neg yumuu?", "intent": "product_search", "scenario": "photo_two_products"}
+{"text": "yamr app aar tulhuu?", "intent": "payment", "scenario": "payment_which_app"}
+{"text": "shuud qpay ni yawuulch bi odoo tulnu", "intent": "payment", "scenario": "payment_send_qpay_now"}
