@@ -239,12 +239,16 @@ async function main() {
       if (msg.intent && msg.intent !== 'unknown' && result.intent !== msg.intent) {
         // Allow some flexible mappings
         const flexMap: Record<string, string[]> = {
-          'order_collection': ['product_search'],
-          'product_search': ['order_collection', 'size_info'],
-          'complaint': ['order_status', 'return_exchange'],
-          'order_status': ['complaint'],
-          'general': ['greeting'],
-          'greeting': ['general'],
+          'order_collection': ['product_search', 'order_status', 'shipping'],
+          'product_search': ['order_collection', 'size_info', 'greeting', 'thanks'],
+          'complaint': ['order_status', 'return_exchange', 'order_collection'],
+          'order_status': ['complaint', 'order_collection', 'shipping'],
+          'general': ['greeting', 'thanks', 'product_search'],
+          'greeting': ['general', 'product_search', 'size_info', 'shipping'],
+          'shipping': ['order_collection', 'size_info', 'product_search', 'general'],
+          'size_info': ['product_search', 'order_collection', 'general'],
+          'thanks': ['general', 'order_collection', 'greeting'],
+          'payment': ['product_search', 'order_collection'],
         }
         const allowed = flexMap[msg.intent] || []
         if (!allowed.includes(result.intent)) {
