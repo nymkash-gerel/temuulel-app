@@ -37290,5 +37290,2765 @@
   {
     "text": "Darxan",
     "intent": "shipping"
+  },
+  {
+    "text": "Сайн байна уу. Та тураах бүсний захиалга өгөх бол Захиалга өгөх хэсэг дээр дарна уу. Таны захиалга ажлын 24 цагтаа багтаж очих болно",
+    "intent": "greeting"
+  },
+  {
+    "text": "Сайн байна уу. Та ямар бараа сонирхож байна вэ. Хаяг утсаа үлдээгээд үнэгүй хүргүүлээд аваарай",
+    "intent": "product_search"
+  },
+  {
+    "text": "5990260533 шижир нямгэрэл хаанбанк мөнгөө явуулчаад хэлээрэй Мөнгө орж ирсэний дараа орон нутгийн хүргэлт гарна",
+    "intent": "payment"
+  },
+  {
+    "text": "Хажуу тийш нь гүйлгэж манай бараануудыг сонирхоно уу. Үзэх товчин дээр дарж сонирхсон барааныхаа дэлгэрэнгүй мэдээлэл аваарай.",
+    "intent": "product_search"
+  },
+  {
+    "text": "Awaya zuun aild",
+    "intent": "shipping"
+  },
+  {
+    "text": "induu awya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Hi zahialay",
+    "intent": "order_collection"
+  },
+  {
+    "text": "ухаалаг тосгүй шарагч",
+    "intent": "product_search"
+  },
+  {
+    "text": "тоос сорно.бас шал арчих уу.",
+    "intent": "product_search"
+  },
+  {
+    "text": "орхон аймаг 5 микр 8 байр 9 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "тосгүй шарагч хар өнгө",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хүүхдийн сойз байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Bayangol dvvreg 7horoo 38 a bair 14toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "Sn bnu usnii induu hurgulj awbal her udaj ireh we",
+    "intent": "shipping"
+  },
+  {
+    "text": "margaash nogoodroos awya.",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Engiin hvnd sharalt gheer yhuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Aan engiin nj 35k yumu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Sn bol awii",
+    "intent": "greeting"
+  },
+  {
+    "text": "Bio",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hnaas awch boloh we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tsagirag avii",
+    "intent": "product_search"
+  },
+  {
+    "text": "Захиаляаа88006645",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Shud tsairuulagch zahialyaa",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Чингэлтэй дүүрэг 10 р хороо 39 р сургуулийн ард байрлах шинэчлэл хороолод 4-2-67 тоот. 88006645",
+    "intent": "shipping"
+  },
+  {
+    "text": "Unadaggvi tsagirag aviyaa",
+    "intent": "product_search"
+  },
+  {
+    "text": "BZD 25r horooo naturiiiin urd shine mongol surguuli 63r bair 8n dawhar 37 toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "үс ороогч авъя",
+    "intent": "product_search"
+  },
+  {
+    "text": "Унаанд тавьж өгөхүү",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хөхүүл хүн хэрэглэж болох уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "мэдээлэл авьяа",
+    "intent": "shipping"
+  },
+  {
+    "text": "Шүд цайруулагч",
+    "intent": "product_search"
+  },
+  {
+    "text": "Массажны түшлэг",
+    "intent": "product_search"
+  },
+  {
+    "text": "Массажны гудас",
+    "intent": "product_search"
+  },
+  {
+    "text": "Тийм",
+    "intent": "product_search"
+  },
+  {
+    "text": "Массаж горим",
+    "intent": "product_search"
+  },
+  {
+    "text": "5MP",
+    "intent": "product_search"
+  },
+  {
+    "text": "Бзд 4 хороо нарангийн 42 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "Гадна хяналтын камер 1 ширхэг",
+    "intent": "shipping"
+  },
+  {
+    "text": "tsagraga",
+    "intent": "product_search"
+  },
+  {
+    "text": "her ve dvntei we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Тоос сорогч сонирхы",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tsagirav awyaa",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ажилтантай холбогдох",
+    "intent": "product_search"
+  },
+  {
+    "text": "Janjin zah",
+    "intent": "product_search"
+  },
+  {
+    "text": "Соруулах хүч",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tosgui sharachnii une",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Haanahiinh we",
+    "intent": "shipping"
+  },
+  {
+    "text": "Get Started",
+    "intent": "product_search"
+  },
+  {
+    "text": "Бүтээгдэхүүн",
+    "intent": "product_search"
+  },
+  {
+    "text": "Smile kit 45000-s 1g",
+    "intent": "product_search"
+  },
+  {
+    "text": "45iihaas n awnashuu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Tanaih bichleg gj yuyriad bgan",
+    "intent": "shipping"
+  },
+  {
+    "text": "awsnas hoish 00in uruund bj l bn mini sonirhson shaltgaan manai bairni sangin asuudlas bolj haya umhii unertdeg terig ni darj bgach ym alga tamhini utaag bas neehh alga bolgod bga ym tuich alga l bn",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "bi 2g awsan ired ene 2goo awaad mini mungig butsaaj ughuu bi bas ymarch hereggu ymnd zuger mungu ugmurgu bhin uneher sain bol bi yuch helehku",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "Gertee hariad yawuulay",
+    "intent": "shipping"
+  },
+  {
+    "text": "Үүнийг авяа",
+    "intent": "order_collection"
+  },
+  {
+    "text": "БЗД-8хороо sky residence хотгон 224байр 3давхар 11тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "24гэрэлтэй 45000",
+    "intent": "product_search"
+  },
+  {
+    "text": "Shud tsairuulagch",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tsagirag, urt rezinii bagts",
+    "intent": "product_search"
+  },
+  {
+    "text": "Сайн ба уу",
+    "intent": "greeting"
+  },
+  {
+    "text": "Одоо хүргэж өгөх үү",
+    "intent": "shipping"
+  },
+  {
+    "text": "Захиалга өгсөн",
+    "intent": "order_status"
+  },
+  {
+    "text": "Хэдийд хүргэх вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Өчигдөр өгсөн шдээ",
+    "intent": "order_status"
+  },
+  {
+    "text": "3р эмнэлэг",
+    "intent": "shipping"
+  },
+  {
+    "text": "Маргааш хэдийд ирэх бол",
+    "intent": "shipping"
+  },
+  {
+    "text": "9с 10н хооронд",
+    "intent": "shipping"
+  },
+  {
+    "text": "Өнөөдөр хүргэж өгөхгүй юу",
+    "intent": "shipping"
+  },
+  {
+    "text": "Маргааш тэгвэл их наранд авая",
+    "intent": "order_collection"
+  },
+  {
+    "text": "rezin dangar 1 sh.r avj boloh uu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Иогийн гудас",
+    "intent": "product_search"
+  },
+  {
+    "text": "Резин",
+    "intent": "product_search"
+  },
+  {
+    "text": "Цагираг",
+    "intent": "product_search"
+  },
+  {
+    "text": "Bagts bgaa yu",
+    "intent": "size_info"
+  },
+  {
+    "text": "Ymar ymar xediin bagts bn",
+    "intent": "order_collection"
+  },
+  {
+    "text": "ҮНЭРТҮҮЛЭГЧ",
+    "intent": "product_search"
+  },
+  {
+    "text": "avii",
+    "intent": "order_collection"
+  },
+  {
+    "text": "99165582 modni 2grand hill zochid buudaln urd 67r bair 3r orts 5n dawhar",
+    "intent": "shipping"
+  },
+  {
+    "text": "Bagts n 35 k ymu",
+    "intent": "product_search"
+  },
+  {
+    "text": "chichirgee bvs Shvdnii tsairuulagch gerel sonirhsiin",
+    "intent": "product_search"
+  },
+  {
+    "text": "Turaah bvs",
+    "intent": "product_search"
+  },
+  {
+    "text": "авна 1",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Hedees heden tsagiin hoorond hurgelt bgaa we",
+    "intent": "shipping"
+  },
+  {
+    "text": "Сайн байна уу? Та хаягаа үлдээгээрэй",
+    "intent": "shipping"
+  },
+  {
+    "text": "Зайсан соёмботой уулын яг хажууд 51н3р байр",
+    "intent": "shipping"
+  },
+  {
+    "text": "Sn. Bnuu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Sonirhson baraagaa say zalgaad zahialsan shvv",
+    "intent": "order_collection"
+  },
+  {
+    "text": "shuluun induudeh yumuu esul samnangaa shuluun bolgoh yumuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "6 uildeltei sensnees ni awii",
+    "intent": "product_search"
+  },
+  {
+    "text": "ХУД рапид харш хотхон 25р байр 3р орц 7 давхар 126 тоот",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Орцны код 2580",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hvrgelt ni hezee ireh yum bol?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Nemegdtsiinmuu une n",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tanai page dr 80 gsn bsan",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hooloi n heden m sunadag ve",
+    "intent": "product_search"
+  },
+  {
+    "text": "Uur turluud n irehuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Irvel hediigeer ireh ve",
+    "intent": "order_status"
+  },
+  {
+    "text": "Une nemegdej irehuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "chingeltei dvvreg 17r horoo suragchiin 14iin 201 toot utas 95748403",
+    "intent": "shipping"
+  },
+  {
+    "text": "Үнэ-Уулын загвар",
+    "intent": "product_search"
+  },
+  {
+    "text": "Би урд нь захиалаад байхгүй дууссан гээд буцаагдаж байсан.одоо авяа",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Ажлын бус цагаар: БЗД 26-р хороо Чухаг-2 хотхон 607-р байр 49н тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "sn buu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Та дугаараа үлдээгээд захиалгаа баталгаажуулаарай",
+    "intent": "order_collection"
+  },
+  {
+    "text": "амгалангийн яг хаана вн",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хүргэлт 10-11 хооронд хорооллоос гарна",
+    "intent": "shipping"
+  },
+  {
+    "text": "Таны захиалгыг хүлээж авлаа. Баярлалаа",
+    "intent": "thanks"
+  },
+  {
+    "text": "Өнгө",
+    "intent": "product_search"
+  },
+  {
+    "text": "zaxialga ogie",
+    "intent": "order_collection"
+  },
+  {
+    "text": "👔Зөөврийн угаалгын машин",
+    "intent": "product_search"
+  },
+  {
+    "text": "⚡Цахилгаан 🧹шетка",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хэдийд ирэх бэ 98914163",
+    "intent": "order_status"
+  },
+  {
+    "text": "Бгд 6 р хороо сувилахуйн сургууль хойно доктор авто төв",
+    "intent": "shipping"
+  },
+  {
+    "text": "yagaan ongo",
+    "intent": "product_search"
+  },
+  {
+    "text": "nemj 2 iig zaxij magadgui bna",
+    "intent": "order_collection"
+  },
+  {
+    "text": "За хүргэлтээс лавлаадхья",
+    "intent": "shipping"
+  },
+  {
+    "text": "Turaah bus zahialah gsiin",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Зээл",
+    "intent": "payment"
+  },
+  {
+    "text": "Hze hurgeh u",
+    "intent": "order_status"
+  },
+  {
+    "text": "Baih haygaa ogh gsiin",
+    "intent": "shipping"
+  },
+  {
+    "text": "8s hoish u omno u ireh tsag n",
+    "intent": "order_status"
+  },
+  {
+    "text": "Tsaiz 16giin baynzurh zah",
+    "intent": "product_search"
+  },
+  {
+    "text": "Buselhiin toirog hed hurtel taarah ve ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Okk",
+    "intent": "greeting"
+  },
+  {
+    "text": "Нүүр угаагч",
+    "intent": "product_search"
+  },
+  {
+    "text": "une medeelel",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tololt uniin medeelwl",
+    "intent": "product_search"
+  },
+  {
+    "text": "Сайн байна уу ваартай зүрхний тан байгаа юу найдвартай газраас авмаар байна",
+    "intent": "greeting"
+  },
+  {
+    "text": "Та аль бүтээгдэхүүнийг сонирхож байна вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Where are you located?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Allow calls",
+    "intent": "shipping"
+  },
+  {
+    "text": "Халуун тос буюу шингэн зүү үнэ хэд вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хаанаас авах вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хүргэлт үнэ хэд вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Та чаатлах боломжтой юу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "👍",
+    "intent": "product_search"
+  },
+  {
+    "text": "hi medeelel avii",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ тос байна уу",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Хүргэлт байна уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "2ш ийг аваяааа",
+    "intent": "shipping"
+  },
+  {
+    "text": "Заа баярлалаа утсаар хаягийн авч болох уу",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Нисэх ийн тойрог сөүл 312 р байрны цэлмэг дэлгүүр",
+    "intent": "shipping"
+  },
+  {
+    "text": "2ш",
+    "intent": "shipping"
+  },
+  {
+    "text": "Сайн байна ууу өнөөдөр хүргэлт ирэх үү",
+    "intent": "shipping"
+  },
+  {
+    "text": "Танайх хаана байрладаг вэ?",
+    "intent": "shipping"
+  },
+  {
+    "text": "хан уул дүүрэг 15 р хороо цэнгэлдэх хотхон 208 байр 301 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "hurgehuu",
+    "intent": "shipping"
+  },
+  {
+    "text": "1shirhger hurgehuu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Маргааш хүргэхүү",
+    "intent": "shipping"
+  },
+  {
+    "text": "odo hurghgui bz dari eh",
+    "intent": "shipping"
+  },
+  {
+    "text": "awnaa egch",
+    "intent": "order_collection"
+  },
+  {
+    "text": "pashaanan sariin herglee bilvvv dotroo heden shirhg bga we",
+    "intent": "order_collection"
+  },
+  {
+    "text": "uglunii mnd unuudr awii",
+    "intent": "product_search"
+  },
+  {
+    "text": "100ail huuhdiin emnlg BSB iin dund narlag tsainii gzar gd bga 4uus umnu awchraad ughuu",
+    "intent": "shipping"
+  },
+  {
+    "text": "1shirhegiig awna shuu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "tosnii une hed yum be",
+    "intent": "order_collection"
+  },
+  {
+    "text": "yagaad iim unetei yum be hurgelt chin 5000 l bdag bizde",
+    "intent": "product_search"
+  },
+  {
+    "text": "heviin ugch bgaadh unuudrus",
+    "intent": "complaint"
+  },
+  {
+    "text": "say yarisan",
+    "intent": "greeting"
+  },
+  {
+    "text": "сайн байнуу тос захиалий",
+    "intent": "greeting"
+  },
+  {
+    "text": "tsagaan mahni tosni tailbar",
+    "intent": "product_search"
+  },
+  {
+    "text": "yabuulna gesin",
+    "intent": "shipping"
+  },
+  {
+    "text": "Энэ тос байга юу үнэ хэд вэ",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Баянхонгорлуу унаанд тавьж өгөх үү",
+    "intent": "product_search"
+  },
+  {
+    "text": "Баянхонгор т зардаг уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Авье 88596024",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хэд вэ",
+    "intent": "greeting"
+  },
+  {
+    "text": "За би маргааш нэг газар очиж үзээд байхгүй бол танайхаас авье маргааш авахаар бол чат бичье",
+    "intent": "greeting"
+  },
+  {
+    "text": "Sain bnu? Shambaramiin tos n garaad bur udtsan naanaa uldsen hesgiin mah n butsaad oroh boluu? Eswel shineer garsan shambaramd uilchilhuu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Сайн байна уу!",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Энэ тос бгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "tsagaan mahnii tos bgaayu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tos haanaas awah we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tsagaan mah ergeed tsus garaad bgaamaa hereglej bolohuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene temeen hyruullin tos ni bga yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Багануурт танай борлуулагч бна уу? Тос яаж авах вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "temeen hyaruuliin tos awii",
+    "intent": "product_search"
+  },
+  {
+    "text": "Яг энэ тос байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Сайн байна уу тэмээн хяруулын тос нь хүргэлттэй юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Тос байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Сайн байна уу? Жирэмсэн цагаан мах эргээд байгаа юмаа. Тосонд нь хүргэлт бий юу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "temeen hyaruuliin tos avay",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene tos bgayu",
+    "intent": "product_search"
+  },
+  {
+    "text": "tos naalt bna uu",
+    "intent": "product_search"
+  },
+  {
+    "text": "хай тос авья",
+    "intent": "product_search"
+  },
+  {
+    "text": "тос байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Shambaramnii esreg tos baigaa yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Тэмээн хяруул тос авая",
+    "intent": "product_search"
+  },
+  {
+    "text": "Шамбарамын тос хэдвэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "ХУД 4-р хороо Ханбогд хотхон 203-р байр Утас-99184861",
+    "intent": "shipping"
+  },
+  {
+    "text": "Очиж авбал хаана вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Бзд 10хороо амгалангийн автобусны буудалын ар талд 62-р цэцэрлэг 88896818",
+    "intent": "shipping"
+  },
+  {
+    "text": "100 ail hangai hotgon hajuud 534 bair 1 orts 54 t 88005223",
+    "intent": "shipping"
+  },
+  {
+    "text": "Tos bnuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хүргэлт байдаг уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "Сайн байна уу. Тэмээн хяруулын тос захиалах гэсэн юм",
+    "intent": "order_collection"
+  },
+  {
+    "text": "tos abii",
+    "intent": "order_collection"
+  },
+  {
+    "text": "bayrlala awsan",
+    "intent": "thanks"
+  },
+  {
+    "text": "shambramiin 3ve gsen tgeed emchine ynz bvriin tos hergleed hvndrvvleed orood irwee geed bsan yah we egch setgel 2huwagdaad bdag",
+    "intent": "complaint"
+  },
+  {
+    "text": "vnheer mes zaslgvi geer edgchiwel zvgeer bhiin harin hvndrw nadad hetsvvv",
+    "intent": "complaint"
+  },
+  {
+    "text": "tosnii une hed be",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хар тагтай нь бну",
+    "intent": "product_search"
+  },
+  {
+    "text": "Sn bnu tsagaan mah ergeed bgma udku turuh ym tos sonirhojin mdelel ywuularai",
+    "intent": "product_search"
+  },
+  {
+    "text": "Oo tim vv tosnii vne hd we",
+    "intent": "product_search"
+  },
+  {
+    "text": "oron nutgiin unaand tawiulmaar bgama",
+    "intent": "shipping"
+  },
+  {
+    "text": "Жирэмсэн юм цагаан мах гараад хэцүү байгаа юм түрхэж болох уу",
+    "intent": "complaint"
+  },
+  {
+    "text": "xurgelt unetei yu",
+    "intent": "shipping"
+  },
+  {
+    "text": "3laa niileed 90k uu",
+    "intent": "product_search"
+  },
+  {
+    "text": "hi би тос авч хэрэглэж бгаан биед маань металл бгаа хориглоно гэдгийг сая уншлаа",
+    "intent": "greeting"
+  },
+  {
+    "text": "Sain bnu ene tosiig avay",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Энэ тос байгаюж",
+    "intent": "product_search"
+  },
+  {
+    "text": "sn bnuu tos bga yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "tsagaan mahand tvrheh gsiin",
+    "intent": "size_info"
+  },
+  {
+    "text": "Хай",
+    "intent": "greeting"
+  },
+  {
+    "text": "Тэмээн хяруулын тос авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "хөлөндөө",
+    "intent": "size_info"
+  },
+  {
+    "text": "бас мөнгөн зүү гээд үеүүдээр суулгуулж бсан",
+    "intent": "complaint"
+  },
+  {
+    "text": "яагаад болохгүй вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хэд вээ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хүргэлт нь өнөөдөртөө багтаад ирэх үү",
+    "intent": "order_collection"
+  },
+  {
+    "text": "энэ тосноос авье",
+    "intent": "shipping"
+  },
+  {
+    "text": "3r xoroololiin urguugiin baruun taliin 9 dawxariin 2g bair 48 toot",
+    "intent": "product_search"
+  },
+  {
+    "text": "unuudur hcrgej irhvv",
+    "intent": "shipping"
+  },
+  {
+    "text": "sain uu temeen hyruuliin tos awii une",
+    "intent": "product_search"
+  },
+  {
+    "text": "ter ni hed bile",
+    "intent": "product_search"
+  },
+  {
+    "text": "mmhna 2tosnii heregleeg ni helj ogooch haana2 yaj2 tvrhej boloh bilee",
+    "intent": "shipping"
+  },
+  {
+    "text": "Өнөөдөртөө багтаад хүргэнэ гсн",
+    "intent": "shipping"
+  },
+  {
+    "text": "Маргааш хаяг др хүн бхгүй хүргэлт нь өдөртөө ирнэ гэсэндээ",
+    "intent": "shipping"
+  },
+  {
+    "text": "nogoo roller.toin",
+    "intent": "product_search"
+  },
+  {
+    "text": "bvgd hed vee",
+    "intent": "product_search"
+  },
+  {
+    "text": "эд нар наалт юмуу",
+    "intent": "product_search"
+  },
+  {
+    "text": "2uulangaas ni awchi doo",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Танилцуулгыг нь явуулж болох уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "ямр үнэтэй вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "erdenet.iin unaand tawinaa",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi hi hi",
+    "intent": "greeting"
+  },
+  {
+    "text": "ene tosiig avayaa",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Ene tos hed ve",
+    "intent": "product_search"
+  },
+  {
+    "text": "хүргүүлээд авья",
+    "intent": "shipping"
+  },
+  {
+    "text": "хэрэглэх заавар нь хамт ирэхүү",
+    "intent": "size_info"
+  },
+  {
+    "text": "энэ гэхдээ цагаан махыг бүрэн хатаадаг юмуу",
+    "intent": "product_search"
+  },
+  {
+    "text": "эсвэл зөвхөн өвчинг намдаахуу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэний заавар үнэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хэд нь 1 курс болох уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Эмчилгээ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Эхний ээлжинд тэмээн хяруулын тос авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Ёстой муухай бна",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Ирээгүй байна",
+    "intent": "complaint"
+  },
+  {
+    "text": "heden grmtai ym",
+    "intent": "order_status"
+  },
+  {
+    "text": "Өдрийн цагаар МУИС 1-р байр 326",
+    "intent": "shipping"
+  },
+  {
+    "text": "oilgoloo",
+    "intent": "shipping"
+  },
+  {
+    "text": "avnaa",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi Тос авья",
+    "intent": "shipping"
+  },
+  {
+    "text": "хэрэглэж болох юмуу үгүй юмуу сээндээд л байх юм",
+    "intent": "shipping"
+  },
+  {
+    "text": "Nuruu bas owdood bhin",
+    "intent": "product_search"
+  },
+  {
+    "text": "Nugasnii us awsanaas bolood bnuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Bainga yanginaj owdoj bna",
+    "intent": "product_search"
+  },
+  {
+    "text": "Herergleh yu bna",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene tos bgaa boluu",
+    "intent": "shipping"
+  },
+  {
+    "text": "94448187 hvrgelteer awiy",
+    "intent": "shipping"
+  },
+  {
+    "text": "ХУД. 17-р хороо. Удирдлагын академын баруун урд. Богдын-Өндөр 52-р байр. 5 давхарт. 21тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "Jiremsen hun hereglej boloh uu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ene yaj heregleh we tsagaan mahand",
+    "intent": "shipping"
+  },
+  {
+    "text": "Une hed be",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Bga yu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Buteegdhuunes zuvluguu avmaar bnaa uuchlaarai",
+    "intent": "order_collection"
+  },
+  {
+    "text": "uvur mongol tos hd be hurgelt bgayu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Yahu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Tsagaan mahnii tos delgerengui Medeelel",
+    "intent": "menu_availability"
+  },
+  {
+    "text": "очиж авбал хаанаас авах вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "энэ хар чернилэн ягаан 2 юугаараа ялгаатай юм бол",
+    "intent": "product_search"
+  },
+  {
+    "text": "tos avyaa",
+    "intent": "order_collection"
+  },
+  {
+    "text": "sn bnu tsagaan mahni tos awie",
+    "intent": "product_search"
+  },
+  {
+    "text": "Sain bnu hurgelt bdag bolowuu",
+    "intent": "shipping"
+  },
+  {
+    "text": "tanai xurgelt yasan be",
+    "intent": "shipping"
+  },
+  {
+    "text": "hayg ni haana we ochij awbal",
+    "intent": "shipping"
+  },
+  {
+    "text": "Anduud hill side hothon 9v bair d orts 112toot kod 5389# 17s hoish huntei 17 tsagaas omno gevel baruun 4 zamiin narantuul zochid buudlin chanh urd tald sakura japan store delguurt avay",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ene tosiig hurgelteer avah gsiin",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Za Tgwel 3-uulang ni away",
+    "intent": "product_search"
+  },
+  {
+    "text": "Yaj hawsarche heregleh talaar page deer bgaa yu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "бзд 22хороо 95 байр 404 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "Utas: 99057309 Hayag: Dashchoilon hiidiin chanh ard. Gaaliin yerunhii gazar",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ene",
+    "intent": "shipping"
+  },
+  {
+    "text": "Bzd 14 r horoo Buyant-od hothon 89/5 bair 9 toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "аль нь илүү хурдан үйлчилгээ үзүүлж өвчин намдаах болоо",
+    "intent": "shipping"
+  },
+  {
+    "text": "яаж авахуу дарханд",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Ашиус-2р байр 89816551",
+    "intent": "shipping"
+  },
+  {
+    "text": "Za tegiii",
+    "intent": "shipping"
+  },
+  {
+    "text": "Minii zahialgiig burtgesen yum bolov uu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Sn uu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Tsagaan max ergexed turhdeg tos awiya",
+    "intent": "greeting"
+  },
+  {
+    "text": "Aan za uur ymar tos bn? Medeelel haanas awax u? Hugshin hun uvdug ni uvduud bga hund tos bbu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Hi ene tosiig avii",
+    "intent": "greeting"
+  },
+  {
+    "text": "Sain bn uu?",
+    "intent": "greeting"
+  },
+  {
+    "text": "Аанхан",
+    "intent": "greeting"
+  },
+  {
+    "text": "Надад уух уураг, ээжид уух уураг, тос, наалтаа эхний удаа явуулчх таалагдвал би ажилдаа явахаасаа өмнө авна 23 нд ажилдаа явах гээд жоохон тэнхэрэх хэрэгтэй бнөө",
+    "intent": "shipping"
+  },
+  {
+    "text": "тос авъя 99902508",
+    "intent": "shipping"
+  },
+  {
+    "text": "Bnuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Khud 24 horoo global garden 1276-13",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi biy zasah bolgond udur bolgon Olon jil garsan tsagaan mahiig edgeej chadah bolvuu?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Tanaih hayag haana ve?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хаяг энэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Сайнуу Би эхлээд жижиг ууж үзье",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хосоороо уувал үр дүнтэй биздээ",
+    "intent": "greeting"
+  },
+  {
+    "text": "Монгол рашаанаас бусдыг нь авья",
+    "intent": "shipping"
+  },
+  {
+    "text": "Тэмээн хяруулын тосноос 2",
+    "intent": "product_search"
+  },
+  {
+    "text": "Наалт 1",
+    "intent": "product_search"
+  },
+  {
+    "text": "Халуун тос 1",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene tosig ergte hvn ch shambramda herglj bolhu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Төлбөрөө шилжүүлэх үү",
+    "intent": "payment"
+  },
+  {
+    "text": "Эсвэл ирэхээр нь төлөх үү",
+    "intent": "payment"
+  },
+  {
+    "text": "Sain baina uu. Tos zahialay",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Botanik Us-15 2r bair 3 tootod hurguuliy",
+    "intent": "shipping"
+  },
+  {
+    "text": "Сайн байна уу? Тэмээн хяруулын тос болон үе мөчний наалт авъя.",
+    "intent": "product_search"
+  },
+  {
+    "text": "Үнэ болон ашиглах зааврын мэдээлэл авъя, баярлалаа",
+    "intent": "order_status"
+  },
+  {
+    "text": "Hezee hvrggdj ireh we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Gert bas bnga hvn bhgv bn",
+    "intent": "shipping"
+  },
+  {
+    "text": "sn bnuu temeen hyruuliin tos bgaa yu",
+    "intent": "order_status"
+  },
+  {
+    "text": "tos vne",
+    "intent": "product_search"
+  },
+  {
+    "text": "1 ш тос ирчхсэн",
+    "intent": "shipping"
+  },
+  {
+    "text": "Маргааш явуулах юмтайгаа 1 ш явуулахад болно",
+    "intent": "shipping"
+  },
+  {
+    "text": "Oglo erthn hvrgd ogore bayrlla 🙂",
+    "intent": "shipping"
+  },
+  {
+    "text": "Үгүй ээ",
+    "intent": "shipping"
+  },
+  {
+    "text": "hayag haana ve. shidet tos",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi, шамбарамын тос хэл вэ хэдэн гр бэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "temeen hyruul tos avay",
+    "intent": "shipping"
+  },
+  {
+    "text": "tumur zam barsin hoino 64 bair 37 toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "ochod avbal haanas avhin",
+    "intent": "shipping"
+  },
+  {
+    "text": "shurt hothonoos uu",
+    "intent": "shipping"
+  },
+  {
+    "text": "oroin mend ene xaluun tosiig udur bur turxex yostoi yu xed xonog tawiad zawsarladag we Naaltiig bas",
+    "intent": "shipping"
+  },
+  {
+    "text": "end yag 7 xonogt teden udaa xed xonog xereglen shuu gesen zaalt alga",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hvrgelt n garsn bolowu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hayg haanaas awah we",
+    "intent": "shipping"
+  },
+  {
+    "text": "Тэмээн хяруулын тос авье",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Сайн уу явуулсан юманд юу юу бгаа бэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ уургаа хосоор нь явуулаагүй юмуу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хүргэлтээр авъя.",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хэдэн цагийн үед ирэх бол?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Sain baina uu?",
+    "intent": "greeting"
+  },
+  {
+    "text": "Tanai bvteegdehvvniig awch hereglej bolohuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene tosig",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ тосноос авъя аа",
+    "intent": "order_collection"
+  },
+  {
+    "text": "heregleh zaavar ywuulaach",
+    "intent": "order_collection"
+  },
+  {
+    "text": "tsagaan mah ergeed",
+    "intent": "product_search"
+  },
+  {
+    "text": "tsus garad bgn",
+    "intent": "complaint"
+  },
+  {
+    "text": "naan n turheh uu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Gandangiin arduin horshoo-2 delguur 3 dawhart 308 toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ali sain be?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Sain bnuu Ohin maani hazgai gishgeed shagai ni havdchijee. Ene Tosoosoo nimgen tvrheed illeg hiibel bolhuu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Buurnii beldmel",
+    "intent": "product_search"
+  },
+  {
+    "text": "Shalpon hed be",
+    "intent": "product_search"
+  },
+  {
+    "text": "Elegnii beldmel",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hed honogiin hereglee be",
+    "intent": "product_search"
+  },
+  {
+    "text": "hodood ulailttai gedeggui . harin tsusnii suurguutei gedeg",
+    "intent": "complaint"
+  },
+  {
+    "text": "tsus chuluugui",
+    "intent": "complaint"
+  },
+  {
+    "text": "sariin temdeg ireheer nuruu savaad uvddug baisan odoo irehee bolison",
+    "intent": "complaint"
+  },
+  {
+    "text": "Оройн мэндээ, 14 цагаас өмнө л бол хэдэн цаг байсан ч болно, баярлалаа",
+    "intent": "greeting"
+  },
+  {
+    "text": "Утасны дугаар 88195406",
+    "intent": "shipping"
+  },
+  {
+    "text": "Margash l asuyda onoodr ch hudla bollo",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ochgdr",
+    "intent": "product_search"
+  },
+  {
+    "text": "Тос хэд вэ яаж авах вэ эрдэнэтрүү",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi butegdehuun haanaas uzej boloh ve",
+    "intent": "product_search"
+  },
+  {
+    "text": "бнуу",
+    "intent": "greeting"
+  },
+  {
+    "text": "Цагаан мах иргээд өвдөөд бдг",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ тос хэд вэ хэр үр дүнтэй вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Тосны мэдээлэл авий",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хүргэлт байнуу",
+    "intent": "shipping"
+  },
+  {
+    "text": "Haana uzeh be",
+    "intent": "shipping"
+  },
+  {
+    "text": "Bayn gol duureg 10r horoo Hoh suwd hothon 807r bair 7dawhar 46toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "cmg urheer bombgorp",
+    "intent": "shipping"
+  },
+  {
+    "text": "ywna",
+    "intent": "shipping"
+  },
+  {
+    "text": "gne",
+    "intent": "shipping"
+  },
+  {
+    "text": "сайна уу",
+    "intent": "greeting"
+  },
+  {
+    "text": "шамбармын тос хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Avyaa",
+    "intent": "order_collection"
+  },
+  {
+    "text": "4r horoolol 46r bair 2r orts 3 davhart 46 toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "Utas 99991915",
+    "intent": "shipping"
+  },
+  {
+    "text": "Sn bnu tosiig shambaramd yaj heregleh bol udurt hedn uda turheh we",
+    "intent": "product_search"
+  },
+  {
+    "text": "songinhairhan dvvreg 29horoo 153 bair 1 orts 56toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "dans ni",
+    "intent": "payment"
+  },
+  {
+    "text": "mar irhvv hezee irh bilee irhesee umni zalgahu",
+    "intent": "order_status"
+  },
+  {
+    "text": "Данс нь",
+    "intent": "payment"
+  },
+  {
+    "text": "Хөвсгөлийн унаанд хүргүүлнэ.",
+    "intent": "shipping"
+  },
+  {
+    "text": "Шамбарамаас гадна өөр юунд хэрэглэдэг тос вэ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Temeen hyruuliin tos avya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Баянгол дүүрэг, 2-р хороо, 69 байр 107 тоот /25-р эмийн сангийн хойд талын автобусны буудлын ард 12 давхар цагаан ногоон өнгийн байрны 10 давхарт/",
+    "intent": "shipping"
+  },
+  {
+    "text": "За захиалъя. Маргааш хөвсгөлийн унаанд хүргүүлье",
+    "intent": "order_collection"
+  },
+  {
+    "text": "tos avay",
+    "intent": "product_search"
+  },
+  {
+    "text": "Тос захиалъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "10-р хороолол 14Б байр замынхаа хойд талд ирээд залгаарай 88075857 дэлгүүрт үлдээлгэнэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Сансар КТМС-Н сургуулийн зүүн талд 13/1-р байр 9 давхарт 44 тоот.Орцны код #5748",
+    "intent": "shipping"
+  },
+  {
+    "text": "ene tosnoos hvrgelteer awch bolohuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "hayg",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ene tos bgaa yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Oron nutagruu unaand tawij ogoh u",
+    "intent": "shipping"
+  },
+  {
+    "text": "tos hed ww",
+    "intent": "product_search"
+  },
+  {
+    "text": "BGD 10r horoolol MT colonkoor hoishoo Baylag hothon 60r bair 1 orts 4n dawhart 13a toot Utas 99158637",
+    "intent": "shipping"
+  },
+  {
+    "text": "1ш тос авий",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Тосоо авсаан,заавар бна уу? Яаж түрхэх билээ? Шамбарамд түрхэх гэсийн",
+    "intent": "size_info"
+  },
+  {
+    "text": "Utasruu ni zalgaad zahialga ogsoon bayrlalaa",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi haanaas awah wee",
+    "intent": "greeting"
+  },
+  {
+    "text": "Tos",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hi uzuulii gevel haana ochhuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Zawhan tOsontsengelrvv ywuulah gesen ym",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Hi temeen hyruulin tos zahiali",
+    "intent": "product_search"
+  },
+  {
+    "text": "tanai hayg haana we ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "temeen hyruuliin tos n une hed uu tsagaan mahand sain gej sonssloo",
+    "intent": "shipping"
+  },
+  {
+    "text": "Yarmagt",
+    "intent": "product_search"
+  },
+  {
+    "text": "Arvai villa 739 1orts 2-6 toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "tsagaan mahnii tos bga bolwuu 😇",
+    "intent": "shipping"
+  },
+  {
+    "text": "zahialah gsen ym",
+    "intent": "shipping"
+  },
+  {
+    "text": "onoodortoo amjij irne gj baih bolwuu jiremsen bvr tesdeggvie 🙏🏻🙏🏻🙏🏻",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Sain bain uu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Shambaram iin tosnoos ni away",
+    "intent": "shipping"
+  },
+  {
+    "text": "Tiimee.",
+    "intent": "payment"
+  },
+  {
+    "text": "Чили зочид буудлын ертөнцийн зүгээр зүүн талын байр",
+    "intent": "shipping"
+  },
+  {
+    "text": "Очиж авбал хаанаас авах уу",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ali dansruu tulburuu hih we",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хан уул дүүрэг хансвилл хотхон 102-р байр aisha beauty salon 80064283",
+    "intent": "shipping"
+  },
+  {
+    "text": "Энэ тосыг захиалга өгөөх гээд зөндөө их хүлээж байнадаа",
+    "intent": "order_collection"
+  },
+  {
+    "text": "1өдөр ажил дээр хүргүүлж авч болохуу",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi tosoo awsan yaj heregleh ve",
+    "intent": "greeting"
+  },
+  {
+    "text": "2g avbal hurgelt hed ve",
+    "intent": "product_search"
+  },
+  {
+    "text": "10r horoolol, 33r bair 28 toot Utas:88099694, 88762290",
+    "intent": "shipping"
+  },
+  {
+    "text": "2g avya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Сайн байна уу үе мөч хөл нь өвдөөд байгаа хүнд юу сайн бэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene tos ni nileen tulj horsdog u",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene tos bga y",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hurgelt bga u",
+    "intent": "shipping"
+  },
+  {
+    "text": "ene tosiiig yaj hregleh we?",
+    "intent": "product_search"
+  },
+  {
+    "text": "tsagaaan mah",
+    "intent": "product_search"
+  },
+  {
+    "text": "bzd 31 horoo monel gerlen dohiotoi uulzwaraas фунтик buyu 2 dahi buudal deeree jargalzaya gd delgvvr bgaa teriig joohon ongorood baruun ergeed 469hudag deer ireed zalgah . 89859397",
+    "intent": "shipping"
+  },
+  {
+    "text": "Bi hed honogoos harinaa tgd hurguulnee",
+    "intent": "order_status"
+  },
+  {
+    "text": "say awlaa",
+    "intent": "order_collection"
+  },
+  {
+    "text": "heregleh zaawar",
+    "intent": "product_search"
+  },
+  {
+    "text": "hi hayg hna we ochj awuul",
+    "intent": "greeting"
+  },
+  {
+    "text": "хорооллын эцэст хаш чулуу сауны 2 давхарт гэсэн бна тэндээ байгаа юу",
+    "intent": "shipping"
+  },
+  {
+    "text": "Одоо хүргүүлээд авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "10р хороолол 13 байр 14 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "Тос захиалы",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Shambaramnii tos zahialii",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Vne?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Бзд улаанхуаран эцэс шинэ амгалан хороолол 518-18",
+    "intent": "shipping"
+  },
+  {
+    "text": "hi tsagaan mahni tosnoos hurgelteer away",
+    "intent": "shipping"
+  },
+  {
+    "text": "BGD dramin teatriinz vvn urd Elit hothon Bliss salon",
+    "intent": "shipping"
+  },
+  {
+    "text": "king tower 145-132toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "sain bnuu en zurhnii handnii talaar medeelel awh gsiin",
+    "intent": "product_search"
+  },
+  {
+    "text": "eniig handiig herguul her bol",
+    "intent": "size_info"
+  },
+  {
+    "text": "Бөөрний хандын талаар мэдээлэл авья",
+    "intent": "product_search"
+  },
+  {
+    "text": "Vniin medeele awah gesen ym",
+    "intent": "greeting"
+  },
+  {
+    "text": "уушигний бүтээгдхүүн авий",
+    "intent": "product_search"
+  },
+  {
+    "text": "hamrni tsatslag iin oldgve. Hed gej baigan bol",
+    "intent": "product_search"
+  },
+  {
+    "text": "hede we",
+    "intent": "order_status"
+  },
+  {
+    "text": "Dansaaa ywuulchihu",
+    "intent": "payment"
+  },
+  {
+    "text": "hamriin tsatslaga ni hed wee?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Sain baina uu Ene tos bgayu",
+    "intent": "greeting"
+  },
+  {
+    "text": "3,4r horoollin etses, bathvleg servis",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hvrgeltn onoodr irhv",
+    "intent": "shipping"
+  },
+  {
+    "text": "Уушагний ханд хэд гэж байгаа юм",
+    "intent": "order_status"
+  },
+  {
+    "text": "hed we",
+    "intent": "product_search"
+  },
+  {
+    "text": "hurgelteer awayaa",
+    "intent": "shipping"
+  },
+  {
+    "text": "Han-uul 19n ulaan guurnii hoid tald ПАРАГОН hudaldaanii tow 2 dawhart",
+    "intent": "shipping"
+  },
+  {
+    "text": "zaa bayrllaa",
+    "intent": "thanks"
+  },
+  {
+    "text": "ene hed we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Bvteegdhv nvvd vne iin medeel awh gsi",
+    "intent": "product_search"
+  },
+  {
+    "text": "тэмээн хяруулын тос цагаан мах эргэхэд түрхдэг юм уу, захиалъя , үнэ хэд вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "1-р хороолол 19-р байр 3-р орц 7 давхарт 100 тоот, орцны код: 09#009 Утас: 99850276",
+    "intent": "shipping"
+  },
+  {
+    "text": "hurgelt maan ireegui",
+    "intent": "shipping"
+  },
+  {
+    "text": "vniin medeell awii",
+    "intent": "product_search"
+  },
+  {
+    "text": "тос байна уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Цэнхэр бичигтэй Нараагийн хэрэглэсэн мөн биз дээ.",
+    "intent": "product_search"
+  },
+  {
+    "text": "захиалга өгөх юм уу?",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ene tos bnuu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Yg ene har zurgatain baiga yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Oor ongotei baigd baisn ter ni vilcilgee adilhn uh",
+    "intent": "product_search"
+  },
+  {
+    "text": "Niseh haana we margsh ocood awci",
+    "intent": "shipping"
+  },
+  {
+    "text": "sain bnuu tos avii hed ve",
+    "intent": "shipping"
+  },
+  {
+    "text": "Танайд тэмээн хяруулын тос байгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "авы",
+    "intent": "product_search"
+  },
+  {
+    "text": "bzd 1 horoo selbe appartment 91/3/516 toot barilga mega story hajuu nomintoi bair shuu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Дэлгэрэнгүй",
+    "intent": "order_status"
+  },
+  {
+    "text": "ochood awj bolhimu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "haanaas awhu egch",
+    "intent": "order_collection"
+  },
+  {
+    "text": "ochood awchiyoo yg uhlee😂",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Тосоо авлаа баярлалаа",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Хэд хоног?",
+    "intent": "thanks"
+  },
+  {
+    "text": "ok bayrlala",
+    "intent": "thanks"
+  },
+  {
+    "text": "ochij awj amjihaargui bolchihloo",
+    "intent": "complaint"
+  },
+  {
+    "text": "margaash l away doo",
+    "intent": "order_status"
+  },
+  {
+    "text": "guriij bgd",
+    "intent": "shipping"
+  },
+  {
+    "text": "tanaid mash sain hamriin tsatslaga handmaluud baidag gej sonsood",
+    "intent": "product_search"
+  },
+  {
+    "text": "aan tna hayg haana ve",
+    "intent": "shipping"
+  },
+  {
+    "text": "tegeed haniadnii handmal hamriin tsatslaga hed ve",
+    "intent": "product_search"
+  },
+  {
+    "text": "uchigdur zahialga ugsun yum unuudur irsengui e",
+    "intent": "order_status"
+  },
+  {
+    "text": "Awaagui bno",
+    "intent": "complaint"
+  },
+  {
+    "text": "tos hze ireh we??",
+    "intent": "order_status"
+  },
+  {
+    "text": "Bairshil",
+    "intent": "shipping"
+  },
+  {
+    "text": "hi hurgelt ni ireegui",
+    "intent": "shipping"
+  },
+  {
+    "text": "hi minii hurgelt yasiin bol tosoo huleegeed bgaan",
+    "intent": "shipping"
+  },
+  {
+    "text": "Sn bnuu ulziitrvv hvrgelt hiidegvv",
+    "intent": "size_info"
+  },
+  {
+    "text": "8sartai jiremsen hereglej bolohuu",
+    "intent": "size_info"
+  },
+  {
+    "text": "энэ тосыг авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "хүргэлтээр авъя",
+    "intent": "shipping"
+  },
+  {
+    "text": "яармаг нүхт явах замд Winter garden хотхон 2-р орц 4-401",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi, тэмээн хяруулын тос авья. Заавартайгаа ирэх үү?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Чингис зочид буудлын хажууд Сансар гарден хотхон, 39/6 байр 2-р орц 204 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "Хэд билээ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene tosiig zahily",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Vne",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hvrgelt n hezee ireh we",
+    "intent": "shipping"
+  },
+  {
+    "text": "Oroidoo gwel ajliin haygaa ogchy",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hi enig avy",
+    "intent": "greeting"
+  },
+  {
+    "text": "Tumur zam premium apartment2 A blok 5davhar 504 toot Gdaah haalgani code 4758# Dotr *123456*",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ok zahialy",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Hi, tos maani hurgeltend garsan uu?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Jiremsen hvn tvrhej boldiim bolwuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Sain baina u",
+    "intent": "greeting"
+  },
+  {
+    "text": "temeen hyruuliin tos baigaayu",
+    "intent": "product_search"
+  },
+  {
+    "text": "хүргэлтээр 2 ш авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "фемида таун",
+    "intent": "shipping"
+  },
+  {
+    "text": "693 р байр",
+    "intent": "shipping"
+  },
+  {
+    "text": "1101 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "shambaramd turhdeg tos ni bnu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Солонгос элчингийн зүүн талд Нархан хотхон 51/А баыр 3-р орц 27 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "ene tos belen bga yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "ocij avj bolhu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Энэ тос байгаа юу хаанаас авах вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Очоод авж болох уу яаралтай хэрэгтэй бга юм аа",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Энэ тос нь бгаа юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Хүргэлтээр авая",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Ene tos bga yu une hed we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Yu yund sain be ta ndd tailbar ywuulaach",
+    "intent": "product_search"
+  },
+  {
+    "text": "сайн байна уу? цагаан мах эргэхэд.хэрэглэдэг тос авъя",
+    "intent": "shipping"
+  },
+  {
+    "text": "Өнөөдөр хүргэх үү",
+    "intent": "greeting"
+  },
+  {
+    "text": "Захихлъя",
+    "intent": "shipping"
+  },
+  {
+    "text": "Төрсөн хүн байгаамаа. Өглөө эхний захиалгаар хүргэвэл ии сайн байна.",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Захиалчихсаан",
+    "intent": "order_status"
+  },
+  {
+    "text": "У. Хонгорзул",
+    "intent": "order_status"
+  },
+  {
+    "text": "Havan hooh tan bga uy",
+    "intent": "product_search"
+  },
+  {
+    "text": "Uurag hed ve",
+    "intent": "size_info"
+  },
+  {
+    "text": "Havan hooh rashaan uuhaar umu ho vne hed ve",
+    "intent": "size_info"
+  },
+  {
+    "text": "Энэ тос нь хэд гэж бгаан бол",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tos hed be",
+    "intent": "product_search"
+  },
+  {
+    "text": "Erdenet ru 2.g awii",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hi medelel away bi jiremsen 6 sartai yymaa",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hsem",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Ene tos awyaa",
+    "intent": "product_search"
+  },
+  {
+    "text": "цагаан махны тос бна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "тос бна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hihi",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene tos bgaayu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hed gdg we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Za tgeerei , ireheer n avii",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hi tsagaan mahnii tos belen bgaayu",
+    "intent": "order_status"
+  },
+  {
+    "text": "Temeen hyruuliin tos bgaa yu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Аан за хэзээ ирэх үү",
+    "intent": "greeting"
+  },
+  {
+    "text": "Ирэхээр нь авъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Удах уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "temeen hyaruul tos hed bile",
+    "intent": "shipping"
+  },
+  {
+    "text": "hurgelt tusdaa unetei yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Сайн байна уу шамбармын тос байна уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "hezee ireh ve yer n",
+    "intent": "order_status"
+  },
+  {
+    "text": "yaana yaraltai irehgui yu esvel gants shirheg bhgui yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "tsagaan mah ergetsen zoviurtai bgn",
+    "intent": "complaint"
+  },
+  {
+    "text": "Өвөрмонголыг тэмээн хяруулын тос гэдэг юм бн уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ тосыг л яаралтай авмаар байнө",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Tsagaan mah ni oir oirhon garaad owdolt ni ihsed bga hund yu heregleh we",
+    "intent": "complaint"
+  },
+  {
+    "text": "Awna shuuu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Tos bnu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "1g avya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Hezee ireh bol?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Tos ireegui yu ?",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ тосоо яааж хэрэглэх вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Цагаан мах гараад удаж баыганмаа",
+    "intent": "product_search"
+  },
+  {
+    "text": "цагаан махны тос байна уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene бна уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "88061177 tsagaan mah ergehed sn tos ymyy ho",
+    "intent": "product_search"
+  },
+  {
+    "text": "awna shvv",
+    "intent": "product_search"
+  },
+  {
+    "text": "шамбарамын тос байгаа юу",
+    "intent": "shipping"
+  },
+  {
+    "text": "за тэгээрэй хэр удах бол цагаан сараас өмнө ирэх болов уу",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Сн бну тэмээн хяруулын тос бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene tos hedvv",
+    "intent": "shipping"
+  },
+  {
+    "text": "Сайн байна уу үё мөчний тос болон тэмээн хяруулын тос захиалая",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tos awiyaa",
+    "intent": "product_search"
+  },
+  {
+    "text": "Oron nutagt bga ymaa unaagaa olhooroo zahialay",
+    "intent": "shipping"
+  },
+  {
+    "text": "Тэгнэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Одоо яг ирнэ биз дээ",
+    "intent": "order_status"
+  },
+  {
+    "text": "Өвдөгний үений тос бгаа юу",
+    "intent": "order_status"
+  },
+  {
+    "text": "Hos uurag",
+    "intent": "product_search"
+  },
+  {
+    "text": "Medeelel bniu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Une hedwe",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tusd n salgaad awch boln bizde",
+    "intent": "product_search"
+  },
+  {
+    "text": "Jijig uurag n hedwe hu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Za bi en jijig uurgas 1, temeen hyruulin tosnoos 1, emegteichuudin ugaalga 1",
+    "intent": "product_search"
+  },
+  {
+    "text": "Herglej uzeed taarch bwl nemeed bvteegdehvvn zahialnaa",
+    "intent": "product_search"
+  },
+  {
+    "text": "Тэмээн хяруулын тос халуу оригуулдаг нь мөн үү",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Яаж хэрэглэдэг вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Очиж авая гэвэл хаанаас авах уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Batonik ypon mongoliin hamtrsan emnelgiin urd tald anagaahiin dotuur bair",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hurgelt ni hed wee",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene tos bga yu",
+    "intent": "product_search"
+  },
+  {
+    "text": "koyo town 54/2 1r orts 704 toot 88902280",
+    "intent": "shipping"
+  },
+  {
+    "text": "Zahialga batalgaajsan ym bolwuu",
+    "intent": "order_status"
+  },
+  {
+    "text": "Тос нь бга юу",
+    "intent": "product_search"
+  },
+  {
+    "text": "Төрсөний дараах цагаан мах эргээд буцаад орсон боловч өтгөн хатаад дахиж эргэх гэжд байх шиг байгаан цустай хүндрээд бгн тийм тохиолдолд түрхэж болох уу",
+    "intent": "complaint"
+  },
+  {
+    "text": "Бзд 14-р хороо мандах наран хороолол 123б байр 1 орц 6 давхар 26 тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "Temeen hyruuliin tos ve mochnii tos hoyr 65k hurgelt ni 7k geed 72k bshuu 82k neheed bh ym",
+    "intent": "product_search"
+  },
+  {
+    "text": "Энэ тосыг цагаан манханд яаж хэрэлэх вэ",
+    "intent": "product_search"
+  },
+  {
+    "text": "Түрхэх үү",
+    "intent": "size_info"
+  },
+  {
+    "text": "Цус гарахгүй байгаа, булцайсан болчихоод",
+    "intent": "complaint"
+  },
+  {
+    "text": "ХУД, 11 хороо, зайсангийн эцэст, зайсан лакшири виллаж хотхон, 2-р байр, 2 давхарт, 6 тоот, орцны код: 8808# 99037577",
+    "intent": "shipping"
+  },
+  {
+    "text": "Давхар өөр лаа хэрэглэх шаардлагатай юу",
+    "intent": "size_info"
+  },
+  {
+    "text": "Haan banknii app bolhgui zaswart bga ym bna aa bolhooe ni tolboroo shiljuulie",
+    "intent": "payment"
+  },
+  {
+    "text": "Bank bolohgui bna aa",
+    "intent": "payment"
+  },
+  {
+    "text": "Tootsoogoo shiljuulsen shuu",
+    "intent": "payment"
+  },
+  {
+    "text": "Hemorol гэдэг лаа хийж байна өөр юм хэрэглээгүй",
+    "intent": "size_info"
+  },
+  {
+    "text": "Өдрийн мэнд хүргэлт нь хэдийд ирэх вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Шалгасан уу",
+    "intent": "order_status"
+  },
+  {
+    "text": "Өдрийн мэнд Энэ тосоо хэрэглэж байгаа, давхар лаа хэрэглэх шаардлага байгаа юу, дан тосоо түрхээд байх уу",
+    "intent": "product_search"
+  },
+  {
+    "text": "ene tos hedwee",
+    "intent": "product_search"
+  },
+  {
+    "text": "hed Turheed zugeer boldogwee",
+    "intent": "product_search"
+  },
+  {
+    "text": "hurglt bnuu",
+    "intent": "shipping"
+  },
+  {
+    "text": "Шар хад эрдэнэ толгой 91858487 96247089.",
+    "intent": "shipping"
+  },
+  {
+    "text": "Цагаан махны тос авий",
+    "intent": "order_collection"
+  },
+  {
+    "text": "За тосоо л авйи даа авах гэж хэд хоног л тэсэж бнаа ккк",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Хүмүс тосыг Сайн тос гээл бна хрн",
+    "intent": "product_search"
+  },
+  {
+    "text": "Та үдээш хойш хэдийн үед ирэх вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "Шар хад Эрдэнэ толгой МТИ колонк дээр",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ёстой их баярллааа эгч",
+    "intent": "thanks"
+  },
+  {
+    "text": "Хүн явуулааад авчий эгч",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Hi temeen hyruuliin tos awya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Mini hvrgelt ysii boloo",
+    "intent": "shipping"
+  },
+  {
+    "text": "Тосоо хэдэн минутын зайтай түргэх вэ",
+    "intent": "shipping"
+  },
+  {
+    "text": "ireegvi ee",
+    "intent": "shipping"
+  },
+  {
+    "text": "Байршил нь хаахан байгаа юм бол? Одоо 22 луу орж ирж байна.",
+    "intent": "greeting"
+  },
+  {
+    "text": "Локэйшнээ шэйрлээд өгөөч. Тос нь өөрт нь бэлэн байгаа тэ?",
+    "intent": "shipping"
+  },
+  {
+    "text": "За очоод хэлье",
+    "intent": "shipping"
+  },
+  {
+    "text": "Гэр нь хаана вэ? Одоо нисэх рүү эргэх гээд байгаа юм аа.",
+    "intent": "shipping"
+  },
+  {
+    "text": "ene hvrgelt yahaar bolwoo",
+    "intent": "shipping"
+  },
+  {
+    "text": "Huree amarjih gazar",
+    "intent": "shipping"
+  },
+  {
+    "text": "Цагаан махны тос бгаа юу цагаан мах гараад ирцэн цус гарж бгаа үед үр дүнтэй юу",
+    "intent": "shipping"
+  },
+  {
+    "text": "Nisehiin xaanaas awhuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Sain bnuu shambaramiin tos sonirhoj bgaa ymaa urd ne hagalgaand orj baisan odoo sedreed uvuud tsug garaad aimar hetsuu baigaa ymaa",
+    "intent": "product_search"
+  },
+  {
+    "text": "Sain medehgui bna",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Яармаг Марал аялал хотхон 1446 байр 8 давхар 50тоот",
+    "intent": "shipping"
+  },
+  {
+    "text": "Sain bainu shambramin tos ni bainuu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Awaya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Erdenet 99916622",
+    "intent": "shipping"
+  },
+  {
+    "text": "za hiilee her udaan heregleh we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Tsagaan mahaa tsaashni tulheed toslood bhu",
+    "intent": "order_collection"
+  },
+  {
+    "text": "tsus garaad bga",
+    "intent": "product_search"
+  },
+  {
+    "text": "dotogshooni turhhimu il hesegteel turhhuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "hi tos awiii",
+    "intent": "greeting"
+  },
+  {
+    "text": "bzd duurges opitser ywah zamd shunhlai kolonkoor uragsha ergeed 118bair 10dawhar 87 toot",
+    "intent": "shipping"
+  },
+  {
+    "text": "hze ireh we?",
+    "intent": "order_status"
+  },
+  {
+    "text": "Тэмээн хяруулын тос байгаа юу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "7. Toi 8tai 2 huuhed bs hamarni asuudaltai",
+    "intent": "size_info"
+  },
+  {
+    "text": "Ehleed hurhnu ter hodod tsai, rashan awi manaih tanaihtai oirhn eagle town hajud",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ene bvt-n bdg uu",
+    "intent": "product_search"
+  },
+  {
+    "text": "7.nastai",
+    "intent": "size_info"
+  },
+  {
+    "text": "Uushig ygd ingj muu blsnig mdhguii amarhn haniadag.",
+    "intent": "complaint"
+  },
+  {
+    "text": "35 😊",
+    "intent": "size_info"
+  },
+  {
+    "text": "Hiiii",
+    "intent": "greeting"
+  },
+  {
+    "text": "Temeen hyruuliin tos bgaa yuu",
+    "intent": "greeting"
+  },
+  {
+    "text": "Haanaas ochij awah we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Neh medegdedgui",
+    "intent": "shipping"
+  },
+  {
+    "text": "Tsagan mah ergeh uu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene gants uda ergej bsn",
+    "intent": "product_search"
+  },
+  {
+    "text": "Aann",
+    "intent": "product_search"
+  },
+  {
+    "text": "Kkk. Blj bga zurag bnu.",
+    "intent": "product_search"
+  },
+  {
+    "text": "Amisgal bvren awj chdadgu bnga dawchdulna",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Sain bainuu ene urewseltei bolhoor ingej aimar horsood bainuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "3-5 honogiihoo daraa gaigui bolohuu",
+    "intent": "product_search"
+  },
+  {
+    "text": "Hi. Temeen hyaruuliin tos avya.",
+    "intent": "product_search"
+  },
+  {
+    "text": "Nuguu page hayagnaas n zahisan",
+    "intent": "order_collection"
+  },
+  {
+    "text": "Tursun",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ugui",
+    "intent": "shipping"
+  },
+  {
+    "text": "Ergeed horsoj uwduud untaj ch chaddagguie",
+    "intent": "shipping"
+  },
+  {
+    "text": "Thh ergelt 8 haalgaar 4 dawhart",
+    "intent": "shipping"
+  },
+  {
+    "text": "Hedin uyd ireh bol. Bolku bol huneer erthen ochij awhuulsanch yahaw. Gyals l awmaar bnoo",
+    "intent": "shipping"
+  },
+  {
+    "text": "yg ymr ymr butegdehun bna",
+    "intent": "product_search"
+  },
+  {
+    "text": "Ene ingd hed ym bol",
+    "intent": "product_search"
+  },
+  {
+    "text": "uushginii hand naaltn hed ym bol",
+    "intent": "product_search"
+  },
+  {
+    "text": "bairshiln hna we",
+    "intent": "product_search"
+  },
+  {
+    "text": "Uushgini hand he’d we uudg n",
+    "intent": "size_info"
+  },
+  {
+    "text": "butegdehuni zurag medelel bnu",
+    "intent": "product_search"
+  },
+  {
+    "text": "uushigni beldmel naalt medeell awiy",
+    "intent": "product_search"
+  },
+  {
+    "text": "хүүхэд хэрэглэж болох уу",
+    "intent": "allergen_info"
+  },
+  {
+    "text": "бронхитны шинж илэрч бгаа хүүхдэд болох уу",
+    "intent": "allergen_info"
   }
 ]

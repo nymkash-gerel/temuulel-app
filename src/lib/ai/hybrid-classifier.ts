@@ -193,7 +193,7 @@ export async function hybridClassifyAsync(message: string): Promise<IntentResult
 
   // Tier 2: Try BERT API (fast, cheap, 83% accuracy)
   const bertResult = await bertClassify(message)
-  if (bertResult && bertResult.confidence >= 0.8) {
+  if (bertResult && bertResult.confidence >= 0.7) {
     return { intent: bertResult.intent, confidence: bertResult.confidence * 2 }
   }
 
