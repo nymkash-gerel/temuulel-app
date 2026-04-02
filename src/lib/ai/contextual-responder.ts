@@ -368,6 +368,11 @@ function buildSystemPrompt(input: ContextualInput): string {
           if (/хэмжээ.*асуу.*жин/.test(l)) return false
           if (/жинг нь асуу/.test(l)) return false
           if (/асуугаад зөвлө/.test(l)) return false
+          if (/зөвлөж өг/.test(l)) return false
+          if (/хэмжээ асуухад/.test(l)) return false
+          if (/тойргоор зөвлө/.test(l)) return false
+          // Generic: any line ending with "зөвлө/асуу/өг/хэл:" is an instruction
+          if (/(?:зөвлө|асуу|өг|хэл|онцол)\s*:?\s*$/.test(l)) return false
           return true
         })
         return cleaned.join('\n').trim()
