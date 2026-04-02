@@ -356,20 +356,21 @@ function buildSystemPrompt(input: ContextualInput): string {
       }
       // Strip ALL owner-facing instructions from ai_context and sales_script
       const stripOwnerInstructions = (text: string): string => {
-        return text
-          // "Захиалга авахдаа ... асуу" pattern
-          .replace(/захиалга авахдаа[^.!]*[.!]/gi, '')
-          // "Хэрэглэгч ... асуу/зөвлө/санал болго/өг" patterns
-          .replace(/хэрэглэгч[^.!]*(?:асуу|зөвлө|санал болго|зөвлөж өг|онцол)[^.!]*[.!]/gi, '')
-          // "...санал болго!" pattern
-          .replace(/[^.!]*санал болго[^.!]*[.!]/gi, '')
-          // "...гэдгийг онцол" pattern
-          .replace(/[^.!]*гэдгийг онцол[^.!]*[.!]/gi, '')
-          // "Хэмжээ асуухад жинг нь асуу" pattern
-          .replace(/хэмжээ асуу[^.!]*[.!]/gi, '')
-          // "...гэдгийг хэл" pattern
-          .replace(/[^.!]*гэдгийг хэл[^.!]*[.!]/gi, '')
-          .trim()
+        // Split by newlines first — owner instructions are often full lines
+        const lines = text.split('\n')
+        const cleaned = lines.filter(line => {
+          const l = line.trim().toLowerCase()
+          // Remove lines that are instructions TO the store owner/agent
+          if (/хэрэглэгч.*(?:асуу|зөвлө|өг|хэл|онцол)/.test(l)) return false
+          if (/захиалга авахдаа/.test(l)) return false
+          if (/санал болго/.test(l)) return false
+          if (/гэдгийг (?:онцол|хэл|дурд)/.test(l)) return false
+          if (/хэмжээ.*асуу.*жин/.test(l)) return false
+          if (/жинг нь асуу/.test(l)) return false
+          if (/асуугаад зөвлө/.test(l)) return false
+          return true
+        })
+        return cleaned.join('\n').trim()
       }
       if (p.ai_context) {
         const cleanCtx = stripOwnerInstructions(p.ai_context as string)
