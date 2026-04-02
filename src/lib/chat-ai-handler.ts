@@ -712,7 +712,10 @@ export async function processAIChat(
               } else if (products.length === 1) {
                 responseText = `Байна! Сонирхвол дугаараа бичнэ үү 😊`
               } else {
-                responseText = `${products.length} бараа олдлоо! Аль нэгийг сонирхвол дугаараа бичнэ үү 😊`
+                // Show product names for better UX
+                const names = products.slice(0, 3).map((pr, i) => `${i + 1}. ${(pr as { name?: string }).name || 'Бараа'}`).join('\n')
+                const extra = products.length > 3 ? `\n...нийт ${products.length} бараа` : ''
+                responseText = `Байна! 👇\n${names}${extra}\n\nАль нэгийг сонирхвол дугаараа бичнэ үү 😊`
               }
             } else if (confidence >= 0.6) {
               // Medium confidence — "Энэ мөн үү?"
@@ -803,7 +806,21 @@ export async function processAIChat(
             responseText = result.responseText
             intent = 'order_collection'
           } else {
-            // Pure order words only or no products — show catalog
+            // No product identifier found — check if there's a last-discussed product in state
+            if (state.last_products.length > 0) {
+              // Customer said "авъя" after discussing a product — order THAT product
+              const lastP = state.last_products[0]
+              const refetched = await searchProducts(supabase, lastP.name, storeId, { maxProducts: 1 })
+              if (refetched.length > 0) {
+                const p = refetched[0]
+                const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage, storeId, customerId)
+                orderDraft = result.draft
+                responseText = result.responseText
+                intent = 'order_collection'
+              }
+            }
+            if (!responseText) {
+            // Pure order words, no context — show catalog
             const allProducts = await searchProducts(supabase, '', storeId, {
               maxProducts: chatbotSettings.max_products || 5,
               originalQuery: '',
@@ -814,12 +831,13 @@ export async function processAIChat(
               const productList = allProducts.map((p, i) =>
                 `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}`
               ).join('\n')
-              responseText = `Ямар бүтээгдэхүүн захиалмаар байна?\n\n${productList}\n\nБараа дугаараа бичнэ үү (1, 2, 3...):`
+              responseText = `Ямар бүтээгдэхүүн захиалмаар байна?\n\n${productList}\n\nАль нэгийг сонирхвол дугаараа бичнэ үү 😊`
             } else {
               // No products at all — override any GPT-generated text with a definitive answer
               intent = 'product_search'
               responseText = 'Уучлаарай, одоогоор захиалах боломжтой бараа байхгүй байна. Удахгүй шинэ бараа нэмэх болно.'
             }
+            } // close if (!responseText)
           }
         }
       }
