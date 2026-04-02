@@ -703,7 +703,23 @@ export async function processAIChat(
             // PRODUCTS FOUND — use confidence-based template, skip GPT entirely.
             const p = products[0]
             const confidence = (p as { searchConfidence?: number }).searchConfidence ?? 1.0
-            const salesScript = (p as { sales_script?: string }).sales_script
+            const rawSalesScript = (p as { sales_script?: string }).sales_script
+            // Strip owner-facing instructions from sales_script before showing to customer
+            const salesScript = rawSalesScript ? rawSalesScript
+              .split('\n')
+              .filter(line => {
+                const l = line.trim().toLowerCase()
+                if (/хэрэглэгч.*(?:асуу|зөвлө|өг|хэл|онцол)/.test(l)) return false
+                if (/(?:зөвлөж өг|асуугаад зөвлө|жинг нь асуу|тойргоор зөвлө)/.test(l)) return false
+                if (/хэмжээ асуухад/.test(l)) return false
+                if (/захиалга авахдаа/.test(l)) return false
+                if (/санал болго/.test(l)) return false
+                if (/гэдгийг (?:онцол|хэл|дурд)/.test(l)) return false
+                if (/(?:зөвлө|асуу|өг|хэл|онцол)\s*:?\s*$/.test(l)) return false
+                return true
+              })
+              .join('\n')
+              .trim() || null : null
 
             if (confidence >= 0.85) {
               // High confidence — exact or near-exact match
