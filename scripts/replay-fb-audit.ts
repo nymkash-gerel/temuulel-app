@@ -347,7 +347,7 @@ async function main() {
   // Save report
   const reportDir = path.join(__dirname, '..', 'tests', 'simulation', 'reports')
   if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir, { recursive: true })
-  const reportFile = path.join(reportDir, `fb-audit-${new Date().toISOString().slice(0, 10)}.json`)
+  const reportFile = path.join(reportDir, `fb-audit-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`)
   fs.writeFileSync(reportFile, JSON.stringify({
     date: new Date().toISOString(),
     store: storeName,
