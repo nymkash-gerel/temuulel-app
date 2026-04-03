@@ -96,8 +96,8 @@ function detectBugs(message: string, intent: string, response: string): Bug[] {
     bugs.push({ type: 'AI_IDENTITY_LEAK', severity: 'warning', description: 'AI/chatbot гэдгээ илчилсэн' })
   }
 
-  // INFO: Very long response (>500 chars)
-  if (response.length > 500) {
+  // INFO: Very long response (>800 chars — GPT responses under 800 are normal)
+  if (response.length > 800) {
     bugs.push({ type: 'LONG_RESPONSE', severity: 'info', description: `Хариулт хэт урт: ${response.length} chars` })
   }
 
