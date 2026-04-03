@@ -1,0 +1,90 @@
+name: Chat Quality Audit
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/chat-ai-handler.ts'
+      - 'src/lib/ai/**'
+      - 'src/lib/intent-classifier.ts'
+      - 'src/lib/response-generator.ts'
+      - 'src/lib/conversation-state.ts'
+      - 'src/lib/text-normalizer.ts'
+      - 'src/lib/mn-stemmer.ts'
+  workflow_dispatch:
+  schedule:
+    # Run daily at 2am UTC (10am Mongolia)
+    - cron: '0 2 * * *'
+
+jobs:
+  stress-test:
+    name: Stress Test (all scenarios)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      BERT_API_URL: ${{ secrets.BERT_API_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run stress tests (v1+v2+v3)
+        run: npx tsx scripts/replay-fb-audit.ts --prod --source all-stress 2>&1 | tee audit-output.txt
+
+      - name: Check for critical bugs
+        run: |
+          REPORT=$(ls -t tests/simulation/reports/fb-audit-*.json | head -1)
+          CRITICAL=$(python3 -c "import json; d=json.load(open('$REPORT')); print(d['bugs']['critical'])")
+          WARNING=$(python3 -c "import json; d=json.load(open('$REPORT')); print(d['bugs']['warning'])")
+          echo "Critical: $CRITICAL, Warning: $WARNING"
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "❌ FAILED: $CRITICAL critical bugs found"
+            exit 1
+          fi
+          echo "✅ No critical bugs"
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report
+          path: tests/simulation/reports/fb-audit-*.json
+
+  fb-sample:
+    name: FB Data Audit (500 msgs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      BERT_API_URL: ${{ secrets.BERT_API_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run FB data audit (500 messages)
+        run: npx tsx scripts/replay-fb-audit.ts --prod --limit 500 2>&1 | tee fb-audit-output.txt
+
+      - name: Upload FB audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fb-audit-report
+          path: tests/simulation/reports/fb-audit-*.json

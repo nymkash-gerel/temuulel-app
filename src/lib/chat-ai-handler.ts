@@ -142,6 +142,8 @@ export async function processAIChat(
       })
   }
 
+  const processingStart = Date.now()
+
   // --- Parallel: fetch conversation state + busy mode + customer profile ---
   const [state, busyMode, customerProfile] = await Promise.all([
     readState(supabase, conversationId),
@@ -934,7 +936,7 @@ export async function processAIChat(
     writeState(supabase, conversationId, nextState),
   ])
 
-  return {
+  const result: AIProcessingResult = {
     response: responseText,
     intent,
     messageId: savedMessageResult.data?.id,
@@ -950,6 +952,25 @@ export async function processAIChat(
     },
     orderStep: orderDraft?.step ?? null,
   }
+
+  // ── Production monitoring log ──
+  // Structured JSON for log aggregation (Vercel logs / Sentry breadcrumbs)
+  const processingTime = Date.now() - processingStart
+  console.log(JSON.stringify({
+    event: 'chat_processed',
+    intent,
+    confidence: followUp ? 'followup' : 'classified',
+    products_found: products.length,
+    orders_found: orders.length,
+    response_length: responseText.length,
+    processing_ms: processingTime,
+    turn: nextState.turn_count,
+    has_order_draft: !!orderDraft,
+    store_id: storeId,
+    conversation_id: conversationId,
+  }))
+
+  return result
 }
 
 // ---------------------------------------------------------------------------
