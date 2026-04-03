@@ -176,6 +176,8 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'сэтгэл ханамжтай', 'ханамжтай',
     'дахиж захиална', 'дахин захиална',
     'mundag', 'мундаг',
+    // Emoji thanks
+    '🙏', '❤️', '👍',
   ],
   general: [
     // Short affirmatives/responses that are NOT product searches
@@ -213,6 +215,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Strong anger signals
     'авахгүй', 'авахгүй байна', 'авахгүй бол',
     'чанаргүй юм', 'сүүлийн удаа', 'ene l udaa',
+    // Fraud suspicion
+    'дүрлэж', 'дуурлаж', 'duurlaj', 'залилан', 'хуурч',
+    // Emoji complaint
+    '😡', '😤', '🤬',
     // Latin transliterations (common in Messenger complaints)
     'yaagaad', 'yaagad', 'yagaad',
     'chnargui', 'chanargui',
@@ -361,6 +367,9 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'хуваан төлж болох', 'huvaaj tulj boloh',
     'dans', 'dansaa', 'dansruu',
     'ali bankaar', 'ямар банк',
+    // Tax/invoice
+    'нөат', 'vat', 'invoice', 'нэхэмжлэх', 'баримт',
+    'байгууллгын нэр', 'baiguullga',
   ],
   shipping: [
     // Core

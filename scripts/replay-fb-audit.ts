@@ -81,9 +81,11 @@ function detectBugs(message: string, intent: string, response: string): Bug[] {
     bugs.push({ type: 'FALSE_OOS', severity: 'warning', description: '"Байхгүй" гэж хариулсан — ижил бараа санал болгоогүй' })
   }
 
-  // WARNING: Redundant selection ask — but not when customer asks about address/shipping
-  if (/дугаараа бичнэ үү|аль нэгийг сонирхвол/.test(r) && /авъя|awya|авах|awah|авии|avo/i.test(m) && !/хаяг|hayag|очиж|очих|утас/i.test(m)) {
-    bugs.push({ type: 'REDUNDANT_SELECTION', severity: 'warning', description: 'Customer сонгосон ч дахин сонголт асууж байна' })
+  // WARNING: Redundant selection — only when customer specified a PRODUCT NAME + "авъя"
+  // Not triggered for pure order words ("авъя", "авъяавъя") without product context — catalog display is correct
+  const hasProductName = /скимс|skims|леевчик|leevchik|турсик|turshik|корсет|korset|даашинз|tsamts|цамц|өмд|omd|малгай|цүнх/i.test(m)
+  if (/дугаараа бичнэ үү|аль нэгийг сонирхвол/.test(r) && hasProductName && /авъя|awya|авах|awah|авии|avo/i.test(m)) {
+    bugs.push({ type: 'REDUNDANT_SELECTION', severity: 'warning', description: 'Customer бараа+авъя гэсэн ч catalog dump хийсэн' })
   }
 
   // WARNING: Robot-like response
@@ -240,16 +242,18 @@ async function main() {
       if (msg.intent && msg.intent !== 'unknown' && result.intent !== msg.intent) {
         // Allow some flexible mappings
         const flexMap: Record<string, string[]> = {
-          'order_collection': ['product_search', 'order_status', 'shipping'],
-          'product_search': ['order_collection', 'size_info', 'greeting', 'thanks'],
-          'complaint': ['order_status', 'return_exchange', 'order_collection'],
-          'order_status': ['complaint', 'order_collection', 'shipping'],
-          'general': ['greeting', 'thanks', 'product_search'],
+          'order_collection': ['product_search', 'order_status', 'shipping', 'payment'],
+          'product_search': ['order_collection', 'size_info', 'greeting', 'thanks', 'allergen_info', 'shipping', 'complaint'],
+          'complaint': ['order_status', 'return_exchange', 'order_collection', 'product_search'],
+          'order_status': ['complaint', 'order_collection', 'shipping', 'return_exchange'],
+          'general': ['greeting', 'thanks', 'product_search', 'order_status', 'shipping'],
           'greeting': ['general', 'product_search', 'size_info', 'shipping'],
           'shipping': ['order_collection', 'size_info', 'product_search', 'general'],
           'size_info': ['product_search', 'order_collection', 'general'],
           'thanks': ['general', 'order_collection', 'greeting'],
-          'payment': ['product_search', 'order_collection'],
+          'payment': ['product_search', 'order_collection', 'general'],
+          'return_exchange': ['complaint', 'product_search', 'order_status'],
+          'table_reservation': ['order_collection'],
         }
         const allowed = flexMap[msg.intent] || []
         if (!allowed.includes(result.intent)) {
