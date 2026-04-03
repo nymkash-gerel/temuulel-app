@@ -504,7 +504,7 @@ export async function processAIChat(
 
       // Parallel: all DB fetches + history in one batch
       const [searchedProducts, searchedOrders, searchedTables, history] = await Promise.all([
-        (intent === 'product_search' || intent === 'general' || intent === 'menu_availability' || intent === 'allergen_info' || intent === 'size_info')
+        (intent === 'product_search' || intent === 'general' || intent === 'order_collection' || intent === 'menu_availability' || intent === 'allergen_info' || intent === 'size_info')
           ? searchProducts(supabase, searchTerms, storeId, {
               maxProducts: chatbotSettings.max_products,
               originalQuery: customerMessage,
@@ -1753,12 +1753,13 @@ async function createOrderFromChat(
     }),
   ])
 
-  dispatchNotification(storeId, 'new_order', {
+  // Fire-and-forget — catch to prevent unhandled rejection in test/CLI environments
+  void dispatchNotification(storeId, 'new_order', {
     order_id: newOrder.id,
     order_number: newOrder.order_number,
     total_amount: newOrder.total_amount,
     payment_method: null,
-  })
+  }).catch(() => {})
 
   return { order_number: newOrder.order_number, total_amount: totalAmount, delivery_fee: deliveryFee }
 }

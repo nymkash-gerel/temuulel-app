@@ -139,6 +139,52 @@ describe('resolveFollowUp', () => {
   it('returns null for unrelated message', () => {
     expect(resolveFollowUp('сайн байна уу', stateWith())).toBeNull()
   })
+
+  // Order draft — variant selection
+  it('returns order_step_input when order_draft exists (variant step)', () => {
+    const state = stateWith({
+      order_draft: {
+        items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+        step: 'variant',
+      },
+    })
+    const result = resolveFollowUp('12', state)
+    expect(result).toEqual({ type: 'order_step_input' })
+  })
+
+  it('order_step_input beats number_reference when order_draft active', () => {
+    const state = stateWith({
+      last_products: PRODUCTS,
+      order_draft: {
+        items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+        step: 'variant',
+      },
+    })
+    const result = resolveFollowUp('2', state)
+    expect(result).toEqual({ type: 'order_step_input' })
+  })
+
+  it('order_cancel beats order_step_input for cancel phrases', () => {
+    const state = stateWith({
+      order_draft: {
+        items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+        step: 'name',
+      },
+    })
+    const result = resolveFollowUp('болих', state)
+    expect(result).toEqual({ type: 'order_cancel' })
+  })
+
+  it('greeting resets order draft context (does not return order_step_input)', () => {
+    const state = stateWith({
+      order_draft: {
+        items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+        step: 'name',
+      },
+    })
+    const result = resolveFollowUp('сайн байна', state)
+    expect(result?.type).not.toBe('order_step_input')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -191,5 +237,18 @@ describe('updateState', () => {
     }))
     const next = updateState(emptyState(), 'product_search', many, 'test')
     expect(next.last_products).toHaveLength(10)
+  })
+
+  it('preserves customer_prefs across state updates', () => {
+    const prefs = { weight_kg: 65, height_cm: 170, preferred_size: 'M' }
+    const state = stateWith({ customer_prefs: prefs })
+    const next = updateState(state, 'order_collection', [], '')
+    expect(next.customer_prefs).toEqual(prefs)
+  })
+
+  it('preserves products on order_collection intent', () => {
+    const next = updateState(stateWith(), 'order_collection', [], '')
+    expect(next.last_products).toEqual(PRODUCTS)
+    expect(next.last_query).toBe('хувцас')
   })
 })

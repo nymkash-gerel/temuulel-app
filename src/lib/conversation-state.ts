@@ -201,6 +201,9 @@ export async function readState(
       ? state.gift_card_draft as unknown as GiftCardDraft
       : null,
     pending_gift_card_code: typeof state.pending_gift_card_code === 'string' ? state.pending_gift_card_code : null,
+    customer_prefs: (state.customer_prefs && typeof state.customer_prefs === 'object' && !Array.isArray(state.customer_prefs))
+      ? state.customer_prefs as unknown as CustomerPreferences
+      : null,
   }
 }
 
@@ -753,6 +756,7 @@ export function updateState(
     'greeting', 'thanks', 'size_info',
     'delivery_info', 'order_info', 'payment_info', 'warranty_info', 'stock_info',
     'price_info', 'general', 'complaint', 'shipping',
+    'order_collection',
   ]
 
   // Intents that fetch/narrow products and should save them to state
@@ -775,5 +779,6 @@ export function updateState(
     order_draft: current.order_draft ?? null,
     gift_card_draft: current.gift_card_draft ?? null,
     pending_gift_card_code: current.pending_gift_card_code ?? null,
+    customer_prefs: current.customer_prefs ?? null,
   }
 }
