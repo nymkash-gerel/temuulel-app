@@ -205,9 +205,15 @@ export async function processAIChat(
   let orders: Awaited<ReturnType<typeof searchOrders>> = []
   let tables: TableMatch[] = []
   let responseText: string
-  // If resolveFollowUp returned null but there WAS an order draft, it means
-  // the user sent an off-topic message — clear the draft so they can browse freely.
-  let orderDraft: OrderDraft | null = (!followUp && state.order_draft) ? null : (state.order_draft ?? null)
+  // If resolveFollowUp returned null but there WAS an order draft, preserve it
+  // instead of silently clearing — customer might ask a quick question mid-order.
+  // Draft will only be cleared explicitly (cancel, or new order started).
+  let orderDraft: OrderDraft | null = state.order_draft ?? null
+  let orderDraftPaused = false
+  if (!followUp && state.order_draft) {
+    // Off-topic message during order flow — keep draft but flag as paused
+    orderDraftPaused = true
+  }
 
   if (followUp) {
     switch (followUp.type) {
@@ -882,6 +888,13 @@ export async function processAIChat(
         }
       }
     }
+  }
+
+  // If order draft was paused (off-topic message), add reminder to response
+  if (orderDraftPaused && orderDraft && responseText) {
+    const draftItems = getDraftItems(orderDraft)
+    const productName = draftItems[0]?.product_name || 'бараа'
+    responseText += `\n\n💬 Таны ${productName} захиалга хүлээж байна. Үргэлжлүүлэх бол мэдээллээ бичнэ үү.`
   }
 
   // Save AI response + update state + update conversation — all in parallel
