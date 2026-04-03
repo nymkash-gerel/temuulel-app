@@ -1429,9 +1429,12 @@ async function startMultiProductDraft(
 
     if (cleanSearch.length < 2) continue
 
-    const results = await searchProducts(supabase, cleanSearch, storeId, { maxProducts: 1, originalQuery: cleanSearch })
-    if (results.length > 0) {
-      const p = results[0]
+    // Search with more results to allow dedup
+    const results = await searchProducts(supabase, cleanSearch, storeId, { maxProducts: 3, originalQuery: cleanSearch })
+    // Skip products already in cart (dedup) — if all results are dupes, skip this part
+    const usedIds = new Set(allItems.map(i => i.product_id))
+    const p = results.find(r => !usedIds.has(r.id))
+    if (p) {
       // Try auto-select variant from the part text
       const { data: variants } = await supabase
         .from('product_variants')

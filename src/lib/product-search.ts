@@ -236,7 +236,19 @@ export async function searchProducts(
   if (isBrowseAll) {
     // Return all products — no name/description filter
   } else if (mappedCategory) {
-    dbQuery = dbQuery.eq('category', mappedCategory)
+    // Category found — but also do ILIKE search as fallback
+    // (many products have null category, so eq('category') misses them)
+    const searchTerms = extractSearchTerms(query)
+    const baseWords = searchTerms.split(/\s+/).filter(Boolean)
+    if (baseWords.length > 0) {
+      const catConditions = [
+        `category.eq.${mappedCategory}`,
+        ...baseWords.flatMap(w => [`name.ilike.%${escapeLike(w)}%`, `description.ilike.%${escapeLike(w)}%`]),
+      ].join(',')
+      dbQuery = dbQuery.or(catConditions)
+    } else {
+      dbQuery = dbQuery.eq('category', mappedCategory)
+    }
   } else {
     const searchTerms = extractSearchTerms(query)
     // Extract Latin words from the ORIGINAL message (before Cyrillic normalization)
@@ -267,6 +279,8 @@ export async function searchProducts(
           ]
         })
         .join(',')
+      if (process.env.NODE_ENV !== 'production') {
+      }
       dbQuery = dbQuery.or(conditions)
     }
   }
@@ -276,7 +290,9 @@ export async function searchProducts(
   // This catches "скимс" → "SKIMS", "цамц" → "Цамц эмэгтэй" etc.
   const isFuzzyCandidate = !isBrowseAll && !mappedCategory && normalizedQuery.length >= 2
 
-  let { data } = await dbQuery.limit(maxProducts)
+  // Fetch more than needed for ranking, then trim after scoring
+  const fetchLimit = Math.max(maxProducts * 3, 10)
+  let { data } = await dbQuery.limit(fetchLimit)
 
   // Trigram fuzzy fallback — if ILIKE found nothing, try pg_trgm similarity via raw SQL
   if ((!data || data.length === 0) && isFuzzyCandidate) {
@@ -414,18 +430,26 @@ export async function searchProducts(
     } as ProductMatch
   })
 
-  // Rank results by word overlap with search query — "галбир цамц" should
-  // rank "Галбир гаргадаг цамц" higher than "Кашемир цамц"
+  // Rank results by word overlap with search query
+  // Name matches score 3x, description matches score 1x
   if (results.length > 1 && !isBrowseAll) {
     const queryWords = normalizedQuery.toLowerCase().split(/\s+/).filter(w => w.length >= 2)
+    const origWords = (originalQuery || query).toLowerCase().split(/\s+/).filter(w => w.length >= 2)
+    const allWords = [...new Set([...queryWords, ...origWords])]
     results.sort((a, b) => {
       const aName = a.name.toLowerCase()
       const bName = b.name.toLowerCase()
-      const aScore = queryWords.filter(w => aName.includes(w)).length
-      const bScore = queryWords.filter(w => bName.includes(w)).length
-      return bScore - aScore // higher overlap first
+      const aDesc = (a.description || '').toLowerCase()
+      const bDesc = (b.description || '').toLowerCase()
+      // Name match = 3 points, description match = 1 point
+      const aScore = allWords.reduce((s, w) => s + (aName.includes(w) ? 3 : aDesc.includes(w) ? 1 : 0), 0)
+      const bScore = allWords.reduce((s, w) => s + (bName.includes(w) ? 3 : bDesc.includes(w) ? 1 : 0), 0)
+      return bScore - aScore
     })
   }
+
+  // Apply maxProducts limit AFTER ranking
+  results.splice(maxProducts)
 
   // Write to Redis cache (fire-and-forget)
   if (redis && results.length > 0) {
