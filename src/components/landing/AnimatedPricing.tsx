@@ -1,0 +1,127 @@
+'use client'
+
+import { motion } from 'framer-motion'
+import Link from 'next/link'
+
+const PLANS = [
+  {
+    name: 'Free',
+    price: '0',
+    desc: 'Туршиж эхлэх',
+    popular: false,
+    features: [
+      { text: '500 AI мессеж/сар', included: true },
+      { text: '20 бүтээгдэхүүн', included: true },
+      { text: '1 хэрэглэгч', included: true },
+      { text: '1 суваг (Messenger)', included: true },
+      { text: 'Тайлан', included: false },
+      { text: 'Жолоочийн апп', included: false },
+    ],
+  },
+  {
+    name: 'Basic',
+    price: '99,000',
+    desc: 'Жижиг бизнест',
+    popular: false,
+    features: [
+      { text: '15,000 AI мессеж/сар', included: true },
+      { text: '300 бүтээгдэхүүн', included: true },
+      { text: '3 хэрэглэгч', included: true },
+      { text: '2 суваг', included: true },
+      { text: 'Үндсэн тайлан', included: true },
+      { text: 'Жолоочийн апп', included: false },
+    ],
+  },
+  {
+    name: 'Pro',
+    price: '199,000',
+    desc: 'Өсөж буй бизнест',
+    popular: true,
+    features: [
+      { text: '50,000 AI мессеж', included: true },
+      { text: 'Unlimited бүтээгдэхүүн', included: true },
+      { text: '10 хэрэглэгч', included: true },
+      { text: 'Бүх суваг', included: true },
+      { text: 'Бүрэн тайлан & аналитик', included: true },
+      { text: 'Жолоочийн апп + GPS', included: true },
+    ],
+  },
+  {
+    name: 'Enterprise',
+    price: '399,000',
+    desc: 'Том бизнест',
+    popular: false,
+    features: [
+      { text: '200,000 AI мессеж', included: true },
+      { text: 'Unlimited бүтээгдэхүүн', included: true },
+      { text: 'Unlimited хэрэглэгч', included: true },
+      { text: 'Бүх суваг + API', included: true },
+      { text: 'Бүрэн тайлан & аналитик', included: true },
+      { text: 'Жолоочийн апп + GPS + автомат хуваарилалт', included: true },
+    ],
+  },
+]
+
+export default function AnimatedPricing() {
+  return (
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-50px' }}
+      variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+    >
+      {PLANS.map((plan, i) => (
+        <motion.div
+          key={i}
+          variants={{
+            hidden: { opacity: 0, y: 30 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+          }}
+          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+          className={`relative rounded-2xl p-6 transition-all duration-300 ${
+            plan.popular
+              ? 'bg-gradient-to-b from-blue-500/10 to-cyan-500/5 border-2 border-blue-500/50 shadow-xl shadow-blue-500/10 scale-[1.02]'
+              : 'bg-white/[0.04] hover:bg-white/[0.07]'
+          }`}
+        >
+          {plan.popular && (
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold rounded-full shadow-lg">
+              Түгээмэл
+            </div>
+          )}
+          <h3 className="text-lg font-semibold text-white mb-0.5">{plan.name}</h3>
+          <p className="text-xs text-slate-500 mb-4">{plan.desc}</p>
+          <div className="mb-6">
+            <span className="text-4xl font-bold text-white">{plan.price}</span>
+            <span className="text-slate-500 ml-1">₮/сар</span>
+          </div>
+          <ul className="space-y-2.5 mb-8">
+            {plan.features.map((f, j) => (
+              <li key={j} className={`flex items-center gap-2.5 text-sm ${f.included ? 'text-slate-300' : 'text-slate-600'}`}>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                  f.included
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-white/[0.04] text-slate-600'
+                }`}>
+                  {f.included ? '✓' : '—'}
+                </span>
+                {f.text}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/signup"
+            className={`block w-full py-3 text-center rounded-xl font-semibold transition-all text-sm ${
+              plan.popular
+                ? 'bg-white text-slate-900 hover:bg-slate-100 shadow-lg'
+                : 'bg-white/[0.06] hover:bg-white/[0.1] text-white'
+            }`}
+          >
+            {plan.price === '0' ? 'Үнэгүй эхлэх' : 'Эхлэх'}
+          </Link>
+        </motion.div>
+      ))}
+    </motion.div>
+  )
+}
