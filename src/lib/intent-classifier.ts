@@ -176,8 +176,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'сэтгэл ханамжтай', 'ханамжтай',
     'дахиж захиална', 'дахин захиална',
     'mundag', 'мундаг',
-    // Emoji thanks
-    '🙏', '❤️', '👍',
+    // NOTE: emoji keywords removed — substring match causes cross-contamination
   ],
   general: [
     // Short affirmatives/responses that are NOT product searches
@@ -217,8 +216,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     'чанаргүй юм', 'сүүлийн удаа', 'ene l udaa',
     // Fraud suspicion
     'дүрлэж', 'дуурлаж', 'duurlaj', 'залилан', 'хуурч',
-    // Emoji complaint
-    '😡', '😤', '🤬',
+    // NOTE: emoji keywords removed — substring match causes cross-contamination
     // Latin transliterations (common in Messenger complaints)
     'yaagaad', 'yaagad', 'yagaad',
     'chnargui', 'chanargui',

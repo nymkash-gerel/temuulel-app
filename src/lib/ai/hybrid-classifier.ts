@@ -109,6 +109,16 @@ function applyMorphSignals(
  * 5. Otherwise, use keyword result (fallback)
  */
 export function hybridClassify(message: string): IntentResult {
+  // Emoji-only messages — handle separately (substring match breaks with emoji bytes)
+  const trimmed = message.trim()
+  if (/^[\p{Emoji}\s]+$/u.test(trimmed) && trimmed.length <= 12) {
+    const ANGRY = ['😡', '😤', '🤬', '😠', '💢']
+    const HAPPY = ['👍', '🙏', '❤️', '❤', '💯', '😊', '🥰', '😍', '👏', '🎉', '✅', '💕', '🫶', '😘', '🤩']
+    if (ANGRY.some(e => trimmed.includes(e))) return { intent: 'complaint', confidence: 2.0 }
+    if (HAPPY.some(e => trimmed.includes(e))) return { intent: 'thanks', confidence: 2.0 }
+    return { intent: 'general', confidence: 1.0 }
+  }
+
   // Get both classifications
   const keywordResult = classifyIntentWithConfidence(message)
   const mlResult = mlClassify(message)
