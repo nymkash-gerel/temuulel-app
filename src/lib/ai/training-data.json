@@ -100530,5 +100530,381 @@
   {
     "text": "shuud qpay ni yawuulch bi odoo tulnu",
     "intent": "payment"
+  },
+  {
+    "text": ".",
+    "intent": "general"
+  },
+  {
+    "text": "?",
+    "intent": "general"
+  },
+  {
+    "text": "??",
+    "intent": "general"
+  },
+  {
+    "text": "!!!!",
+    "intent": "general"
+  },
+  {
+    "text": "🙏",
+    "intent": "thanks"
+  },
+  {
+    "text": "❤️",
+    "intent": "thanks"
+  },
+  {
+    "text": "😡",
+    "intent": "complaint"
+  },
+  {
+    "text": "👍👍👍",
+    "intent": "thanks"
+  },
+  {
+    "text": "1",
+    "intent": "order_collection"
+  },
+  {
+    "text": "2",
+    "intent": "order_collection"
+  },
+  {
+    "text": "99887766",
+    "intent": "shipping"
+  },
+  {
+    "text": "95551234",
+    "intent": "shipping"
+  },
+  {
+    "text": "L",
+    "intent": "size_info"
+  },
+  {
+    "text": "M",
+    "intent": "size_info"
+  },
+  {
+    "text": "XL",
+    "intent": "size_info"
+  },
+  {
+    "text": "хар",
+    "intent": "product_search"
+  },
+  {
+    "text": "цагаан",
+    "intent": "product_search"
+  },
+  {
+    "text": "39000",
+    "intent": "general"
+  },
+  {
+    "text": "15к",
+    "intent": "general"
+  },
+  {
+    "text": "skims skims skims",
+    "intent": "product_search"
+  },
+  {
+    "text": "авъяавъяавъя",
+    "intent": "order_collection"
+  },
+  {
+    "text": "АВЪЯ ОДОО ШУУД",
+    "intent": "order_collection"
+  },
+  {
+    "text": "ЯАГААД ХҮРГЭХГҮЙ БАЙГАА ЮМ БЭ!!!!",
+    "intent": "complaint"
+  },
+  {
+    "text": "сайн\nбайна\nуу",
+    "intent": "greeting"
+  },
+  {
+    "text": "s a i n b a i n a u u",
+    "intent": "greeting"
+  },
+  {
+    "text": "Leevchik awya. Harin turshik bas awya. Korset bas nemeerey.",
+    "intent": "order_collection"
+  },
+  {
+    "text": "neg asuult bn. ene bараа yamar materialaar hiigdsen be? bas ugaahad yaj ugaah ve?",
+    "intent": "product_search"
+  },
+  {
+    "text": "sain bnu. skims bnuu. une hed ve. awya",
+    "intent": "product_search"
+  },
+  {
+    "text": "awya ghdee hayagaa daraa helne",
+    "intent": "order_collection"
+  },
+  {
+    "text": "avya ene ymiig ghdee razmer ni M bish L bolgooch",
+    "intent": "order_collection"
+  },
+  {
+    "text": "ymar razmer avahaa medhgui 55kg 160sm emegteii",
+    "intent": "size_info"
+  },
+  {
+    "text": "hervee L tom bolbol M ruu solij boloh uu?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "aldaa garlaa. bish ene yum zahialaagui bsan. oor yum irsen",
+    "intent": "complaint"
+  },
+  {
+    "text": "mongoo tulchihsen bga yum. bараа hezee garch ireh yum?",
+    "intent": "order_status"
+  },
+  {
+    "text": "leevchik ni hemjee yamr bdag yum? S M L geed bdag yumuu freesize yumuu?",
+    "intent": "size_info"
+  },
+  {
+    "text": "2sh awsan bnshd yaagaad 1l irsen yum?",
+    "intent": "complaint"
+  },
+  {
+    "text": "hurgelt irsen ghdee ger deer hun baihgui bolchihldo yaj ydg yum?",
+    "intent": "shipping"
+  },
+  {
+    "text": "jolooch utas awahgui bn 3 udaa zalgalaa",
+    "intent": "complaint"
+  },
+  {
+    "text": "ochigdor zahialsan yumaa odoo cancel hiij bolohu mongoo butsaaj ugnu u?",
+    "intent": "order_status"
+  },
+  {
+    "text": "ene yg original yumuu copy yumuu? ali factory-iin yum be?",
+    "intent": "product_search"
+  },
+  {
+    "text": "niit 5 yum awahaar belen discount ugch bolhuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "ahiin gol belegnii yum avmaar bna 50k orchimd yu sanaal boloh ve?",
+    "intent": "product_search"
+  },
+  {
+    "text": "bi gadaadad bna. mongold bga huniihee hayag deer hurgej ugch chadah uu?",
+    "intent": "shipping"
+  },
+  {
+    "text": "10sh zahialbal neg shirhgiig unegui ogch boloh uu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "ali baraag hamgiin ih hudalddag ve? bestselleraa haruulaach",
+    "intent": "product_search"
+  },
+  {
+    "text": "бараагаа instagram-д share хийвэл хямдрал байна уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "borluulagch bolj ajillaj boloh uu? commission bnuu?",
+    "intent": "general"
+  },
+  {
+    "text": "belen bараа haanaas awah ve? delguur bnu tanaih?",
+    "intent": "shipping"
+  },
+  {
+    "text": "500k ees deer zahialval unegui hurgelt bnuu?",
+    "intent": "shipping"
+  },
+  {
+    "text": "zahialga ugeed bolchihson bnu? bi medeegui yum bhd",
+    "intent": "order_status"
+  },
+  {
+    "text": "ene bараа hezee duusah yum? olonhon авмаар бна bnshd",
+    "intent": "product_search"
+  },
+  {
+    "text": "өглөө 9 цагт хүргэж чадах уу? ажилдаа явахаас өмнө авмаар бна",
+    "intent": "shipping"
+  },
+  {
+    "text": "hurdnaar yawuulaach yaaraltai heregtei bna",
+    "intent": "shipping"
+  },
+  {
+    "text": "бусдад бэлэг болгож илгээж болох уу? тусгай мессеж оруулж болох уу?",
+    "intent": "general"
+  },
+  {
+    "text": "tanaih baraa warranty bnu? hed sariin?",
+    "intent": "product_search"
+  },
+  {
+    "text": "бараагийн зураг видеог нь явуулж болох уу?",
+    "intent": "product_search"
+  },
+  {
+    "text": "asdf jkl;",
+    "intent": "general"
+  },
+  {
+    "text": "test test test",
+    "intent": "general"
+  },
+  {
+    "text": "сднагвыолршж",
+    "intent": "general"
+  },
+  {
+    "text": "https://www.facebook.com/photo/123456",
+    "intent": "general"
+  },
+  {
+    "text": "энэ зурган дээрх юмыг авмаар бна [зураг]",
+    "intent": "product_search"
+  },
+  {
+    "text": "voice message илгээсэн шалга",
+    "intent": "general"
+  },
+  {
+    "text": "4 000 000₮-ийн орон сууц бну?",
+    "intent": "product_search"
+  },
+  {
+    "text": "buuz 8sh + tsuivan 2 + americano 3 zahialya",
+    "intent": "order_collection"
+  },
+  {
+    "text": "lattee 2sh awya togloomiin ursgeleer",
+    "intent": "order_collection"
+  },
+  {
+    "text": "ширээ захиалъя 4 хүн өнөөдөр орой 7 цаг",
+    "intent": "table_reservation"
+  },
+  {
+    "text": "huushuur 4sh cashaar tulne hurgej ugch",
+    "intent": "order_collection"
+  },
+  {
+    "text": "vegeterianksn khukhram shig yum bnuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "cheesecake gluten-free yumuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "tanii cafe heden tsagt needdeg we?",
+    "intent": "general"
+  },
+  {
+    "text": "wifi password yu ve?",
+    "intent": "general"
+  },
+  {
+    "text": "parking bnu oirhood?",
+    "intent": "general"
+  },
+  {
+    "text": "haahad huuhdiin sandal bnu?",
+    "intent": "general"
+  },
+  {
+    "text": "угтвэр аваад хамт явуулаарай",
+    "intent": "order_collection"
+  },
+  {
+    "text": "ene product deer review bnu? bsad hun avsan yumuu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "7 хоногийн дотор буцааж болдог гэсэн үнэн үү?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "өөр хүний нэр дээр захиалж болох уу?",
+    "intent": "order_collection"
+  },
+  {
+    "text": "яг одоо хүргэлт гарч байна уу? хичнээн хүлээх вэ?",
+    "intent": "order_status"
+  },
+  {
+    "text": "hurgeltiin huntei yariltsah gesen ym. utas n ogch",
+    "intent": "order_status"
+  },
+  {
+    "text": "bi 2 oor hayag deer hurgej avmaar bna. negnii n ger deer, negnii n ajil deer",
+    "intent": "shipping"
+  },
+  {
+    "text": "visa kartaar international tulbur hiij boloh uu?",
+    "intent": "payment"
+  },
+  {
+    "text": "invoice heregtei bna. baiguullgiin ner deer",
+    "intent": "payment"
+  },
+  {
+    "text": "VAT orson unuu?",
+    "intent": "payment"
+  },
+  {
+    "text": "tanii hurgeltiin kompani ali ve? ajnii yamr kompani ashigladg?",
+    "intent": "shipping"
+  },
+  {
+    "text": "2 3 hоноg bolchihson baraa baihgui yum gej duurlaj bna bizee",
+    "intent": "complaint"
+  },
+  {
+    "text": "сошиал хуудас дээр бичсэн сэтгэгдэл бодит юмуу? fake review bizdee",
+    "intent": "general"
+  },
+  {
+    "text": "butsaaltiin huramajtai yumuu? neg yumaa butsaaval hed suutgadag?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "hervee zurag deer bgaagaas oor yum irvel яана?",
+    "intent": "return_exchange"
+  },
+  {
+    "text": "1r baraag 3sh, 2r baraag 1sh, niitiig n dans deer shiljuulne",
+    "intent": "order_collection"
+  },
+  {
+    "text": "skims 1+1 gej 2sh ireh yumuu? neg awahad neg unegui gesen uguu?",
+    "intent": "product_search"
+  },
+  {
+    "text": "ali ali goe goe bараа baidag yum shuuuuu😍😍",
+    "intent": "product_search"
+  },
+  {
+    "text": "бүх бараагаа үзмээр байна жагсаалт өгөөч",
+    "intent": "product_search"
+  },
+  {
+    "text": "манай найз танайхаас авсан гэсэн надад recommend хийсэн",
+    "intent": "greeting"
+  },
+  {
+    "text": "hervee setgel hannmjgui bolbol 100% mungu butsaadg yumuu?",
+    "intent": "return_exchange"
   }
 ]
