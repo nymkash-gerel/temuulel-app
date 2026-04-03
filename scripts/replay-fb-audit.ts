@@ -118,6 +118,7 @@ function loadMessages(): { text: string; intent: string; scenario?: string }[] {
     const files: string[] = []
     if (sourceArg === 'stress' || sourceArg === 'all-stress') files.push('stress-test-messages.jsonl')
     if (sourceArg === 'stress2' || sourceArg === 'all-stress') files.push('stress-test-v2.jsonl')
+    if (sourceArg === 'stress3' || sourceArg === 'all-stress') files.push('stress-test-v3.jsonl')
     const all: { text: string; intent: string; scenario?: string }[] = []
     for (const file of files) {
       const p = path.join(__dirname, file)

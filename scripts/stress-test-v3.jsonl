@@ -1,0 +1,99 @@
+{"text": ".", "intent": "general", "scenario": "edge_single_dot"}
+{"text": "?", "intent": "general", "scenario": "edge_single_question"}
+{"text": "??", "intent": "general", "scenario": "edge_double_question"}
+{"text": "!!!!", "intent": "general", "scenario": "edge_exclamation"}
+{"text": "🙏", "intent": "thanks", "scenario": "edge_emoji_only"}
+{"text": "❤️", "intent": "thanks", "scenario": "edge_heart_emoji"}
+{"text": "😡", "intent": "complaint", "scenario": "edge_angry_emoji"}
+{"text": "👍👍👍", "intent": "thanks", "scenario": "edge_thumbs_up"}
+{"text": "1", "intent": "order_collection", "scenario": "edge_number_only"}
+{"text": "2", "intent": "order_collection", "scenario": "edge_number_two"}
+{"text": "99887766", "intent": "shipping", "scenario": "edge_phone_only"}
+{"text": "95551234", "intent": "shipping", "scenario": "edge_phone_only2"}
+{"text": "L", "intent": "size_info", "scenario": "edge_single_letter_size"}
+{"text": "M", "intent": "size_info", "scenario": "edge_single_M"}
+{"text": "XL", "intent": "size_info", "scenario": "edge_XL_only"}
+{"text": "xxs", "intent": "size_info", "scenario": "edge_xxs_lower"}
+{"text": "хар", "intent": "product_search", "scenario": "edge_color_only"}
+{"text": "цагаан", "intent": "product_search", "scenario": "edge_color_white"}
+{"text": "39000", "intent": "general", "scenario": "edge_price_number"}
+{"text": "15к", "intent": "general", "scenario": "edge_price_k"}
+{"text": "skims skims skims", "intent": "product_search", "scenario": "edge_repeated_word"}
+{"text": "авъяавъяавъя", "intent": "order_collection", "scenario": "edge_repeated_order"}
+{"text": "САЙН БАЙНА УУ", "intent": "greeting", "scenario": "edge_all_caps_greeting"}
+{"text": "АВЪЯ ОДОО ШУУД", "intent": "order_collection", "scenario": "edge_caps_urgent_order"}
+{"text": "ЯАГААД ХҮРГЭХГҮЙ БАЙГАА ЮМ БЭ!!!!", "intent": "complaint", "scenario": "edge_caps_angry_complaint"}
+{"text": "           сайн байна уу          ", "intent": "greeting", "scenario": "edge_whitespace"}
+{"text": "сайн\nбайна\nуу", "intent": "greeting", "scenario": "edge_newlines"}
+{"text": "s a i n b a i n a u u", "intent": "greeting", "scenario": "edge_spaced_letters"}
+{"text": "Leevchik awya. Harin turshik bas awya. Korset bas nemeerey.", "intent": "order_collection", "scenario": "multi_sentence_order"}
+{"text": "neg asuult bn. ene bараа yamar materialaar hiigdsen be? bas ugaahad yaj ugaah ve?", "intent": "product_search", "scenario": "multi_question"}
+{"text": "sain bnu. skims bnuu. une hed ve. awya", "intent": "product_search", "scenario": "multi_intent_single_msg"}
+{"text": "awya ghdee hayagaa daraa helne", "intent": "order_collection", "scenario": "order_address_later"}
+{"text": "avya ene ymiig ghdee razmer ni M bish L bolgooch", "intent": "order_collection", "scenario": "order_with_size_change"}
+{"text": "ymar razmer avahaa medhgui 55kg 160sm emegteii", "intent": "size_info", "scenario": "size_unsure_with_stats"}
+{"text": "hervee L tom bolbol M ruu solij boloh uu?", "intent": "return_exchange", "scenario": "conditional_exchange"}
+{"text": "aldaa garlaa. bish ene yum zahialaagui bsan. oor yum irsen", "intent": "complaint", "scenario": "wrong_item_received"}
+{"text": "mongoo tulchihsen bga yum. bараа hezee garch ireh yum?", "intent": "order_status", "scenario": "paid_waiting"}
+{"text": "leevchik ni hemjee yamr bdag yum? S M L geed bdag yumuu freesize yumuu?", "intent": "size_info", "scenario": "size_options_question"}
+{"text": "2sh awsan bnshd yaagaad 1l irsen yum?", "intent": "complaint", "scenario": "quantity_mismatch"}
+{"text": "hurgelt irsen ghdee ger deer hun baihgui bolchihldo yaj ydg yum?", "intent": "shipping", "scenario": "delivery_nobody_home"}
+{"text": "jolooch utas awahgui bn 3 udaa zalgalaa", "intent": "complaint", "scenario": "driver_not_answering"}
+{"text": "ochigdor zahialsan yumaa odoo cancel hiij bolohu mongoo butsaaj ugnu u?", "intent": "order_status", "scenario": "cancel_and_refund"}
+{"text": "ene yg original yumuu copy yumuu? ali factory-iin yum be?", "intent": "product_search", "scenario": "authenticity_factory"}
+{"text": "niit 5 yum awahaar belen discount ugch bolhuu?", "intent": "product_search", "scenario": "bulk_discount_request"}
+{"text": "ahiin gol belegnii yum avmaar bna 50k orchimd yu sanaal boloh ve?", "intent": "product_search", "scenario": "gift_recommendation_budget"}
+{"text": "bi gadaadad bna. mongold bga huniihee hayag deer hurgej ugch chadah uu?", "intent": "shipping", "scenario": "shipping_for_someone_else"}
+{"text": "10sh zahialbal neg shirhgiig unegui ogch boloh uu?", "intent": "product_search", "scenario": "wholesale_free_item"}
+{"text": "ali baraag hamgiin ih hudalddag ve? bestselleraa haruulaach", "intent": "product_search", "scenario": "bestseller_request"}
+{"text": "бараагаа instagram-д share хийвэл хямдрал байна уу?", "intent": "product_search", "scenario": "social_share_discount"}
+{"text": "borluulagch bolj ajillaj boloh uu? commission bnuu?", "intent": "general", "scenario": "reseller_inquiry"}
+{"text": "belen bараа haanaas awah ve? delguur bnu tanaih?", "intent": "shipping", "scenario": "physical_store_question"}
+{"text": "500k ees deer zahialval unegui hurgelt bnuu?", "intent": "shipping", "scenario": "free_shipping_high_value"}
+{"text": "zahialga ugeed bolchihson bnu? bi medeegui yum bhd", "intent": "order_status", "scenario": "accidental_order_check"}
+{"text": "ene bараа hezee duusah yum? olonhon авмаар бна bnshd", "intent": "product_search", "scenario": "stock_urgency"}
+{"text": "өглөө 9 цагт хүргэж чадах уу? ажилдаа явахаас өмнө авмаар бна", "intent": "shipping", "scenario": "morning_delivery_time"}
+{"text": "hurdnaar yawuulaach yaaraltai heregtei bna", "intent": "shipping", "scenario": "urgent_delivery"}
+{"text": "бусдад бэлэг болгож илгээж болох уу? тусгай мессеж оруулж болох уу?", "intent": "general", "scenario": "gift_message_request"}
+{"text": "tanaih baraa warranty bnu? hed sariin?", "intent": "product_search", "scenario": "warranty_question"}
+{"text": "бараагийн зураг видеог нь явуулж болох уу?", "intent": "product_search", "scenario": "video_request"}
+{"text": "", "intent": "general", "scenario": "edge_empty_message"}
+{"text": "   ", "intent": "general", "scenario": "edge_only_spaces"}
+{"text": "asdf jkl;", "intent": "general", "scenario": "edge_keyboard_mash"}
+{"text": "test test test", "intent": "general", "scenario": "edge_test_message"}
+{"text": "сднагвыолршж", "intent": "general", "scenario": "edge_cyrillic_mash"}
+{"text": "https://www.facebook.com/photo/123456", "intent": "general", "scenario": "edge_url_only"}
+{"text": "энэ зурган дээрх юмыг авмаар бна [зураг]", "intent": "product_search", "scenario": "edge_photo_reference"}
+{"text": "voice message илгээсэн шалга", "intent": "general", "scenario": "edge_voice_reference"}
+{"text": "4 000 000₮-ийн орон сууц бну?", "intent": "product_search", "scenario": "edge_high_value_product"}
+{"text": "buuz 8sh + tsuivan 2 + americano 3 zahialya", "intent": "order_collection", "scenario": "restaurant_multi_order"}
+{"text": "lattee 2sh awya togloomiin ursgeleer", "intent": "order_collection", "scenario": "coffee_drive_thru"}
+{"text": "ширээ захиалъя 4 хүн өнөөдөр орой 7 цаг", "intent": "table_reservation", "scenario": "table_booking"}
+{"text": "huushuur 4sh cashaar tulne hurgej ugch", "intent": "order_collection", "scenario": "food_order_with_payment"}
+{"text": "vegeterianksn khukhram shig yum bnuu?", "intent": "product_search", "scenario": "dietary_question_typo"}
+{"text": "cheesecake gluten-free yumuu?", "intent": "product_search", "scenario": "allergen_question"}
+{"text": "tanii cafe heden tsagt needdeg we?", "intent": "general", "scenario": "business_hours"}
+{"text": "wifi password yu ve?", "intent": "general", "scenario": "wifi_question"}
+{"text": "parking bnu oirhood?", "intent": "general", "scenario": "parking_question"}
+{"text": "haahad huuhdiin sandal bnu?", "intent": "general", "scenario": "child_seat_question"}
+{"text": "угтвэр аваад хамт явуулаарай", "intent": "order_collection", "scenario": "add_gift_card"}
+{"text": "ene product deer review bnu? bsad hun avsan yumuu?", "intent": "product_search", "scenario": "review_question"}
+{"text": "7 хоногийн дотор буцааж болдог гэсэн үнэн үү?", "intent": "return_exchange", "scenario": "return_policy_verify"}
+{"text": "өөр хүний нэр дээр захиалж болох уу?", "intent": "order_collection", "scenario": "order_different_name"}
+{"text": "яг одоо хүргэлт гарч байна уу? хичнээн хүлээх вэ?", "intent": "order_status", "scenario": "status_right_now"}
+{"text": "hurgeltiin huntei yariltsah gesen ym. utas n ogch", "intent": "order_status", "scenario": "contact_driver"}
+{"text": "bi 2 oor hayag deer hurgej avmaar bna. negnii n ger deer, negnii n ajil deer", "intent": "shipping", "scenario": "two_addresses"}
+{"text": "visa kartaar international tulbur hiij boloh uu?", "intent": "payment", "scenario": "international_payment"}
+{"text": "invoice heregtei bna. baiguullgiin ner deer", "intent": "payment", "scenario": "business_invoice"}
+{"text": "VAT orson unuu?", "intent": "payment", "scenario": "vat_question"}
+{"text": "tanii hurgeltiin kompani ali ve? ajnii yamr kompani ashigladg?", "intent": "shipping", "scenario": "logistics_company"}
+{"text": "2 3 hоноg bolchihson baraa baihgui yum gej duurlaj bna bizee", "intent": "complaint", "scenario": "suspicion_of_fraud"}
+{"text": "сошиал хуудас дээр бичсэн сэтгэгдэл бодит юмуу? fake review bizdee", "intent": "general", "scenario": "fake_review_suspicion"}
+{"text": "butsaaltiin huramajtai yumuu? neg yumaa butsaaval hed suutgadag?", "intent": "return_exchange", "scenario": "return_fee_question"}
+{"text": "hervee zurag deer bgaagaas oor yum irvel яана?", "intent": "return_exchange", "scenario": "photo_mismatch_policy"}
+{"text": "1r baraag 3sh, 2r baraag 1sh, niitiig n dans deer shiljuulne", "intent": "order_collection", "scenario": "complex_order_with_payment"}
+{"text": "skims 1+1 gej 2sh ireh yumuu? neg awahad neg unegui gesen uguu?", "intent": "product_search", "scenario": "promo_clarification"}
+{"text": "ali ali goe goe bараа baidag yum shuuuuu😍😍", "intent": "product_search", "scenario": "enthusiastic_browse"}
+{"text": "бүх бараагаа үзмээр байна жагсаалт өгөөч", "intent": "product_search", "scenario": "full_catalog_request"}
+{"text": "манай найз танайхаас авсан гэсэн надад recommend хийсэн", "intent": "greeting", "scenario": "referral_greeting"}
+{"text": "hervee setgel hannmjgui bolbol 100% mungu butsaadg yumuu?", "intent": "return_exchange", "scenario": "money_back_guarantee"}
