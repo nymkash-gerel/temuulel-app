@@ -90,7 +90,6 @@ export default function FleetVehiclesPage() {
             .eq('store_id', store.id)
             .order('created_at', { ascending: false })
             .limit(200),
-          // @ts-expect-error - Deep type instantiation
           supabase
             .from('staff')
             .select('id, name')
