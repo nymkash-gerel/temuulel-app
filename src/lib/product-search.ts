@@ -414,6 +414,19 @@ export async function searchProducts(
     } as ProductMatch
   })
 
+  // Rank results by word overlap with search query — "галбир цамц" should
+  // rank "Галбир гаргадаг цамц" higher than "Кашемир цамц"
+  if (results.length > 1 && !isBrowseAll) {
+    const queryWords = normalizedQuery.toLowerCase().split(/\s+/).filter(w => w.length >= 2)
+    results.sort((a, b) => {
+      const aName = a.name.toLowerCase()
+      const bName = b.name.toLowerCase()
+      const aScore = queryWords.filter(w => aName.includes(w)).length
+      const bScore = queryWords.filter(w => bName.includes(w)).length
+      return bScore - aScore // higher overlap first
+    })
+  }
+
   // Write to Redis cache (fire-and-forget)
   if (redis && results.length > 0) {
     redis.set(cacheKey, results, { ex: PRODUCT_CACHE_TTL }).catch(() => {})
