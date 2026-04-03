@@ -35,6 +35,7 @@ import {
   type GiftCardDraft,
   getDraftItems,
   getDraftTotal,
+  type CustomerPreferences,
 } from '@/lib/conversation-state'
 import { normalizeText } from '@/lib/chat-ai'
 import {
@@ -149,6 +150,20 @@ export async function processAIChat(
       ? buildCustomerProfile(supabase, customerId, storeId).catch(err => { console.error('[customer-profile]', err); return null })
       : Promise.resolve(null),
   ])
+
+  // ── Extract body measurements from message → save to customer_prefs ──
+  const msgLower = customerMessage.toLowerCase()
+  const weightMatch = msgLower.match(/(\d{2,3})\s*(?:кг|kg|кило)/) || msgLower.match(/(?:жин|jin|weight)\s*[:=]?\s*(\d{2,3})/)
+  const heightMatch = msgLower.match(/(\d{3})\s*(?:см|cm|sm)/) || msgLower.match(/(?:өндөр|undur|height|rost)\s*[:=]?\s*(\d{3})/)
+  const sizeMatch = msgLower.match(/\b(xxs|xs|s|m|l|xl|xxl|2xl|3xl)\b/i)
+  if (weightMatch || heightMatch || sizeMatch) {
+    state.customer_prefs = {
+      ...state.customer_prefs,
+      ...(weightMatch ? { weight_kg: parseInt(weightMatch[1]) } : {}),
+      ...(heightMatch ? { height_cm: parseInt(heightMatch[1]) } : {}),
+      ...(sizeMatch ? { preferred_size: sizeMatch[1].toUpperCase() } : {}),
+    }
+  }
 
   // ── Gift card flow intercept ────────────────────────────────────────────
   // Runs BEFORE followUp/order flow so gift card steps take priority.
@@ -308,6 +323,15 @@ export async function processAIChat(
             }
             if (isAffirmative(customerMessage)) {
               const order = await createOrderFromChat(supabase, storeId, customerId, draft)
+              // Save customer info to preferences for next order reuse
+              if (draft.customer_name || draft.address || draft.phone) {
+                state.customer_prefs = {
+                  ...state.customer_prefs,
+                  last_name: draft.customer_name || state.customer_prefs?.last_name,
+                  last_address: draft.address || state.customer_prefs?.last_address,
+                  last_phone: draft.phone || state.customer_prefs?.last_phone,
+                }
+              }
               orderDraft = null
               if (order) {
                 const confirmItems = getDraftItems(draft)
@@ -356,7 +380,7 @@ export async function processAIChat(
       }
 
       case 'order_intent': {
-        const result = await startOrderDraft(supabase, followUp.product!, customerMessage, storeId, customerId)
+        const result = await startOrderDraft(supabase, followUp.product!, customerMessage, storeId, customerId, state.customer_prefs)
         intent = 'order_collection'
         orderDraft = result.draft
         responseText = result.responseText
@@ -377,7 +401,7 @@ export async function processAIChat(
         const result = await startOrderDraft(
           supabase,
           { id: p.id, name: p.name, base_price: p.base_price },
-          customerMessage, storeId, customerId,
+          customerMessage, storeId, customerId, state.customer_prefs,
         )
         orderDraft = result.draft
         responseText = result.responseText
@@ -412,7 +436,7 @@ export async function processAIChat(
         products = refProducts
         responseText = await generateAIResponse(
           intent, products, orders, storeName, followUp.refinedQuery!, chatbotSettings, refHistory,
-          undefined, undefined, customerProfile
+          undefined, undefined, customerProfile, undefined, undefined, undefined, state.customer_prefs,
         )
         break
       }
@@ -443,7 +467,7 @@ export async function processAIChat(
         orders = llmOrders
         responseText = await generateAIResponse(
           intent, products, orders, storeName, customerMessage, chatbotSettings, llmHistory,
-          undefined, undefined, customerProfile
+          undefined, undefined, customerProfile, undefined, undefined, undefined, state.customer_prefs,
         )
         break
       }
@@ -575,7 +599,7 @@ export async function processAIChat(
       if (phoneIntercepted) {
         const product = state.last_products[0]
         const startResult = await startOrderDraft(
-          supabase, { id: product.id, name: product.name, base_price: product.base_price }, customerMessage, storeId, customerId,
+          supabase, { id: product.id, name: product.name, base_price: product.base_price }, customerMessage, storeId, customerId, state.customer_prefs,
         )
         startResult.draft.phone = customerMessage.trim()
         orderDraft = startResult.draft
@@ -762,6 +786,7 @@ export async function processAIChat(
           extendedProfile,
           latestPurchaseSummary,
           resolution,
+          state.customer_prefs,
         )
 
         // If the LLM said "product not in catalog, staff will check" → fire staff notification.
@@ -816,7 +841,7 @@ export async function processAIChat(
               return score > bestScore ? p : best
             }, products[0])
             const p = bestProduct
-            const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage, storeId, customerId)
+            const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage, storeId, customerId, state.customer_prefs)
             orderDraft = result.draft
             responseText = result.responseText
             intent = 'order_collection'
@@ -828,7 +853,7 @@ export async function processAIChat(
               const refetched = await searchProducts(supabase, lastP.name, storeId, { maxProducts: 1 })
               if (refetched.length > 0) {
                 const p = refetched[0]
-                const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage, storeId, customerId)
+                const result = await startOrderDraft(supabase, { id: p.id, name: p.name, base_price: p.base_price }, customerMessage, storeId, customerId, state.customer_prefs)
                 orderDraft = result.draft
                 responseText = result.responseText
                 intent = 'order_collection'
@@ -1340,6 +1365,7 @@ async function startOrderDraft(
   customerMessage: string,
   storeId?: string,
   customerId?: string | null,
+  customerPrefs?: CustomerPreferences | null,
 ): Promise<{ draft: OrderDraft; responseText: string }> {
   const { data: variants } = await supabase
     .from('product_variants')
@@ -1456,7 +1482,25 @@ async function startOrderDraft(
     }
   }
 
-  // New customer — start with name collection
+  // Check conversation prefs — reuse info from previous order in this conversation
+  if (customerPrefs?.last_name && customerPrefs?.last_address && customerPrefs?.last_phone) {
+    draft.customer_name = customerPrefs.last_name
+    draft.address = customerPrefs.last_address
+    draft.phone = customerPrefs.last_phone
+    draft.step = 'confirming'
+    const prefItems = getDraftItems(draft)
+    const prefSummary = prefItems.length > 1
+      ? `🛒 ${prefItems.length} бараа — ${formatPrice(getDraftTotal(draft))}`
+      : `📦 ${product.name} — ${formatPrice(prefItems[0]?.unit_price || draft.unit_price || 0)}`
+    return {
+      draft,
+      responseText: `${prefSummary}\n\n` +
+        `Өмнөх мэдээллээр захиалах уу?\n` +
+        `👤 ${customerPrefs.last_name}\n📍 ${customerPrefs.last_address}\n📱 ${customerPrefs.last_phone}\n\n` +
+        `Тийм бол "Тийм", өөрчлөх бол шинэ мэдээллээ бичнэ үү.`,
+    }
+  }
+
   const startItems = getDraftItems(draft)
   const startSummary = startItems.length > 1
     ? `🛒 ${startItems.length} бараа — ${formatPrice(getDraftTotal(draft))}`

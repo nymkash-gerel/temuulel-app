@@ -81,6 +81,8 @@ export interface ContextualInput {
   busyMode?: BusyModeContext
   // Resolution Engine context
   resolution?: ResolutionContext | null
+  // Customer body/size preferences (from conversation state)
+  customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -171,6 +173,18 @@ function buildSystemPrompt(input: ContextualInput): string {
   if (input.latestPurchaseSummary && (isResolution || input.intent === 'return_exchange')) {
     prompt += `\n\nСҮҮЛИЙН ЗАХИАЛГА: ${input.latestPurchaseSummary}
 Буцаалт/гомдол ирвэл эхлээд энэ захиалгатай холбоотой эсэхийг асуу.`
+  }
+
+  // --- Customer body/size preferences ---
+  if (input.customerPrefs) {
+    const cp = input.customerPrefs
+    const parts: string[] = []
+    if (cp.weight_kg) parts.push(`жин: ${cp.weight_kg}кг`)
+    if (cp.height_cm) parts.push(`өндөр: ${cp.height_cm}см`)
+    if (cp.preferred_size) parts.push(`сүүлд сонгосон размер: ${cp.preferred_size}`)
+    if (parts.length > 0) {
+      prompt += `\n\nХЭРЭГЛЭГЧИЙН ХЭМЖЭЭ: ${parts.join(', ')}. Размер асуувал энэ мэдээлэлд тулгуурлан зөвлө — дахин жин/өндөр бүү асуу.`
+    }
   }
 
   // --- Resolution Engine context (enriched business data) ---

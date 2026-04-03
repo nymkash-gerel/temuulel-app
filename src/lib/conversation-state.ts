@@ -92,6 +92,19 @@ export interface GiftCardDraft {
   shortUrl?: string          // QPay short payment URL shown to customer
 }
 
+export interface CustomerPreferences {
+  /** Body measurements for size recommendations */
+  weight_kg?: number
+  height_cm?: number
+  preferred_size?: string
+  /** Last used delivery info — reuse for next order */
+  last_address?: string
+  last_phone?: string
+  last_name?: string
+  /** Color/style preferences */
+  preferred_colors?: string[]
+}
+
 export interface ConversationState {
   last_intent: string
   last_products: StoredProduct[]
@@ -101,6 +114,8 @@ export interface ConversationState {
   gift_card_draft?: GiftCardDraft | null
   /** Pending gift card code from customer message — awaiting redeem confirmation */
   pending_gift_card_code?: string | null
+  /** Customer preferences — persists across conversation turns */
+  customer_prefs?: CustomerPreferences | null
 }
 
 export type FollowUpType =

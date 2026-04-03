@@ -326,6 +326,7 @@ export async function generateAIResponse(
   extendedProfile?: string | null,
   latestPurchaseSummary?: string | null,
   resolution?: import('./resolution-engine').ResolutionContext | null,
+  customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string } | null,
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history.
   // Also allow GPT on turn 1 for 'general' and 'complaint' intents — ambiguous and
@@ -372,6 +373,7 @@ export async function generateAIResponse(
         extendedProfile: extendedProfile ?? null,
         latestPurchaseSummary: latestPurchaseSummary ?? null,
         resolution: resolution ?? null,
+        customerPrefs: customerPrefs ?? null,
       })
       if (contextResult) {
         // Log structured AI metadata for analytics/escalation
