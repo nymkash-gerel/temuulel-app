@@ -109,67 +109,37 @@ export function generateResponse(
     }
 
     case 'complaint': {
-      let complaintResponse = `😔 **Уучлаарай, таны санал хүсэлтийг хүлээн авлаа.**\n\n`
-      complaintResponse += `Бид таны асуудлыг аль болох хурдан шийдвэрлэхийг хичээнэ.\n\n`
-      complaintResponse += `📝 **Асуудлаа дэлгэрэнгүй бичнэ үү:**\n\n`
-      complaintResponse += `1️⃣ **Захиалгын дугаар** (хэрэв холбоотой бол)\n`
-      complaintResponse += `2️⃣ **Юу болсон бэ?** — асуудлаа тодорхой тайлбарлана уу\n`
-      complaintResponse += `3️⃣ **Хэзээ болсон бэ?** — огноо, цаг\n`
-      complaintResponse += `4️⃣ **Зураг/баримт** (боломжтой бол)\n\n`
-      complaintResponse += `📞 Яаралтай бол менежертэй шууд холбогдох: чатад **"менежер"** гэж бичнэ үү.\n`
-      complaintResponse += `⏱️ Бид **12 цагийн дотор** хариу өгөхийг баталгаажуулна.`
-      return complaintResponse
+      return `😔 Уучлаарай! Асуудлаа захиалгын дугаартай хамт бичнэ үү — 12 цагийн дотор шийднэ. Яаралтай бол "менежер" гэж бичээрэй.`
     }
 
     case 'return_exchange': {
-      let returnResponse = `Маш харамсаж байна. 🔄 **Бараа буцаах / солилт хийх**\n\n`
-
+      let returnResponse = `🔄 Буцаах/солих бол захиалгын дугаар + шалтгаанаа бичнэ үү.`
       if (settings?.return_policy) {
-        returnResponse += `📋 **Буцаалтын бодлого:**\n${settings.return_policy}\n\n`
+        returnResponse += `\n📋 ${settings.return_policy}`
       }
-
-      returnResponse += `📝 **Буцаах хүсэлт илгээхийн тулд дараах мэдээллийг бичнэ үү:**\n\n`
-      returnResponse += `1️⃣ **Захиалгын дугаар** — жишээ нь ORD-12345\n`
-      returnResponse += `2️⃣ **Буцаах шалтгаан** — буруу бараа ирсэн / гэмтэлтэй / хэмжээ тохирохгүй / бусад\n`
-      returnResponse += `3️⃣ **Буцаах бараа** — аль бараагаа буцаахыг тодорхой бичнэ үү\n`
-      returnResponse += `4️⃣ **Зураг** (боломжтой бол) — гэмтэл эсвэл буруу барааны зураг\n\n`
-      returnResponse += `✅ Хүсэлтийг хүлээн авсны дараа манай баг **24 цагийн дотор** хариу өгнө.\n`
-      returnResponse += `📦 Зөвшөөрөгдсөн тохиолдолд буцаах заавар болон хүргэлтийн мэдээллийг илгээнэ.`
-
+      returnResponse += `\n24 цагийн дотор хариу өгнө.`
       return returnResponse
     }
 
     case 'size_info': {
       if (products.length > 0) {
-        let response = `📏 **Размерийн мэдээлэл:**\n\nТаны биеийн хэмжээнд тулгуурлан манай бүтээгдэхүүнүүд:\n\n`
-        products.forEach((p, i) => {
-          response += `${i + 1}. **${p.name}**\n`
-          if (showPrices) response += `   💰 ${formatPrice(p.base_price)}\n`
-          if (p.description) {
-            const sizeDesc = p.description.length > 150
-              ? p.description.substring(0, 150) + '...'
-              : p.description
-            response += `   📝 ${sizeDesc}\n`
-          }
+        // Show max 3 products, short descriptions
+        const top = products.slice(0, 3)
+        let response = `📏 Размер:\n`
+        top.forEach((p, i) => {
+          response += `${i + 1}. **${p.name}**`
+          if (showPrices) response += ` — ${formatPrice(p.base_price)}`
           response += '\n'
         })
-        response += `Тодорхой бүтээгдэхүүний размерийн талаар дэлгэрэнгүй асуувал бичнэ үү!`
+        response += `\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!`
         return response
       }
 
-      return `📏 **Размерийн мэдээлэл**\n\n👕 **Ерөнхий размер хүснэгт:**\n\n| Размер | EU | Цээж (см) | Бүсэлхий (см) |\n|--------|-----|-----------|---------------|\n| S      | 36-38 | 86-90   | 70-74         |\n| M      | 38-40 | 90-94   | 74-78         |\n| L      | 40-42 | 94-98   | 78-82         |\n| XL     | 42-44 | 98-102  | 82-86         |\n| XXL    | 44-46 | 102-106 | 86-90         |\n\n📐 **Хэрхэн хэмжих вэ:**\n• Цээжний тойрог — суга дор, хамгийн өргөн хэсгээр\n• Бүсэлхий — хүйсний дээд хэсгээр\n• Биеийн урт — мөрнөөс доош\n\n💡 Тодорхой бүтээгдэхүүний размер мэдэхийг хүсвэл **нэрийг нь бичнэ үү!**`
+      return `📏 Ерөнхий размер: S(36), M(38), L(40), XL(42), XXL(44)\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!`
     }
 
     case 'payment': {
-      let payResponse = `💳 **Төлбөрийн мэдээлэл**\n\n`
-      payResponse += `Бид дараах төлбөрийн хэлбэрүүдийг хүлээн авна:\n\n`
-      payResponse += `📱 **QPay** — QR код уншуулж шууд төлөх (хамгийн хурдан)\n`
-      payResponse += `🏦 **Дансаар шилжүүлэг** — гүйлгээний утга дээр захиалгын дугаараа бичнэ үү\n`
-      payResponse += `💵 **Бэлнээр** — хүргэлтийн үед жолоочид өгөх боломжтой\n\n`
-      payResponse += `🔒 Бүх онлайн төлбөр SSL шифрлэлтээр хамгаалагдсан.\n`
-      payResponse += `📋 Төлбөр төлсний дараа баримт автоматаар илгээгдэнэ.\n\n`
-      payResponse += `Захиалга өгөх бол **"захиалах"** гэж бичнэ үү!`
-      return payResponse
+      return `💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол "захиалах" гэж бичнэ үү!`
     }
 
     case 'shipping': {
@@ -190,17 +160,12 @@ export function generateResponse(
         shipResponse += `• Захиалгын дүн болон бүсээс хамаарна\n\n`
       }
 
-      // Store pickup info from resolution
       if (resolution?.isDeliveryOnly) {
-        shipResponse += `🏪 Манайх зөвхөн хүргэлтээр бараа гарж байна.\n\n`
+        shipResponse += `Зөвхөн хүргэлтээр.\n`
       } else if (resolution?.storeAddress) {
-        shipResponse += `🏪 Очиж авах: **${resolution.storeAddress}**\n\n`
+        shipResponse += `🏪 Очиж авах: ${resolution.storeAddress}\n`
       }
-
-      shipResponse += `📦 **Захиалга хянах:**\n`
-      shipResponse += `• Захиалгын дугаараа бичвэл статусыг шалгана\n`
-      shipResponse += `• Хүргэлт эхлэхэд трэкинг код илгээнэ\n\n`
-      shipResponse += `📮 Хаягаа бичвэл хүргэлтийн төлбөрийг тооцоолж хэлж өгье!`
+      shipResponse += `📮 Хаягаа бичвэл хүргэлтийн төлбөрийг тооцоолж хэлье!`
       return shipResponse
     }
 
