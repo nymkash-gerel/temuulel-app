@@ -837,9 +837,14 @@ export async function processAIChat(
           const hasProductIdentifier = nonOrderWords.some((w) => w.length >= 2)
 
           if (products.length > 0 && hasProductIdentifier) {
-            // Message has product-identifying words + products found — start order draft.
-            // Pick the product whose name best matches the customer message (not blind products[0])
-            // e.g. "Leevchik set авмаар байна" → Comfort Leevchik Set, not SKIMS Body Shaper
+            // Try multi-product order first (e.g. "SKIMS + leevchik + turshik авъя")
+            const multiResult = await startMultiProductDraft(supabase, customerMessage, storeId, customerId, state.customer_prefs)
+            if (multiResult) {
+              orderDraft = multiResult.draft
+              responseText = multiResult.responseText
+              intent = 'order_collection'
+            } else {
+            // Single product — pick the best match
             const msgNorm = normalizeText(customerMessage).toLowerCase()
             const bestProduct = products.reduce((best, p) => {
               const nameWords = normalizeText(p.name).toLowerCase().split(/\s+/).filter(w => w.length >= 3)
@@ -853,6 +858,7 @@ export async function processAIChat(
             orderDraft = result.draft
             responseText = result.responseText
             intent = 'order_collection'
+            }
           } else {
             // No product identifier found — check if there's a last-discussed product in state
             if (state.last_products.length > 0) {
@@ -1386,6 +1392,129 @@ function buildInfoRequest(draft: OrderDraft): string {
     header = `📦 ${item?.product_name || draft.product_name}${item?.variant_label ? ` (${item.variant_label})` : ''} — ${formatPrice(item?.unit_price || draft.unit_price || 0)}`
   }
   return `${header}\n\nЗахиалга үүсгэхийн тулд дараах мэдээлэл хэрэгтэй:\n• ${missing.join('\n• ')}\n\nБичнэ үү:`
+}
+
+/**
+ * Start a multi-product order draft from a message mentioning multiple products.
+ * E.g. "SKIMS + leevchik + turshik авъя" → 3 items in one draft.
+ * Returns null if < 2 products identified (falls back to single-product flow).
+ */
+async function startMultiProductDraft(
+  supabase: SupabaseClient,
+  customerMessage: string,
+  storeId: string,
+  customerId?: string | null,
+  customerPrefs?: CustomerPreferences | null,
+): Promise<{ draft: OrderDraft; responseText: string } | null> {
+  const msgNorm = normalizeText(customerMessage).toLowerCase()
+
+  // Split by common separators: +, болон, ба, ,, &
+  const parts = customerMessage.split(/[+,&]|\sболон\s|\sба\s|\s(?:дээр|бас|нэмж|мөн)\s/i)
+    .map(p => p.trim())
+    .filter(p => p.length >= 2)
+
+  if (parts.length < 2) return null
+
+  // Search each part
+  const allItems: CartItem[] = []
+  const foundNames: string[] = []
+
+  for (const part of parts) {
+    // Extract quantity (e.g. "2sh leevchik" → qty=2, search="leevchik")
+    const qtyMatch = part.match(/(\d+)\s*(?:ш|sh|ширхэг|shirheg)/i)
+    const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1
+    const searchTerm = part.replace(/\d+\s*(?:ш|sh|ширхэг|shirheg)/i, '').trim()
+    // Remove order words
+    const cleanSearch = searchTerm.replace(/авъя|авья|авах|авна|захиал|awya|awah|авии|avo|авмаар/gi, '').trim()
+
+    if (cleanSearch.length < 2) continue
+
+    const results = await searchProducts(supabase, cleanSearch, storeId, { maxProducts: 1, originalQuery: cleanSearch })
+    if (results.length > 0) {
+      const p = results[0]
+      // Try auto-select variant from the part text
+      const { data: variants } = await supabase
+        .from('product_variants')
+        .select('id, size, color, price, stock_quantity')
+        .eq('product_id', p.id)
+        .gt('stock_quantity', 0)
+
+      let variantId: string | undefined
+      let variantLabel: string | undefined
+      let unitPrice = p.base_price
+
+      if (variants && variants.length > 0) {
+        const resolved = resolveVariantsFromMessage(part, variants)
+        if (resolved.length > 0) {
+          variantId = resolved[0].id
+          variantLabel = [resolved[0].size, resolved[0].color].filter(Boolean).join('/')
+          unitPrice = resolved[0].price ?? p.base_price
+        }
+      }
+
+      allItems.push({
+        product_id: p.id,
+        product_name: p.name,
+        variant_id: variantId,
+        variant_label: variantLabel,
+        unit_price: unitPrice,
+        quantity: qty,
+      })
+      foundNames.push(`${p.name}${variantLabel ? ` (${variantLabel})` : ''} x${qty}`)
+    }
+  }
+
+  if (allItems.length < 2) return null
+
+  const draft: OrderDraft = {
+    items: allItems,
+    product_id: allItems[0].product_id,
+    product_name: allItems[0].product_name,
+    unit_price: allItems[0].unit_price,
+    quantity: allItems[0].quantity,
+    step: 'name',
+  }
+
+  const total = allItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
+  const itemsList = foundNames.map((n, i) => `${i + 1}. ${n}`).join('\n')
+
+  // Check customer prefs for auto-fill
+  if (customerPrefs?.last_name && customerPrefs?.last_address && customerPrefs?.last_phone) {
+    draft.customer_name = customerPrefs.last_name
+    draft.address = customerPrefs.last_address
+    draft.phone = customerPrefs.last_phone
+    draft.step = 'confirming'
+    return {
+      draft,
+      responseText: `🛒 ${allItems.length} бараа — ${formatPrice(total)}\n${itemsList}\n\n` +
+        `Өмнөх мэдээллээр захиалах уу?\n👤 ${customerPrefs.last_name}\n📍 ${customerPrefs.last_address}\n📱 ${customerPrefs.last_phone}\n\nТийм бол "Тийм", өөрчлөх бол шинэ мэдээллээ бичнэ үү.`,
+    }
+  }
+
+  // Check DB for returning customer
+  if (storeId && customerId) {
+    const { data: lastOrder } = await supabase
+      .from('orders').select('shipping_address').eq('store_id', storeId).eq('customer_id', customerId)
+      .not('shipping_address', 'is', null).order('created_at', { ascending: false }).limit(1).single()
+    const { data: customer } = await supabase.from('customers').select('name, phone').eq('id', customerId).single()
+
+    if (lastOrder?.shipping_address && customer?.name && customer?.phone) {
+      draft.customer_name = customer.name
+      draft.address = lastOrder.shipping_address
+      draft.phone = customer.phone
+      draft.step = 'confirming'
+      return {
+        draft,
+        responseText: `🛒 ${allItems.length} бараа — ${formatPrice(total)}\n${itemsList}\n\n` +
+          `Өмнөх мэдээллээр захиалах уу?\n👤 ${customer.name}\n📍 ${lastOrder.shipping_address}\n📱 ${customer.phone}\n\nТийм бол "Тийм", өөрчлөх бол шинэ мэдээллээ бичнэ үү.`,
+      }
+    }
+  }
+
+  return {
+    draft,
+    responseText: `🛒 ${allItems.length} бараа — ${formatPrice(total)}\n${itemsList}\n\nНэрээ бичнэ үү:`,
+  }
 }
 
 /**
