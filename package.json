@@ -23,6 +23,7 @@
     "@upstash/redis": "^1.36.2",
     "@xyflow/react": "^12.10.0",
     "exceljs": "^4.4.0",
+    "framer-motion": "^12.38.0",
     "leaflet": "^1.9.4",
     "next": "^16.1.6",
     "openai": "^6.16.0",
