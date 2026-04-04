@@ -1,0 +1,3187 @@
+[
+  {
+    "text": "94290012",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "За захиалъя. Маргааш хөвсгөлийн унаанд хүргүүлье",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "86907379",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Utas: 99057309\nHayag: Dashchoilon hiidiin chanh ard. Gaaliin yerunhii gazar",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "хай тос авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Баянгол дүүрэг, 2-р хороо, \n69 байр 107 тоот /25-р эмийн сангийн хойд талын автобусны буудлын ард 12 давхар цагаан ногоон өнгийн байрны 10 давхарт/",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "99565072",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "зураг байна уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Нараагийн хэрэглэсэн тосноос нэгийг авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "99071431",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88032261",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн байна уу үе мөчний тос слнирхож байна",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "За юутай ч захиалая",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Ajliin tsagaar zaisan orgil rashaan suvilalii hoid tald LS plaza",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Avii shd sodon 111 bair 37 toot 99004247",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "89893668",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88002087",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тэмээн хяруулын тосыг нь хүргэлтээр авая.",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "1ш тос авий",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "90252531",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "86111477",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Энэ тосноос авах гэсэн юм",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "94048833",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "91117429 Khentii aimag",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi.",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Hello",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "hi dear",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99217758",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хүүе энэ захиалгаа цуцалсан шүү. Ирэхгүй юм бна. Өвдсөн хүн хүлээж дийлэхгүй нь.",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "85592213",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "БЗД 14р хороо 9р байр А орц 59тоот 13 давхар",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Авья 99156902",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Uushignii tan l",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "94066003 89446003",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хүргэлт нь өнөөдөртөө багтаад ирэх үү",
+    "intent": "shipping",
+    "confidence": 1.0
+  },
+  {
+    "text": "hurgelt ni hedid gardag vee 89235455",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "тэмээн хяруулын тос авъя. 99188415",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Схд содон хороолол 101р байр 2р орц 4давхарт 113тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "hi tsagaan mahni tosnoos hurgelteer away",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хэдийд хүргэх вэ",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Данс нь",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88530225",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "96680274",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "91114145",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88243131",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Энэ тосыг захиалга өгөөх гээд зөндөө их хүлээж байнадаа",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "88030243",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "BGD   10r horoolol MT colonkoor hoishoo Baylag hothon 60r bair 1 orts  4n dawhart 13a toot Utas 99158637",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Ок захиалая",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "hi би тос авч хэрэглэж бгаан биед маань металл бгаа хориглоно гэдгийг сая уншлаа",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "arhangai aimag 91333238",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi hvvhdiin soij sonirhoe",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Сайн байна уу үё мөчний тос болон тэмээн хяруулын тос захиалая",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "энэ тосыг авъя",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Тос байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Өнөдөртөө хүргэдэхгүй гсэн үгүү",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "80293997",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi enig avy",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99105909",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "95368831",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Амралтын өдөр авна",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Авъя маргааш гэртээ байхгүй нөгөөдөр  яармагт",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Өдрийн мэнд\nЭнэ тосоо хэрэглэж байгаа, давхар лаа хэрэглэх шаардлага байгаа юу, дан тосоо түрхээд байх уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Зүүн салаанд 90303911",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "хан уул дүүрэг 15 р хороо цэнгэлдэх хотхон 208 байр 301 тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Тос авах гэсэн юм",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "харин ямар дугаар луу захиалга өгөх юм бол",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "Саппоро 1-р хороолол 6 байр 11 давхарт 74 тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Hi, шамбарамын тос хэл вэ хэдэн гр бэ",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Hedin uyd ireh bol. Bolku bol huneer erthen ochij awhuulsanch yahaw. Gyals l awmaar bnoo",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Hi temeen hyruulin tos hed we",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "энэ тос хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "94419009",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Өнөөдөр хүргэх үү?",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "99293021",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "бас мөнгөн зүү  гээд үеүүдээр суулгуулж бсан",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Баярлалаа",
+    "intent": "thanks",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi snuu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хаанаас авах вэ",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "91994525",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "chingeltei dvvreg 17r horoo suragchiin 14iin 201 toot utas 95748403",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Цагаан мах эргэсэн  хүн түрхдэг тос мөн үү үнэ хэд вэ захиалья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "88040577",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi tos hed we",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "88101244",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "100 ail hangai hotgon hajuud 534 bair 1 orts 54 t 88005223",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Танайд тэмээн хяруулын тос байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Хаяг дугаар бичсэн мсж алга болжээ кк",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тосоо авлаа баярлалаа",
+    "intent": "thanks",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi tosoo awsan yaj heregleh ve",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Шамбарамын тос хэдвэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Тэмээн хяруулын тос авах гэсэн юм. Цагаан маханд түрхэх юм",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "95940074",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "хорооллын эцэст хаш чулуу сауны 2 давхарт гэсэн бна тэндээ байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "сайн уу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "5055275501 рүү шилжүүлчих",
+    "intent": "payment",
+    "confidence": 0.87
+  },
+  {
+    "text": "Ажлын бус цагаар: БЗД 26-р хороо Чухаг-2 хотхон 607-р байр 49н тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "88022040",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88110070",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "тос байна уу?",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "ө.мэн мэдээлэл авы",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "сайн уу?",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "86588787",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi, revlon ii samtai sens baigaa bolov uu?",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Hi medelel away bi jiremsen 6 sartai yymaa",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Сайн байна уу ваартай зүрхний тан байгаа юу найдвартай газраас авмаар байна",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "сн бну",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хүргэлт байдаг уу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "хүргэлтээр 2 ш авъя",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "бзд 22хороо 95 байр 404 тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "1 тос хүргэлтээр авы",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Сн бну",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Чингис зочид буудлын хажууд Сансар гарден хотхон, 39/6 байр 2-р орц 204 тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Илүүдэл үсний лазерын талаар мэдээлэл авах гэсийн",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "99859331",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99835958",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Захиаляаа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "hi tos zahialay",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Лазер авсан дотор нь гель нь байхгүй байна",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "89293910",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "80257171",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "91111586",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тос , наалт авья 89116188",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Чингэлтэй дүүрэг 10 р хороо 39 р сургуулийн ард байрлах шинэчлэл хороолод 4-2-67 тоот. 88006645",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Hi temeen hyruuliin tos awya",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99445436",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Уучилаарай танай хүргэлт хэзээ гарах юм болоо",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Энэ тосноос авъя аа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "88006645",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "86624422",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99089443",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тос захиалга өгьe",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "86762470",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Яармаг мандала 1483 163 тоот 99948847",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi huuhdiin hums uregch avii",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "94178184",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн байна уу  95293349",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Hi turaah buteegdehuun garsanu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Маргааш тосоо ахиад 1 явуулаад өгөөрэй 2ш захисан юм",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "сайн бну",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "hi oroodog induu avyaa",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "hi, tos ni 30k yum uu. haanaas ochij awahuu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Захиалий өмнөговийн цагаан хад 86588787",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99091332",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хаяг хаана вэ?",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "88092701",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хэд вээ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "bzd 31 horoo monel gerlen dohiotoi uulzwaraas  фунтик buyu 2 dahi buudal deeree jargalzaya gd delgvvr bgaa teriig joohon  ongorood baruun ergeed 469hudag deer ireed zalgah .  89859397",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Бзд улаанхуаран эцэс шинэ амгалан хороолол 518-18",
+    "intent": "menu_availability",
+    "confidence": 0.33
+  },
+  {
+    "text": "85441027",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Өдрийн мэнд хүргэлт нь хэдийд ирэх вэ",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Сайн байна уу! Энэ тосноос авьяа",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "88066927",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88025157",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Кк тэгэхээр авах юм их болоод дансан дахь мөнгөө бодноо ккк",
+    "intent": "payment",
+    "confidence": 0.87
+  },
+  {
+    "text": "Бөөрний хандын талаар мэдээлэл авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Содон хороолол 101р байр 2р орц 9давхар 153тоот 88667132",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "88138113",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99082399",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "94110803",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Төрсөн хүн байгаамаа. Өглөө эхний захиалгаар хүргэвэл ии сайн байна.",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "99166818  нарны хороолол 13 байр",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Mmm gun tsairuulagch",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Дугуй зураг мэдээлэл авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "БЗД авто оношилгооны баруун хойно 53-р байр 15-145 тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "sn bnu tos awh gsi s",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Хүргэлт хэд вэ",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Hi. Temeen hyaruuliin tos avya.",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "90900804",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сн бну тэмээн хяруулын тос бга юу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Одоо хүргүүлээд авъя",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Очиж авбал хаанаас авах уу",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "99453025",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi \nТос авья",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Яаралтай энэ шалбарамд түрхдэг тос авмаар бна",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "99557173",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хаанаас очиж авах вэ",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Сайн байна уу жирэмсэн хэрэглэж болох болов уу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Сайн бна уу.Тэмээн хяруулын тос авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Сайн уу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "99994297",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "мэдээлэл авьяа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Say yariad haygaa ogson. 99105583.",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Мэдээлэл авяа м3 үнэ нь өөр өөр юмуу",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "91011070",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "захиалга өгөх юм уу?",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "Маргааш хүргэхүү",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "ofitser x apartment1 b block 15 dawhar 98 toot",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "шамбарамын тос байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Хүргэлтээр авъя.",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "86292789",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "80803113",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "сайн бна уу тэмээн хяруулын тос ямар үнэтэй вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Hi hen emch ireh be hu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Hooloi amarhn uvdj amarhn haniad amine sn l ugaalgahguii bl uner gardag. Tgd iim joohnoso sonin yumda gj bodod baidag.",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Шамбарамд хэрэглэх тос байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Хүүхдийн сойз байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Надад уух уураг, ээжид уух уураг, тос, наалтаа эхний удаа явуулчх таалагдвал би ажилдаа явахаасаа өмнө авна 23 нд ажилдаа явах гээд жоохон тэнхэрэх хэрэгтэй бнөө",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "94327972",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "89971102",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тос захиалы",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "manai owoogiin zurh 15% l ajilj bgaa ternees bolood daraltam aimr ondor bgaad bgaa yumaa",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "очиж авбал хаанаас авах вэ",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Өмнө говь цагаан хад 86588787",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi hayg hna we ochj awuul",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "ХУД, 11 хороо, зайсангийн эцэст, зайсан лакшири виллаж хотхон, 2-р байр, 2 давхарт, 6 тоот, орцны код: 8808#\n99037577",
+    "intent": "shipping",
+    "confidence": 1.0
+  },
+  {
+    "text": "Үнэ, Хүргэлт",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "95343055",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "хаяг хаан вэ",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "94771206",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Ирэхээр нь авъя",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "99165582 modni 2grand hill zochid buudaln urd 67r bair 3r orts 5n dawhar",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Захиаляаа88006645",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Дасгалын урт резин байна уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "turahaad l vzii",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Захиалга",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "96657806",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99003396",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "10000 аа дээрх дансруу хийгээрэй",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "99086689",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "яармагийн хаанаас авах вэ",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "захиалийяаа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Маргааш хүргэлтээр авая. 88226236",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "90494433",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "та энэ утсаар холбогдоод хүргээд өгөөч би мөнгийг нь шилжүүлэх болноо 🙏",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "95000554",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "хэд вэ тэмээн хяруулын тос",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Хүргэлт үнэ хэд вэ",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "88331192",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi hayg",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "ханбогд хороолол 305р байр 1р орц 43 тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Танай хаяг хаана уу? , Манайх одоогоор Өмнөговь аймагт бгаа удахгүй охиноо аваад хот орноо",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Бзд 14-р хороо мандах наран хороолол 123б байр 1 орц 6 давхар 26 тоот",
+    "intent": "shipping",
+    "confidence": 1.0
+  },
+  {
+    "text": "Сайн байна уу хар савтай тос нь байгаа болов уу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "10-р хороолол 14Б байр замынхаа хойд талд ирээд залгаарай 88075857 дэлгүүрт үлдээлгэнэ",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Утас 88080936",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Дарь эх хуучин эцэс",
+    "intent": "menu_availability",
+    "confidence": 0.33
+  },
+  {
+    "text": "Hi turaah apparat tsagarig tsug 45.000 ymuu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Үнэ хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "86099000",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "86150457",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "ungu amitani songolt bnuu 91162400",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi hezee ireh bol",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Hi ene tosiig avii",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99033492",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hodood gaigui l bh shg bn",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "90828580",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Багануурт танай борлуулагч бна уу? Тос яаж авах вэ?",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "88099148",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Avii 95981620",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi temeen hyruulin tos zahiali",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Margash l asuyda onoodr ch hudla bollo",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "96103113",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хаяг хна вэ",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Өдрийн мэнд",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "yagaad iim unetei yum be hurgelt chin 5000 l bdag bizde",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "90382220",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99130331",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Төлбөрөө одоо хийх үү",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "1 ш тос ирчхсэн",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Энэ байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Эхний ээлжинд тэмээн хяруулын тос авъя",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "ХУД 4-р хороо Ханбогд хотхон 203-р байр \nУтас-99184861",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "98120076",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "ХУД 18 хороо Академи-1 хотхон 34г байр 23 дав 2304 тоот, 99089443",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Одоо хүргэж өгөх үү",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "80790117",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99006602",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн ба уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Өнөөдрийн хүргэлт хэдээс гарах у",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "сайн байна уу тэмээн хяруул тос 2 ийг авий Багануурт авнаа тэнгэр плазагаас унаа явдаг юмаа баярлалаа данс өгөөрэй",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "90505096",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99933023",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Энэ тос байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Оройн мэндээ, 14 цагаас өмнө л бол хэдэн цаг байсан ч болно, баярлалаа",
+    "intent": "thanks",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайнуу тэмээн хяруулын тос хэд вэ",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "шамбармын тос хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "99160925",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Чингэлтэй дүүрэг, хайлааст. Янмал оймсны. үйлдвэрийн хажуу талаар Нарантуул хоёр явдаг. Зам дагуу Хоёр давхар саарал нийтийн байшин  Хайлааст янмалын гадаа ирээд залгаарай",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "xaluun tosiig 17.18 nastai xuuxdiin nuruun turxej bolox uu bas l nuruun uwduud bna geed bx yum",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "95981620",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "хаяг",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хаяг энэ",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "99091198 utasnaas Say yrisn",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "89109915",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Монгол рашаанаас бусдыг нь авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "94448187 hvrgelteer awiy",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хан уул дүүрэг Яармаг Фермерүүд захтай байр 103-77 тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "мишээл дээр авч болох уу",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Hi medeelel away vsnii urgalt zogsooh apparat",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99991222",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99501619",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "энийг авъя",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Хүргэлт нь хэзээ ирэх вэ одоо хүртэл ирээгүй",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "авна",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "89200481",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайнуу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99499307 яармагт хүргүүлэх гэсийн",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "тос хаанаас авах вэ үнэ",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Тос хэд вэ яаж авах вэ эрдэнэтрүү",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Хүргэлтээр авая",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "98135783",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Маргааш хаяг др хүн бхгүй хүргэлт нь өдөртөө ирнэ гэсэндээ",
+    "intent": "shipping",
+    "confidence": 1.0
+  },
+  {
+    "text": "Сайн байна уу? Жирэмсэн цагаан мах эргээд байгаа юмаа. Тосонд нь хүргэлт бий юу?",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Аяга угаагч хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Кактус авъя",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "86931107",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн байна уу тэмээн хяруулын тос хүргэлтээр авиы",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Hi, Эгч нь захиалгаа эрт авна шүү, Баярлалаа",
+    "intent": "order_collection",
+    "confidence": 1.0
+  },
+  {
+    "text": "Шар хад эрдэнэ толгой 91858487 96247089.",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "85215753",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "10r horoolol, 33r bair 28 toot\nUtas:88099694, 88762290",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "энэ тос бий юу",
+    "intent": "product_search",
+    "confidence": 0.67
+  },
+  {
+    "text": "Hi temeen hyaruuliin tos haanaas awch boloh we belen bnu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Тэмээн хяруулын тос байна уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "hi hurgelt ni ireegui",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Өнөөдөр хүргэлт ирэх үү",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "80830022",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "сайн байна уу тэмээн хяруулынстосоо захиалаад хүлээж авсаан одоо яаж хэрэглэх вэ цагаан маханд",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Оройн мэнд. Энэ удаад болье доо.. Дараа нь авья.",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "95955240",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тэмээн хяруулын тос байгаа юу?",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Би урд нь захиалаад байхгүй дууссан гээд буцаагдаж байсан.одоо авяа",
+    "intent": "return_exchange",
+    "confidence": 0.47
+  },
+  {
+    "text": "Захиалья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Хөдөө орон нутгаас захиалах",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "БГД - 20 хороо, эхлэл орон сууц 13 байр 18 тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "88271131",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хүргэлт гарах юм уу ??",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "80582535",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Өнөөдөр хүргэх үү",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хүргэлт  байна уу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Erdenet 99916622",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Очиж авая гэвэл хаанаас авах уу",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Маргааш явуулах юмтайгаа 1 ш явуулахад болно",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "94100302",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "тос байна уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Hi? Eniiig hurgelteeeer aviii",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "БГД нарны хороолол 14-р байр 1-р орц 7 давхар 702 тоот орцны код 0114#",
+    "intent": "shipping",
+    "confidence": 1.0
+  },
+  {
+    "text": "94127887",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "85008754",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88112961",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тэмээн хяруулын тос ноён хан наалт халуун тос 3 авах гэсэн юм",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "сайн байнуу тос захиалий",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "авах гэсэн юм",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Hi tsagaan mahnii tos belen bgaayu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Сайн байна уу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "99141340",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99792596",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99232611",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Zaa ogloo 11 ees omno l awchihmaar bn hodoo ywah geed bga shvv",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "99788004",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Ene l yumuda",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "85853399",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "80110444",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "94110789",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Энэ хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Мөнгө шилжүүлсэний дараа хоёртой нь байна гээ биздэ",
+    "intent": "payment",
+    "confidence": 1.0
+  },
+  {
+    "text": "Хүргэлт ясын болоо ???",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "ofitser bayajih zah chihriin languu saraa egchid uldeeh 80086002 dugaar bicheed uldeegeerei",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн байна ууу өнөөдөр хүргэлт ирэх үү",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Тэмээн хяруулын тос хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Энэ тос хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "99538833",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хэзээ ирэх вэ",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "Яармаг Марал аялал хотхон 1446 байр 8 давхар 50тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "99193163",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Зүүн салаанд авьяа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "ХУД рапид харш хотхон 25р байр 3р орц 7 давхар 126 тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "88073084",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "баярлалаа",
+    "intent": "thanks",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хүргэлт нь гарсан болу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Бгд 15-р хороо Билиг их дэлгүүрийн арын 25-р байр 7 давхарт 25 тоот 88836555",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "За Баярлалаа",
+    "intent": "thanks",
+    "confidence": 0.43
+  },
+  {
+    "text": "Үнэ болон ашиглах зааврын мэдээлэл авъя, баярлалаа",
+    "intent": "thanks",
+    "confidence": 0.43
+  },
+  {
+    "text": "99623002",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99684518",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88991224",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99009215",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99051348",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99027088",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Yarmag Porsche -n chanh urd Aurug view 1 shirheg bair baigaa\n15f 96 toot \n88103415",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "avii 89195982",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Энэ тос хэд вэ хэр үр дүнтэй вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "даралт харвалтын дараахь өвдөлтөнд хэрэглэх юм бну",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хэрэглэж үзээд таалагдвал ахиж авна",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "88179889",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Дорноговь аймаг",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Haaya l gardag hajuu tald ni hatuu uvchtui yum garaad bj bgad idee garaad zvgeer bolchihood bdg",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Хэзээ хүргэлтээр ирэх вэ",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Захиалга нь гарсануу",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "10р хороолол 13 байр 14 тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "86009343 СБД 11 хороо ногоон нуурын гудамж new residence хотхон 725 байр 1 орц 15 давхар 98 тоот орцны код 8804#",
+    "intent": "shipping",
+    "confidence": 1.0
+  },
+  {
+    "text": "94031524",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88006421",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "91669997",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Аан за хэзээ ирэх үү",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "Худ цэлмэг хотхоны баруун талын 96 байр 18 тоот утас 99904032",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайнуу Би эхлээд жижиг ууж үзье",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Бзд-н 24-р хорооо шархадны эрдэнэтолгойн автобусны буудал Монбэт дээр авна",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Hanuul dvvreg 10 horoo nesekh  60/2bair 2 orts 4 dawkhar  35 toot 99642565",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Enenees 1 awii 99992352",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн байна уу?",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Сайн байна уу тураах бүс авъя",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "80440664",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "1өдөр ажил дээр хүргүүлж авч болохуу",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "хэзээ ирэх вэ",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "Очоод авбал хаанаас авах уу",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Баянзүрх дүүрэг 16-хороо \nSky residence-3 хотхон \n77б-байр 113тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Hi zahialay",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "94066003",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "What specific challenges or goals are you trying to address with AI? I'm all ears! 🤔 Want to brainstorm some ideas that fit your needs?",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "hi temeen hyruuliin tos n bna uu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Өнөөдөр хүргэж өгөхгүй юу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Хаяг",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хэзээ хүргэхээс шалтгаалж хаяг өөр байна",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "орхон аймаг 5 микр 8 байр 9 тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "95668509",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88114676",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99804668",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "цагриг хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "88607230",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi minii hurgelt yasiin bol\ntosoo huleegeed bgaan",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99186846 руу мсж бичиж",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Утас 91858487 96247089",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Утасны дугаар 88195406",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "сайн байнауу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Халуун тос буюу шингэн зүү  үнэ хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "авна 1",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "80265158",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн уу явуулсан юманд юу юу бгаа бэ",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "nuur ugaagch avii 86064844",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "БЗД  Чулуун овоо Шөнийн дэлгүүр буудлын хойно ногоон судалтай 16давхар  53-р байрны 106 тоот \nУтас 94946860",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Өнөөдөр хүргэж өгөх болуу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "ywuulsan zurgiig ni harhaar  oor l haragdaad bhima",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Яг энэ тос байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Hi, tos maani hurgeltend garsan uu?",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "I'm interested in this post - https://facebook.com/108423354648352/posts/252884530167682",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "96095093",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99911174",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Нүүр цэвэрлэгч байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Utas 99991915",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "bzd 32-r horoo xos tsaiz hothon 106/2-14 86955666",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Энэ дасгалын резин байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Hi haanaas awah wee",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Тос захиалъя",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Hi tos bga yu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "хүргэлтээр авъя",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Оройн мэнд",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Сайн байна уу!",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "hi. temeen hyruuliin tos away",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Орцны код 2580",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "99786333 od kino teatr n esreg tald lofty lounge",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "80001909",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Smile kit 45000-s 1g",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Сайн байна уу энэ тос захиалий",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Hi ene tosiig nastai hunii uwdug uwduhud hereglej boloh boluu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Сайн байна уу тэмээн хяруулын тос нь хүргэлттэй юу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Hooloi n heden m sunadag ve",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Дарханд зардаг газар байна уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хаяг: БЗД 21-р хороо бага дарь эх 11-р гудамж 1368 тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Хэдийд ирэх бэ 98914163",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн бна уу? Тэмээн хяруулын тос 2-ыг авъя.\n\nБаянзүрх дүүрэг\n43-р хороо, 13-р хороолол\nСэлбэ хотхон 97/4 байр 15 давхарт 82 тоот\nГадаа хаалганы код 2019#\nУтасны дугаар 88555359",
+    "intent": "shipping",
+    "confidence": 1.0
+  },
+  {
+    "text": "Сайн байна уу энэ тос байна уу үнэ хэд бэ",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "88643326",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тосны мэдээлэл авий",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "Энэ тосыг л яаралтай авмаар байнө",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "өнгийн буруу хэлчижээ",
+    "intent": "complaint",
+    "confidence": 0.5
+  },
+  {
+    "text": "Гадна хяналтын камер 1 ширхэг",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Хар тагтай нь бну",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хэмжээ",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "120 мянгат 24/2 байр 31 тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "94909800",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi biy zasah bolgond udur bolgon Olon jil garsan tsagaan mahiig edgeej chadah bolvuu?",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Энэ тос байга юу үнэ хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "89991916",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Тэнгэр плаза. Баянзүрх хотхон. 108 байр 68 тоот",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "awsnas hoish 00in uruund bj l bn mini sonirhson shaltgaan manai bairni sangin asuudlas bolj haya umhii unertdeg terig ni darj bgach ym alga tamhini utaag bas neehh alga bolgod bga ym tuich alga l bn",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "3,4horooolliin etses sotiin 3-1r bair 1orts 2davhar 6toot 96042814",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "8675 2222",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "БЗД-8хороо sky residence хотгон 224байр 3давхар 11тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "hi ene 98k oroogchoos yugaaraa ylgaatai ve",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Буцаалт",
+    "intent": "return_exchange",
+    "confidence": 0.47
+  },
+  {
+    "text": "Хаанаас авч болох бэ",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Сайн байна уу шамбармын тос байна уу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Энэ тос байгаа юу хаанаас авах вэ",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Танай хүргэлт чинь ясын болоо тос авах гэж 3хонлоо",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Hi uzuulii gevel haana ochhuu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "hi ochij awbal tanai hayag haana be",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "хүргүүлээд авья",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "сайн байна уу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Тос хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Заа баярлалаа утсаар хаягийн авч болох уу",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Очиж авуул ханас авах вэ?",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Авсан баярлалах",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Nadaas oor olon l hun hudaldan awalt hiij bga bhaa bi mngondoo taaruulaad l zahialga hiisen ymldaa ugna",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Uws aimag ulaangom buynt horoolol 12-r bag 1000 toot 93149999",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "94544498",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Эмэгтэйчүүдийн гель болон хөөс үнэ хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "88274919",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "сайн уу? үр дүн хэр бол",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "hi temeen hyruuliin tos bga yu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Ok 91914854 margaash yarii",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi tos Awyaa xvrgelt bga yu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Мэдээлэл авий",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "сайн байна уу тэмээн хчруулын тос байна уу",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "hi tos bga yu abna",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Turaah bus avii.99103332",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99017204 хөгжил хотхоныурд 27-28 тоот",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "2ш ийг аваяааа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Бүтээгдэхүүнүүдийнхээ бүх мэдээлэл явуулж өгөөч. Үе мөч, нуруу, өвдөг, цагаан махны гээд",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "99758804",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi medeelel awii",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Тос бну цагаан маху",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хүргэлт байгаа юу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Сайн байна уу? Уушигны хандмал хэд гэж байгаа юм бол",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "99008614",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi tsagaan mahnii tos hed be",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Захиалга өгөх",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "99192286",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "үс ороогч авъя",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "88007088 kino uildwert",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Авье 88596024",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "ХУД -10р хороо 67р байр 4н давхарт 19 тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "88752424",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88061177 tsagaan mah ergehed sn tos ymyy ho",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "ХУД. 17-р хороо. Удирдлагын академын баруун урд. Богдын-Өндөр 52-р байр. 5 давхарт. 21тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "hi medeelel avii",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "margaash l away doo",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Сайн байна уу үе мөч хөл нь өвдөөд байгаа хүнд юу сайн бэ",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "хэзээ ирэх бол",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "85910931",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99063432",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Захиалга өгсөн",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "89894215",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99557173 hvrglt bhku bn gnee",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "80765004",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi temeen hyaruuliin tos jirrmsen hun hereglej boloh uu tsagaan mahand",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хан уул дүүрэг хансвилл хотхон 102-р байр aisha beauty salon 80064283",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Энэ тос байна уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Hi hi hi",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Өнөөдөртөө багтаад хүргэнэ гсн",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "awya 86588787",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi temeen hyaruulin tosig shambaramd yaj heregleh be",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Nuruu ih uvduj bnaa ih udaan uvduj bgaa uzuuleheer neeh surtei yum bhku tgd nuruuni zurag awhuulsan bas yum bhku zugeer bugtgur aimar zurag l garch bnlee 🤭",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "Hi 4aygatai hoolnii saw awy",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Маргааш хүргэлт гарах юм уу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Алтай хотхоны урд гэрэлт өргөө хотхон 47В байрны 8давхарт 60тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Утас 80947788",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "88106632",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi tos awii",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "94214585",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хан-уул дүүрэг 18-р сургуулийн хажууд 48-р  орц 2 , 15 давхар 164 тоот",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Тос 2ш , наалт 1  , монгол рашаан-1ш авы",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Хэзээ ирэх вэ?",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "Hi, Шамбарам тос авна, Циркийн урд талын 3байр 34 тоот, Өглөө энэ хаяган дээрээ хүлээж байя. Баярлалаа.",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "цагаан махны тос байна уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "80035960",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн байна уу? Тэмээн хяруулын тос болон үе мөчний наалт авъя.",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "Хэзээ хүргэх вэ",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "БЗД 13 хороо офцерын 14сургуулийн урд 3 давхар шар амны орон сууц бгаа 88030249",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хаяг хаана вэ",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "koyo town 54/2 1r orts 704  toot 88902280",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99851635",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "ХУД 10р хороо нисэх 2р байр 4р орц 53тоот  99220177",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "яаж авахуу дарханд",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "1-р хороолол 19-р байр 3-р орц \n7 давхарт 100 тоот, \nорцны код: 09#009\nУтас: 99850276",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "91021280",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "89077782",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Төлбөрөө шилжүүлэх үү",
+    "intent": "payment",
+    "confidence": 0.87
+  },
+  {
+    "text": "zurh bagadaa uvddugui baisan  . suuliin ued l uvddug bolson. shudnii chuluu baigaa baihoo",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "За би маргааш нэг газар очиж үзээд байхгүй бол танайхаас авье маргааш авахаар бол чат бичье",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "тос авъя 99902508",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хүргэлт",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "hi tos bga yu hed be",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "одоо очоод авбал хаана очиж авах вэ хотын төвд яваж байгаа юмаа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "utgun yrn hatdag isleg l hereglehgui bol hatah taldaa baidag",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "наалт нь бий юу",
+    "intent": "product_search",
+    "confidence": 0.67
+  },
+  {
+    "text": "Бзд 10хороо амгалангийн автобусны буудалын ар талд 62-р цэцэрлэг \n88896818",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "цагаан махны тос хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Ашиус-2р байр 89816551",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi say utsaar yarichihlaa",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Данс бгаа юу",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Хүргэлт байнуу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "Hi, тэмээн хяруулын тос авья. Заавартайгаа ирэх үү?",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Хөвсгөлийн унаанд хүргүүлнэ.",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "за за очооп авъя аа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "89859397",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Төрсөний дараах цагаан мах эргээд буцаад орсон боловч өтгөн хатаад дахиж эргэх гэжд байх шиг байгаан цустай хүндрээд бгн тийм тохиолдолд түрхэж болох уу",
+    "intent": "return_exchange",
+    "confidence": 0.47
+  },
+  {
+    "text": "Очиж авбал хаанаас авах уу. Зөвхөн хүргэлттэй юмуу",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "torson 2 torsoon suuld 7 jiliin omno torson ternees hoish l bnga gardag bolchihloo ydarhaar l garchihaad bgan",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "99125808",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi butegdehuun haanaas uzej boloh ve",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99079647",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сансар КТМС-Н сургуулийн зүүн талд 13/1-р байр 9 давхарт 44 тоот.Орцны код #5748",
+    "intent": "shipping",
+    "confidence": 1.0
+  },
+  {
+    "text": "Uguieee say emnelegt uzuulsen omhii nogoon tos 7honog turheed uz shimegdehgui bwl hagalgaand orno gesiin bi tgd hagalgaand orkugeer argalah arga charga bdg bolwuu geed haigaad l bn",
+    "intent": "size_info",
+    "confidence": 0.37
+  },
+  {
+    "text": "тэмээн хяруулын тос цагаан мах эргэхэд түрхдэг юм уу, захиалъя , үнэ хэд вэ",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "80330027 kino uildver happy town 72A bair 3-r orts 14 davhart 212 toot 0062 ortsnii kod hurgelteer avaya",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Энэ2ийг авья",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Ок 2 ш тос авья",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "сайн байна уу? цагаан мах эргэхэд.хэрэглэдэг тос авъя",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "4 аягтай хоол хийдэг сав авья даа",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "Төв аймаг",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "88351710",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "hi tos bga yu",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Дэлгэрэнгүй мэдээлэл",
+    "intent": "order_status",
+    "confidence": 0.4
+  },
+  {
+    "text": "Зааа мар хүргүүлээд авчихяа",
+    "intent": "shipping",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi 2 shirheg tos avii",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "БЗД 16р хороолол Нью Таун хотхон 43в 11давхар 1101 тоот. Орцны код: 89433377# Утас: 89433377",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "hi tos awiii",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Захиалчихсаан",
+    "intent": "order_collection",
+    "confidence": 0.4
+  },
+  {
+    "text": "88108064",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Сайн байна уу. Тэмээн хяруулын тос захиалах гэсэн юм",
+    "intent": "greeting",
+    "confidence": 1.0
+  },
+  {
+    "text": "99035938",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99835958 хайлааст бат сод мандал бээлийний үйлдвэр дээр",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99091198 энэ захиалга нь Эрт очих гээд гарч уу?",
+    "intent": "order_collection",
+    "confidence": 0.8
+  },
+  {
+    "text": "уушгины хандны үнэ хэд вэ",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "99805049",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Ойлголоо баярлалаа",
+    "intent": "thanks",
+    "confidence": 0.43
+  },
+  {
+    "text": "тос бэлэн байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "өнөөдөр аввал хүргэж өгөхүү",
+    "intent": "shipping",
+    "confidence": 0.87
+  },
+  {
+    "text": "86692868",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "86578884",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Байна уу",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Hi mongo hiilee",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "99025272",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Oros 3 in hajuud saruul zahin Ard 17 bair ireed zalgaarai 99851635",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "шүд цайруулагч аппарат байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "Танайд энэ тос байгаа юу",
+    "intent": "product_search",
+    "confidence": 0.33
+  },
+  {
+    "text": "99010265",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "99447389",
+    "intent": "payment",
+    "confidence": 0.43
+  },
+  {
+    "text": "Hi hed vv",
+    "intent": "greeting",
+    "confidence": 0.5
+  },
+  {
+    "text": "Тэмээн хяруулын тос авъя",
+    "intent": "order_collection",
+    "confidence": 0.4
+  }
+]
