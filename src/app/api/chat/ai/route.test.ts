@@ -192,7 +192,7 @@ describe('generateResponse', () => {
     const resp = generateResponse('size_info', [], [], 'Store')
     expect(resp).toContain('S')
     expect(resp).toContain('XL')
-    expect(resp).toContain('Размер')
+    expect(resp).toContain('размер')
   })
 
   it('generates payment info response', () => {
