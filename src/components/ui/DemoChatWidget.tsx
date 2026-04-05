@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { DemoSector } from '@/lib/demo-data'
 
 interface DemoMessage {
@@ -14,17 +14,81 @@ export default function DemoChatWidget({ sector }: { sector: DemoSector }) {
   const [messages, setMessages] = useState<DemoMessage[]>([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [usedQuestions, setUsedQuestions] = useState<Set<number>>(new Set())
+  const [autoPlayIndex, setAutoPlayIndex] = useState(0)
+  const [autoPlaying, setAutoPlaying] = useState(true)
+  const [isPaused, setIsPaused] = useState(false)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const now = () =>
     new Date().toLocaleTimeString('mn-MN', { hour: '2-digit', minute: '2-digit' })
 
-  // Scroll messages container to bottom (NOT scrollIntoView which scrolls the whole page)
+  // Scroll to bottom
   useEffect(() => {
     const el = messagesContainerRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, isTyping])
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  // Auto-play conversation
+  const playNext = useCallback(() => {
+    if (!autoPlaying || isPaused) return
+    if (autoPlayIndex >= sector.sampleQuestions.length) {
+      // Loop: restart after a pause
+      timeoutRef.current = setTimeout(() => {
+        setMessages([])
+        setAutoPlayIndex(0)
+        setIsTyping(false)
+      }, 4000)
+      return
+    }
+
+    const q = sector.sampleQuestions[autoPlayIndex]
+
+    // Step 1: Show user message with typing effect
+    timeoutRef.current = setTimeout(() => {
+      if (!autoPlaying) return
+      setMessages((prev) => [
+        ...prev,
+        { id: `user-${Date.now()}`, content: q.question, isUser: true, time: now() },
+      ])
+
+      // Step 2: Show typing indicator
+      timeoutRef.current = setTimeout(() => {
+        if (!autoPlaying) return
+        setIsTyping(true)
+
+        // Step 3: Show bot response
+        timeoutRef.current = setTimeout(() => {
+          if (!autoPlaying) return
+          setIsTyping(false)
+          setMessages((prev) => [
+            ...prev,
+            { id: `bot-${Date.now()}`, content: q.answer, isUser: false, time: now() },
+          ])
+          setAutoPlayIndex((i) => i + 1)
+        }, 1200 + Math.random() * 800)
+      }, 500)
+    }, autoPlayIndex === 0 ? 1500 : 2500)
+  }, [autoPlaying, isPaused, autoPlayIndex, sector.sampleQuestions])
+
+  useEffect(() => {
+    playNext()
+  }, [playNext])
+
+  // Stop autoplay when user interacts
+  function stopAutoPlay() {
+    setAutoPlaying(false)
+    setIsPaused(false)
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    setIsTyping(false)
+  }
 
   function addBotReply(answer: string) {
     setIsTyping(true)
@@ -37,19 +101,9 @@ export default function DemoChatWidget({ sector }: { sector: DemoSector }) {
     }, 800)
   }
 
-  function handleSampleClick(index: number) {
-    if (isTyping) return
-    const q = sector.sampleQuestions[index]
-    setUsedQuestions((prev) => new Set(prev).add(index))
-    setMessages((prev) => [
-      ...prev,
-      { id: `user-${Date.now()}`, content: q.question, isUser: true, time: now() },
-    ])
-    addBotReply(q.answer)
-  }
-
   function handleFreeText() {
     if (!input.trim() || isTyping) return
+    stopAutoPlay()
     const text = input.trim()
     setInput('')
     setMessages((prev) => [
@@ -61,12 +115,16 @@ export default function DemoChatWidget({ sector }: { sector: DemoSector }) {
     )
   }
 
-  const availableQuestions = sector.sampleQuestions
-    .map((q, i) => ({ ...q, index: i }))
-    .filter((_, i) => !usedQuestions.has(i))
-
   return (
-    <div className="w-full max-w-md mx-auto rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 shadow-2xl">
+    <div
+      className="w-full max-w-md mx-auto rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 shadow-2xl"
+      onMouseEnter={() => autoPlaying && setIsPaused(true)}
+      onMouseLeave={() => {
+        if (autoPlaying) {
+          setIsPaused(false)
+        }
+      }}
+    >
       {/* Header */}
       <div
         className="px-4 py-3 flex items-center gap-3"
@@ -75,15 +133,21 @@ export default function DemoChatWidget({ sector }: { sector: DemoSector }) {
         <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
           <span className="text-white text-sm">🤖</span>
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-white font-medium text-sm">{sector.storeName}</p>
           <p className="text-white/70 text-xs">Онлайн | AI туслах</p>
         </div>
+        {autoPlaying && (
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-white/50 text-[10px]">Live demo</span>
+          </div>
+        )}
       </div>
 
       {/* Messages */}
       <div ref={messagesContainerRef} className="h-80 overflow-y-auto p-4 space-y-3 bg-slate-800/50">
-        {messages.length === 0 && (
+        {messages.length === 0 && !isTyping && (
           <div className="flex justify-start">
             <div className="max-w-[80%] rounded-2xl px-3.5 py-2.5 bg-slate-700 text-slate-200 rounded-bl-md">
               <p className="text-sm whitespace-pre-wrap">
@@ -96,7 +160,7 @@ export default function DemoChatWidget({ sector }: { sector: DemoSector }) {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'} animate-[fadeSlideIn_0.3s_ease-out]`}
           >
             <div
               className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
@@ -119,7 +183,7 @@ export default function DemoChatWidget({ sector }: { sector: DemoSector }) {
         ))}
 
         {isTyping && (
-          <div className="flex justify-start">
+          <div className="flex justify-start animate-[fadeSlideIn_0.3s_ease-out]">
             <div className="bg-slate-700 rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1.5">
                 <span
@@ -138,24 +202,7 @@ export default function DemoChatWidget({ sector }: { sector: DemoSector }) {
             </div>
           </div>
         )}
-
       </div>
-
-      {/* Sample question chips */}
-      {availableQuestions.length > 0 && (
-        <div className="px-4 py-2 bg-slate-800/80 border-t border-slate-700 flex flex-wrap gap-2">
-          {availableQuestions.map((q) => (
-            <button
-              key={q.index}
-              onClick={() => handleSampleClick(q.index)}
-              disabled={isTyping}
-              className="px-3 py-1.5 text-xs rounded-full border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
-            >
-              {q.question}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Input */}
       <div className="p-3 bg-slate-900 border-t border-slate-700">
@@ -163,15 +210,16 @@ export default function DemoChatWidget({ sector }: { sector: DemoSector }) {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onFocus={stopAutoPlay}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 handleFreeText()
               }
             }}
-            placeholder="Мессеж бичих..."
+            placeholder={autoPlaying ? 'Бичиж эхлэвэл demo зогсоно...' : 'Мессеж бичих...'}
             className="flex-1 px-3.5 py-2.5 bg-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 border border-slate-700"
-            disabled={isTyping}
+            disabled={isTyping && !autoPlaying}
           />
           <button
             onClick={handleFreeText}
