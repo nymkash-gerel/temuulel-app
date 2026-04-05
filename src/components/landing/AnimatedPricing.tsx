@@ -64,82 +64,64 @@ const PLANS = [
 
 export default function AnimatedPricing() {
   return (
-    <div className="relative py-24 sm:py-32">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-50px' }}
+      variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+    >
+      {PLANS.map((plan, i) => (
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
+          key={i}
+          variants={{
+            hidden: { opacity: 0, y: 30 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+          }}
+          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+          className={`relative rounded-2xl p-6 transition-all duration-300 ${
+            plan.popular
+              ? 'bg-gradient-to-b from-blue-500/10 to-cyan-500/5 border-2 border-blue-500/50 shadow-xl shadow-blue-500/10 scale-[1.02]'
+              : 'bg-white/[0.04] hover:bg-white/[0.07]'
+          }`}
         >
-          <p className="text-[12px] font-medium text-amber-400 uppercase tracking-widest mb-3">Үнэ</p>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.03em]">Энгийн, ил тод үнэ</h2>
-          <p className="mt-3 text-[15px] text-zinc-500 max-w-md mx-auto">
-            Бизнесийнхээ хэмжээнд тохирсон багц сонго
-          </p>
+          {plan.popular && (
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold rounded-full shadow-lg">
+              Түгээмэл
+            </div>
+          )}
+          <h3 className="text-lg font-semibold text-white mb-0.5">{plan.name}</h3>
+          <p className="text-xs text-slate-500 mb-4">{plan.desc}</p>
+          <div className="mb-6">
+            <span className="text-4xl font-bold text-white">{plan.price}</span>
+            <span className="text-slate-500 ml-1">₮/сар</span>
+          </div>
+          <ul className="space-y-2.5 mb-8">
+            {plan.features.map((f, j) => (
+              <li key={j} className={`flex items-center gap-2.5 text-sm ${f.included ? 'text-slate-300' : 'text-slate-600'}`}>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                  f.included
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-white/[0.04] text-slate-600'
+                }`}>
+                  {f.included ? '✓' : '—'}
+                </span>
+                {f.text}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/signup"
+            className={`block w-full py-3 text-center rounded-xl font-semibold transition-all text-sm ${
+              plan.popular
+                ? 'bg-white text-slate-900 hover:bg-slate-100 shadow-lg'
+                : 'bg-white/[0.06] hover:bg-white/[0.1] text-white'
+            }`}
+          >
+            {plan.price === '0' ? 'Үнэгүй эхлэх' : 'Эхлэх'}
+          </Link>
         </motion.div>
-
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-50px' }}
-          variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-800/50 rounded-xl overflow-hidden border border-zinc-800"
-        >
-          {PLANS.map((plan, i) => (
-            <motion.div
-              key={i}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
-              }}
-              className={`relative bg-black p-8 hover:bg-zinc-950 transition-colors group ${
-                plan.popular ? 'ring-1 ring-blue-500/30 bg-blue-500/[0.02]' : ''
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute top-4 right-4 px-2.5 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-medium rounded-full border border-blue-500/20">
-                  Түгээмэл
-                </div>
-              )}
-              <h3 className="text-[15px] font-semibold text-white mb-1">{plan.name}</h3>
-              <p className="text-[12px] text-zinc-600 mb-5">{plan.desc}</p>
-              <div className="mb-6">
-                <span className="text-3xl font-bold text-white tracking-tight">{plan.price}</span>
-                <span className="text-zinc-600 text-[13px] ml-1">₮/сар</span>
-              </div>
-              <ul className="space-y-2.5 mb-8">
-                {plan.features.map((f, j) => (
-                  <li key={j} className={`flex items-center gap-2.5 text-[13px] ${f.included ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                    {f.included ? (
-                      <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3.5 h-3.5 text-zinc-700 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" />
-                      </svg>
-                    )}
-                    {f.text}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/signup"
-                className={`block w-full h-9 text-[13px] font-medium rounded-lg transition-all flex items-center justify-center ${
-                  plan.popular
-                    ? 'bg-white text-black hover:bg-zinc-200'
-                    : 'bg-zinc-900 text-zinc-300 border border-zinc-800 hover:border-zinc-700 hover:text-white'
-                }`}
-              >
-                {plan.price === '0' ? 'Үнэгүй эхлэх' : 'Эхлэх'}
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
-    </div>
+      ))}
+    </motion.div>
   )
 }
