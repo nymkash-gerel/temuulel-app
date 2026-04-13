@@ -6,7 +6,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { Database } from './database.types'
 
-const GRAPH_API = 'https://graph.facebook.com/v18.0'
+const GRAPH_API = 'https://graph.facebook.com/v21.0'
 
 // Types
 export interface FeedChangeValue {
@@ -25,6 +25,8 @@ export type CommentAutoRule = Database['public']['Tables']['comment_auto_rules']
 interface StoreWithToken {
   id: string
   facebook_page_access_token: string
+  name: string
+  phone: string | null
 }
 
 interface ProductInfo {
@@ -77,12 +79,12 @@ export async function handleFeedChange(
   const { data: store } = platform === 'instagram'
     ? await supabase
         .from('stores')
-        .select('id, facebook_page_access_token')
+        .select('id, facebook_page_access_token, name, phone')
         .eq('instagram_business_account_id', pageId)
         .single()
     : await supabase
         .from('stores')
-        .select('id, facebook_page_access_token')
+        .select('id, facebook_page_access_token, name, phone')
         .eq('facebook_page_id', pageId)
         .single()
 
@@ -122,7 +124,7 @@ export async function handleFeedChange(
   }
 
   // Find matching rule
-  const matchingRule = findMatchingRule(applicableRules, change)
+  const matchingRule = await findMatchingRule(applicableRules, change, store.id, supabase)
   if (!matchingRule) {
     console.log('[Comment Auto-Reply] No matching rule found')
     return
@@ -130,27 +132,40 @@ export async function handleFeedChange(
 
   console.log(`[Comment Auto-Reply] Matched rule: ${matchingRule.name}`)
 
-  // Process reply (with optional delay)
+  // Deduplication: check if we already replied to this comment
+  const { data: existingLog } = await supabase
+    .from('comment_reply_logs')
+    .select('id')
+    .eq('comment_id', change.comment_id!)
+    .eq('store_id', store.id)
+    .limit(1)
+    .single()
+
+  if (existingLog) {
+    console.log(`[Comment Auto-Reply] Already replied to comment ${change.comment_id}, skipping`)
+    return
+  }
+
+  // Process reply (delay is applied as a sleep for serverless compatibility)
   const delaySeconds = matchingRule.delay_seconds ?? 0
   if (delaySeconds > 0) {
     console.log(`[Comment Auto-Reply] Delaying ${delaySeconds}s`)
-    // For production, consider using a queue service instead of setTimeout
-    setTimeout(() => {
-      processCommentReply(store as StoreWithToken, matchingRule, change, platform, supabase)
-    }, delaySeconds * 1000)
-  } else {
-    await processCommentReply(store as StoreWithToken, matchingRule, change, platform, supabase)
+    await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds, 10) * 1000))
   }
+
+  await processCommentReply(store as StoreWithToken, matchingRule, change, platform, supabase)
 }
 
 /**
  * Find the first rule that matches the comment
  * Rules are already sorted by priority (ascending)
  */
-function findMatchingRule(
+async function findMatchingRule(
   rules: CommentAutoRule[],
-  change: FeedChangeValue
-): CommentAutoRule | null {
+  change: FeedChangeValue,
+  storeId: string,
+  supabase: SupabaseClient<Database>
+): Promise<CommentAutoRule | null> {
   const commentText = (change.message || '').toLowerCase()
 
   for (const rule of rules) {
@@ -158,7 +173,6 @@ function findMatchingRule(
 
     switch (rule.trigger_type) {
       case 'any':
-        // Matches any comment
         matches = true
         break
 
@@ -166,25 +180,28 @@ function findMatchingRule(
         if (rule.keywords && rule.keywords.length > 0) {
           const normalizedKeywords = rule.keywords.map(k => k.toLowerCase().trim())
           if (rule.match_mode === 'all') {
-            // All keywords must be present
             matches = normalizedKeywords.every(kw => commentText.includes(kw))
           } else {
-            // Any keyword matches
             matches = normalizedKeywords.some(kw => commentText.includes(kw))
           }
         }
         break
 
       case 'contains_question':
-        // Matches comments with question marks or question words (Mongolian)
-        matches = /\?|юу|хэзээ|хаана|яаж|хэд|хэн|ямар|яагаад|хэдий/i.test(commentText)
+        matches = /\?|юу|хэзээ|хаана|яаж|хэд|хэн|ямар|яагаад|хэдий|үнэ|хэчнээн|болох уу/i.test(commentText)
         break
 
-      case 'first_comment':
-        // Would need to track first-time commenters
-        // For now, treat as "any" - can enhance later
-        matches = true
+      case 'first_comment': {
+        // Check if this commenter has commented before (via logs)
+        const { count } = await supabase
+          .from('comment_reply_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('store_id', storeId)
+          .eq('commenter_id', change.from.id)
+
+        matches = (count ?? 0) === 0
         break
+      }
     }
 
     if (matches) {
@@ -313,6 +330,8 @@ async function processCommentReply(
   const variables: Record<string, string> = {
     user_name: change.from.name || 'Хэрэглэгч',
     comment_text: change.message || '',
+    store_name: store.name || '',
+    store_phone: store.phone || '',
   }
 
   // Look up product by post ID

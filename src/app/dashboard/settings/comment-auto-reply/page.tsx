@@ -1,9 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 
 interface CommentRule {
   id: string
@@ -33,11 +31,9 @@ const TRIGGER_TYPE_LABELS: Record<string, string> = {
 }
 
 export default function CommentAutoReplyPage() {
-  const _router = useRouter()
-  const _supabase = createClient()
-
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [rules, setRules] = useState<CommentRule[]>([])
   const [editingRule, setEditingRule] = useState<CommentRule | null>(null)
   const [showEditor, setShowEditor] = useState(false)
@@ -58,14 +54,17 @@ export default function CommentAutoReplyPage() {
 
   async function loadRules() {
     setLoading(true)
+    setError(null)
     try {
       const res = await fetch('/api/comment-rules')
       if (res.ok) {
         const data = await res.json()
         setRules(data.rules || [])
+      } else {
+        setError('Дүрмүүдийг ачаалж чадсангүй')
       }
-    } catch (err) {
-      console.error('Error loading rules:', err)
+    } catch {
+      setError('Сервертэй холбогдож чадсангүй')
     }
     setLoading(false)
   }
@@ -142,12 +141,15 @@ export default function CommentAutoReplyPage() {
       })
 
       if (res.ok) {
+        setError(null)
         await loadRules()
         setShowEditor(false)
         resetForm()
+      } else {
+        setError('Дүрэм хадгалж чадсангүй. Дахин оролдоно уу.')
       }
-    } catch (err) {
-      console.error('Error saving rule:', err)
+    } catch {
+      setError('Сервертэй холбогдож чадсангүй')
     }
     setSaving(false)
   }
@@ -219,6 +221,16 @@ export default function CommentAutoReplyPage() {
             + Шинэ дүрэм
           </button>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
+            <span className="text-red-400 text-sm flex-1">{error}</span>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        )}
 
         {/* Rules List */}
         {rules.length === 0 ? (
@@ -484,13 +496,16 @@ export default function CommentAutoReplyPage() {
                       className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 transition-all resize-none"
                     />
                     <div className="flex gap-2 mt-2">
-                      <button
-                        type="button"
-                        onClick={() => insertVariable('comment', 'user_name')}
-                        className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all"
-                      >
-                        {'{{user_name}}'}
-                      </button>
+                      {['user_name', 'store_name', 'store_phone', 'product_name', 'product_price'].map(v => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => insertVariable('comment', v)}
+                          className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all"
+                        >
+                          {`{{${v}}}`}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -504,18 +519,21 @@ export default function CommentAutoReplyPage() {
                     <textarea
                       value={formDmTemplate}
                       onChange={(e) => setFormDmTemplate(e.target.value)}
-                      placeholder="Сайн байна уу {{user_name}}! Таны сэтгэгдэлд баярлалаа. Бид танд тусалмаар байна..."
+                      placeholder="Сайн байна уу {{user_name}}! {{store_name}}-с мэнд хүргэе. Таны сэтгэгдэлд баярлалаа..."
                       rows={3}
                       className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 transition-all resize-none"
                     />
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        type="button"
-                        onClick={() => insertVariable('dm', 'user_name')}
-                        className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all"
-                      >
-                        {'{{user_name}}'}
-                      </button>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {['user_name', 'store_name', 'store_phone', 'product_name', 'product_price'].map(v => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => insertVariable('dm', v)}
+                          className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all"
+                        >
+                          {`{{${v}}}`}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}

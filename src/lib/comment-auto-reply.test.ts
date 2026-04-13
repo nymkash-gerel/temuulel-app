@@ -37,7 +37,7 @@ function findMatchingRule(
         break
 
       case 'contains_question':
-        matches = /\?|юу|хэзээ|хаана|яаж|хэд|хэн|ямар|яагаад|хэдий/i.test(commentText)
+        matches = /\?|юу|хэзээ|хаана|яаж|хэд|хэн|ямар|яагаад|хэдий|үнэ|хэчнээн|болох уу/i.test(commentText)
         break
 
       case 'first_comment':
@@ -175,6 +175,13 @@ describe('comment-auto-reply: rule matching', () => {
       expect(findMatchingRule([rule], makeChange({ message: 'ямар өнгөтэй вэ' }))).toBe(rule)
     })
 
+    it('matches үнэ and болох уу patterns', () => {
+      const rule = makeRule({ trigger_type: 'contains_question' })
+      expect(findMatchingRule([rule], makeChange({ message: 'үнэ хэд вэ' }))).toBe(rule)
+      expect(findMatchingRule([rule], makeChange({ message: 'авч болох уу' }))).toBe(rule)
+      expect(findMatchingRule([rule], makeChange({ message: 'хэчнээн вэ' }))).toBe(rule)
+    })
+
     it('does not match plain statement', () => {
       const rule = makeRule({ trigger_type: 'contains_question' })
       const change = makeChange({ message: 'Сайн байна' })
@@ -243,6 +250,14 @@ describe('comment-auto-reply: rule matching', () => {
     it('preserves unreplaced variables', () => {
       expect(substituteVariables('{{known}} {{unknown}}', { known: 'yes' }))
         .toBe('yes {{unknown}}')
+    })
+
+    it('replaces store variables', () => {
+      const result = substituteVariables(
+        '{{store_name}} — {{store_phone}}',
+        { store_name: 'Монгол Маркет', store_phone: '99001122' }
+      )
+      expect(result).toBe('Монгол Маркет — 99001122')
     })
 
     it('replaces multiple occurrences', () => {
