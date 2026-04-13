@@ -9,15 +9,6 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 
 const products = [
   {
-    badge: 'AI Chatbot',
-    title: 'Хэрэглэгчтэй 24/7 ярилц',
-    description:
-      'Messenger, Instagram, Telegram дээр ирсэн бүх мессежийг AI автоматаар хариулна. Бүтээгдэхүүний мэдээлэл, үнэ, захиалгын төлөв — бүгдийг монгол хэлээр.',
-    features: ['Монгол хэл 100% ойлгоно', 'Кирилл + Латин хоёуланг', '1 секундэд хариулна'],
-    visual: 'chat' as const,
-    color: 'cyan',
-  },
-  {
     badge: 'Бараа менежмент',
     title: 'Бүтээгдэхүүнээ ухаалгаар удирд',
     description:
@@ -49,54 +40,6 @@ const products = [
 /* ------------------------------------------------------------------ */
 /*  Illustrations                                                      */
 /* ------------------------------------------------------------------ */
-
-function ChatIllustration() {
-  const allMessages = [
-    { text: 'hurgelт hedii irehve?', from: 'user' as const },
-    { text: 'Таны захиалга #4821 40 минутад ирнэ 🚚', from: 'ai' as const },
-    { text: 'ene baraa bii yu?', from: 'user' as const },
-    { text: '3 төрөл нөөцөд байна. Үзэх үү?', from: 'ai' as const },
-    { text: 'une hediive', from: 'user' as const },
-    { text: 'Nike Air Max — ₮189,000. Захиалах уу?', from: 'ai' as const },
-    { text: 'tiim zahialya', from: 'user' as const },
-    { text: '✅ Захиалга амжилттай!', from: 'ai' as const },
-    { text: 'butsaalt hiij boloh uu?', from: 'user' as const },
-    { text: '7 хоногийн дотор буцаалт хийх боломжтой ✔️', from: 'ai' as const },
-    { text: 'hөнгөлөлт bgа yu?', from: 'user' as const },
-    { text: '🎉 Одоо 20% хямдралтай! Код: SALE20', from: 'ai' as const },
-    { text: 'mergejiltei holbogdoj boloh uu', from: 'user' as const },
-    { text: 'Мэргэжилтэнд холбож байна. Түр хүлээнэ үү 🔄', from: 'ai' as const },
-    { text: 'size solih bolomjtoi yu?', from: 'user' as const },
-    { text: 'Тийм! M, L, XL нөөцөд байна. Аль нь вэ?', from: 'ai' as const },
-  ]
-
-  // Duplicate for seamless loop
-  const doubled = [...allMessages, ...allMessages]
-
-  return (
-    <div className="relative h-[220px] overflow-hidden">
-      {/* Fade top */}
-      <div className="pointer-events-none absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-white/[0.03] to-transparent z-10" />
-      {/* Fade bottom */}
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white/[0.03] to-transparent z-10" />
-
-      <div className="flex flex-col gap-2 animate-[chat-scroll_20s_linear_infinite]">
-        {doubled.map((m, i) => (
-          <div
-            key={i}
-            className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm shrink-0 ${
-              m.from === 'user'
-                ? 'ml-auto bg-cyan-500/20 text-cyan-200'
-                : 'mr-auto bg-white/[0.06] text-slate-200'
-            }`}
-          >
-            {m.text}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 function ProductIllustration() {
   const items = [
@@ -241,14 +184,12 @@ function AnalyticsIllustration() {
 }
 
 const illustrations = {
-  chat: ChatIllustration,
   product: ProductIllustration,
   automation: AutomationIllustration,
   analytics: AnalyticsIllustration,
 }
 
 const colorMap = {
-  cyan: { badge: 'bg-cyan-500/15 text-cyan-400', dot: 'bg-cyan-400' },
   blue: { badge: 'bg-blue-500/15 text-blue-400', dot: 'bg-blue-400' },
   violet: { badge: 'bg-violet-500/15 text-violet-400', dot: 'bg-violet-400' },
   amber: { badge: 'bg-amber-500/15 text-amber-400', dot: 'bg-amber-400' },

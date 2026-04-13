@@ -8,6 +8,7 @@ import ScrollStory from '@/components/landing/ScrollStory'
 import ArchitectureDiagram from '@/components/landing/ArchitectureDiagram'
 import FeatureCards from '@/components/landing/FeatureCards'
 import AnimatedSteps from '@/components/landing/AnimatedSteps'
+import LiveMessageFeed from '@/components/landing/LiveMessageFeed'
 import DemoSection from '@/components/landing/DemoSection'
 import AnimatedPricing from '@/components/landing/AnimatedPricing'
 import PremiumCTA from '@/components/landing/PremiumCTA'
@@ -50,6 +51,9 @@ export default function LandingPage() {
 
       {/* Stats bar */}
       <AnimatedStats />
+
+      {/* Live scrolling message feed */}
+      <LiveMessageFeed />
 
       {/* Before/After comparison slider */}
       <BeforeAfterSlider />
