@@ -48,6 +48,7 @@ export {
   extractLatinTerms,
   CATEGORY_MAP,
   searchProducts,
+  searchRelatedProducts,
   searchAvailableTables,
   checkStoreBusyMode,
   searchOrders,

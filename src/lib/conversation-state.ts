@@ -116,6 +116,10 @@ export interface ConversationState {
   pending_gift_card_code?: string | null
   /** Customer preferences — persists across conversation turns */
   customer_prefs?: CustomerPreferences | null
+  /** Catalog pagination — current page and query for browse flow */
+  catalog_page?: number
+  catalog_query?: string
+  catalog_total?: number
 }
 
 export type FollowUpType =
@@ -204,6 +208,9 @@ export async function readState(
     customer_prefs: (state.customer_prefs && typeof state.customer_prefs === 'object' && !Array.isArray(state.customer_prefs))
       ? state.customer_prefs as unknown as CustomerPreferences
       : null,
+    catalog_page: typeof state.catalog_page === 'number' ? state.catalog_page : undefined,
+    catalog_query: typeof state.catalog_query === 'string' ? state.catalog_query : undefined,
+    catalog_total: typeof state.catalog_total === 'number' ? state.catalog_total : undefined,
   }
 }
 
@@ -780,5 +787,9 @@ export function updateState(
     gift_card_draft: current.gift_card_draft ?? null,
     pending_gift_card_code: current.pending_gift_card_code ?? null,
     customer_prefs: current.customer_prefs ?? null,
+    // Catalog pagination — preserved only during product browsing
+    catalog_page: saveProductIntents.includes(intent) ? current.catalog_page : undefined,
+    catalog_query: saveProductIntents.includes(intent) ? current.catalog_query : undefined,
+    catalog_total: saveProductIntents.includes(intent) ? current.catalog_total : undefined,
   }
 }

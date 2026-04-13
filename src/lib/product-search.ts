@@ -165,6 +165,8 @@ export interface SearchProductsOptions {
   availableOnly?: boolean
   /** Original message before Cyrillic normalization — used to extract Latin words for search */
   originalQuery?: string
+  /** Pagination offset — skip first N results */
+  offset?: number
 }
 
 /**
@@ -176,7 +178,7 @@ export async function searchProducts(
   storeId: string,
   options: SearchProductsOptions = {}
 ): Promise<ProductMatch[]> {
-  const { maxProducts = 5, availableOnly = false, originalQuery } = options
+  const { maxProducts = 5, availableOnly = false, originalQuery, offset = 0 } = options
 
   // Try Redis cache first
   const redis = getRedis()
@@ -448,7 +450,11 @@ export async function searchProducts(
     })
   }
 
-  // Apply maxProducts limit AFTER ranking
+  // Apply offset + maxProducts limit AFTER ranking
+  const totalCount = results.length
+  if (offset > 0) {
+    results.splice(0, offset)
+  }
   results.splice(maxProducts)
 
   // Write to Redis cache (fire-and-forget)
@@ -456,7 +462,73 @@ export async function searchProducts(
     redis.set(cacheKey, results, { ex: PRODUCT_CACHE_TTL }).catch(() => {})
   }
 
-  return results
+  return Object.assign(results, { totalCount })
+}
+
+/**
+ * Find related products by category, excluding given IDs.
+ * Used for cross-sell after order creation.
+ */
+export async function searchRelatedProducts(
+  supabase: SupabaseClient<Database>,
+  storeId: string,
+  excludeIds: string[],
+  categories: string[],
+  limit = 3
+): Promise<ProductMatch[]> {
+  const validCategories = categories.filter(Boolean)
+  if (validCategories.length === 0) {
+    // No category — just grab popular/recent products
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from('products') as any)
+      .select('id, name, description, category, base_price, images, sales_script, product_faqs, ai_context, product_variants(size, color, price, stock_quantity)')
+      .eq('store_id', storeId)
+      .eq('status', 'active')
+      .not('id', 'in', `(${excludeIds.join(',')})`)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (!data) return []
+    return (data as Record<string, unknown>[]).map(row => ({
+      id: row.id as string,
+      name: row.name as string,
+      description: (row.description ?? '') as string,
+      category: (row.category ?? '') as string,
+      base_price: (row.base_price ?? 0) as number,
+      images: (row.images ?? []) as string[],
+      sales_script: row.sales_script as string | null,
+      product_faqs: null,
+      ai_context: null,
+      searchConfidence: 0.7,
+    }))
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase.from('products') as any)
+    .select('id, name, description, category, base_price, images, sales_script, product_faqs, ai_context, product_variants(size, color, price, stock_quantity)')
+    .eq('store_id', storeId)
+    .eq('status', 'active')
+    .in('category', validCategories)
+    .not('id', 'in', `(${excludeIds.join(',')})`)
+    .limit(limit)
+
+  if (!data || data.length === 0) {
+    // Fallback: any product not in excluded list
+    return searchRelatedProducts(supabase, storeId, excludeIds, [], limit)
+  }
+
+  return (data as Record<string, unknown>[]).map(row => ({
+    id: row.id as string,
+    name: row.name as string,
+    description: (row.description ?? '') as string,
+    category: (row.category ?? '') as string,
+    base_price: (row.base_price ?? 0) as number,
+    images: (row.images ?? []) as string[],
+    sales_script: row.sales_script as string | null,
+    product_faqs: null,
+    ai_context: null,
+    searchConfidence: 0.8,
+  }))
 }
 
 // ---------------------------------------------------------------------------

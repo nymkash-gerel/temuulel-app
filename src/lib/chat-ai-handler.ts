@@ -14,6 +14,7 @@ import { hybridClassify, hybridClassifyAsync } from '@/lib/ai/hybrid-classifier'
 import {
   extractSearchTerms,
   searchProducts,
+  searchRelatedProducts,
   searchOrders,
   searchAvailableTables,
   checkStoreBusyMode,
@@ -366,6 +367,27 @@ export async function processAIChat(
                   responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n${itemsText}\n💰 Бараа: ${formatPrice(confirmTotal)}\n🚚 Хүргэлт: ${formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nЖолооч тантай холбогдоно. Утсаа нээлттэй байлгаарай 📞 Баярлалаа!`
                 }
                 intent = 'order_created'
+
+                // Cross-sell: suggest related products after successful order
+                try {
+                  const orderedIds = confirmItems.map(i => i.product_id)
+                  // Look up categories of ordered products
+                  const { data: orderedProducts } = await supabase
+                    .from('products')
+                    .select('category')
+                    .in('id', orderedIds)
+                  const categories = [...new Set((orderedProducts || []).map(p => p.category).filter(Boolean))] as string[]
+                  const related = await searchRelatedProducts(supabase, storeId, orderedIds, categories, 3)
+                  if (related.length > 0) {
+                    responseText += '\n\n🛍️ Мөн таалагдаж магадгүй:\n'
+                    related.forEach((p, i) => {
+                      responseText += `${i + 1}. **${p.name}** — ${formatPrice(p.base_price)}\n`
+                    })
+                    products = related
+                  }
+                } catch {
+                  // Cross-sell is non-critical — don't fail the order confirmation
+                }
               } else {
                 responseText = '⚠️ Захиалга үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.'
               }

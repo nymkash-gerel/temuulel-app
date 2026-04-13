@@ -17,6 +17,8 @@ import type { ChatbotSettings } from '@/lib/chat-ai'
 import { interceptWithFlow } from '@/lib/flow-middleware'
 import { findActivePartialPayment, handlePartialPaymentReply } from '@/lib/partial-payment-agent'
 import { processAIChat, type AIProductCard } from '@/lib/chat-ai-handler'
+import { readState, writeState } from '@/lib/conversation-state'
+import { searchProducts } from '@/lib/product-search'
 import { logger } from '@/lib/logger'
 import { getSupabase } from '@/lib/supabase/service'
 
@@ -399,6 +401,54 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
           // Fall through to normal AI pipeline
         }
 
+        // --- Catalog pagination quick reply interception ---
+        if (quickReplyPayload === 'CATALOG_NEXT' || quickReplyPayload === 'CATALOG_PREV') {
+          try {
+            const convState = await readState(supabase, conversation.id)
+            const pageSize = (chatbotSettings.max_products as number) || 5
+            const currentPage = convState.catalog_page ?? 0
+            const nextPage = quickReplyPayload === 'CATALOG_NEXT' ? currentPage + 1 : Math.max(0, currentPage - 1)
+            const offset = nextPage * pageSize
+            const query = convState.catalog_query || ''
+
+            const results = await searchProducts(supabase, query, store.id, {
+              maxProducts: pageSize,
+              offset,
+              originalQuery: query,
+            })
+            const totalCount = (results as unknown as { totalCount: number }).totalCount ?? 0
+            const totalPages = Math.ceil(totalCount / pageSize)
+
+            if (results.length > 0) {
+              const pageLabel = `📄 ${nextPage + 1}/${totalPages} хуудас (нийт ${totalCount} бүтээгдэхүүн)`
+              await sendProductCardsFromResult(senderId, pageLabel, results as unknown as AIProductCard[], pageToken)
+
+              // Build pagination quick replies
+              const paginationReplies: { title: string; payload: string }[] = []
+              if (nextPage > 0) {
+                paginationReplies.push({ title: '⬅️ Өмнөх', payload: 'CATALOG_PREV' })
+              }
+              if (offset + results.length < totalCount) {
+                paginationReplies.push({ title: 'Дараах ➡️', payload: 'CATALOG_NEXT' })
+              }
+              if (paginationReplies.length > 0) {
+                await sendQuickReplies(senderId, pageLabel, paginationReplies, pageToken)
+              }
+
+              // Update state
+              convState.catalog_page = nextPage
+              convState.catalog_query = query
+              convState.catalog_total = totalCount
+              await writeState(supabase, conversation.id, convState)
+            } else {
+              await sendTextMessage(senderId, 'Бүтээгдэхүүн дуусалтай.', pageToken)
+            }
+            continue
+          } catch (catErr) {
+            console.error('[Catalog] Pagination error:', catErr)
+          }
+        }
+
         try {
           // Show typing indicator (fire-and-forget — visual only)
           void sendTypingIndicator(senderId, true, pageToken).catch(err => logger.error("Typing indicator failed", err))
@@ -428,6 +478,25 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
               await sendProductCardsFromResult(
                 senderId, aiResponse, aiResult.products, pageToken
               )
+              // Add pagination quick replies if more products exist
+              const totalCount = (aiResult.products as unknown as { totalCount?: number }).totalCount
+                ?? aiResult.metadata?.products_found ?? 0
+              const pageSize = (chatbotSettings.max_products as number) || 5
+              if (totalCount > pageSize) {
+                // Save catalog state for pagination
+                const convState = await readState(supabase, conversation.id)
+                convState.catalog_page = 0
+                convState.catalog_query = messageText
+                convState.catalog_total = totalCount
+                await writeState(supabase, conversation.id, convState)
+
+                await sendQuickReplies(
+                  senderId,
+                  `📄 1/${Math.ceil(totalCount / pageSize)} хуудас (нийт ${totalCount})`,
+                  [{ title: 'Дараах ➡️', payload: 'CATALOG_NEXT' }],
+                  pageToken
+                )
+              }
             } else if (aiResult.orderStep === 'confirming') {
               // Order summary — send with Тийм/Үгүй quick replies
               await sendQuickReplies(
@@ -440,8 +509,13 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
                 pageToken
               )
             } else if (aiIntent === 'order_created') {
-              // Order completed — send confirmation text
+              // Order completed — send confirmation text + cross-sell carousel
               await sendTextMessage(senderId, aiResponse, pageToken)
+              if (aiResult.products.length > 0) {
+                await sendProductCardsFromResult(
+                  senderId, '🛍️ Мөн таалагдаж магадгүй:', aiResult.products, pageToken
+                )
+              }
             } else if (aiIntent === 'order_collection') {
               // Order collection in progress — just send text
               await sendTextMessage(senderId, aiResponse, pageToken)
