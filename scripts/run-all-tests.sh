@@ -108,6 +108,21 @@ if [ "$RUN_REAL_AI" = "1" ]; then
     src/lib/ai/transcribe-real.test.ts
 fi
 
+# ── Group 8.7: FB Real Comment Stress Test (12,647 real comments) ──
+if [ -d "$HOME/Downloads/this_profile's_activity_across_facebook" ]; then
+  echo -e "\n${YELLOW}━━━ FB Real Comment Auto-Reply Stress ━━━${RESET}"
+  if npx tsx scripts/stress-test-comment-reply.ts > /tmp/fb-stress.log 2>&1; then
+    MATCH_RATE=$(grep "Match rate" /tmp/fb-stress.log | tail -1 | grep -oE '[0-9]+\.[0-9]+%' | head -1)
+    echo -e "  ${GREEN}✓ FB comment stress passed (match rate: ${MATCH_RATE})${RESET}"
+    RESULTS+=("${GREEN}✓ FB Real Comments: ${MATCH_RATE} match${RESET}")
+  else
+    echo -e "  ${RED}✗ FB comment stress FAILED${RESET}"
+    tail -10 /tmp/fb-stress.log
+    RESULTS+=("${RED}✗ FB Real Comments: FAILED${RESET}")
+    TOTAL_FAIL=$((TOTAL_FAIL + 1))
+  fi
+fi
+
 # ── Group 9: All remaining unit tests ──
 run_group "Remaining Unit Tests" \
   src/lib/validations.test.ts \
