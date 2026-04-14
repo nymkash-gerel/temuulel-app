@@ -271,8 +271,23 @@ export async function processAIChat(
             // Handle combined name+phone input (e.g. "Бат-Эрдэнэ 99112233")
             const namePhone = extractPhone(customerMessage)
             const nameAddr = extractAddress(customerMessage, namePhone)
-            if (namePhone) {
-              // Name + phone together — extract both
+            if (namePhone && nameAddr) {
+              // Name + address + phone all in one message — extract all, go to confirming
+              draft.phone = namePhone
+              draft.address = nameAddr
+              // Try to extract name from leftover text (anything before address keywords)
+              const nameOnly = customerMessage
+                .replace(/\d{8}/, '')
+                .replace(nameAddr, '')
+                .trim()
+              if (nameOnly.length >= 2 && !draft.customer_name) {
+                draft.customer_name = nameOnly
+              }
+              draft.step = 'confirming'
+              orderDraft = draft
+              responseText = buildOrderSummary(draft)
+            } else if (namePhone) {
+              // Name + phone together (no address) — extract both
               const nameOnly = customerMessage.replace(/\d{8}/, '').trim()
               if (nameOnly.length >= 2) {
                 draft.customer_name = nameOnly
