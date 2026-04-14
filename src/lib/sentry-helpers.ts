@@ -63,3 +63,30 @@ export async function setSentryUser(
     // no-op
   }
 }
+
+/**
+ * Capture an exception with optional context tags.
+ * Safe to call when Sentry is not configured.
+ */
+export async function captureError(
+  error: unknown,
+  context?: { tags?: Record<string, string>; extra?: Record<string, unknown> },
+): Promise<void> {
+  console.error('[Sentry]', error)
+  if (!process.env.SENTRY_DSN) return
+
+  try {
+    const Sentry = await import('@sentry/nextjs')
+    Sentry.withScope(scope => {
+      if (context?.tags) {
+        for (const [k, v] of Object.entries(context.tags)) scope.setTag(k, v)
+      }
+      if (context?.extra) {
+        for (const [k, v] of Object.entries(context.extra)) scope.setExtra(k, v)
+      }
+      Sentry.captureException(error)
+    })
+  } catch {
+    // no-op
+  }
+}

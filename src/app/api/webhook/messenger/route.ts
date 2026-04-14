@@ -314,6 +314,35 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
       // AI auto-reply
       if (store.ai_auto_reply && pageToken) {
+        // --- Message limit check ---
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: storeUsage } = await (supabase as any)
+            .from('stores')
+            .select('monthly_message_limit, messages_used, messages_reset_at')
+            .eq('id', store.id)
+            .single()
+          if (storeUsage) {
+            const limit = storeUsage.monthly_message_limit ?? 100
+            const used = storeUsage.messages_used ?? 0
+            // Reset monthly counter if past reset date (30 days)
+            const resetAt = storeUsage.messages_reset_at ? new Date(storeUsage.messages_reset_at) : new Date(0)
+            const daysSinceReset = (Date.now() - resetAt.getTime()) / (1000 * 60 * 60 * 24)
+            if (daysSinceReset >= 30) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (supabase as any).from('stores').update({ messages_used: 0, messages_reset_at: new Date().toISOString() }).eq('id', store.id)
+            } else if (used >= limit) {
+              // Limit exceeded — skip AI, send limit message
+              console.log(`[Messenger] Message limit exceeded for store ${store.id}: ${used}/${limit}`)
+              await sendTextMessage(senderId, 'Уучлаарай, энэ сарын AI мессежийн лимит дууссан. Дэлгүүрийн эзэнтэй холбогдоно уу.', pageToken)
+              continue
+            }
+            // Increment usage
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (supabase as any).from('stores').update({ messages_used: used + 1 }).eq('id', store.id)
+          }
+        } catch { /* non-critical — don't block AI on usage tracking failure */ }
+
         // --- Redelivery quick reply interception ---
         if (quickReplyPayload?.startsWith('REDELIVERY_')) {
           try {
@@ -643,6 +672,10 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
           void sendTypingIndicator(senderId, false, pageToken).catch(err => logger.error("Typing indicator failed", err))
         } catch (aiErr) {
           console.error('[AI] Exception:', aiErr instanceof Error ? aiErr.message : String(aiErr))
+          // Report to Sentry
+          void import('@/lib/sentry-helpers').then(({ captureError }) =>
+            captureError(aiErr, { tags: { route: 'webhook/messenger', phase: 'ai_processing' } })
+          ).catch(() => {})
           // Send fallback response so customer isn't left hanging
           if (pageToken) {
             try {

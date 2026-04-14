@@ -40,6 +40,7 @@ export default function BroadcastPage() {
   const [name, setName] = useState('')
   const [messageText, setMessageText] = useState('')
   const [audience, setAudience] = useState('all')
+  const [scheduledAt, setScheduledAt] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function loadCampaigns() {
@@ -64,7 +65,7 @@ export default function BroadcastPage() {
       const res = await fetch('/api/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, message_text: messageText, target_audience: audience }),
+        body: JSON.stringify({ name, message_text: messageText, target_audience: audience, scheduled_at: scheduledAt || undefined }),
       })
       if (res.ok) {
         setShowForm(false)
@@ -160,6 +161,16 @@ export default function BroadcastPage() {
                   <option value="ordered">Захиалга өгсөн</option>
                   <option value="active_30d">Сүүлийн 30 хоногт идэвхтэй</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Хуваарь (сонголттой)</label>
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={e => setScheduledAt(e.target.value)}
+                  className="px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500"
+                />
+                <p className="text-xs text-slate-500 mt-1">Хоосон үлдээвэл ноорог болно. Огноо сонговол хуваарьтай илгээнэ.</p>
               </div>
               <div className="flex gap-3">
                 <button

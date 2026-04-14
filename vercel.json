@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/payment-followup",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/broadcast",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
