@@ -6,7 +6,7 @@ describe('resolveFeatures', () => {
     'overview', 'products', 'orders', 'deliveries', 'driver_payouts',
     'returns', 'vouchers', 'gift_cards', 'loyalty',
     'customers', 'chat', 'driver_chat',
-    'billing', 'analytics', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
   ]
 
   it('returns ecommerce defaults when no business type provided', () => {
@@ -35,7 +35,7 @@ describe('resolveFeatures', () => {
       'overview', 'floor', 'table_reservations', 'events', 'catering',
       'menu', 'kds', 'production', 'orders', 'table_layouts',
       'deliveries', 'driver_payouts', 'promotions', 'returns', 'vouchers',
-      'customers', 'chat', 'driver_chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'driver_chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -44,7 +44,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'menu', 'orders', 'kitchen', 'deliveries', 'driver_payouts',
       'promotions', 'returns', 'vouchers', 'customers', 'chat', 'driver_chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -53,7 +53,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'menu', 'orders', 'kitchen', 'deliveries', 'driver_payouts',
       'promotions', 'returns', 'vouchers', 'customers', 'chat', 'driver_chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -64,7 +64,7 @@ describe('resolveFeatures', () => {
       'packages', 'memberships', 'client_profiles', 'staff_commissions',
       'loyalty', 'package_purchases',
       'returns', 'vouchers', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -73,7 +73,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'calendar', 'services', 'staff', 'resources',
       'memberships', 'returns', 'vouchers', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -82,7 +82,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'calendar', 'services', 'staff', 'resources',
       'returns', 'vouchers', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -91,7 +91,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'calendar', 'services', 'staff', 'resources',
       'returns', 'vouchers', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -100,7 +100,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'patients', 'encounters', 'lab', 'pharmacy', 'inpatient',
       'complaints_qa', 'calendar', 'services', 'staff', 'resources',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -109,7 +109,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'patients', 'encounters', 'lab', 'pharmacy',
       'complaints_qa', 'calendar', 'services', 'staff',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -119,7 +119,7 @@ describe('resolveFeatures', () => {
       'overview', 'calendar', 'units', 'reservations', 'guests',
       'housekeeping', 'maintenance', 'rate_plans', 'leases',
       'services', 'staff', 'resources',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -129,7 +129,7 @@ describe('resolveFeatures', () => {
       'overview', 'calendar', 'units', 'reservations', 'guests',
       'housekeeping', 'maintenance', 'rate_plans', 'leases',
       'services', 'staff',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -138,7 +138,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'calendar', 'units', 'reservations', 'guests',
       'housekeeping', 'maintenance', 'services', 'staff',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -146,7 +146,7 @@ describe('resolveFeatures', () => {
     const result = resolveFeatures('real_estate')
     expect(result).toEqual([
       'overview', 'properties', 'calendar', 'agents', 'deals', 'commissions',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -156,7 +156,7 @@ describe('resolveFeatures', () => {
       'overview', 'products', 'orders', 'pos', 'inventory',
       'suppliers', 'purchase_orders', 'stock_transfers',
       'gift_cards', 'loyalty', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -166,7 +166,7 @@ describe('resolveFeatures', () => {
       'overview', 'legal_cases', 'case_documents', 'time_tracking',
       'case_events', 'legal_expenses', 'retainers', 'calendar',
       'staff', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -175,7 +175,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'project_list', 'project_tasks', 'materials',
       'inspections', 'permits', 'crew', 'daily_logs',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -184,7 +184,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'laundry', 'orders', 'staff',
       'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -193,7 +193,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'patients', 'encounters', 'lab', 'pharmacy',
       'complaints_qa', 'calendar', 'services', 'staff',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
     // Clinic should NOT include inpatient or resources (unlike hospital)
     expect(result).not.toContain('inpatient')
@@ -204,7 +204,7 @@ describe('resolveFeatures', () => {
     const result = resolveFeatures('training_center')
     expect(result).toEqual([
       'overview', 'programs', 'enrollments', 'calendar', 'services',
-      'staff', 'customers', 'chat', 'billing', 'analytics', 'settings',
+      'staff', 'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -212,7 +212,7 @@ describe('resolveFeatures', () => {
     const result = resolveFeatures('pet_services')
     expect(result).toEqual([
       'overview', 'pets', 'calendar', 'services', 'staff',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -220,7 +220,7 @@ describe('resolveFeatures', () => {
     const result = resolveFeatures('car_wash')
     expect(result).toEqual([
       'overview', 'car_wash', 'services', 'staff',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -229,7 +229,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'calendar', 'services', 'staff', 'resources',
       'treatment_plans', 'packages', 'memberships',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -238,7 +238,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'photo_sessions', 'photo_galleries', 'calendar',
       'services', 'staff', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -247,7 +247,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'venue_list', 'venue_bookings', 'calendar',
       'services', 'staff', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -256,7 +256,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'coworking', 'desk_bookings', 'calendar',
       'memberships', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -265,7 +265,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'subscription_list', 'products', 'services',
       'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -274,7 +274,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'fitness_classes', 'equipment_list', 'calendar',
       'memberships', 'staff', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -282,7 +282,7 @@ describe('resolveFeatures', () => {
     const result = resolveFeatures('repair_shop')
     expect(result).toEqual([
       'overview', 'repair_orders', 'customers', 'staff',
-      'chat', 'billing', 'analytics', 'settings',
+      'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -290,7 +290,7 @@ describe('resolveFeatures', () => {
     const result = resolveFeatures('consulting')
     expect(result).toEqual([
       'overview', 'consultations', 'calendar', 'staff',
-      'customers', 'chat', 'billing', 'analytics', 'settings',
+      'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -298,7 +298,7 @@ describe('resolveFeatures', () => {
     const result = resolveFeatures('home_services')
     expect(result).toEqual([
       'overview', 'service_requests', 'service_areas', 'calendar',
-      'staff', 'customers', 'chat', 'billing', 'analytics', 'settings',
+      'staff', 'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 
@@ -307,7 +307,7 @@ describe('resolveFeatures', () => {
     expect(result).toEqual([
       'overview', 'fleet_vehicles', 'trip_logs', 'deliveries',
       'driver_payouts', 'staff', 'customers', 'chat',
-      'billing', 'analytics', 'settings',
+      'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
     ])
   })
 

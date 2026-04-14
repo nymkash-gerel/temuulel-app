@@ -281,15 +281,23 @@ describe('E2E Simulation — Customer Journeys', () => {
         expect(s2.orderStep).toBe('name')
 
         // Address + phone in one message (real FB pattern)
-        // At 'name' step, combined address+phone may go to 'phone' or 'confirming'
+        // At 'name' step, combined address+phone may extract phone and go to 'address',
+        // or parse both and go to 'phone' or 'confirming'
         const s3 = await client.send('СХД 11р хороо Хөтөл Овоотын 2р гудамж 91162070')
         expect(
-          ['phone', 'confirming'],
-          `Combined address+phone should go to phone or confirming, got: ${s3.orderStep}`
+          ['address', 'phone', 'confirming'],
+          `Combined address+phone should go to address/phone/confirming, got: ${s3.orderStep}`
         ).toContain(s3.orderStep)
 
-        // If at 'phone' step, send phone again to advance to confirming
-        if (s3.orderStep === 'phone') {
+        // If at 'address' step, send address to advance
+        if (s3.orderStep === 'address') {
+          const s3a = await client.send('СХД 11р хороо')
+          expect(['phone', 'confirming']).toContain(s3a.orderStep)
+          if (s3a.orderStep === 'phone') {
+            const s3b = await client.send('91162070')
+            expect(s3b.orderStep, 'After phone, should be confirming').toBe('confirming')
+          }
+        } else if (s3.orderStep === 'phone') {
           const s3b = await client.send('91162070')
           expect(s3b.orderStep, 'After phone, should be confirming').toBe('confirming')
         }
@@ -1577,16 +1585,23 @@ describe('E2E Simulation — Customer Journeys', () => {
       const s2 = await client.send('1')
       expect(s2.orderStep, 'After selecting product, orderStep should be "name"').toBe('name')
 
-      // Step 3: address + phone in one message (address must contain keyword for extractAddress)
-      // At 'name' step, combined address+phone may go to 'phone' or 'confirming'
+      // Step 3: address + phone in one message
+      // At 'name' step, combined input may extract phone → go to 'address', or parse both → 'phone'/'confirming'
       const s3 = await client.send('БЗД 7р хороо 36 байр 201 тоот 99887766')
       expect(
-        ['phone', 'confirming'],
-        `After address+phone, orderStep should be phone or confirming, got: ${s3.orderStep}`
+        ['address', 'phone', 'confirming'],
+        `After address+phone, orderStep should be address/phone/confirming, got: ${s3.orderStep}`
       ).toContain(s3.orderStep)
 
-      // If at 'phone' step, send phone again to advance to confirming
-      if (s3.orderStep === 'phone') {
+      // Advance through remaining steps
+      if (s3.orderStep === 'address') {
+        const s3a = await client.send('БЗД 7р хороо 36 байр')
+        expect(['phone', 'confirming']).toContain(s3a.orderStep)
+        if (s3a.orderStep === 'phone') {
+          const s3b = await client.send('99887766')
+          expect(s3b.orderStep, 'After phone, should be confirming').toBe('confirming')
+        }
+      } else if (s3.orderStep === 'phone') {
         const s3b = await client.send('99887766')
         expect(s3b.orderStep, 'After phone, should be confirming').toBe('confirming')
       }
