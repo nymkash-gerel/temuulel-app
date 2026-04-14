@@ -67,15 +67,14 @@ async function sim1(): Promise<SimResult> {
   const steps: StepResult[] = []
   const bugs: string[] = []
 
-  // Note: step 3 can land on 'variant' (multiple variants to choose from)
-  // OR 'info' (single match auto-selected). Both are correct.
+  // Flow: product auto-selects variant (S/улаан) → name step → name+phone parsed → address → confirm
   const flow: { msg: string; checkIntent: string; checkStep: string | string[] | null; note: string }[] = [
     { msg: 'Сайн байна уу',                            checkIntent: 'greeting',         checkStep: null,                    note: 'Greeting' },
     { msg: 'Цамц байна уу?',                           checkIntent: 'product_search',   checkStep: null,                    note: 'Product search' },
-    { msg: '1',                                        checkIntent: 'order_collection', checkStep: ['variant', 'info'],     note: 'Select product' },
-    { msg: '1',                                        checkIntent: 'order_collection', checkStep: ['variant', 'info'],     note: 'Select variant (if needed)' },
-    { msg: 'Бат-Эрдэнэ 99112233',                      checkIntent: 'order_collection', checkStep: ['info', 'confirming'], note: 'Name+phone (no greeting reset!)' },
-    { msg: 'Баянгол дүүрэг 3-р хороо 45-р байр 301', checkIntent: 'order_collection', checkStep: 'confirming',             note: 'Address → summary' },
+    { msg: '1',                                        checkIntent: 'order_collection', checkStep: ['variant', 'name'],     note: 'Select product → variant or name' },
+    { msg: '1',                                        checkIntent: 'order_collection', checkStep: ['variant', 'name'],     note: 'Select variant (if multi) or repeat name prompt' },
+    { msg: 'Бат-Эрдэнэ 99112233',                      checkIntent: 'order_collection', checkStep: ['address', 'confirming'], note: 'Name+phone parsed together → address' },
+    { msg: 'Баянгол дүүрэг 3-р хороо 45-р байр 301', checkIntent: 'order_collection', checkStep: 'confirming',             note: 'Address → summary (phone already collected)' },
     { msg: 'Тийм',                                     checkIntent: 'order_created',    checkStep: null,                    note: 'Confirm → order created' },
   ]
 
@@ -102,14 +101,14 @@ async function sim2(): Promise<SimResult> {
   const steps: StepResult[] = []
   const bugs: string[] = []
 
+  // Flow: "Гар утас" → product_search → select → name → address → phone → confirm
   const flow = [
-    { msg: 'Сайн байна уу', checkIntent: 'greeting', checkStep: null as string | null, note: 'Greeting' },
-    { msg: 'Гар утас байна уу?', checkIntent: 'product_search', checkStep: null, note: 'Product search' },
-    { msg: '1', checkIntent: 'order_collection', checkStep: ['variant', 'info'], note: 'Select product' },
-    { msg: '1', checkIntent: 'order_collection', checkStep: ['info'], note: 'Select variant or first step' },
-    { msg: 'Shinebayar', checkIntent: 'order_collection', checkStep: 'info', note: 'Name with "hi" — must NOT reset!' },
-    { msg: '88001122', checkIntent: 'order_collection', checkStep: ['info', 'confirming'], note: 'Phone' },
-    { msg: 'ХУД 5-р хороо', checkIntent: 'order_collection', checkStep: 'confirming', note: 'Address' },
+    { msg: 'Сайн байна уу', checkIntent: 'greeting', checkStep: null as string | string[] | null, note: 'Greeting' },
+    { msg: 'Гар утас байна уу?', checkIntent: 'product_search', checkStep: null, note: 'Product search (гар утас = device)' },
+    { msg: '1', checkIntent: 'order_collection', checkStep: ['variant', 'name'], note: 'Select product' },
+    { msg: 'Shinebayar', checkIntent: 'order_collection', checkStep: ['name', 'address'], note: 'Name with "hi" — must NOT reset!' },
+    { msg: '88001122', checkIntent: 'order_collection', checkStep: ['address', 'phone', 'confirming'], note: 'Phone number' },
+    { msg: 'ХУД 5-р хороо', checkIntent: 'order_collection', checkStep: ['confirming', 'phone'], note: 'Address → summary or phone' },
     { msg: 'За', checkIntent: 'order_created', checkStep: null, note: 'Confirm' },
   ]
 
@@ -217,10 +216,10 @@ async function sim5(): Promise<SimResult> {
     { conv: convA, label: 'A', msg: 'Ноутбук байна уу?',           checkIntent: 'product_search',   checkStep: undefined },
     { conv: convA, label: 'A', msg: '1',                            checkIntent: 'order_collection', checkStep: undefined },
     { conv: convB, label: 'B', msg: 'Сайн байна уу',               checkIntent: 'greeting',         checkStep: undefined },
-    { conv: convA, label: 'A', msg: 'Khishigbayar',                 checkIntent: 'order_collection', checkStep: 'info' },
-    { conv: convB, label: 'B', msg: 'Чихэвч хэд вэ?',             checkIntent: 'product_search',   checkStep: undefined }, // price_info or product_search both OK
-    { conv: convA, label: 'A', msg: '99001122',                     checkIntent: 'order_collection', checkStep: undefined },
-    { conv: convA, label: 'A', msg: 'СБД 3-р хороо Жанжин 15',    checkIntent: 'order_collection', checkStep: 'confirming' },
+    { conv: convA, label: 'A', msg: 'Khishigbayar',                 checkIntent: 'order_collection', checkStep: undefined }, // name → address
+    { conv: convB, label: 'B', msg: 'Чихэвч хэд вэ?',             checkIntent: 'product_search',   checkStep: undefined },
+    { conv: convA, label: 'A', msg: '99001122',                     checkIntent: 'order_collection', checkStep: undefined }, // phone at address step
+    { conv: convA, label: 'A', msg: 'СБД 3-р хороо Жанжин 15',    checkIntent: 'order_collection', checkStep: undefined }, // address
     { conv: convA, label: 'A', msg: 'Тийм',                        checkIntent: 'order_created',    checkStep: null },
     { conv: convB, label: 'B', msg: 'Арьсан цүнх байна уу?',      checkIntent: 'product_search',   checkStep: undefined },
   ]

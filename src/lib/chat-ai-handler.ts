@@ -330,6 +330,11 @@ export async function processAIChat(
               draft.step = 'confirming'
               orderDraft = draft
               responseText = buildOrderSummary(draft)
+            } else if (draft.phone && isAffirmative(customerMessage)) {
+              // Phone already collected (from name+phone combo) — user confirmed
+              draft.step = 'confirming'
+              orderDraft = draft
+              responseText = buildOrderSummary(draft)
             } else {
               orderDraft = draft
               responseText = '8 оронтой утасны дугаараа бичнэ үү:'
