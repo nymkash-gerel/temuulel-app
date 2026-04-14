@@ -540,7 +540,17 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
             if (recognition && recognition.searchKeywords.length > 0) {
               const { searchProducts: searchProductsFn } = await import('@/lib/product-search')
-              const products = await searchProductsFn(supabase, recognition.searchKeywords.join(' '), store.id, { maxProducts: 5 })
+              // Use strictCategory to prevent false matches across unrelated categories
+              // (e.g. shoe image → clothing products)
+              const validCategories = ['bags', 'shoes', 'clothing', 'accessories', 'electronics', 'home', 'beauty', 'toys', 'food']
+              const strictCategory = validCategories.includes(recognition.category) ? recognition.category : undefined
+
+              const products = await searchProductsFn(
+                supabase,
+                recognition.searchKeywords.join(' '),
+                store.id,
+                { maxProducts: 5, strictCategory }
+              )
               if (products.length > 0) {
                 await sendProductCardsFromResult(
                   senderId,
@@ -549,7 +559,11 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
                   pageToken
                 )
               } else {
-                await sendTextMessage(senderId, `📸 "${recognition.productName}" таньсан ч манай дэлгүүрт ижил бараа олдсонгүй. Барааны нэрийг бичнэ үү!`, pageToken)
+                await sendTextMessage(
+                  senderId,
+                  `📸 "${recognition.productName}" таньсан, гэхдээ манай дэлгүүрт энэ төрлийн бараа байхгүй байна. Өөр юу хайж байна вэ?`,
+                  pageToken
+                )
               }
             } else {
               await sendTextMessage(senderId, 'Уучлаарай, зурган дээрх бүтээгдэхүүнийг тодорхойлж чадсангүй. Барааны нэрийг бичнэ үү!', pageToken)

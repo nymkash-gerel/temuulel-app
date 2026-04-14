@@ -167,6 +167,8 @@ export interface SearchProductsOptions {
   originalQuery?: string
   /** Pagination offset — skip first N results */
   offset?: number
+  /** Hard category filter — only return products in this category (used for image search) */
+  strictCategory?: string
 }
 
 /**
@@ -178,7 +180,7 @@ export async function searchProducts(
   storeId: string,
   options: SearchProductsOptions = {}
 ): Promise<ProductMatch[]> {
-  const { maxProducts = 5, availableOnly = false, originalQuery, offset = 0 } = options
+  const { maxProducts = 5, availableOnly = false, originalQuery, offset = 0, strictCategory } = options
 
   // Try Redis cache first
   const redis = getRedis()
@@ -233,6 +235,11 @@ export async function searchProducts(
   // For restaurant menus, filter to available items only
   if (availableOnly) {
     dbQuery = dbQuery.eq('available_today', true).eq('sold_out', false)
+  }
+
+  // Strict category filter (used for image search — prevents false matches across categories)
+  if (strictCategory) {
+    dbQuery = dbQuery.eq('category', strictCategory)
   }
 
   if (isBrowseAll) {
