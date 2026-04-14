@@ -118,6 +118,23 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
     for (const event of entry.messaging || []) {
       const senderId = (event.sender as Record<string, string>)?.id
       const message = event.message as Record<string, unknown> | undefined
+      const messageId = message?.mid as string | undefined
+
+      // Dedup: FB retries webhooks, use mid as idempotency key (Redis 5 min)
+      if (messageId) {
+        try {
+          const { getRedis } = await import('@/lib/redis')
+          const redis = getRedis()
+          if (redis) {
+            const seen = await redis.get<string>(`msg-dedup:${messageId}`)
+            if (seen) {
+              console.log(`[Messenger] Dedup: already processed ${messageId}`)
+              continue
+            }
+            await redis.set(`msg-dedup:${messageId}`, '1', { ex: 300 })
+          }
+        } catch { /* non-critical */ }
+      }
       let messageText = message?.text as string | undefined
       const quickReplyPayload = (message?.quick_reply as Record<string, string>)?.payload
       const attachments = message?.attachments as Array<{ type: string; payload: { url: string } }> | undefined

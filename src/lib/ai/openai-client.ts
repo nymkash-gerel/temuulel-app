@@ -281,6 +281,21 @@ const DEFAULT_WHISPER_PROMPT = 'Энэ Монгол хэл дээрх ярилц
  */
 export async function transcribeAudio(audioUrl: string, businessType?: string): Promise<TranscriptionResult> {
   return withSpan('openai.transcribeAudio', 'ai.transcription', async () => {
+    // Cache check — same audio URL within 1 hour returns cached transcription
+    // (prevents double-billing for FB webhook retries)
+    const { getRedis } = await import('../redis')
+    const redis = getRedis()
+    const cacheKey = `whisper:${audioUrl.substring(0, 200)}`
+    if (redis) {
+      try {
+        const cached = await redis.get<{ text: string }>(cacheKey)
+        if (cached?.text) {
+          console.log('[openai-whisper] cache hit')
+          return { text: cached.text }
+        }
+      } catch { /* cache miss */ }
+    }
+
     const openai = getClient()
 
     const audioRes = await fetch(audioUrl)
@@ -306,6 +321,12 @@ export async function transcribeAudio(audioUrl: string, businessType?: string): 
       operation: 'whisper',
       audioSeconds: Math.max(1, Math.ceil(audioBuffer.length / 32000)), // ~32kbps MP3 estimate
     })
+
+    // Cache the result for 1 hour
+    if (redis) {
+      redis.set(cacheKey, { text: transcription.text }, { ex: 3600 }).catch(() => {})
+    }
+
     return { text: transcription.text }
   }, { 'ai.model': 'whisper-1' })
 }

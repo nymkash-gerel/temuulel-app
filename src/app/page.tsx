@@ -1,18 +1,21 @@
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+// Above-the-fold: load synchronously
 import HeroScene from '@/components/landing/HeroScene'
 import AnimatedStats from '@/components/landing/AnimatedStats'
-import BentoGrid from '@/components/landing/BentoGrid'
-import ScrollCapabilities from '@/components/landing/ScrollCapabilities'
-import BeforeAfterSlider from '@/components/landing/BeforeAfterSlider'
-import ScrollStory from '@/components/landing/ScrollStory'
-import ArchitectureDiagram from '@/components/landing/ArchitectureDiagram'
-import FeatureCards from '@/components/landing/FeatureCards'
-import AnimatedSteps from '@/components/landing/AnimatedSteps'
-import LiveMessageFeed from '@/components/landing/LiveMessageFeed'
-import SocialProof from '@/components/landing/SocialProof'
-import DemoSection from '@/components/landing/DemoSection'
-import AnimatedPricing from '@/components/landing/AnimatedPricing'
-import PremiumCTA from '@/components/landing/PremiumCTA'
+// Below-the-fold: lazy-load to reduce initial JS bundle (~50% savings)
+const BentoGrid = dynamic(() => import('@/components/landing/BentoGrid'))
+const ScrollCapabilities = dynamic(() => import('@/components/landing/ScrollCapabilities'))
+const BeforeAfterSlider = dynamic(() => import('@/components/landing/BeforeAfterSlider'))
+const ScrollStory = dynamic(() => import('@/components/landing/ScrollStory'))
+const ArchitectureDiagram = dynamic(() => import('@/components/landing/ArchitectureDiagram'))
+const FeatureCards = dynamic(() => import('@/components/landing/FeatureCards'))
+const AnimatedSteps = dynamic(() => import('@/components/landing/AnimatedSteps'))
+const LiveMessageFeed = dynamic(() => import('@/components/landing/LiveMessageFeed'))
+const SocialProof = dynamic(() => import('@/components/landing/SocialProof'))
+const DemoSection = dynamic(() => import('@/components/landing/DemoSection'))
+const AnimatedPricing = dynamic(() => import('@/components/landing/AnimatedPricing'))
+const PremiumCTA = dynamic(() => import('@/components/landing/PremiumCTA'))
 
 export default function LandingPage() {
   return (

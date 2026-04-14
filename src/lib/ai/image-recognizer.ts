@@ -36,11 +36,23 @@ JSON хэлбэрээр хариулна:
  */
 export async function recognizeProductImage(imageUrl: string): Promise<ImageRecognitionResult | null> {
   try {
-    const result = await visionCompletion(
-      VISION_SYSTEM_PROMPT,
-      optimizeImageUrl(imageUrl),
-      'Энэ зурган дээр ямар бүтээгдэхүүн байна вэ?'
-    )
+    let result
+    try {
+      // First attempt — optimized URL
+      result = await visionCompletion(
+        VISION_SYSTEM_PROMPT,
+        optimizeImageUrl(imageUrl),
+        'Энэ зурган дээр ямар бүтээгдэхүүн байна вэ?'
+      )
+    } catch (firstErr) {
+      // Fallback: retry with original URL (in case CDN rewrite broke something)
+      console.warn('[image-recognizer] First attempt failed, retrying with original URL:', firstErr)
+      result = await visionCompletion(
+        VISION_SYSTEM_PROMPT,
+        imageUrl,
+        'Энэ зурган дээр ямар бүтээгдэхүүн байна вэ?'
+      )
+    }
 
     const parsed = JSON.parse(result.content) as {
       product_name: string
