@@ -4,6 +4,7 @@
  */
 
 import { visionCompletion } from './openai-client'
+import { optimizeImageUrl } from './image-optimizer'
 
 export interface ImageRecognitionResult {
   productName: string
@@ -37,7 +38,7 @@ export async function recognizeProductImage(imageUrl: string): Promise<ImageReco
   try {
     const result = await visionCompletion(
       VISION_SYSTEM_PROMPT,
-      imageUrl,
+      optimizeImageUrl(imageUrl),
       'Энэ зурган дээр ямар бүтээгдэхүүн байна вэ?'
     )
 

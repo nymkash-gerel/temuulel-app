@@ -20,17 +20,21 @@ export function verifyWebhookSignature(
   signature: string | null,
   appSecret: string
 ): boolean {
-  if (!signature) return false
+  if (!signature || !appSecret) return false
+  // Require sha256= prefix — reject sha1= / plain HMACs
+  if (!signature.startsWith('sha256=')) return false
 
   const expected = 'sha256=' + crypto
     .createHmac('sha256', appSecret)
     .update(payload)
     .digest('hex')
 
-  return crypto.timingSafeEqual(
-    Buffer.from(expected),
-    Buffer.from(signature)
-  )
+  const a = Buffer.from(expected)
+  const b = Buffer.from(signature)
+  // timingSafeEqual throws on length mismatch — guard first
+  if (a.length !== b.length) return false
+
+  return crypto.timingSafeEqual(a, b)
 }
 
 // ---- Sending Messages ----

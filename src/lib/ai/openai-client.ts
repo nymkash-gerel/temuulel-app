@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import { withSpan } from '@/lib/sentry-helpers'
 import { withCircuitBreaker, CircuitOpenError } from './circuit-breaker'
+import { trackOpenAIUsage } from './cost-tracker'
 
 export { CircuitOpenError }
 
@@ -222,6 +223,13 @@ export async function visionCompletion(
 
     const usage = response.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
     console.log(`[openai-vision] model=${VISION_MODEL} tokens=${usage.total_tokens}`)
+    trackOpenAIUsage({
+      model: VISION_MODEL,
+      operation: 'vision',
+      promptTokens: usage.prompt_tokens,
+      completionTokens: usage.completion_tokens,
+      totalTokens: usage.total_tokens,
+    })
 
     return {
       content,
@@ -239,9 +247,29 @@ export interface TranscriptionResult {
 }
 
 /**
- * Transcribe audio from a URL using OpenAI Whisper.
+ * Business-type-specific vocabulary for Whisper prompt.
+ * Helps Whisper choose the right Mongolian words for each vertical.
  */
-export async function transcribeAudio(audioUrl: string): Promise<TranscriptionResult> {
+const WHISPER_PROMPTS: Record<string, string> = {
+  restaurant: 'Энэ Монгол ресторанд хэрэглэгчийн ярилцлага. Бууз, хуушуур, цуйван, цэс, захиалга, хүргэлт, ширээ захиалах.',
+  beauty_salon: 'Энэ Монгол гоо сайхны салон. Үсчин, маникюр, педикюр, цаг захиалах, будалт, нүүр арчилгаа.',
+  coffee_shop: 'Энэ Монгол кофе шоп. Латте, капучино, эспрессо, бялуу, смузи, захиалга.',
+  fitness: 'Энэ Монгол фитнесс клуб. Багц, сургагч, хуваарь, хэлбэр, цалин, гишүүнчлэл.',
+  hospital: 'Энэ Монгол эмнэлэг. Үзлэг, эмч, цаг захиалах, эмчилгээ, даатгал, шүдний.',
+  dental_clinic: 'Энэ Монгол шүдний эмнэлэг. Шүдний үзлэг, цэвэрлэгээ, ломбодох, цаг захиалах.',
+  real_estate: 'Энэ Монгол үл хөдлөх хөрөнгө. Орон сууц, байр, өрөө, үнэ, зээл, түрээс.',
+  camping_guesthouse: 'Энэ Монгол кемпинг зочид буудал. Гэр, майхан, хүүхэд, морь, байгаль.',
+  ecommerce: 'Энэ Монгол онлайн дэлгүүр. Ноолууран цамц, хувцас, гутал, захиалга, хүргэлт, үнэ.',
+  education: 'Энэ Монгол сургалт. Хичээл, багш, сургалт, төлбөр, цаг, бүртгэл.',
+}
+const DEFAULT_WHISPER_PROMPT = 'Энэ Монгол хэл дээрх ярилцлага. Сайн байна уу. Захиалга, хүргэлт, үнэ.'
+
+/**
+ * Transcribe audio from a URL using OpenAI Whisper.
+ * @param audioUrl - audio file URL
+ * @param businessType - store's business type (for vocabulary hints)
+ */
+export async function transcribeAudio(audioUrl: string, businessType?: string): Promise<TranscriptionResult> {
   return withSpan('openai.transcribeAudio', 'ai.transcription', async () => {
     const openai = getClient()
 
@@ -253,14 +281,21 @@ export async function transcribeAudio(audioUrl: string): Promise<TranscriptionRe
 
     // Whisper does NOT support 'mn' (Mongolian) as a language hint — returns 400.
     // Without hints, Whisper may transcribe Mongolian audio in wrong script (Armenian/Cyrillic mix).
-    // Use a `prompt` with Cyrillic Mongolian example to anchor the output script.
+    // Use a `prompt` with Cyrillic Mongolian example to anchor the output script + business vocab.
+    const prompt = (businessType && WHISPER_PROMPTS[businessType]) || DEFAULT_WHISPER_PROMPT
+
     const transcription = await withCircuitBreaker(() => openai.audio.transcriptions.create({
       model: 'whisper-1',
       file,
-      prompt: 'Энэ Монгол хэл дээрх ярилцлага. Сайн байна уу. Ноолууран цамц авмаар байна. Захиалга, хүргэлт.',
+      prompt,
     }))
 
     console.log(`[openai-whisper] transcribed ${transcription.text.length} chars`)
+    trackOpenAIUsage({
+      model: 'whisper-1',
+      operation: 'whisper',
+      audioSeconds: Math.max(1, Math.ceil(audioBuffer.length / 32000)), // ~32kbps MP3 estimate
+    })
     return { text: transcription.text }
   }, { 'ai.model': 'whisper-1' })
 }

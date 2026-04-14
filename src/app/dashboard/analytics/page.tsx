@@ -757,18 +757,24 @@ function AIQualitySection() {
       {ai.dailyTrend.length > 0 && (
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
           <h3 className="text-sm font-medium text-slate-300 mb-3">7 хоногийн чанарын өөрчлөлт</h3>
-          <div className="flex items-end gap-2 h-32">
-            {ai.dailyTrend.map((d, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-xs text-slate-400">{d.avg || '—'}</span>
-                <div
-                  className={`w-full rounded-t ${d.avg >= 70 ? 'bg-green-500/40' : d.avg >= 40 ? 'bg-yellow-500/40' : 'bg-red-500/40'}`}
-                  style={{ height: `${Math.max(4, d.avg)}%` }}
-                />
-                <span className="text-[10px] text-slate-500">{d.date.slice(5)}</span>
-              </div>
-            ))}
-          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={ai.dailyTrend.map(d => ({ ...d, date: d.date.slice(5) }))}>
+              <defs>
+                <linearGradient id="qualityGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />
+              <YAxis stroke="#94a3b8" fontSize={11} domain={[0, 100]} />
+              <Tooltip
+                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                labelStyle={{ color: '#cbd5e1' }}
+              />
+              <Area type="monotone" dataKey="avg" name="Чанарын оноо" stroke="#10b981" fill="url(#qualityGradient)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       )}
     </div>

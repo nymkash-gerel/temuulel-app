@@ -240,8 +240,8 @@ export default function ChatPage() {
 
       {/* Conversations List */}
       <div className={`${showSidebar ? 'flex' : 'hidden'} lg:flex w-full lg:w-80 absolute lg:relative inset-0 lg:inset-auto z-[5] bg-slate-800/30 lg:bg-slate-800/30 border-r border-slate-700 flex-col`}>
-        {/* Search */}
-        <div className="p-4 border-b border-slate-700">
+        {/* Search + Export */}
+        <div className="p-4 border-b border-slate-700 space-y-2">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
             <input
@@ -251,6 +251,22 @@ export default function ChatPage() {
               placeholder="Харилцагч хайх..."
               className="w-full pl-10 pr-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all"
             />
+          </div>
+          <div className="flex gap-2">
+            <a
+              href="/api/conversations/export?format=csv&days=30"
+              className="flex-1 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-700 text-slate-300 text-xs text-center rounded-lg transition-all"
+              download
+            >
+              📥 CSV
+            </a>
+            <a
+              href="/api/conversations/export?format=json&days=30"
+              className="flex-1 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-700 text-slate-300 text-xs text-center rounded-lg transition-all"
+              download
+            >
+              📥 JSON
+            </a>
           </div>
         </div>
 

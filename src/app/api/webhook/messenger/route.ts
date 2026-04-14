@@ -132,7 +132,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
       let { data: store } = await supabase
         .from('stores')
-        .select('id, name, ai_auto_reply, chatbot_settings, facebook_page_access_token')
+        .select('id, name, business_type, ai_auto_reply, chatbot_settings, facebook_page_access_token')
         .eq('facebook_page_id', entryId)
         .single()
 
@@ -140,7 +140,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
         // Try Instagram: entry.id is the Instagram Business Account ID
         const { data: igStore } = await supabase
           .from('stores')
-          .select('id, name, ai_auto_reply, chatbot_settings, facebook_page_access_token')
+          .select('id, name, business_type, ai_auto_reply, chatbot_settings, facebook_page_access_token')
           .eq('instagram_business_account_id', entryId)
           .single()
 
@@ -507,7 +507,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
           try {
             void sendTypingIndicator(senderId, true, pageToken).catch(() => {})
             const { transcribeAudio } = await import('@/lib/ai/openai-client')
-            const transcription = await transcribeAudio(audioAttachment.payload.url)
+            const transcription = await transcribeAudio(audioAttachment.payload.url, store.business_type || undefined)
             if (transcription.text && transcription.text.trim().length > 0) {
               console.log(`[Voice] Transcribed: "${transcription.text.substring(0, 80)}"`)
               messageText = transcription.text

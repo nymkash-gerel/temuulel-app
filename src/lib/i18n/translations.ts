@@ -15,6 +15,9 @@ export const translations: { mn: Record<string, string>; en: Record<string, stri
     'nav.deliveryAnalytics': 'Хүргэлтийн аналитик',
     'nav.settings': 'Тохиргоо',
     'nav.menu': 'Цэс',
+    'nav.aiLearning': 'AI Суралцах',
+    'nav.broadcast': 'Broadcast',
+    'nav.messageUsage': 'Мессеж',
 
     // Common buttons
     'common.save': 'Хадгалах',
@@ -352,6 +355,9 @@ export const translations: { mn: Record<string, string>; en: Record<string, stri
     'nav.deliveryAnalytics': 'Delivery Analytics',
     'nav.settings': 'Settings',
     'nav.menu': 'Menu',
+    'nav.aiLearning': 'AI Learning',
+    'nav.broadcast': 'Broadcast',
+    'nav.messageUsage': 'Messages',
 
     // Common buttons
     'common.save': 'Save',
