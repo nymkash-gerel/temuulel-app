@@ -33,7 +33,13 @@ export function calculateCost(record: UsageRecord): number {
 }
 
 /**
- * Log usage fire-and-forget. Never blocks, never throws.
+ * Log detailed OpenAI API usage for cost analytics.
+ * Fire-and-forget. Never blocks, never throws.
+ *
+ * Note: `messages_used` billing counter is incremented separately
+ * in the webhook AFTER processAIChat succeeds — NOT here.
+ * This is because we want to count messages handled by keyword/BERT
+ * classification too (not just OpenAI calls).
  */
 export function trackOpenAIUsage(record: UsageRecord): void {
   void (async () => {

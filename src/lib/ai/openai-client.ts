@@ -29,6 +29,7 @@ export interface CompletionRequest {
   userContent: string
   maxTokens?: number
   temperature?: number
+  storeId?: string // for usage tracking
 }
 
 export interface CompletionResult<T> {
@@ -49,6 +50,7 @@ export interface ChatCompletionRequest {
   messages: ChatMessage[]
   maxTokens?: number
   temperature?: number
+  storeId?: string // for usage tracking
 }
 
 export interface ChatCompletionResult {
@@ -79,6 +81,14 @@ export async function chatCompletion(req: ChatCompletionRequest): Promise<ChatCo
     console.log(
       `[openai-chat] model=${MODEL} tokens=${usage.total_tokens} (prompt=${usage.prompt_tokens} completion=${usage.completion_tokens})`
     )
+    trackOpenAIUsage({
+      storeId: req.storeId,
+      model: MODEL,
+      operation: 'chat',
+      promptTokens: usage.prompt_tokens,
+      completionTokens: usage.completion_tokens,
+      totalTokens: usage.total_tokens,
+    })
 
     return {
       content,

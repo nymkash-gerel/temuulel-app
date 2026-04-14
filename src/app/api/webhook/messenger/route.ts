@@ -314,10 +314,9 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
       // AI auto-reply
       if (store.ai_auto_reply && pageToken) {
-        // --- Message limit check ---
+        // --- Message limit check (only blocks — increment happens after actual OpenAI call) ---
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: storeUsage } = await (supabase as any)
+          const { data: storeUsage } = await supabase
             .from('stores')
             .select('monthly_message_limit, messages_used, messages_reset_at')
             .eq('id', store.id)
@@ -329,19 +328,15 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
             const resetAt = storeUsage.messages_reset_at ? new Date(storeUsage.messages_reset_at) : new Date(0)
             const daysSinceReset = (Date.now() - resetAt.getTime()) / (1000 * 60 * 60 * 24)
             if (daysSinceReset >= 30) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              await (supabase as any).from('stores').update({ messages_used: 0, messages_reset_at: new Date().toISOString() }).eq('id', store.id)
+              await supabase.from('stores').update({ messages_used: 0, messages_reset_at: new Date().toISOString() }).eq('id', store.id)
             } else if (used >= limit) {
-              // Limit exceeded — skip AI, send limit message
               console.log(`[Messenger] Message limit exceeded for store ${store.id}: ${used}/${limit}`)
               await sendTextMessage(senderId, 'Уучлаарай, энэ сарын AI мессежийн лимит дууссан. Дэлгүүрийн эзэнтэй холбогдоно уу.', pageToken)
               continue
             }
-            // Increment usage
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (supabase as any).from('stores').update({ messages_used: used + 1 }).eq('id', store.id)
+            // NOTE: increment happens inside openai-client.ts only when OpenAI API is actually called.
           }
-        } catch { /* non-critical — don't block AI on usage tracking failure */ }
+        } catch { /* non-critical */ }
 
         // --- Redelivery quick reply interception ---
         if (quickReplyPayload?.startsWith('REDELIVERY_')) {
@@ -590,6 +585,27 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
             chatbotSettings,
           })
           console.log('[Messenger] AI completed. Intent:', aiResult.intent, 'Response length:', aiResult.response?.length)
+
+          // Increment billing counter — message was handled by AI pipeline
+          // (keyword classifier + BERT + optional ChatGPT — all count as AI usage).
+          // Flow interception, redelivery quick replies, operator mode are skipped
+          // earlier via `continue` so they don't reach here.
+          if (aiResult.response) {
+            void (async () => {
+              try {
+                const { data: s } = await supabase
+                  .from('stores')
+                  .select('messages_used')
+                  .eq('id', store.id)
+                  .single()
+                const current = (s as { messages_used: number } | null)?.messages_used ?? 0
+                await supabase
+                  .from('stores')
+                  .update({ messages_used: current + 1 })
+                  .eq('id', store.id)
+              } catch (e) { console.error('[billing] increment failed:', e) }
+            })()
+          }
 
           const aiResponse = aiResult.response
           const aiIntent = aiResult.intent
