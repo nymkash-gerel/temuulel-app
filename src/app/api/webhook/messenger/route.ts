@@ -118,11 +118,14 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
     for (const event of entry.messaging || []) {
       const senderId = (event.sender as Record<string, string>)?.id
       const message = event.message as Record<string, unknown> | undefined
-      const messageText = message?.text as string | undefined
+      let messageText = message?.text as string | undefined
       const quickReplyPayload = (message?.quick_reply as Record<string, string>)?.payload
+      const attachments = message?.attachments as Array<{ type: string; payload: { url: string } }> | undefined
+      const imageAttachment = attachments?.find(a => a.type === 'image')
+      const audioAttachment = attachments?.find(a => a.type === 'audio')
 
-      if (!senderId || !messageText) continue
-      if (messageText.length > 2000) continue
+      if (!senderId || (!messageText && !imageAttachment && !audioAttachment)) continue
+      if (messageText && messageText.length > 2000) continue
 
       // Determine channel: try Messenger first (facebook_page_id), then Instagram
       let channel: 'messenger' | 'instagram' = 'messenger'
@@ -446,6 +449,66 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
             continue
           } catch (catErr) {
             console.error('[Catalog] Pagination error:', catErr)
+          }
+        }
+
+        // --- Voice message transcription ---
+        if (!messageText && audioAttachment && pageToken) {
+          try {
+            void sendTypingIndicator(senderId, true, pageToken).catch(() => {})
+            const { transcribeAudio } = await import('@/lib/ai/openai-client')
+            const transcription = await transcribeAudio(audioAttachment.payload.url)
+            if (transcription.text && transcription.text.trim().length > 0) {
+              console.log(`[Voice] Transcribed: "${transcription.text.substring(0, 80)}"`)
+              messageText = transcription.text
+              // Fall through to normal AI pipeline below
+            } else {
+              await sendTextMessage(senderId, 'Уучлаарай, дуу хоолойг таниж чадсангүй. Текстээр бичнэ үү!', pageToken)
+              continue
+            }
+          } catch (voiceErr) {
+            console.error('[Voice] Transcription error:', voiceErr)
+            await sendTextMessage(senderId, 'Уучлаарай, дуу хоолойг боловсруулж чадсангүй. Текстээр бичнэ үү!', pageToken)
+            continue
+          }
+        }
+
+        // --- Image recognition ---
+        if (!messageText && imageAttachment && pageToken) {
+          try {
+            void sendTypingIndicator(senderId, true, pageToken).catch(() => {})
+            const { recognizeProductImage } = await import('@/lib/ai/image-recognizer')
+            const recognition = await recognizeProductImage(imageAttachment.payload.url)
+
+            // Save image message to DB
+            await supabase.from('messages').insert({
+              conversation_id: conversation.id,
+              content: '[Зураг илгээсэн]',
+              is_from_customer: true,
+              metadata: { type: 'image', image_url: imageAttachment.payload.url, recognition },
+            })
+
+            if (recognition && recognition.searchKeywords.length > 0) {
+              const { searchProducts: searchProductsFn } = await import('@/lib/product-search')
+              const products = await searchProductsFn(supabase, recognition.searchKeywords.join(' '), store.id, { maxProducts: 5 })
+              if (products.length > 0) {
+                await sendProductCardsFromResult(
+                  senderId,
+                  `📸 "${recognition.productName}" таньсан! Ижил бүтээгдэхүүнүүд 👇`,
+                  products as unknown as AIProductCard[],
+                  pageToken
+                )
+              } else {
+                await sendTextMessage(senderId, `📸 "${recognition.productName}" таньсан ч манай дэлгүүрт ижил бараа олдсонгүй. Барааны нэрийг бичнэ үү!`, pageToken)
+              }
+            } else {
+              await sendTextMessage(senderId, 'Уучлаарай, зурган дээрх бүтээгдэхүүнийг тодорхойлж чадсангүй. Барааны нэрийг бичнэ үү!', pageToken)
+            }
+            continue
+          } catch (imgErr) {
+            console.error('[Image] Recognition error:', imgErr)
+            await sendTextMessage(senderId, 'Зургийг боловсруулж чадсангүй. Барааны нэрийг бичнэ үү!', pageToken)
+            continue
           }
         }
 

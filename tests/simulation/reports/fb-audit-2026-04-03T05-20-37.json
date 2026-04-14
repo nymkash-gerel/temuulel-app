@@ -1,0 +1,60 @@
+{
+  "date": "2026-04-03T05:20:37.616Z",
+  "store": "Монгол Маркет",
+  "messagesTotal": 99,
+  "avgLatency": 1686,
+  "bugs": {
+    "critical": 0,
+    "warning": 3,
+    "info": 0
+  },
+  "bugDetails": [
+    {
+      "message": "mongoo tulchihsen bga yum. bараа hezee garch ireh yum?",
+      "response": "Байна! 👇\n1. Гэрийн чимэглэл (Зурагтын тавиур)\n2. Нүүрний тос (Витамин C)\n3. USB-C цэнэглэгч (65W)\n...нийт 5 бараа\n\nАль нэгийг сонирхвол дугаараа бичнэ үү 😊",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_status, Got: product_search [paid_waiting]"
+        }
+      ]
+    },
+    {
+      "message": "2",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. Гэрийн чимэглэл (Зурагтын тавиур) - 55,000₮\n2. Нүүрний тос (Витамин C) - 28,000₮\n3. USB-C цэнэглэгч (65W) - 45,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: general [edge_number_two]"
+        }
+      ]
+    },
+    {
+      "message": "1",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. Гэрийн чимэглэл (Зурагтын тавиур) - 55,000₮\n2. Нүүрний тос (Витамин C) - 28,000₮\n3. USB-C цэнэглэгч (65W) - 45,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: general [edge_number_only]"
+        }
+      ]
+    }
+  ],
+  "intents": {
+    "payment": 5,
+    "general": 15,
+    "order_collection": 19,
+    "product_search": 30,
+    "greeting": 3,
+    "shipping": 6,
+    "allergen_info": 1,
+    "complaint": 7,
+    "order_status": 3,
+    "thanks": 3,
+    "return_exchange": 4,
+    "size_info": 3
+  }
+}

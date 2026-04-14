@@ -174,3 +174,90 @@ export async function jsonCompletion<T>(req: CompletionRequest): Promise<Complet
     }
   }, { 'ai.model': MODEL, 'ai.max_tokens': req.maxTokens ?? DEFAULT_MAX_TOKENS })
 }
+
+// ---------------------------------------------------------------------------
+// Vision completion (image understanding via gpt-4o)
+// ---------------------------------------------------------------------------
+
+const VISION_MODEL = 'gpt-4o'
+
+export interface VisionResult {
+  content: string
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }
+}
+
+/**
+ * Analyze an image using GPT-4o Vision.
+ * Pass the image URL directly — OpenAI fetches it.
+ */
+export async function visionCompletion(
+  systemPrompt: string,
+  imageUrl: string,
+  userPrompt?: string,
+  maxTokens = 300
+): Promise<VisionResult> {
+  return withSpan('openai.visionCompletion', 'ai.completion', async () => {
+    const openai = getClient()
+
+    const userContent: OpenAI.ChatCompletionContentPart[] = [
+      { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } },
+    ]
+    if (userPrompt) {
+      userContent.unshift({ type: 'text', text: userPrompt })
+    }
+
+    const response = await withCircuitBreaker(() => openai.chat.completions.create({
+      model: VISION_MODEL,
+      temperature: 0.2,
+      max_tokens: maxTokens,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent },
+      ],
+    }))
+
+    const content = response.choices[0]?.message?.content
+    if (!content) throw new Error('Empty vision response from OpenAI')
+
+    const usage = response.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+    console.log(`[openai-vision] model=${VISION_MODEL} tokens=${usage.total_tokens}`)
+
+    return {
+      content,
+      usage: { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens, total_tokens: usage.total_tokens },
+    }
+  }, { 'ai.model': VISION_MODEL, 'ai.max_tokens': maxTokens })
+}
+
+// ---------------------------------------------------------------------------
+// Audio transcription (Whisper)
+// ---------------------------------------------------------------------------
+
+export interface TranscriptionResult {
+  text: string
+}
+
+/**
+ * Transcribe audio from a URL using OpenAI Whisper.
+ */
+export async function transcribeAudio(audioUrl: string): Promise<TranscriptionResult> {
+  return withSpan('openai.transcribeAudio', 'ai.transcription', async () => {
+    const openai = getClient()
+
+    const audioRes = await fetch(audioUrl)
+    if (!audioRes.ok) throw new Error(`Failed to download audio: ${audioRes.status}`)
+    const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
+
+    const file = new File([audioBuffer], 'voice.mp4', { type: 'audio/mp4' })
+
+    const transcription = await withCircuitBreaker(() => openai.audio.transcriptions.create({
+      model: 'whisper-1',
+      file,
+      language: 'mn',
+    }))
+
+    console.log(`[openai-whisper] transcribed ${transcription.text.length} chars`)
+    return { text: transcription.text }
+  }, { 'ai.model': 'whisper-1' })
+}

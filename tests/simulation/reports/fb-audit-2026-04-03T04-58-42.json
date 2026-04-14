@@ -1,0 +1,236 @@
+{
+  "date": "2026-04-03T04:58:42.592Z",
+  "store": "Монгол Маркет",
+  "messagesTotal": 99,
+  "avgLatency": 1716,
+  "bugs": {
+    "critical": 0,
+    "warning": 19,
+    "info": 0
+  },
+  "bugDetails": [
+    {
+      "message": "mongoo tulchihsen bga yum. bараа hezee garch ireh yum?",
+      "response": "Байна! 👇\n1. Гэрийн чимэглэл (Зурагтын тавиур)\n2. Нүүрний тос (Витамин C)\n3. USB-C цэнэглэгч (65W)\n...нийт 5 бараа\n\nАль нэгийг сонирхвол дугаараа бичнэ үү 😊",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_status, Got: product_search [paid_waiting]"
+        }
+      ]
+    },
+    {
+      "message": "2",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. Гэрийн чимэглэл (Зурагтын тавиур) - 55,000₮\n2. Нүүрний тос (Витамин C) - 28,000₮\n3. USB-C цэнэглэгч (65W) - 45,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: general [edge_number_two]"
+        }
+      ]
+    },
+    {
+      "message": "cheesecake gluten-free yumuu?",
+      "response": "🥗 **Орц найрлага / Харшлийн мэдээлэл:**\n\nБид дараах мэдээллийг бүх бүтээгдэхүүнд тэмдэглэсэн:\n• 🌱 Веган\n• ☪️ Халал\n• 🌾 Глютенгүй\n• 🌶️ Халуун түвшин\n\nТодорхой бүтээгдэхүүний орц найрлагыг мэдэхийг хүсвэл нэрийг нь бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: allergen_info [allergen_question]"
+        }
+      ]
+    },
+    {
+      "message": "4 000 000₮-ийн орон сууц бну?",
+      "response": "🚚 **Хүргэлтийн мэдээлэл**\n\n📍 **Хүргэлтийн бүсүүд:**\n• УБ хот дотор — **5,000₮** (24-48 цаг)\n• Хөдөө орон нутаг — **3-7 ажлын өдөр**\n\n🎁 **100,000₮**-өөс дээш захиалгад хүргэлт **ҮНЭГҮЙ!**\n\n🏪 Очиж авах: Зөвхөн хүргэлтээр бараа гарна. Очиж авах боломжгүй.\n📮 Хаягаа бичвэл хүргэлтийн төлбөрийг тооцоолж хэлье!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: shipping [edge_high_value_product]"
+        }
+      ]
+    },
+    {
+      "message": "https://www.facebook.com/photo/123456",
+      "response": "🚚 **Хүргэлтийн мэдээлэл**\n\n📍 **Хүргэлтийн бүсүүд:**\n• УБ хот дотор — **5,000₮** (24-48 цаг)\n• Хөдөө орон нутаг — **3-7 ажлын өдөр**\n\n🎁 **100,000₮**-өөс дээш захиалгад хүргэлт **ҮНЭГҮЙ!**\n\n🏪 Очиж авах: Зөвхөн хүргэлтээр бараа гарна. Очиж авах боломжгүй.\n📮 Хаягаа бичвэл хүргэлтийн төлбөрийг тооцоолж хэлье!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: general, Got: shipping [edge_url_only]"
+        }
+      ]
+    },
+    {
+      "message": "1r baraag 3sh, 2r baraag 1sh, niitiig n dans deer shiljuulne",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: payment [complex_order_with_payment]"
+        }
+      ]
+    },
+    {
+      "message": "niit 5 yum awahaar belen discount ugch bolhuu?",
+      "response": "Байна! 👇\n1. Гэрийн чимэглэл (Зурагтын тавиур)\n2. Нүүрний тос (Витамин C)\n3. USB-C цэнэглэгч (65W)\n...нийт 5 бараа\n\nАль нэгийг сонирхвол дугаараа бичнэ үү 😊",
+      "bugs": [
+        {
+          "type": "REDUNDANT_SELECTION",
+          "severity": "warning",
+          "description": "Customer сонгосон ч дахин сонголт асууж байна"
+        }
+      ]
+    },
+    {
+      "message": "VAT orson unuu?",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. Ноосон малгай - 35,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: payment, Got: general [vat_question]"
+        }
+      ]
+    },
+    {
+      "message": "huushuur 4sh cashaar tulne hurgej ugch",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: payment [food_order_with_payment]"
+        }
+      ]
+    },
+    {
+      "message": "ochigdor zahialsan yumaa odoo cancel hiij bolohu mongoo butsaaj ugnu u?",
+      "response": "🔄 Буцаах/солих бол захиалгын дугаар + шалтгаанаа бичнэ үү.\n24 цагийн дотор хариу өгнө.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_status, Got: return_exchange [cancel_and_refund]"
+        }
+      ]
+    },
+    {
+      "message": "1",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. Гэрийн чимэглэл (Зурагтын тавиур) - 55,000₮\n2. Нүүрний тос (Витамин C) - 28,000₮\n3. USB-C цэнэглэгч (65W) - 45,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: general [edge_number_only]"
+        }
+      ]
+    },
+    {
+      "message": "бусдад бэлэг болгож илгээж болох уу? тусгай мессеж оруулж болох уу?",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\n🔖 **ORD-1774261203588**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 50,000₮\n   📅 Огноо: 2026.03.23\n\n🔖 **ORD-MSG003**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 155,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG002**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 170,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG001**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 189,000₮\n   📅 Огноо: 2026.03.17\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: general, Got: order_status [gift_message_request]"
+        }
+      ]
+    },
+    {
+      "message": "😡",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. Гэрийн чимэглэл (Зурагтын тавиур) - 55,000₮\n2. Нүүрний тос (Витамин C) - 28,000₮\n3. USB-C цэнэглэгч (65W) - 45,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: general [edge_angry_emoji]"
+        }
+      ]
+    },
+    {
+      "message": "voice message илгээсэн шалга",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\n🔖 **ORD-1774261203588**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 50,000₮\n   📅 Огноо: 2026.03.23\n\n🔖 **ORD-MSG003**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 155,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG002**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 170,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG001**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 189,000₮\n   📅 Огноо: 2026.03.17\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: general, Got: order_status [edge_voice_reference]"
+        }
+      ]
+    },
+    {
+      "message": "hervee zurag deer bgaagaas oor yum irvel яана?",
+      "response": "Байна! 👇\n1. Гэрийн чимэглэл (Зурагтын тавиур)\n2. Бензэн турсик (4ш)\n3. Леевчик + Турсик сет\n\nАль нэгийг сонирхвол дугаараа бичнэ үү 😊",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: return_exchange, Got: product_search [photo_mismatch_policy]"
+        }
+      ]
+    },
+    {
+      "message": "hervee setgel hannmjgui bolbol 100% mungu butsaadg yumuu?",
+      "response": "😔 Уучлаарай! Асуудлаа захиалгын дугаартай хамт бичнэ үү — 12 цагийн дотор шийднэ. Яаралтай бол \"менежер\" гэж бичээрэй.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: return_exchange, Got: complaint [money_back_guarantee]"
+        }
+      ]
+    },
+    {
+      "message": "авъяавъяавъя",
+      "response": "Байна! 👇\n1. Гэрийн чимэглэл (Зурагтын тавиур)\n2. Нүүрний тос (Витамин C)\n3. USB-C цэнэглэгч (65W)\n...нийт 5 бараа\n\nАль нэгийг сонирхвол дугаараа бичнэ үү 😊",
+      "bugs": [
+        {
+          "type": "REDUNDANT_SELECTION",
+          "severity": "warning",
+          "description": "Customer сонгосон ч дахин сонголт асууж байна"
+        }
+      ]
+    },
+    {
+      "message": "ширээ захиалъя 4 хүн өнөөдөр орой 7 цаг",
+      "response": "Баярлалаа мессеж бичсэнд! 😊\n\nБи танд дараах зүйлсээр тусалж чадна:\n• 📦 Бүтээгдэхүүний мэдээлэл\n• 📋 Захиалгын статус\n• 🚚 Хүргэлтийн мэдээлэл\n• 💳 Төлбөрийн мэдээлэл\n• 📏 Размерийн зөвлөгөө\n\nТа юуны талаар мэдмээр байна?",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: table_reservation, Got: order_collection [table_booking]"
+        }
+      ]
+    },
+    {
+      "message": "2 3 hоноg bolchihson baraa baihgui yum gej duurlaj bna bizee",
+      "response": "Таны хайсан бараа энэ мөн үү? 👇",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: product_search [suspicion_of_fraud]"
+        }
+      ]
+    }
+  ],
+  "intents": {
+    "return_exchange": 4,
+    "complaint": 5,
+    "product_search": 31,
+    "order_collection": 19,
+    "general": 19,
+    "greeting": 3,
+    "size_info": 3,
+    "shipping": 6,
+    "allergen_info": 1,
+    "payment": 4,
+    "order_status": 3,
+    "thanks": 1
+  }
+}

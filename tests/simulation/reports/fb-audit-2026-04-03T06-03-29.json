@@ -1,0 +1,554 @@
+{
+  "date": "2026-04-03T06:03:29.135Z",
+  "store": "Монгол Маркет",
+  "messagesTotal": 1000,
+  "avgLatency": 1528,
+  "bugs": {
+    "critical": 0,
+    "warning": 48,
+    "info": 0
+  },
+  "bugDetails": [
+    {
+      "message": "Сайн байна уу? Ямар бараа авах вэ?",
+      "response": "📦 Гэрийн чимэглэл (Зурагтын тавиур) — 55,000₮\n\nӨмнөх мэдээллээр захиалах уу?\n👤 Gerelee Gerelee\n📍 Bzd 14r horo tumen nast 36a 1r orts 11 davhar 96 toot\n📱 99887766\n\nТийм бол \"Тийм\", өөрчлөх бол шинэ мэдээллээ бичнэ үү.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: greeting, Got: order_collection"
+        }
+      ]
+    },
+    {
+      "message": "Урьдчилж мөнгө авахгүй биздээ",
+      "response": "😔 Уучлаарай! Асуудлаа захиалгын дугаартай хамт бичнэ үү — 12 цагийн дотор шийднэ. Яаралтай бол \"менежер\" гэж бичээрэй.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: complaint"
+        }
+      ]
+    },
+    {
+      "message": "zara palaj ulaan hvren m saiz bna uu",
+      "response": "Монгол Маркет-д тавтай морил! Сайн байна уу! 😊 Танд юугаар туслах вэ?\n\nБүтээгдэхүүн, захиалга, хүргэлтийн мэдээлэл — дурын асуулт тавьж болно!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: size_info, Got: greeting"
+        }
+      ]
+    },
+    {
+      "message": "14raz l bn",
+      "response": "Монгол Маркет-д тавтай морил! Сайн байна уу! 😊 Танд юугаар туслах вэ?\n\nБүтээгдэхүүн, захиалга, хүргэлтийн мэдээлэл — дурын асуулт тавьж болно!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: size_info, Got: greeting"
+        }
+      ]
+    },
+    {
+      "message": "Сайн байна уу. Та хүргэлтийн талаархи мэдээлэлээ доорхи товчноос дарж авна уу. Өөр бараа захиалах бол бичиж үлдээнэ үү. Бид таньтай удахгүй холбогдох болно.",
+      "response": "📦 Кашемир цамц захиалга\n\nАль хувилбарыг сонгох вэ?\n1. S / улаан / 189,000₮\n2. M / Цагаан / 189,000₮\n\nОлон сонголт: \"1 болон 5\" гэх мэтээр бичнэ үү:",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: greeting, Got: order_collection"
+        }
+      ]
+    },
+    {
+      "message": "Өглөөний мэнд, 11-р сарын 05-ны захиалга одоо болтол байдаггүй ээ.",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\n🔖 **ORD-1774261203588**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 50,000₮\n   📅 Огноо: 2026.03.23\n\n🔖 **ORD-MSG003**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 155,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG002**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 170,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG001**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 189,000₮\n   📅 Огноо: 2026.03.17\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: greeting, Got: order_status"
+        }
+      ]
+    },
+    {
+      "message": "70kg taarah uu belen ymuu",
+      "response": "📏 Ерөнхий размер: S(36), M(38), L(40), XL(42), XXL(44)\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: size_info"
+        }
+      ]
+    },
+    {
+      "message": "Гуйхгүй м 99678033",
+      "response": "😔 Уучлаарай! Асуудлаа захиалгын дугаартай хамт бичнэ үү — 12 цагийн дотор шийднэ. Яаралтай бол \"менежер\" гэж бичээрэй.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: complaint"
+        }
+      ]
+    },
+    {
+      "message": "Zahialahhu ym bn",
+      "response": "Монгол Маркет-д тавтай морил! Сайн байна уу! 😊 Танд юугаар туслах вэ?\n\nБүтээгдэхүүн, захиалга, хүргэлтийн мэдээлэл — дурын асуулт тавьж болно!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: greeting"
+        }
+      ]
+    },
+    {
+      "message": "5011541577 шижир нямгэрэл хаанбанк мөнгөө явуулчаад хэлээрэй Мөнгө орж ирсэний дараа орон нутгийн унаанд барааг нь тавиад мсжээр жолоочййн дугаар машины дугаарыг явуулна. Гүйлгээний утга - Утасны дугаараа бичээрэй Гүйлгээний дүн - 20000",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: payment"
+        }
+      ]
+    },
+    {
+      "message": "сайн уу хөдөө орон нутагт авья",
+      "response": "Монгол Маркет-д тавтай морил! Сайн байна уу! 😊 Танд юугаар туслах вэ?\n\nБүтээгдэхүүн, захиалга, хүргэлтийн мэдээлэл — дурын асуулт тавьж болно!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: greeting"
+        }
+      ]
+    },
+    {
+      "message": "мөнгөө явууллаа гүйлгээний утга 88403841 сэлнгэ цагаан нуур",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: payment"
+        }
+      ]
+    },
+    {
+      "message": "dugaar bnuuu",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\n🔖 **ORD-1774261203588**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 50,000₮\n   📅 Огноо: 2026.03.23\n\n🔖 **ORD-MSG003**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 155,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG002**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 170,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG001**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 189,000₮\n   📅 Огноо: 2026.03.17\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: order_status"
+        }
+      ]
+    },
+    {
+      "message": "хл-ххл өнгын өмсөж үзээд хэдийг авахаа шийдэж болох уу",
+      "response": "📏 Размер:\n1. **3 давхар корсет / Тайл гаргагч** — 35,000₮\n\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: size_info"
+        }
+      ]
+    },
+    {
+      "message": "O.mend Plaj tomdood bn xs soliulaj bolhuu",
+      "response": "Монгол Маркет-д тавтай морил! Сайн байна уу! 😊 Танд юугаар туслах вэ?\n\nБүтээгдэхүүн, захиалга, хүргэлтийн мэдээлэл — дурын асуулт тавьж болно!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: size_info, Got: greeting"
+        }
+      ]
+    },
+    {
+      "message": "5011541577 шижир нямгэрэл хаанбанк мөнгөө явуулчаад хэлээрэй Мөнгө орж ирсэний дараа орон нутгийн унаанд барааг нь тавиад мсжээр жолоочййн дугаар машины дугаарыг явуулна. Гүйлгээний утга - Утасны дугаараа бичээрэй Гүйлгээний дүн - 64k",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: payment"
+        }
+      ]
+    },
+    {
+      "message": "geser sumin bombogorlv yvah gerel dohio ongorod zalgachih hedi ved ireh ve",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\n🔖 **ORD-1774261203588**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 50,000₮\n   📅 Огноо: 2026.03.23\n\n🔖 **ORD-MSG003**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 155,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG002**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 170,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG001**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 189,000₮\n   📅 Огноо: 2026.03.17\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: order_status"
+        }
+      ]
+    },
+    {
+      "message": "Тэгвэл хавчаар нь тусдаа ирэх юмуу. хавчаарныхаа хүргэлтээр бодооч",
+      "response": "🚚 **Хүргэлтийн мэдээлэл**\n\n📍 **Хүргэлтийн бүсүүд:**\n• УБ хот дотор — **5,000₮** (24-48 цаг)\n• Хөдөө орон нутаг — **3-7 ажлын өдөр**\n\n🎁 **100,000₮**-өөс дээш захиалгад хүргэлт **ҮНЭГҮЙ!**\n\n🏪 Очиж авах: Зөвхөн хүргэлтээр бараа гарна. Очиж авах боломжгүй.\n📮 Хаягаа бичвэл хүргэлтийн төлбөрийг тооцоолж хэлье!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: shipping"
+        }
+      ]
+    },
+    {
+      "message": "Та данс үлдээгээрэй захирал бхгүй бгаа",
+      "response": "😔 Уучлаарай! Асуудлаа захиалгын дугаартай хамт бичнэ үү — 12 цагийн дотор шийднэ. Яаралтай бол \"менежер\" гэж бичээрэй.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: payment, Got: complaint"
+        }
+      ]
+    },
+    {
+      "message": "Oo bi ulaan ig awahgad bsan um a",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. USB-C цэнэглэгч (65W) - 45,000₮\n2. Ноосон малгай - 35,000₮\n3. Хүүхдийн тоглоом (Лего) - 42,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: general"
+        }
+      ]
+    },
+    {
+      "message": "8 сарын 5 ны 3.30 аас өмнө хүргэж өгөх боломж байна уу",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\n🔖 **ORD-1774261203588**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 50,000₮\n   📅 Огноо: 2026.03.23\n\n🔖 **ORD-MSG003**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 155,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG002**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 170,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG001**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 189,000₮\n   📅 Огноо: 2026.03.17\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: order_status"
+        }
+      ]
+    },
+    {
+      "message": "Hamgiin tom ni 75 kg taarah yumuu",
+      "response": "📏 Размер:\n1. **Нүүрний тос (Витамин C)** — 28,000₮\n2. **Ноосон малгай** — 35,000₮\n3. **Шампунь + Кондишионер** — 32,000₮\n\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: size_info"
+        }
+      ]
+    },
+    {
+      "message": "5011541577 шижир нямгэрэл хаанбанк мөнгөө явуулчаад хэлээрэй Мөнгө орж ирсэний дараа орон нутгийн унаанд барааг нь тавиад мсжээр жолоочййн дугаар машины дугаарыг явуулна. Гүйлгээний утга - Утасны дугаараа бичээрэй Гүйлгээний дүн -44000",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: payment"
+        }
+      ]
+    },
+    {
+      "message": "Баянхошуу тойрог хүргэх юмуу",
+      "response": "🚚 **Хүргэлтийн мэдээлэл**\n\n📍 **Хүргэлтийн бүсүүд:**\n• УБ хот дотор — **5,000₮** (24-48 цаг)\n• Хөдөө орон нутаг — **3-7 ажлын өдөр**\n\n🎁 **100,000₮**-өөс дээш захиалгад хүргэлт **ҮНЭГҮЙ!**\n\n🏪 Очиж авах: Зөвхөн хүргэлтээр бараа гарна. Очиж авах боломжгүй.\n📮 Хаягаа бичвэл хүргэлтийн төлбөрийг тооцоолж хэлье!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: shipping"
+        }
+      ]
+    },
+    {
+      "message": "Hi M n tomdood bn S size soliulah bolomjtoi yu",
+      "response": "Монгол Маркет-д тавтай морил! Сайн байна уу! 😊 Танд юугаар туслах вэ?\n\nБүтээгдэхүүн, захиалга, хүргэлтийн мэдээлэл — дурын асуулт тавьж болно!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: size_info, Got: greeting"
+        }
+      ]
+    },
+    {
+      "message": "5011541577 шижир нямгэрэл хаанбанк мөнгөө явуулчаад хэлээрэй Мөнгө орж ирсэний дараа орон нутгийн унаанд барааг нь тавиад мсжээр жолоочййн дугаар машины дугаарыг явуулна. Гүйлгээний утга - Утасны дугаараа бичээрэй Гүйлгээний дүн - 16000",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: payment"
+        }
+      ]
+    },
+    {
+      "message": "Амжихгүй бол авахгүй",
+      "response": "😔 Уучлаарай! Асуудлаа захиалгын дугаартай хамт бичнэ үү — 12 цагийн дотор шийднэ. Яаралтай бол \"менежер\" гэж бичээрэй.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: complaint"
+        }
+      ]
+    },
+    {
+      "message": "5011541577 шижир нямгэрэл хаанбанк мөнгөө явуулчаад хэлээрэй Мөнгө орж ирсэний дараа орон нутгийн унаанд барааг нь тавиад мсжээр жолоочййн дугаар машины дугаарыг явуулна. Гүйлгээний утга - Утасны дугаараа бичээрэй Гүйлгээний дүн - 35k",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: payment"
+        }
+      ]
+    },
+    {
+      "message": "Iogin hos ni hamgin tom ni yumuu",
+      "response": "📏 Размер:\n1. **Нүүрний тос (Витамин C)** — 28,000₮\n2. **Ноосон малгай** — 35,000₮\n3. **Шампунь + Кондишионер** — 32,000₮\n\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: size_info"
+        }
+      ]
+    },
+    {
+      "message": "Yamar yalgaatai vee? Bodit zuragnuud yavuulchihaach! Zahialaad avahgui butsaaj baihaar!",
+      "response": "🔄 Буцаах/солих бол захиалгын дугаар + шалтгаанаа бичнэ үү.\n24 цагийн дотор хариу өгнө.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: return_exchange"
+        }
+      ]
+    },
+    {
+      "message": "Material n ymr huu ym bol herew talahdahgui baiwal butsal hiij boloh ym uu?",
+      "response": "🔄 Буцаах/солих бол захиалгын дугаар + шалтгаанаа бичнэ үү.\n24 цагийн дотор хариу өгнө.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: return_exchange"
+        }
+      ]
+    },
+    {
+      "message": "m size awyaa",
+      "response": "📏 Ерөнхий размер: S(36), M(38), L(40), XL(42), XXL(44)\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: size_info"
+        }
+      ]
+    },
+    {
+      "message": "Дорноговь сайн шанд 99535075",
+      "response": "Монгол Маркет-д тавтай морил! Сайн байна уу! 😊 Танд юугаар туслах вэ?\n\nБүтээгдэхүүн, захиалга, хүргэлтийн мэдээлэл — дурын асуулт тавьж болно!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: greeting"
+        }
+      ]
+    },
+    {
+      "message": "Сайн байна уу? Та ямар сайз авах вэ?",
+      "response": "📦 Гэрийн чимэглэл (Зурагтын тавиур) — 55,000₮\n\nӨмнөх мэдээллээр захиалах уу?\n👤 Gerelee Gerelee\n📍 Bzd 14r horo tumen nast 36a 1r orts 11 davhar 96 toot\n📱 99887766\n\nТийм бол \"Тийм\", өөрчлөх бол шинэ мэдээллээ бичнэ үү.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: greeting, Got: order_collection"
+        }
+      ]
+    },
+    {
+      "message": "99595038 энэ дугаарлуу залгаад өгчих",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: order_status"
+        }
+      ]
+    },
+    {
+      "message": "Цагаан цамц ирсэнүү",
+      "response": "Яг тэр бараа одоогоор байхгүй байна. Гэхдээ эдгээр таалагдаж магадгүй 👇\n1. **Кашемир цамц** — 189,000₮\n2. **Бензэн турсик (4ш)** — 15,000₮\n3. **Галбир гаргадаг цамц** — 25,000₮\n",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_status, Got: product_search"
+        }
+      ]
+    },
+    {
+      "message": "benz tsagaan M-g benz har S-r solih hvrgeltiin mungu ugtsun bgaa munvv",
+      "response": "🔄 Буцаах/солих бол захиалгын дугаар + шалтгаанаа бичнэ үү.\n24 цагийн дотор хариу өгнө.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: return_exchange"
+        }
+      ]
+    },
+    {
+      "message": "sn bnu bor S awii",
+      "response": "Баярлалаа мессеж бичсэнд! 😊\n\nБи танд дараах зүйлсээр тусалж чадна:\n• 📦 Бүтээгдэхүүний мэдээлэл\n• 📋 Захиалгын статус\n• 🚚 Хүргэлтийн мэдээлэл\n• 💳 Төлбөрийн мэдээлэл\n• 📏 Размерийн зөвлөгөө\n\nТа юуны талаар мэдмээр байна?",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: greeting, Got: order_collection"
+        }
+      ]
+    },
+    {
+      "message": "Сайн байна уу? Хосоор нь захиалга өгье. 88062193",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: order_status"
+        }
+      ]
+    },
+    {
+      "message": "Ene 80kg d taarah bdgiimuu 🥲",
+      "response": "📏 Размер:\n1. **USB-C цэнэглэгч (65W)** — 45,000₮\n\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: size_info"
+        }
+      ]
+    },
+    {
+      "message": "захиалга ирсэнгүй 7 цаг гээд гэмтэлийн арын нарлаг хотхон 105 байр 9 давхарын 83тоот",
+      "response": "😔 Уучлаарай! Асуудлаа захиалгын дугаартай хамт бичнэ үү — 12 цагийн дотор шийднэ. Яаралтай бол \"менежер\" гэж бичээрэй.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: complaint"
+        }
+      ]
+    },
+    {
+      "message": "Hvrgelte avcad mongo shiljvvlj bolxgvi yu",
+      "response": "💳 Төлбөр: QPay 📱 | Дансаар шилжүүлэг 🏦 | Бэлнээр 💵\nЗахиалга өгөх бол \"захиалах\" гэж бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: payment"
+        }
+      ]
+    },
+    {
+      "message": "sain bnuu baynhoshuu hotol deer XS siz 94390205",
+      "response": "Монгол Маркет-д тавтай морил! Сайн байна уу! 😊 Танд юугаар туслах вэ?\n\nБүтээгдэхүүн, захиалга, хүргэлтийн мэдээлэл — дурын асуулт тавьж болно!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: shipping, Got: greeting"
+        }
+      ]
+    },
+    {
+      "message": "Хар өнгөөс дахиж ирэх бол уу",
+      "response": "📋 **Таны захиалгын мэдээлэл:**\n\n🔖 **ORD-1774420497915**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 44,000₮\n   📅 Огноо: 2026.03.25\n\n🔖 **ORD-1774261203588**\n   📊 Статус: ⏳ Хүлээгдэж байна\n   💰 Дүн: 50,000₮\n   📅 Огноо: 2026.03.23\n\n🔖 **ORD-MSG003**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 155,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG002**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 170,000₮\n   📅 Огноо: 2026.03.17\n\n🔖 **ORD-MSG001**\n   📊 Статус: ✅ Баталгаажсан\n   💰 Дүн: 189,000₮\n   📅 Огноо: 2026.03.17\n\nЗахиалгатай холбоотой асуулт байвал бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: product_search, Got: order_status"
+        }
+      ]
+    },
+    {
+      "message": "М размер гуятай гуягүй авч болох уу",
+      "response": "📏 Размер:\n1. **3 давхар корсет / Тайл гаргагч** — 35,000₮\n2. **SKIMS Хуулбарууд 1+1** — 39,000₮\n3. **Үсний ком – 80ш** — 10,000₮\n\nЯмар барааны размер мэдэхийг хүсвэл нэрийг нь бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: size_info"
+        }
+      ]
+    },
+    {
+      "message": "yagaad xl gecheed 2 xll ogood ybulsin bol",
+      "response": "😔 Уучлаарай! Асуудлаа захиалгын дугаартай хамт бичнэ үү — 12 цагийн дотор шийднэ. Яаралтай бол \"менежер\" гэж бичээрэй.",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: size_info, Got: complaint"
+        }
+      ]
+    },
+    {
+      "message": "24.s 35",
+      "response": "🚚 **Хүргэлтийн мэдээлэл**\n\n📍 **Хүргэлтийн бүсүүд:**\n• УБ хот дотор — **5,000₮** (24-48 цаг)\n• Хөдөө орон нутаг — **3-7 ажлын өдөр**\n\n🎁 **100,000₮**-өөс дээш захиалгад хүргэлт **ҮНЭГҮЙ!**\n\n🏪 Очиж авах: Зөвхөн хүргэлтээр бараа гарна. Очиж авах боломжгүй.\n📮 Хаягаа бичвэл хүргэлтийн төлбөрийг тооцоолж хэлье!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: size_info, Got: shipping"
+        }
+      ]
+    },
+    {
+      "message": "За баярлалаа оймстой оймсгүй хараас нь 2ыг авья",
+      "response": "Баярлалаа! 🙏 Бусад асуулт байвал чөлөөтэй бичээрэй. Бид үргэлж тусалхад бэлэн!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: thanks"
+        }
+      ]
+    }
+  ],
+  "intents": {
+    "size_info": 168,
+    "shipping": 199,
+    "product_search": 305,
+    "order_collection": 214,
+    "complaint": 21,
+    "greeting": 23,
+    "order_status": 39,
+    "general": 10,
+    "thanks": 4,
+    "payment": 10,
+    "return_exchange": 7
+  }
+}

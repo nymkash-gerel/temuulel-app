@@ -327,6 +327,8 @@ export async function generateAIResponse(
   latestPurchaseSummary?: string | null,
   resolution?: import('./resolution-engine').ResolutionContext | null,
   customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string } | null,
+  qualityMetaOut?: { confidence: number; detectedIssues: string[]; requiresHumanReview: boolean },
+  knowledgeEntries?: { question: string; answer: string }[],
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history.
   // Also allow GPT on turn 1 for 'general' and 'complaint' intents — ambiguous and
@@ -374,6 +376,7 @@ export async function generateAIResponse(
         latestPurchaseSummary: latestPurchaseSummary ?? null,
         resolution: resolution ?? null,
         customerPrefs: customerPrefs ?? null,
+        knowledgeEntries,
       })
       if (contextResult) {
         // Log structured AI metadata for analytics/escalation
@@ -382,6 +385,12 @@ export async function generateAIResponse(
             `[ai-response] empathy=${contextResult.empathy_needed} confidence=${contextResult.confidence} ` +
             `human_review=${contextResult.requires_human_review} issues=[${contextResult.detected_issues.join(',')}]`
           )
+        }
+        // Expose quality metadata to caller
+        if (qualityMetaOut) {
+          qualityMetaOut.confidence = contextResult.confidence
+          qualityMetaOut.detectedIssues = contextResult.detected_issues
+          qualityMetaOut.requiresHumanReview = contextResult.requires_human_review
         }
         return contextResult.response
       }

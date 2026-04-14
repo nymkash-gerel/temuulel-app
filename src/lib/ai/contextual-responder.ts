@@ -83,6 +83,8 @@ export interface ContextualInput {
   resolution?: ResolutionContext | null
   // Customer body/size preferences (from conversation state)
   customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string } | null
+  // Store knowledge base entries for context injection
+  knowledgeEntries?: { question: string; answer: string }[]
 }
 
 // ---------------------------------------------------------------------------
@@ -459,6 +461,14 @@ JSON ДҮРЭМ:
 - confidence: 0.0 = мэдэхгүй, 1.0 = бүрэн итгэлтэй
 - requires_human_review: true = хүнд шилжүүлэх хэрэгтэй (гомдол, маргаан, хүн хүссэн)
 - detected_issues: ["complaint", "delivery_delay", "wrong_item", "needs_stock_check", "customer_upset", "return_request", "payment_issue"] зэргээс тохирохыг сонго, хоосон [] бол асуудалгүй`
+
+  // Inject knowledge base entries
+  if (input.knowledgeEntries && input.knowledgeEntries.length > 0) {
+    prompt += '\n\nМЭДЛЭГИЙН САН (Дэлгүүрийн тусгай мэдээлэл — эдгээрийг хариултдаа ашигла):\n'
+    for (const entry of input.knowledgeEntries.slice(0, 10)) {
+      prompt += `Асуулт: ${entry.question}\nХариулт: ${entry.answer}\n\n`
+    }
+  }
 
   return prompt
 }

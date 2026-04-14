@@ -808,6 +808,20 @@ export async function processAIChat(
           })
         } catch { /* non-critical — continue without resolution */ }
 
+        // Fetch knowledge base entries for this store
+        let knowledgeEntries: { question: string; answer: string }[] = []
+        try {
+          const { data: kbEntries } = await supabase
+            .from('store_knowledge_base')
+            .select('question, answer')
+            .eq('store_id', storeId)
+            .eq('is_active', true)
+            .limit(10)
+          if (kbEntries) knowledgeEntries = kbEntries as { question: string; answer: string }[]
+        } catch { /* non-critical */ }
+
+        const qualityMeta = { confidence: 0.5, detectedIssues: [] as string[], requiresHumanReview: false }
+
         responseText = await generateAIResponse(
           intent, products, orders, storeName, customerMessage, chatbotSettings, history,
           undefined,
@@ -817,7 +831,34 @@ export async function processAIChat(
           latestPurchaseSummary,
           resolution,
           state.customer_prefs,
+          qualityMeta,
+          knowledgeEntries,
         )
+
+        // Fire-and-forget: log AI quality + unanswered questions
+        void (async () => {
+          try {
+            const { scoreAIResponse } = await import('@/lib/ai/quality-scorer')
+            const { logAIQuality } = await import('@/lib/ai/quality-logger')
+            const score = scoreAIResponse({
+              confidence: qualityMeta.confidence,
+              detectedIssues: qualityMeta.detectedIssues,
+              requiresHumanReview: qualityMeta.requiresHumanReview,
+              intent, responseText, customerMessage,
+            })
+            await logAIQuality(supabase, {
+              storeId, conversationId,
+              customerMessage, aiResponse: responseText, intent,
+              confidence: qualityMeta.confidence,
+              qualityScore: score.score,
+              detectedIssues: qualityMeta.detectedIssues,
+              requiresHumanReview: qualityMeta.requiresHumanReview,
+              isUnanswered: score.isUnanswered,
+            })
+          } catch (e) {
+            console.error('[quality-logger] Failed:', e)
+          }
+        })()
 
         // If the LLM said "product not in catalog, staff will check" → fire staff notification.
         if (intent === 'product_search' && (responseText.includes('байхгүй байна') || responseText.includes('олдсонгүй'))) {

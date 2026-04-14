@@ -1,0 +1,71 @@
+{
+  "date": "2026-04-03T05:11:37.550Z",
+  "store": "Монгол Маркет",
+  "messagesTotal": 99,
+  "avgLatency": 1658,
+  "bugs": {
+    "critical": 0,
+    "warning": 4,
+    "info": 0
+  },
+  "bugDetails": [
+    {
+      "message": "2",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. Гэрийн чимэглэл (Зурагтын тавиур) - 55,000₮\n2. Нүүрний тос (Витамин C) - 28,000₮\n3. USB-C цэнэглэгч (65W) - 45,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: general [edge_number_two]"
+        }
+      ]
+    },
+    {
+      "message": "1",
+      "response": "Баярлалаа мессеж бичсэнд! Танд дараах бүтээгдэхүүнүүд байна:\n\n1. Гэрийн чимэглэл (Зурагтын тавиур) - 55,000₮\n2. Нүүрний тос (Витамин C) - 28,000₮\n3. USB-C цэнэглэгч (65W) - 45,000₮\n\nДэлгэрэнгүй мэдээлэл авмаар бол бичнэ үү!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_collection, Got: general [edge_number_only]"
+        }
+      ]
+    },
+    {
+      "message": "😡",
+      "response": "Баярлалаа! 🙏 Бусад асуулт байвал чөлөөтэй бичээрэй. Бид үргэлж тусалхад бэлэн!",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: complaint, Got: thanks [edge_angry_emoji]"
+        }
+      ]
+    },
+    {
+      "message": "mongoo tulchihsen bga yum. bараа hezee garch ireh yum?",
+      "response": "Байна! 👇\n1. Гэрийн чимэглэл (Зурагтын тавиур)\n2. Нүүрний тос (Витамин C)\n3. USB-C цэнэглэгч (65W)\n...нийт 5 бараа\n\nАль нэгийг сонирхвол дугаараа бичнэ үү 😊",
+      "bugs": [
+        {
+          "type": "INTENT_MISMATCH",
+          "severity": "warning",
+          "description": "Expected: order_status, Got: product_search [paid_waiting]"
+        }
+      ]
+    }
+  ],
+  "intents": {
+    "product_search": 30,
+    "greeting": 3,
+    "general": 8,
+    "return_exchange": 4,
+    "thanks": 11,
+    "complaint": 6,
+    "order_collection": 19,
+    "size_info": 3,
+    "shipping": 6,
+    "payment": 5,
+    "order_status": 3,
+    "allergen_info": 1
+  }
+}

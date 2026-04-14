@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-04-14T04:52:25.021Z",
-  "duration_ms": 94640,
+  "timestamp": "2026-04-03T14:22:25.335Z",
+  "duration_ms": 101215,
   "scenarios_run": 10,
   "scenarios_passed": 10,
   "scenarios_failed": 0,
@@ -10,23 +10,14 @@
     "max": 4
   },
   "intent_accuracy": 1,
-  "bugs_detected": [
-    {
-      "severity": "major",
-      "type": "stuck_loop",
-      "description": "Bot returned identical response 3+ times to different messages",
-      "scenario": "full_order_flow",
-      "stepIndex": 5,
-      "evidence": "Same response repeated for 3 consecutive different messages"
-    }
-  ],
+  "bugs_detected": [],
   "scenario_results": [
     {
       "name": "full_order_flow",
       "persona": "VIP худалдан авагч",
       "passed": true,
       "steps": 7,
-      "duration_ms": 18164,
+      "duration_ms": 20244,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -36,16 +27,7 @@
         "overall": 4,
         "issues": []
       },
-      "bugs": [
-        {
-          "severity": "major",
-          "type": "stuck_loop",
-          "description": "Bot returned identical response 3+ times to different messages",
-          "scenario": "full_order_flow",
-          "stepIndex": 5,
-          "evidence": "Same response repeated for 3 consecutive different messages"
-        }
-      ],
+      "bugs": [],
       "errors": []
     },
     {
@@ -53,7 +35,7 @@
       "persona": "Ууртай хэрэглэгч",
       "passed": true,
       "steps": 4,
-      "duration_ms": 15580,
+      "duration_ms": 16676,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -71,7 +53,7 @@
       "persona": "Буцаалт хийгч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 5606,
+      "duration_ms": 6647,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -89,7 +71,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 5933,
+      "duration_ms": 6290,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -107,7 +89,7 @@
       "persona": "Латин бичигч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 6148,
+      "duration_ms": 7111,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -125,7 +107,7 @@
       "persona": "Төөрөлдсөн хэрэглэгч",
       "passed": true,
       "steps": 4,
-      "duration_ms": 8950,
+      "duration_ms": 10191,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -143,7 +125,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 3059,
+      "duration_ms": 3415,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -161,7 +143,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 5011,
+      "duration_ms": 3668,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -179,7 +161,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 4240,
+      "duration_ms": 4925,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -197,7 +179,7 @@
       "persona": "Халдагч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 15011,
+      "duration_ms": 15478,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -211,5 +193,5 @@
       "errors": []
     }
   ],
-  "summary": "=== SIMULATION REPORT ===\nTime: 2026-04-14T04:52:25.021Z\nDuration: 94.6s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4/5.0 (min: 4, max: 4)\nBugs Detected: 1\n\n--- BUGS ---\n  [MAJOR] stuck_loop in \"full_order_flow\" step 5: Bot returned identical response 3+ times to different messages"
+  "summary": "=== SIMULATION REPORT ===\nTime: 2026-04-03T14:22:25.335Z\nDuration: 101.2s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4/5.0 (min: 4, max: 4)\nBugs Detected: 0"
 }
