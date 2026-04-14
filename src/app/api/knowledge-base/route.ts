@@ -14,8 +14,7 @@ export async function GET() {
   if (!member) return NextResponse.json({ error: 'No store' }, { status: 403 })
 
   // store_knowledge_base not in generated types yet — use `as any` (JSONB narrowing)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: entries, error } = await (supabase as any)
+  const { data: entries, error } = await supabase
     .from('store_knowledge_base')
     .select('*')
     .eq('store_id', member.store_id)
@@ -47,8 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'question and answer required' }, { status: 400 })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: entry, error } = await (supabase as any)
+  const { data: entry, error } = await supabase
     .from('store_knowledge_base')
     .insert({
       store_id: member.store_id,

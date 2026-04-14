@@ -13,8 +13,7 @@ export async function GET() {
     .single()
   if (!member) return NextResponse.json({ error: 'No store' }, { status: 403 })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: questions, error } = await (supabase as any)
+  const { data: questions, error } = await supabase
     .from('unanswered_questions')
     .select('*')
     .eq('store_id', member.store_id)
@@ -46,8 +45,7 @@ export async function PATCH(req: NextRequest) {
     if (knowledge_entry_id) updates.knowledge_entry_id = knowledge_entry_id
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('unanswered_questions')
     .update(updates)
     .eq('id', id)

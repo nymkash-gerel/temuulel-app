@@ -21,16 +21,14 @@ export async function GET() {
   if (!member) return NextResponse.json({ error: 'No store' }, { status: 403 })
 
   // Get current usage (new columns not in generated types yet)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: store } = await (supabase as any)
+  const { data: store } = await supabase
     .from('stores')
     .select('monthly_message_limit, messages_used, messages_reset_at')
     .eq('id', member.store_id)
     .single()
 
   // Get purchase history
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: purchases } = await (supabase as any)
+  const { data: purchases } = await supabase
     .from('message_pack_purchases')
     .select('*')
     .eq('store_id', member.store_id)
@@ -67,8 +65,7 @@ export async function POST(req: NextRequest) {
   if (!pack) return NextResponse.json({ error: 'Invalid pack size' }, { status: 400 })
 
   // Create purchase record
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: purchase, error } = await (supabase as any)
+  const { data: purchase, error } = await supabase
     .from('message_pack_purchases')
     .insert({
       store_id: member.store_id,
@@ -83,15 +80,13 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Add messages to store limit (new column not in types — use as any)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: currentStore } = await (supabase as any)
+  const { data: currentStore } = await supabase
     .from('stores')
     .select('monthly_message_limit')
     .eq('id', member.store_id)
     .single()
   const currentLimit = (currentStore as Record<string, unknown>)?.monthly_message_limit as number || 100
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
+  await supabase
     .from('stores')
     .update({ monthly_message_limit: currentLimit + pack.size })
     .eq('id', member.store_id)

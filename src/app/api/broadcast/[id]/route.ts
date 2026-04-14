@@ -9,8 +9,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Get campaign
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: campaign } = await (supabase as any)
+  const { data: campaign } = await supabase
     .from('broadcast_campaigns')
     .select('*')
     .eq('id', id)
@@ -54,8 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Update campaign status
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
+  await supabase
     .from('broadcast_campaigns')
     .update({ status: 'sending', total_recipients: customers.length, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -70,8 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await sendTextMessage(customer.messenger_id, campaign.message_text, store.facebook_page_access_token)
       sentCount++
       // Insert recipient record
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('broadcast_recipients').insert({
+      await supabase.from('broadcast_recipients').insert({
         campaign_id: id,
         customer_id: customer.id,
         messenger_id: customer.messenger_id,
@@ -80,8 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
     } catch (err) {
       failedCount++
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('broadcast_recipients').insert({
+      await supabase.from('broadcast_recipients').insert({
         campaign_id: id,
         customer_id: customer.id,
         messenger_id: customer.messenger_id,
@@ -94,8 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Update final status
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
+  await supabase
     .from('broadcast_campaigns')
     .update({
       status: 'sent',
@@ -115,7 +110,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).from('broadcast_campaigns').delete().eq('id', id)
+  await supabase.from('broadcast_campaigns').delete().eq('id', id)
   return NextResponse.json({ success: true })
 }

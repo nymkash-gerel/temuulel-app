@@ -19,8 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (keywords !== undefined) updates.keywords = keywords
   if (is_active !== undefined) updates.is_active = is_active
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('store_knowledge_base')
     .update(updates)
     .eq('id', id)
@@ -38,8 +37,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   // Soft delete
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('store_knowledge_base')
     .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq('id', id)

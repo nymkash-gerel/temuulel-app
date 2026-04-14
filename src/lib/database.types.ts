@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -28,6 +23,29 @@ export type Database = {
           variables?: Json
         }
         Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  pgbouncer: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      get_auth: {
+        Args: { p_usename: string }
+        Returns: {
+          password: string
+          username: string
+        }[]
       }
     }
     Enums: {
@@ -86,21 +104,18 @@ export type Database = {
           {
             foreignKeyName: "admissions_attending_staff_id_fkey"
             columns: ["attending_staff_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "admissions_patient_id_fkey"
             columns: ["patient_id"]
-            isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "admissions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -153,21 +168,82 @@ export type Database = {
           {
             foreignKeyName: "agent_commissions_agent_id_fkey"
             columns: ["agent_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "agent_commissions_deal_id_fkey"
             columns: ["deal_id"]
-            isOneToOne: false
             referencedRelation: "deals"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "agent_commissions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_quality_logs: {
+        Row: {
+          ai_response: string
+          confidence: number | null
+          conversation_id: string
+          created_at: string | null
+          customer_message: string
+          detected_issues: string[] | null
+          id: string
+          intent: string | null
+          message_id: string | null
+          quality_score: number
+          requires_human_review: boolean | null
+          store_id: string
+        }
+        Insert: {
+          ai_response: string
+          confidence?: number | null
+          conversation_id: string
+          created_at?: string | null
+          customer_message: string
+          detected_issues?: string[] | null
+          id?: string
+          intent?: string | null
+          message_id?: string | null
+          quality_score: number
+          requires_human_review?: boolean | null
+          store_id: string
+        }
+        Update: {
+          ai_response?: string
+          confidence?: number | null
+          conversation_id?: string
+          created_at?: string | null
+          customer_message?: string
+          detected_issues?: string[] | null
+          id?: string
+          intent?: string | null
+          message_id?: string | null
+          quality_score?: number
+          requires_human_review?: boolean | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_quality_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_quality_logs_message_id_fkey"
+            columns: ["message_id"]
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_quality_logs_store_id_fkey"
+            columns: ["store_id"]
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -202,21 +278,18 @@ export type Database = {
           {
             foreignKeyName: "appointment_addons_appointment_id_fkey"
             columns: ["appointment_id"]
-            isOneToOne: false
             referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "appointment_addons_service_id_fkey"
             columns: ["service_id"]
-            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "appointment_addons_variation_id_fkey"
             columns: ["variation_id"]
-            isOneToOne: false
             referencedRelation: "service_variations"
             referencedColumns: ["id"]
           },
@@ -305,49 +378,42 @@ export type Database = {
           {
             foreignKeyName: "appointments_conversation_id_fkey"
             columns: ["conversation_id"]
-            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "appointments_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "appointments_resource_id_fkey"
             columns: ["resource_id"]
-            isOneToOne: false
             referencedRelation: "bookable_resources"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "appointments_service_id_fkey"
             columns: ["service_id"]
-            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "appointments_staff_id_fkey"
             columns: ["staff_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "appointments_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "appointments_variation_id_fkey"
             columns: ["variation_id"]
-            isOneToOne: false
             referencedRelation: "service_variations"
             referencedColumns: ["id"]
           },
@@ -394,14 +460,12 @@ export type Database = {
           {
             foreignKeyName: "attachments_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "attachments_uploaded_by_fkey"
             columns: ["uploaded_by"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -439,21 +503,18 @@ export type Database = {
           {
             foreignKeyName: "attendance_session_id_fkey"
             columns: ["session_id"]
-            isOneToOne: false
             referencedRelation: "course_sessions"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "attendance_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "attendance_student_id_fkey"
             columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -503,14 +564,12 @@ export type Database = {
           {
             foreignKeyName: "audit_logs_actor_id_fkey"
             columns: ["actor_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "audit_logs_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -548,21 +607,18 @@ export type Database = {
           {
             foreignKeyName: "bed_assignments_admission_id_fkey"
             columns: ["admission_id"]
-            isOneToOne: false
             referencedRelation: "admissions"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bed_assignments_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bed_assignments_unit_id_fkey"
             columns: ["unit_id"]
-            isOneToOne: false
             referencedRelation: "bookable_resources"
             referencedColumns: ["id"]
           },
@@ -621,14 +677,12 @@ export type Database = {
           {
             foreignKeyName: "billing_payments_invoice_id_fkey"
             columns: ["invoice_id"]
-            isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "billing_payments_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -678,21 +732,18 @@ export type Database = {
           {
             foreignKeyName: "blocks_resource_id_fkey"
             columns: ["resource_id"]
-            isOneToOne: false
             referencedRelation: "bookable_resources"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "blocks_staff_id_fkey"
             columns: ["staff_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "blocks_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -748,7 +799,6 @@ export type Database = {
           {
             foreignKeyName: "bookable_resources_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -807,43 +857,141 @@ export type Database = {
           {
             foreignKeyName: "booking_items_appointment_id_fkey"
             columns: ["appointment_id"]
-            isOneToOne: false
             referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "booking_items_resource_id_fkey"
             columns: ["resource_id"]
-            isOneToOne: false
             referencedRelation: "bookable_resources"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "booking_items_service_id_fkey"
             columns: ["service_id"]
-            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "booking_items_staff_id_fkey"
             columns: ["staff_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "booking_items_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "booking_items_variation_id_fkey"
             columns: ["variation_id"]
-            isOneToOne: false
             referencedRelation: "service_variations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_campaigns: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          failed_count: number | null
+          id: string
+          message_text: string
+          name: string
+          scheduled_at: string | null
+          sent_at: string | null
+          sent_count: number | null
+          status: string
+          store_id: string
+          target_audience: string
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          failed_count?: number | null
+          id?: string
+          message_text: string
+          name: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string
+          store_id: string
+          target_audience?: string
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          failed_count?: number | null
+          id?: string
+          message_text?: string
+          name?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string
+          store_id?: string
+          target_audience?: string
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_campaigns_store_id_fkey"
+            columns: ["store_id"]
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          customer_id: string
+          error_message: string | null
+          id: string
+          messenger_id: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          customer_id: string
+          error_message?: string | null
+          id?: string
+          messenger_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          customer_id?: string
+          error_message?: string | null
+          id?: string
+          messenger_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            referencedRelation: "broadcast_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_recipients_customer_id_fkey"
+            columns: ["customer_id"]
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -889,21 +1037,18 @@ export type Database = {
           {
             foreignKeyName: "case_documents_case_id_fkey"
             columns: ["case_id"]
-            isOneToOne: false
             referencedRelation: "legal_cases"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "case_documents_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "case_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
@@ -953,14 +1098,12 @@ export type Database = {
           {
             foreignKeyName: "case_events_case_id_fkey"
             columns: ["case_id"]
-            isOneToOne: false
             referencedRelation: "legal_cases"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "case_events_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1028,14 +1171,12 @@ export type Database = {
           {
             foreignKeyName: "catering_orders_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "catering_orders_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1070,7 +1211,6 @@ export type Database = {
           {
             foreignKeyName: "chat_messages_session_id_fkey"
             columns: ["session_id"]
-            isOneToOne: false
             referencedRelation: "chat_sessions"
             referencedColumns: ["id"]
           },
@@ -1099,7 +1239,6 @@ export type Database = {
           {
             foreignKeyName: "chat_sessions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1143,21 +1282,18 @@ export type Database = {
           {
             foreignKeyName: "class_bookings_class_id_fkey"
             columns: ["class_id"]
-            isOneToOne: false
             referencedRelation: "fitness_classes"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "class_bookings_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "class_bookings_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1207,21 +1343,18 @@ export type Database = {
           {
             foreignKeyName: "client_preferences_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "client_preferences_preferred_staff_id_fkey"
             columns: ["preferred_staff_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "client_preferences_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1304,7 +1437,6 @@ export type Database = {
           {
             foreignKeyName: "comment_auto_rules_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1366,14 +1498,12 @@ export type Database = {
           {
             foreignKeyName: "comment_reply_logs_rule_id_fkey"
             columns: ["rule_id"]
-            isOneToOne: false
             referencedRelation: "comment_auto_rules"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "comment_reply_logs_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1429,7 +1559,6 @@ export type Database = {
           {
             foreignKeyName: "compensation_policies_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1491,21 +1620,18 @@ export type Database = {
           {
             foreignKeyName: "consultations_consultant_id_fkey"
             columns: ["consultant_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "consultations_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "consultations_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1522,6 +1648,9 @@ export type Database = {
           escalation_score: number
           id: string
           metadata: Json
+          operator_id: string | null
+          operator_mode: boolean | null
+          operator_mode_at: string | null
           status: string | null
           store_id: string
           unread_count: number | null
@@ -1537,6 +1666,9 @@ export type Database = {
           escalation_score?: number
           id?: string
           metadata?: Json
+          operator_id?: string | null
+          operator_mode?: boolean | null
+          operator_mode_at?: string | null
           status?: string | null
           store_id: string
           unread_count?: number | null
@@ -1552,6 +1684,9 @@ export type Database = {
           escalation_score?: number
           id?: string
           metadata?: Json
+          operator_id?: string | null
+          operator_mode?: boolean | null
+          operator_mode_at?: string | null
           status?: string | null
           store_id?: string
           unread_count?: number | null
@@ -1561,21 +1696,18 @@ export type Database = {
           {
             foreignKeyName: "conversations_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "conversations_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "conversations_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1625,21 +1757,18 @@ export type Database = {
           {
             foreignKeyName: "course_sessions_instructor_id_fkey"
             columns: ["instructor_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "course_sessions_program_id_fkey"
             columns: ["program_id"]
-            isOneToOne: false
             referencedRelation: "programs"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "course_sessions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1692,7 +1821,6 @@ export type Database = {
           {
             foreignKeyName: "coworking_spaces_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1739,7 +1867,61 @@ export type Database = {
           {
             foreignKeyName: "crew_members_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_interactions: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          id: string
+          interaction_type: string
+          related_order_id: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          store_id: string
+          summary: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          interaction_type: string
+          related_order_id?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          store_id: string
+          summary?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          interaction_type?: string
+          related_order_id?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          store_id?: string
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_related_order_id_fkey"
+            columns: ["related_order_id"]
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_store_id_fkey"
+            columns: ["store_id"]
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1786,21 +1968,70 @@ export type Database = {
           {
             foreignKeyName: "customer_memberships_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "customer_memberships_membership_id_fkey"
             columns: ["membership_id"]
-            isOneToOne: false
             referencedRelation: "memberships"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "customer_memberships_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_preferences: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          customer_id: string
+          id: string
+          preference_key: string
+          preference_type: string
+          preference_value: string | null
+          source: string | null
+          store_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          preference_key: string
+          preference_type: string
+          preference_value?: string | null
+          source?: string | null
+          store_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          preference_key?: string
+          preference_type?: string
+          preference_value?: string | null
+          source?: string | null
+          store_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_preferences_customer_id_fkey"
+            columns: ["customer_id"]
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_preferences_store_id_fkey"
+            columns: ["store_id"]
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1809,9 +2040,12 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          age_range: string | null
+          birthday: string | null
           channel: string | null
           created_at: string | null
           email: string | null
+          gender: string | null
           id: string
           instagram_id: string | null
           messenger_id: string | null
@@ -1819,14 +2053,20 @@ export type Database = {
           name: string | null
           notes: string | null
           phone: string | null
+          preferred_language: string | null
+          preferred_size: string | null
           store_id: string
+          updated_at: string | null
           whatsapp_id: string | null
         }
         Insert: {
           address?: string | null
+          age_range?: string | null
+          birthday?: string | null
           channel?: string | null
           created_at?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           instagram_id?: string | null
           messenger_id?: string | null
@@ -1834,14 +2074,20 @@ export type Database = {
           name?: string | null
           notes?: string | null
           phone?: string | null
+          preferred_language?: string | null
+          preferred_size?: string | null
           store_id: string
+          updated_at?: string | null
           whatsapp_id?: string | null
         }
         Update: {
           address?: string | null
+          age_range?: string | null
+          birthday?: string | null
           channel?: string | null
           created_at?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           instagram_id?: string | null
           messenger_id?: string | null
@@ -1849,14 +2095,16 @@ export type Database = {
           name?: string | null
           notes?: string | null
           phone?: string | null
+          preferred_language?: string | null
+          preferred_size?: string | null
           store_id?: string
+          updated_at?: string | null
           whatsapp_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "customers_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1903,21 +2151,18 @@ export type Database = {
           {
             foreignKeyName: "daily_logs_author_id_fkey"
             columns: ["author_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "daily_logs_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "daily_logs_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1973,28 +2218,24 @@ export type Database = {
           {
             foreignKeyName: "damage_reports_guest_id_fkey"
             columns: ["guest_id"]
-            isOneToOne: false
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "damage_reports_reservation_id_fkey"
             columns: ["reservation_id"]
-            isOneToOne: false
             referencedRelation: "reservations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "damage_reports_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "damage_reports_unit_id_fkey"
             columns: ["unit_id"]
-            isOneToOne: false
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
@@ -2086,28 +2327,24 @@ export type Database = {
           {
             foreignKeyName: "deals_agent_id_fkey"
             columns: ["agent_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deals_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deals_property_id_fkey"
             columns: ["property_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deals_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2124,6 +2361,7 @@ export type Database = {
           delivery_fee: number | null
           delivery_number: string
           delivery_type: string
+          denial_info: Json | null
           driver_id: string | null
           estimated_delivery_time: string | null
           failure_reason: string | null
@@ -2151,6 +2389,7 @@ export type Database = {
           delivery_fee?: number | null
           delivery_number: string
           delivery_type?: string
+          denial_info?: Json | null
           driver_id?: string | null
           estimated_delivery_time?: string | null
           failure_reason?: string | null
@@ -2178,6 +2417,7 @@ export type Database = {
           delivery_fee?: number | null
           delivery_number?: string
           delivery_type?: string
+          denial_info?: Json | null
           driver_id?: string | null
           estimated_delivery_time?: string | null
           failure_reason?: string | null
@@ -2199,21 +2439,18 @@ export type Database = {
           {
             foreignKeyName: "deliveries_driver_id_fkey"
             columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "delivery_drivers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deliveries_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deliveries_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2224,6 +2461,7 @@ export type Database = {
           avg_rating: number | null
           created_at: string | null
           current_location: Json | null
+          delivery_zones: string[]
           email: string | null
           id: string
           metadata: Json | null
@@ -2232,6 +2470,8 @@ export type Database = {
           rating_count: number | null
           status: string
           store_id: string
+          telegram_chat_id: number | null
+          telegram_linked_at: string | null
           updated_at: string | null
           user_id: string | null
           vehicle_number: string | null
@@ -2241,6 +2481,7 @@ export type Database = {
           avg_rating?: number | null
           created_at?: string | null
           current_location?: Json | null
+          delivery_zones?: string[]
           email?: string | null
           id?: string
           metadata?: Json | null
@@ -2249,6 +2490,8 @@ export type Database = {
           rating_count?: number | null
           status?: string
           store_id: string
+          telegram_chat_id?: number | null
+          telegram_linked_at?: string | null
           updated_at?: string | null
           user_id?: string | null
           vehicle_number?: string | null
@@ -2258,6 +2501,7 @@ export type Database = {
           avg_rating?: number | null
           created_at?: string | null
           current_location?: Json | null
+          delivery_zones?: string[]
           email?: string | null
           id?: string
           metadata?: Json | null
@@ -2266,6 +2510,8 @@ export type Database = {
           rating_count?: number | null
           status?: string
           store_id?: string
+          telegram_chat_id?: number | null
+          telegram_linked_at?: string | null
           updated_at?: string | null
           user_id?: string | null
           vehicle_number?: string | null
@@ -2275,14 +2521,12 @@ export type Database = {
           {
             foreignKeyName: "delivery_drivers_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "delivery_drivers_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -2320,7 +2564,6 @@ export type Database = {
           {
             foreignKeyName: "delivery_status_log_delivery_id_fkey"
             columns: ["delivery_id"]
-            isOneToOne: false
             referencedRelation: "deliveries"
             referencedColumns: ["id"]
           },
@@ -2373,21 +2616,18 @@ export type Database = {
           {
             foreignKeyName: "desk_bookings_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "desk_bookings_space_id_fkey"
             columns: ["space_id"]
-            isOneToOne: false
             referencedRelation: "coworking_spaces"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "desk_bookings_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2425,14 +2665,12 @@ export type Database = {
           {
             foreignKeyName: "driver_messages_driver_id_fkey"
             columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "delivery_drivers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "driver_messages_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2485,14 +2723,12 @@ export type Database = {
           {
             foreignKeyName: "driver_payouts_driver_id_fkey"
             columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "delivery_drivers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "driver_payouts_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2533,21 +2769,18 @@ export type Database = {
           {
             foreignKeyName: "driver_ratings_delivery_id_fkey"
             columns: ["delivery_id"]
-            isOneToOne: true
             referencedRelation: "deliveries"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "driver_ratings_driver_id_fkey"
             columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "delivery_drivers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "driver_ratings_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2579,14 +2812,12 @@ export type Database = {
           {
             foreignKeyName: "driver_store_assignments_driver_id_fkey"
             columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "delivery_drivers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "driver_store_assignments_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2651,21 +2882,18 @@ export type Database = {
           {
             foreignKeyName: "encounters_patient_id_fkey"
             columns: ["patient_id"]
-            isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "encounters_provider_id_fkey"
             columns: ["provider_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "encounters_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2715,21 +2943,18 @@ export type Database = {
           {
             foreignKeyName: "enrollments_program_id_fkey"
             columns: ["program_id"]
-            isOneToOne: false
             referencedRelation: "programs"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "enrollments_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "enrollments_student_id_fkey"
             columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -2785,7 +3010,6 @@ export type Database = {
           {
             foreignKeyName: "equipment_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2865,21 +3089,18 @@ export type Database = {
           {
             foreignKeyName: "event_bookings_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "event_bookings_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "event_bookings_venue_resource_id_fkey"
             columns: ["venue_resource_id"]
-            isOneToOne: false
             referencedRelation: "bookable_resources"
             referencedColumns: ["id"]
           },
@@ -2920,14 +3141,12 @@ export type Database = {
           {
             foreignKeyName: "event_timeline_event_booking_id_fkey"
             columns: ["event_booking_id"]
-            isOneToOne: false
             referencedRelation: "event_bookings"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "event_timeline_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2980,14 +3199,12 @@ export type Database = {
           {
             foreignKeyName: "fitness_classes_instructor_id_fkey"
             columns: ["instructor_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fitness_classes_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3049,14 +3266,12 @@ export type Database = {
           {
             foreignKeyName: "fleet_vehicles_driver_id_fkey"
             columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fleet_vehicles_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3106,21 +3321,18 @@ export type Database = {
           {
             foreignKeyName: "flow_execution_logs_conversation_id_fkey"
             columns: ["conversation_id"]
-            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "flow_execution_logs_flow_id_fkey"
             columns: ["flow_id"]
-            isOneToOne: false
             referencedRelation: "flows"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "flow_execution_logs_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3191,8 +3403,77 @@ export type Database = {
           {
             foreignKeyName: "flows_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_card_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          from_customer_id: string | null
+          gift_card_id: string
+          id: string
+          note: string | null
+          order_id: string | null
+          store_id: string
+          to_customer_id: string | null
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          from_customer_id?: string | null
+          gift_card_id: string
+          id?: string
+          note?: string | null
+          order_id?: string | null
+          store_id: string
+          to_customer_id?: string | null
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          from_customer_id?: string | null
+          gift_card_id?: string
+          id?: string
+          note?: string | null
+          order_id?: string | null
+          store_id?: string
+          to_customer_id?: string | null
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_card_transactions_from_customer_id_fkey"
+            columns: ["from_customer_id"]
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_card_transactions_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            referencedRelation: "gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_card_transactions_order_id_fkey"
+            columns: ["order_id"]
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_card_transactions_store_id_fkey"
+            columns: ["store_id"]
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_card_transactions_to_customer_id_fkey"
+            columns: ["to_customer_id"]
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -3206,8 +3487,11 @@ export type Database = {
           expires_at: string | null
           id: string
           initial_balance: number
+          purchased_via: string | null
+          recipient_contact: string | null
           status: string | null
           store_id: string
+          transferred_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3218,8 +3502,11 @@ export type Database = {
           expires_at?: string | null
           id?: string
           initial_balance: number
+          purchased_via?: string | null
+          recipient_contact?: string | null
           status?: string | null
           store_id: string
+          transferred_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3230,22 +3517,23 @@ export type Database = {
           expires_at?: string | null
           id?: string
           initial_balance?: number
+          purchased_via?: string | null
+          recipient_contact?: string | null
           status?: string | null
           store_id?: string
+          transferred_at?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "gift_cards_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "gift_cards_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3292,14 +3580,12 @@ export type Database = {
           {
             foreignKeyName: "grades_enrollment_id_fkey"
             columns: ["enrollment_id"]
-            isOneToOne: false
             referencedRelation: "enrollments"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "grades_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3358,14 +3644,12 @@ export type Database = {
           {
             foreignKeyName: "guests_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "guests_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3418,21 +3702,18 @@ export type Database = {
           {
             foreignKeyName: "housekeeping_tasks_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "housekeeping_tasks_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "housekeeping_tasks_unit_id_fkey"
             columns: ["unit_id"]
-            isOneToOne: false
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
@@ -3482,14 +3763,12 @@ export type Database = {
           {
             foreignKeyName: "inspections_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inspections_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3533,14 +3812,12 @@ export type Database = {
           {
             foreignKeyName: "inventory_locations_parent_id_fkey"
             columns: ["parent_id"]
-            isOneToOne: false
             referencedRelation: "inventory_locations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inventory_locations_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3593,28 +3870,24 @@ export type Database = {
           {
             foreignKeyName: "inventory_movements_location_id_fkey"
             columns: ["location_id"]
-            isOneToOne: false
             referencedRelation: "inventory_locations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inventory_movements_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inventory_movements_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inventory_movements_variant_id_fkey"
             columns: ["variant_id"]
-            isOneToOne: false
             referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
@@ -3667,7 +3940,6 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_invoice_id_fkey"
             columns: ["invoice_id"]
-            isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
@@ -3747,7 +4019,6 @@ export type Database = {
           {
             foreignKeyName: "invoices_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3788,7 +4059,6 @@ export type Database = {
           {
             foreignKeyName: "kds_stations_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3841,28 +4111,24 @@ export type Database = {
           {
             foreignKeyName: "kds_tickets_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "kds_tickets_station_id_fkey"
             columns: ["station_id"]
-            isOneToOne: false
             referencedRelation: "kds_stations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "kds_tickets_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "kds_tickets_table_session_id_fkey"
             columns: ["table_session_id"]
-            isOneToOne: false
             referencedRelation: "table_sessions"
             referencedColumns: ["id"]
           },
@@ -3924,28 +4190,24 @@ export type Database = {
           {
             foreignKeyName: "lab_orders_encounter_id_fkey"
             columns: ["encounter_id"]
-            isOneToOne: false
             referencedRelation: "encounters"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "lab_orders_ordered_by_fkey"
             columns: ["ordered_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "lab_orders_patient_id_fkey"
             columns: ["patient_id"]
-            isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "lab_orders_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -3998,21 +4260,18 @@ export type Database = {
           {
             foreignKeyName: "lab_results_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
             referencedRelation: "lab_orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "lab_results_reviewed_by_fkey"
             columns: ["reviewed_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "lab_results_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4053,7 +4312,6 @@ export type Database = {
           {
             foreignKeyName: "laundry_items_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
             referencedRelation: "laundry_orders"
             referencedColumns: ["id"]
           },
@@ -4109,14 +4367,12 @@ export type Database = {
           {
             foreignKeyName: "laundry_orders_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "laundry_orders_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4175,14 +4431,12 @@ export type Database = {
           {
             foreignKeyName: "leases_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "leases_unit_id_fkey"
             columns: ["unit_id"]
-            isOneToOne: false
             referencedRelation: "bookable_resources"
             referencedColumns: ["id"]
           },
@@ -4253,21 +4507,18 @@ export type Database = {
           {
             foreignKeyName: "legal_cases_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "legal_cases_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "legal_cases_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4317,14 +4568,12 @@ export type Database = {
           {
             foreignKeyName: "legal_expenses_case_id_fkey"
             columns: ["case_id"]
-            isOneToOne: false
             referencedRelation: "legal_cases"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "legal_expenses_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4368,14 +4617,12 @@ export type Database = {
           {
             foreignKeyName: "loyalty_transactions_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "loyalty_transactions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4416,7 +4663,6 @@ export type Database = {
           {
             foreignKeyName: "machines_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4472,28 +4718,24 @@ export type Database = {
           {
             foreignKeyName: "maintenance_requests_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "maintenance_requests_reported_by_fkey"
             columns: ["reported_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "maintenance_requests_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "maintenance_requests_unit_id_fkey"
             columns: ["unit_id"]
-            isOneToOne: false
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
@@ -4543,14 +4785,12 @@ export type Database = {
           {
             foreignKeyName: "material_orders_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "material_orders_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4606,28 +4846,24 @@ export type Database = {
           {
             foreignKeyName: "medical_complaints_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "medical_complaints_encounter_id_fkey"
             columns: ["encounter_id"]
-            isOneToOne: false
             referencedRelation: "encounters"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "medical_complaints_patient_id_fkey"
             columns: ["patient_id"]
-            isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "medical_complaints_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4674,28 +4910,24 @@ export type Database = {
           {
             foreignKeyName: "medical_notes_author_id_fkey"
             columns: ["author_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "medical_notes_encounter_id_fkey"
             columns: ["encounter_id"]
-            isOneToOne: false
             referencedRelation: "encounters"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "medical_notes_patient_id_fkey"
             columns: ["patient_id"]
-            isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "medical_notes_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4742,7 +4974,6 @@ export type Database = {
           {
             foreignKeyName: "memberships_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4792,7 +5023,43 @@ export type Database = {
           {
             foreignKeyName: "menu_categories_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_pack_purchases: {
+        Row: {
+          created_at: string | null
+          id: string
+          pack_size: number
+          price: number
+          purchased_by: string | null
+          status: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          pack_size: number
+          price: number
+          purchased_by?: string | null
+          status?: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          pack_size?: number
+          price?: number
+          purchased_by?: string | null
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_pack_purchases_store_id_fkey"
+            columns: ["store_id"]
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4830,7 +5097,6 @@ export type Database = {
           {
             foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]
-            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
@@ -4877,7 +5143,6 @@ export type Database = {
           {
             foreignKeyName: "modifier_groups_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4918,7 +5183,6 @@ export type Database = {
           {
             foreignKeyName: "modifiers_group_id_fkey"
             columns: ["group_id"]
-            isOneToOne: false
             referencedRelation: "modifier_groups"
             referencedColumns: ["id"]
           },
@@ -4959,7 +5223,6 @@ export type Database = {
           {
             foreignKeyName: "notifications_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -4991,14 +5254,12 @@ export type Database = {
           {
             foreignKeyName: "order_item_modifiers_modifier_id_fkey"
             columns: ["modifier_id"]
-            isOneToOne: false
             referencedRelation: "modifiers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "order_item_modifiers_order_item_id_fkey"
             columns: ["order_item_id"]
-            isOneToOne: false
             referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
@@ -5039,21 +5300,18 @@ export type Database = {
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "order_items_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "order_items_variant_id_fkey"
             columns: ["variant_id"]
-            isOneToOne: false
             referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
@@ -5124,21 +5382,18 @@ export type Database = {
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "orders_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "orders_table_session_id_fkey"
             columns: ["table_session_id"]
-            isOneToOne: false
             referencedRelation: "table_sessions"
             referencedColumns: ["id"]
           },
@@ -5191,21 +5446,18 @@ export type Database = {
           {
             foreignKeyName: "package_purchases_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "package_purchases_package_id_fkey"
             columns: ["package_id"]
-            isOneToOne: false
             referencedRelation: "service_packages"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "package_purchases_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5234,14 +5486,12 @@ export type Database = {
           {
             foreignKeyName: "package_services_package_id_fkey"
             columns: ["package_id"]
-            isOneToOne: false
             referencedRelation: "service_packages"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "package_services_service_id_fkey"
             columns: ["service_id"]
-            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
@@ -5306,14 +5556,12 @@ export type Database = {
           {
             foreignKeyName: "patients_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "patients_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5345,15 +5593,56 @@ export type Database = {
           {
             foreignKeyName: "payment_allocations_invoice_id_fkey"
             columns: ["invoice_id"]
-            isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "payment_allocations_payment_id_fkey"
             columns: ["payment_id"]
-            isOneToOne: false
             referencedRelation: "billing_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_invites: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          permissions: Json | null
+          role: string
+          store_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          permissions?: Json | null
+          role?: string
+          store_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          permissions?: Json | null
+          role?: string
+          store_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_invites_store_id_fkey"
+            columns: ["store_id"]
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -5405,14 +5694,12 @@ export type Database = {
           {
             foreignKeyName: "permits_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "permits_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5465,28 +5752,24 @@ export type Database = {
           {
             foreignKeyName: "pet_appointments_pet_id_fkey"
             columns: ["pet_id"]
-            isOneToOne: false
             referencedRelation: "pets"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pet_appointments_service_id_fkey"
             columns: ["service_id"]
-            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pet_appointments_staff_id_fkey"
             columns: ["staff_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pet_appointments_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5542,14 +5825,12 @@ export type Database = {
           {
             foreignKeyName: "pets_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pets_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5605,14 +5886,12 @@ export type Database = {
           {
             foreignKeyName: "photo_galleries_session_id_fkey"
             columns: ["session_id"]
-            isOneToOne: false
             referencedRelation: "photo_sessions"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "photo_galleries_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5671,21 +5950,18 @@ export type Database = {
           {
             foreignKeyName: "photo_sessions_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "photo_sessions_photographer_id_fkey"
             columns: ["photographer_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "photo_sessions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5744,21 +6020,18 @@ export type Database = {
           {
             foreignKeyName: "pos_sessions_closed_by_fkey"
             columns: ["closed_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pos_sessions_opened_by_fkey"
             columns: ["opened_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pos_sessions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5799,7 +6072,6 @@ export type Database = {
           {
             foreignKeyName: "prescription_items_prescription_id_fkey"
             columns: ["prescription_id"]
-            isOneToOne: false
             referencedRelation: "prescriptions"
             referencedColumns: ["id"]
           },
@@ -5849,35 +6121,30 @@ export type Database = {
           {
             foreignKeyName: "prescriptions_dispensed_by_fkey"
             columns: ["dispensed_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "prescriptions_encounter_id_fkey"
             columns: ["encounter_id"]
-            isOneToOne: false
             referencedRelation: "encounters"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "prescriptions_patient_id_fkey"
             columns: ["patient_id"]
-            isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "prescriptions_prescribed_by_fkey"
             columns: ["prescribed_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "prescriptions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -5906,14 +6173,12 @@ export type Database = {
           {
             foreignKeyName: "product_modifier_groups_modifier_group_id_fkey"
             columns: ["modifier_group_id"]
-            isOneToOne: false
             referencedRelation: "modifier_groups"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "product_modifier_groups_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -5954,7 +6219,6 @@ export type Database = {
           {
             foreignKeyName: "product_variants_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -6010,21 +6274,18 @@ export type Database = {
           {
             foreignKeyName: "production_batches_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "production_batches_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "production_batches_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6052,6 +6313,7 @@ export type Database = {
           is_vegan: boolean | null
           menu_category_id: string | null
           name: string
+          product_faqs: Json | null
           sales_script: string | null
           search_aliases: string[] | null
           sku: string | null
@@ -6083,6 +6345,7 @@ export type Database = {
           is_vegan?: boolean | null
           menu_category_id?: string | null
           name: string
+          product_faqs?: Json | null
           sales_script?: string | null
           search_aliases?: string[] | null
           sku?: string | null
@@ -6114,6 +6377,7 @@ export type Database = {
           is_vegan?: boolean | null
           menu_category_id?: string | null
           name?: string
+          product_faqs?: Json | null
           sales_script?: string | null
           search_aliases?: string[] | null
           sku?: string | null
@@ -6128,14 +6392,12 @@ export type Database = {
           {
             foreignKeyName: "products_menu_category_id_fkey"
             columns: ["menu_category_id"]
-            isOneToOne: false
             referencedRelation: "menu_categories"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "products_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6185,7 +6447,6 @@ export type Database = {
           {
             foreignKeyName: "programs_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6247,21 +6508,18 @@ export type Database = {
           {
             foreignKeyName: "project_tasks_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "project_tasks_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "project_tasks_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6332,21 +6590,18 @@ export type Database = {
           {
             foreignKeyName: "projects_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "projects_manager_id_fkey"
             columns: ["manager_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "projects_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6420,7 +6675,6 @@ export type Database = {
           {
             foreignKeyName: "promotions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6461,21 +6715,18 @@ export type Database = {
           {
             foreignKeyName: "purchase_order_items_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "purchase_order_items_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
-            isOneToOne: false
             referencedRelation: "purchase_orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "purchase_order_items_variant_id_fkey"
             columns: ["variant_id"]
-            isOneToOne: false
             referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
@@ -6525,14 +6776,12 @@ export type Database = {
           {
             foreignKeyName: "purchase_orders_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
             columns: ["supplier_id"]
-            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -6597,14 +6846,12 @@ export type Database = {
           {
             foreignKeyName: "rack_locations_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
             referencedRelation: "laundry_orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "rack_locations_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6660,7 +6907,6 @@ export type Database = {
           {
             foreignKeyName: "rate_plans_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6749,21 +6995,18 @@ export type Database = {
           {
             foreignKeyName: "repair_orders_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "repair_orders_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "repair_orders_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6807,14 +7050,12 @@ export type Database = {
           {
             foreignKeyName: "repair_parts_repair_order_id_fkey"
             columns: ["repair_order_id"]
-            isOneToOne: false
             referencedRelation: "repair_orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "repair_parts_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -6888,21 +7129,18 @@ export type Database = {
           {
             foreignKeyName: "reservations_guest_id_fkey"
             columns: ["guest_id"]
-            isOneToOne: false
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "reservations_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "reservations_unit_id_fkey"
             columns: ["unit_id"]
-            isOneToOne: false
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
@@ -6946,21 +7184,18 @@ export type Database = {
           {
             foreignKeyName: "retainers_case_id_fkey"
             columns: ["case_id"]
-            isOneToOne: false
             referencedRelation: "legal_cases"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "retainers_client_id_fkey"
             columns: ["client_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "retainers_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7007,28 +7242,24 @@ export type Database = {
           {
             foreignKeyName: "return_items_order_item_id_fkey"
             columns: ["order_item_id"]
-            isOneToOne: false
             referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "return_items_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "return_items_return_id_fkey"
             columns: ["return_id"]
-            isOneToOne: false
             referencedRelation: "return_requests"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "return_items_variant_id_fkey"
             columns: ["variant_id"]
-            isOneToOne: false
             referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
@@ -7099,28 +7330,24 @@ export type Database = {
           {
             foreignKeyName: "return_requests_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "return_requests_handled_by_user_id_fkey"
             columns: ["handled_by_user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "return_requests_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "return_requests_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7161,7 +7388,6 @@ export type Database = {
           {
             foreignKeyName: "service_areas_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7208,7 +7434,6 @@ export type Database = {
           {
             foreignKeyName: "service_packages_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7276,21 +7501,18 @@ export type Database = {
           {
             foreignKeyName: "service_requests_assigned_to_fkey"
             columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "service_requests_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "service_requests_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7331,7 +7553,6 @@ export type Database = {
           {
             foreignKeyName: "service_variations_service_id_fkey"
             columns: ["service_id"]
-            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
@@ -7390,7 +7611,6 @@ export type Database = {
           {
             foreignKeyName: "services_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7449,14 +7669,12 @@ export type Database = {
           {
             foreignKeyName: "staff_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "staff_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -7509,21 +7727,18 @@ export type Database = {
           {
             foreignKeyName: "staff_commissions_appointment_id_fkey"
             columns: ["appointment_id"]
-            isOneToOne: false
             referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "staff_commissions_staff_id_fkey"
             columns: ["staff_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "staff_commissions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7567,28 +7782,24 @@ export type Database = {
           {
             foreignKeyName: "stock_transfers_from_location_id_fkey"
             columns: ["from_location_id"]
-            isOneToOne: false
             referencedRelation: "inventory_locations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stock_transfers_initiated_by_fkey"
             columns: ["initiated_by"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stock_transfers_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stock_transfers_to_location_id_fkey"
             columns: ["to_location_id"]
-            isOneToOne: false
             referencedRelation: "inventory_locations"
             referencedColumns: ["id"]
           },
@@ -7620,7 +7831,6 @@ export type Database = {
           {
             foreignKeyName: "store_closures_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7655,59 +7865,53 @@ export type Database = {
           {
             foreignKeyName: "store_hours_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
       }
-      pending_invites: {
+      store_knowledge_base: {
         Row: {
+          answer: string
+          category: string | null
+          created_at: string | null
+          created_by: string | null
           id: string
+          is_active: boolean | null
+          keywords: string[] | null
+          question: string
           store_id: string
-          email: string
-          role: string
-          permissions: Record<string, boolean>
-          token: string
-          invited_by: string
-          expires_at: string
-          created_at: string
+          updated_at: string | null
         }
         Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
           id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          question: string
           store_id: string
-          email: string
-          role?: string
-          permissions?: Record<string, boolean>
-          token: string
-          invited_by: string
-          expires_at?: string
-          created_at?: string
+          updated_at?: string | null
         }
         Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
           id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          question?: string
           store_id?: string
-          email?: string
-          role?: string
-          permissions?: Record<string, boolean>
-          token?: string
-          invited_by?: string
-          expires_at?: string
-          created_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "pending_invites_store_id_fkey"
+            foreignKeyName: "store_knowledge_base_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_invites_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -7716,45 +7920,43 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          notification_preferences: Json | null
+          permissions: Json | null
           role: string | null
-          permissions: Record<string, boolean> | null
-          telegram_chat_id: string | null
-          notification_preferences: Record<string, boolean> | null
           store_id: string
+          telegram_chat_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
+          notification_preferences?: Json | null
+          permissions?: Json | null
           role?: string | null
-          permissions?: Record<string, boolean> | null
-          telegram_chat_id?: string | null
-          notification_preferences?: Record<string, boolean> | null
           store_id: string
+          telegram_chat_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
+          notification_preferences?: Json | null
+          permissions?: Json | null
           role?: string | null
-          permissions?: Record<string, boolean> | null
-          telegram_chat_id?: string | null
-          notification_preferences?: Record<string, boolean> | null
           store_id?: string
+          telegram_chat_id?: string | null
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "store_members_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "store_members_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -7795,14 +7997,12 @@ export type Database = {
           {
             foreignKeyName: "store_subscriptions_plan_id_fkey"
             columns: ["plan_id"]
-            isOneToOne: false
             referencedRelation: "subscription_plans"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "store_subscriptions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -7833,6 +8033,9 @@ export type Database = {
           instagram_connected_at: string | null
           instagram_page_name: string | null
           logo_url: string | null
+          messages_reset_at: string | null
+          messages_used: number | null
+          monthly_message_limit: number | null
           name: string
           owner_id: string
           payment_settings: Json | null
@@ -7870,6 +8073,9 @@ export type Database = {
           instagram_connected_at?: string | null
           instagram_page_name?: string | null
           logo_url?: string | null
+          messages_reset_at?: string | null
+          messages_used?: number | null
+          monthly_message_limit?: number | null
           name: string
           owner_id: string
           payment_settings?: Json | null
@@ -7907,6 +8113,9 @@ export type Database = {
           instagram_connected_at?: string | null
           instagram_page_name?: string | null
           logo_url?: string | null
+          messages_reset_at?: string | null
+          messages_used?: number | null
+          monthly_message_limit?: number | null
           name?: string
           owner_id?: string
           payment_settings?: Json | null
@@ -7924,7 +8133,6 @@ export type Database = {
           {
             foreignKeyName: "stores_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -7980,14 +8188,12 @@ export type Database = {
           {
             foreignKeyName: "students_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "students_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -8031,28 +8237,24 @@ export type Database = {
           {
             foreignKeyName: "subscription_items_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "subscription_items_service_id_fkey"
             columns: ["service_id"]
-            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "subscription_items_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "subscription_items_subscription_id_fkey"
             columns: ["subscription_id"]
-            isOneToOne: false
             referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
@@ -8141,14 +8343,12 @@ export type Database = {
           {
             foreignKeyName: "subscriptions_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "subscriptions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -8198,7 +8398,6 @@ export type Database = {
           {
             foreignKeyName: "suppliers_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -8257,7 +8456,6 @@ export type Database = {
           {
             foreignKeyName: "table_layouts_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -8313,21 +8511,18 @@ export type Database = {
           {
             foreignKeyName: "table_reservations_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "table_reservations_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "table_reservations_table_id_fkey"
             columns: ["table_id"]
-            isOneToOne: false
             referencedRelation: "table_layouts"
             referencedColumns: ["id"]
           },
@@ -8377,21 +8572,18 @@ export type Database = {
           {
             foreignKeyName: "table_sessions_server_id_fkey"
             columns: ["server_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "table_sessions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "table_sessions_table_id_fkey"
             columns: ["table_id"]
-            isOneToOne: false
             referencedRelation: "table_layouts"
             referencedColumns: ["id"]
           },
@@ -8441,21 +8633,18 @@ export type Database = {
           {
             foreignKeyName: "time_entries_case_id_fkey"
             columns: ["case_id"]
-            isOneToOne: false
             referencedRelation: "legal_cases"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "time_entries_staff_id_fkey"
             columns: ["staff_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "time_entries_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -8490,14 +8679,12 @@ export type Database = {
           {
             foreignKeyName: "transfer_items_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transfer_items_transfer_id_fkey"
             columns: ["transfer_id"]
-            isOneToOne: false
             referencedRelation: "stock_transfers"
             referencedColumns: ["id"]
           },
@@ -8550,14 +8737,12 @@ export type Database = {
           {
             foreignKeyName: "treatment_plans_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "treatment_plans_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -8604,21 +8789,18 @@ export type Database = {
           {
             foreignKeyName: "treatment_sessions_appointment_id_fkey"
             columns: ["appointment_id"]
-            isOneToOne: false
             referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "treatment_sessions_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "treatment_sessions_treatment_plan_id_fkey"
             columns: ["treatment_plan_id"]
-            isOneToOne: false
             referencedRelation: "treatment_plans"
             referencedColumns: ["id"]
           },
@@ -8674,22 +8856,77 @@ export type Database = {
           {
             foreignKeyName: "trip_logs_driver_id_fkey"
             columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "trip_logs_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "trip_logs_vehicle_id_fkey"
             columns: ["vehicle_id"]
-            isOneToOne: false
             referencedRelation: "fleet_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unanswered_questions: {
+        Row: {
+          ai_response: string | null
+          answered_at: string | null
+          conversation_id: string
+          created_at: string | null
+          customer_message: string
+          id: string
+          intent: string | null
+          knowledge_entry_id: string | null
+          status: string
+          store_id: string
+        }
+        Insert: {
+          ai_response?: string | null
+          answered_at?: string | null
+          conversation_id: string
+          created_at?: string | null
+          customer_message: string
+          id?: string
+          intent?: string | null
+          knowledge_entry_id?: string | null
+          status?: string
+          store_id: string
+        }
+        Update: {
+          ai_response?: string | null
+          answered_at?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          customer_message?: string
+          id?: string
+          intent?: string | null
+          knowledge_entry_id?: string | null
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_unanswered_knowledge"
+            columns: ["knowledge_entry_id"]
+            referencedRelation: "store_knowledge_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unanswered_questions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unanswered_questions_store_id_fkey"
+            columns: ["store_id"]
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -8744,14 +8981,12 @@ export type Database = {
           {
             foreignKeyName: "units_resource_id_fkey"
             columns: ["resource_id"]
-            isOneToOne: false
             referencedRelation: "bookable_resources"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "units_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -8843,14 +9078,12 @@ export type Database = {
           {
             foreignKeyName: "vehicles_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "vehicles_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -8909,21 +9142,18 @@ export type Database = {
           {
             foreignKeyName: "venue_bookings_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "venue_bookings_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "venue_bookings_venue_id_fkey"
             columns: ["venue_id"]
-            isOneToOne: false
             referencedRelation: "venues"
             referencedColumns: ["id"]
           },
@@ -8976,7 +9206,6 @@ export type Database = {
           {
             foreignKeyName: "venues_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -9053,35 +9282,30 @@ export type Database = {
           {
             foreignKeyName: "vouchers_conversation_id_fkey"
             columns: ["conversation_id"]
-            isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "vouchers_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "vouchers_policy_id_fkey"
             columns: ["policy_id"]
-            isOneToOne: false
             referencedRelation: "compensation_policies"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "vouchers_redeemed_order_id_fkey"
             columns: ["redeemed_order_id"]
-            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "vouchers_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -9140,21 +9364,18 @@ export type Database = {
           {
             foreignKeyName: "wash_orders_customer_id_fkey"
             columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wash_orders_store_id_fkey"
             columns: ["store_id"]
-            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wash_orders_vehicle_id_fkey"
             columns: ["vehicle_id"]
-            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
@@ -9190,11 +9411,551 @@ export type Database = {
       reset_daily_sold_counters: { Args: never; Returns: undefined }
       save_facebook_connection: { Args: { payload: Json }; Returns: Json }
       save_instagram_connection: { Args: { payload: Json }; Returns: Json }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
+      search_products_fuzzy: {
+        Args: {
+          p_limit?: number
+          p_query: string
+          p_store_id: string
+          p_threshold?: number
+        }
+        Returns: {
+          base_price: number
+          category: string
+          description: string
+          id: string
+          name: string
+          similarity_score: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  storage: {
+    Tables: {
+      buckets: {
+        Row: {
+          allowed_mime_types: string[] | null
+          avif_autodetection: boolean | null
+          created_at: string | null
+          file_size_limit: number | null
+          id: string
+          name: string
+          owner: string | null
+          owner_id: string | null
+          public: boolean | null
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id: string
+          name: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id?: string
+          name?: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      buckets_analytics: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          format: string
+          id: string
+          name: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      buckets_vectors: {
+        Row: {
+          created_at: string
+          id: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      iceberg_namespaces: {
+        Row: {
+          bucket_name: string
+          catalog_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_name: string
+          catalog_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_name?: string
+          catalog_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iceberg_namespaces_catalog_id_fkey"
+            columns: ["catalog_id"]
+            referencedRelation: "buckets_analytics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      iceberg_tables: {
+        Row: {
+          bucket_name: string
+          catalog_id: string
+          created_at: string
+          id: string
+          location: string
+          name: string
+          namespace_id: string
+          remote_table_id: string | null
+          shard_id: string | null
+          shard_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          bucket_name: string
+          catalog_id: string
+          created_at?: string
+          id?: string
+          location: string
+          name: string
+          namespace_id: string
+          remote_table_id?: string | null
+          shard_id?: string | null
+          shard_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bucket_name?: string
+          catalog_id?: string
+          created_at?: string
+          id?: string
+          location?: string
+          name?: string
+          namespace_id?: string
+          remote_table_id?: string | null
+          shard_id?: string | null
+          shard_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iceberg_tables_catalog_id_fkey"
+            columns: ["catalog_id"]
+            referencedRelation: "buckets_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iceberg_tables_namespace_id_fkey"
+            columns: ["namespace_id"]
+            referencedRelation: "iceberg_namespaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      migrations: {
+        Row: {
+          executed_at: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Insert: {
+          executed_at?: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Update: {
+          executed_at?: string | null
+          hash?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      objects: {
+        Row: {
+          bucket_id: string | null
+          created_at: string | null
+          id: string
+          last_accessed_at: string | null
+          metadata: Json | null
+          name: string | null
+          owner: string | null
+          owner_id: string | null
+          path_tokens: string[] | null
+          updated_at: string | null
+          user_metadata: Json | null
+          version: string | null
+        }
+        Insert: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Update: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objects_bucketId_fkey"
+            columns: ["bucket_id"]
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s3_multipart_uploads: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          id: string
+          in_progress_size: number
+          key: string
+          owner_id: string | null
+          upload_signature: string
+          user_metadata: Json | null
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          id: string
+          in_progress_size?: number
+          key: string
+          owner_id?: string | null
+          upload_signature: string
+          user_metadata?: Json | null
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          id?: string
+          in_progress_size?: number
+          key?: string
+          owner_id?: string | null
+          upload_signature?: string
+          user_metadata?: Json | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
+            columns: ["bucket_id"]
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s3_multipart_uploads_parts: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          etag: string
+          id: string
+          key: string
+          owner_id: string | null
+          part_number: number
+          size: number
+          upload_id: string
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          etag: string
+          id?: string
+          key: string
+          owner_id?: string | null
+          part_number: number
+          size?: number
+          upload_id: string
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          etag?: string
+          id?: string
+          key?: string
+          owner_id?: string | null
+          part_number?: number
+          size?: number
+          upload_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
+            columns: ["bucket_id"]
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
+            columns: ["upload_id"]
+            referencedRelation: "s3_multipart_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vector_indexes: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id: string
+          metadata_configuration: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id?: string
+          metadata_configuration?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          data_type?: string
+          dimension?: number
+          distance_metric?: string
+          id?: string
+          metadata_configuration?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vector_indexes_bucket_id_fkey"
+            columns: ["bucket_id"]
+            referencedRelation: "buckets_vectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      can_insert_object: {
+        Args: { bucketid: string; metadata: Json; name: string; owner: string }
+        Returns: undefined
+      }
+      extension: { Args: { name: string }; Returns: string }
+      filename: { Args: { name: string }; Returns: string }
+      foldername: { Args: { name: string }; Returns: string[] }
+      get_common_prefix: {
+        Args: { p_delimiter: string; p_key: string; p_prefix: string }
+        Returns: string
+      }
+      get_size_by_bucket: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          size: number
+        }[]
+      }
+      list_multipart_uploads_with_delimiter: {
+        Args: {
+          bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_key_token?: string
+          next_upload_token?: string
+          prefix_param: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+        }[]
+      }
+      list_objects_with_delimiter: {
+        Args: {
+          _bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_token?: string
+          prefix_param: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      operation: { Args: never; Returns: string }
+      search: {
+        Args: {
+          bucketname: string
+          levels?: number
+          limits?: number
+          offsets?: number
+          prefix: string
+          search?: string
+          sortcolumn?: string
+          sortorder?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_by_timestamp: {
+        Args: {
+          p_bucket_id: string
+          p_level: number
+          p_limit: number
+          p_prefix: string
+          p_sort_column: string
+          p_sort_column_after: string
+          p_sort_order: string
+          p_start_after: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_v2: {
+        Args: {
+          bucket_name: string
+          levels?: number
+          limits?: number
+          prefix: string
+          sort_column?: string
+          sort_column_after?: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+    }
+    Enums: {
+      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9323,7 +10084,15 @@ export const Constants = {
   graphql_public: {
     Enums: {},
   },
+  pgbouncer: {
+    Enums: {},
+  },
   public: {
     Enums: {},
+  },
+  storage: {
+    Enums: {
+      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
+    },
   },
 } as const

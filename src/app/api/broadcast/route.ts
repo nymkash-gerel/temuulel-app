@@ -13,8 +13,7 @@ export async function GET() {
     .single()
   if (!member) return NextResponse.json({ error: 'No store' }, { status: 403 })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: campaigns, error } = await (supabase as any)
+  const { data: campaigns, error } = await supabase
     .from('broadcast_campaigns')
     .select('*')
     .eq('store_id', member.store_id)
@@ -45,8 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'name and message_text required' }, { status: 400 })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: campaign, error } = await (supabase as any)
+  const { data: campaign, error } = await supabase
     .from('broadcast_campaigns')
     .insert({
       store_id: member.store_id,

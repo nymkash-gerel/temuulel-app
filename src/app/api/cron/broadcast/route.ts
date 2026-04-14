@@ -19,8 +19,7 @@ export async function GET(req: NextRequest) {
   )
 
   // Find campaigns that are scheduled and due
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: campaigns } = await (supabase as any)
+  const { data: campaigns } = await supabase
     .from('broadcast_campaigns')
     .select('*, stores(facebook_page_access_token)')
     .eq('status', 'scheduled')
@@ -37,8 +36,7 @@ export async function GET(req: NextRequest) {
     if (!pageToken) continue
 
     // Mark as sending
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
+    await supabase
       .from('broadcast_campaigns')
       .update({ status: 'sending', updated_at: new Date().toISOString() })
       .eq('id', campaign.id)
@@ -58,8 +56,7 @@ export async function GET(req: NextRequest) {
       try {
         await sendTextMessage(customer.messenger_id, campaign.message_text, pageToken)
         sentCount++
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from('broadcast_recipients').insert({
+        await supabase.from('broadcast_recipients').insert({
           campaign_id: campaign.id,
           customer_id: customer.id,
           messenger_id: customer.messenger_id,
@@ -72,8 +69,7 @@ export async function GET(req: NextRequest) {
       await new Promise(r => setTimeout(r, 200))
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
+    await supabase
       .from('broadcast_campaigns')
       .update({
         status: 'sent',
