@@ -100,6 +100,14 @@ run_group "Latest AI Features" \
   src/lib/comment-auto-reply.test.ts \
   src/lib/comment-auto-reply-integration.test.ts
 
+# ── Group 8.5: REAL AI API tests (optional, costs ~$0.05) ──
+# Run only if RUN_REAL_AI=1 is set
+if [ "$RUN_REAL_AI" = "1" ]; then
+  run_group "REAL AI API Tests (\$0.05)" \
+    src/lib/ai/image-recognizer-real.test.ts \
+    src/lib/ai/transcribe-real.test.ts
+fi
+
 # ── Group 9: All remaining unit tests ──
 run_group "Remaining Unit Tests" \
   src/lib/validations.test.ts \
