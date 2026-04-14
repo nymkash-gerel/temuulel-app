@@ -715,6 +715,62 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
+
+      {/* AI Quality Section */}
+      <AIQualitySection />
+    </div>
+  )
+}
+
+function AIQualitySection() {
+  const [data, setData] = useState<{
+    ai: { avgScore: number; totalLogs: number; lowQuality: number; unansweredCount: number; dailyTrend: { date: string; avg: number; count: number }[] }
+  } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/analytics/ai-quality')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setData(d))
+      .catch(() => {})
+  }, [])
+
+  if (!data) return null
+
+  const { ai } = data
+  return (
+    <div className="mt-8">
+      <h2 className="text-lg font-semibold text-white mb-4">🧠 AI Чанарын тайлан</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Дундаж чанар', value: `${ai.avgScore}/100`, color: ai.avgScore >= 70 ? 'text-green-400' : ai.avgScore >= 40 ? 'text-yellow-400' : 'text-red-400' },
+          { label: 'Нийт шинжилгээ', value: ai.totalLogs.toLocaleString(), color: 'text-blue-400' },
+          { label: 'Чанар муутай', value: ai.lowQuality.toLocaleString(), color: 'text-orange-400' },
+          { label: 'Хариулаагүй', value: ai.unansweredCount.toLocaleString(), color: 'text-red-400' },
+        ].map(s => (
+          <div key={s.label} className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <p className="text-xs text-slate-500 mb-1">{s.label}</p>
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {ai.dailyTrend.length > 0 && (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+          <h3 className="text-sm font-medium text-slate-300 mb-3">7 хоногийн чанарын өөрчлөлт</h3>
+          <div className="flex items-end gap-2 h-32">
+            {ai.dailyTrend.map((d, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <span className="text-xs text-slate-400">{d.avg || '—'}</span>
+                <div
+                  className={`w-full rounded-t ${d.avg >= 70 ? 'bg-green-500/40' : d.avg >= 40 ? 'bg-yellow-500/40' : 'bg-red-500/40'}`}
+                  style={{ height: `${Math.max(4, d.avg)}%` }}
+                />
+                <span className="text-[10px] text-slate-500">{d.date.slice(5)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

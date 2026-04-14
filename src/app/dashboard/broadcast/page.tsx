@@ -241,6 +241,90 @@ export default function BroadcastPage() {
             })}
           </div>
         )}
+
+        {/* Email Campaign Section */}
+        <EmailCampaignSection />
+      </div>
+    </div>
+  )
+}
+
+function EmailCampaignSection() {
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('')
+  const [target, setTarget] = useState('all')
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<{ sent: number; failed: number; total: number } | null>(null)
+
+  async function sendEmail() {
+    if (!subject.trim() || !body.trim()) return
+    if (!confirm('Email кампани илгээх үү?')) return
+    setSending(true)
+    setResult(null)
+    try {
+      const res = await fetch('/api/email-campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, html_body: body, target }),
+      })
+      if (res.ok) {
+        setResult(await res.json())
+        setSubject('')
+        setBody('')
+      }
+    } catch { /* */ }
+    setSending(false)
+  }
+
+  return (
+    <div className="mt-10">
+      <h2 className="text-lg font-semibold text-white mb-4">📧 Email кампани</h2>
+      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Гарчиг</label>
+            <input
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              placeholder="Шинэ бүтээгдэхүүн ирлээ! 🎉"
+              className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Агуулга (HTML)</label>
+            <textarea
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              placeholder={'<h2>Сайн байна уу {{name}}!</h2>\n<p>Манай дэлгүүрт шинэ бүтээгдэхүүн ирлээ...</p>'}
+              rows={5}
+              className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 resize-none font-mono"
+            />
+            <p className="text-xs text-slate-500 mt-1">{'{{name}}'} — хэрэглэгчийн нэрээр солигдоно</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <select
+              value={target}
+              onChange={e => setTarget(e.target.value)}
+              className="px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white text-sm"
+            >
+              <option value="all">Бүх харилцагч</option>
+              <option value="ordered">Захиалга өгсөн</option>
+            </select>
+            <button
+              onClick={sendEmail}
+              disabled={sending || !subject.trim() || !body.trim()}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-xl transition-all disabled:opacity-50"
+            >
+              {sending ? '📧 Илгээж байна...' : '📧 Email илгээх'}
+            </button>
+          </div>
+          {result && (
+            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-sm">
+              ✅ {result.sent}/{result.total} email амжилттай илгээлээ
+              {result.failed > 0 && <span className="text-red-400 ml-2">({result.failed} амжилтгүй)</span>}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
