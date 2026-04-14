@@ -303,7 +303,13 @@ export async function processAIChat(
             // Step: collect delivery address
             const addrPhone = extractPhone(customerMessage)
             const addr = extractAddress(customerMessage, addrPhone)
-            if (addr) {
+            // If message is ONLY a phone number (no address text), treat as phone input
+            if (addrPhone && !addr && customerMessage.replace(/\d/g, '').trim().length < 2) {
+              draft.phone = addrPhone
+              draft.step = 'confirming'
+              orderDraft = draft
+              responseText = buildOrderSummary(draft)
+            } else if (addr) {
               draft.address = addr
               // If phone was already collected (from name+phone combo), skip to confirming
               if (draft.phone) {
