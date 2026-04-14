@@ -35,6 +35,9 @@ const MODULE_REGISTRY: Record<string, NavItem> = {
   ai_learning:    { href: '/dashboard/ai-learning',  icon: '🧠', label: 'AI Суралцах' },
   broadcast:      { href: '/dashboard/broadcast',    icon: '📢', label: 'Broadcast' },
   message_usage:  { href: '/dashboard/message-usage', icon: '💬', label: 'Мессеж' },
+  ab_tests:       { href: '/dashboard/ab-tests',     icon: '🧪', label: 'A/B Тест' },
+  churn:          { href: '/dashboard/churn',        icon: '📉', label: 'Churn' },
+  subscription:   { href: '/dashboard/subscription', icon: '💳', label: 'Захиалга' },
   settings:       { href: '/dashboard/settings',     icon: '⚙️', label: 'Тохиргоо' },
   // QSR / Restaurant
   kitchen:        { href: '/dashboard/kitchen',      icon: '👨‍🍳', label: 'Гал тогоо' },
@@ -214,24 +217,24 @@ const DEFAULT_MODULES: Record<string, string[]> = {
     'overview', 'products', 'orders', 'deliveries', 'driver_payouts',
     'returns', 'vouchers', 'gift_cards', 'loyalty',
     'customers', 'chat', 'driver_chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Food-based
   restaurant: [
     'overview', 'floor', 'table_reservations', 'events', 'catering',
     'menu', 'kds', 'production', 'orders', 'table_layouts',
     'deliveries', 'driver_payouts', 'promotions', 'returns', 'vouchers',
-    'customers', 'chat', 'driver_chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'driver_chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   coffee_shop: [
     'overview', 'menu', 'orders', 'kitchen', 'deliveries', 'driver_payouts',
     'promotions', 'returns', 'vouchers', 'customers', 'chat', 'driver_chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   cafe: [
     'overview', 'menu', 'orders', 'kitchen', 'deliveries', 'driver_payouts',
     'promotions', 'returns', 'vouchers', 'customers', 'chat', 'driver_chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Service-based
   beauty_salon: [
@@ -239,159 +242,159 @@ const DEFAULT_MODULES: Record<string, string[]> = {
     'packages', 'memberships', 'client_profiles', 'staff_commissions',
     'loyalty', 'package_purchases',
     'returns', 'vouchers', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   fitness: [
     'overview', 'calendar', 'services', 'staff', 'resources',
     'memberships', 'returns', 'vouchers', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   education: [
     'overview', 'calendar', 'services', 'staff', 'resources',
     'returns', 'vouchers', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   services: [
     'overview', 'calendar', 'services', 'staff', 'resources',
     'returns', 'vouchers', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   hospital: [
     'overview', 'patients', 'encounters', 'lab', 'pharmacy', 'inpatient',
     'complaints_qa', 'calendar', 'services', 'staff', 'resources',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   dental_clinic: [
     'overview', 'patients', 'encounters', 'lab', 'pharmacy',
     'complaints_qa', 'calendar', 'services', 'staff',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Hospitality
   camping_guesthouse: [
     'overview', 'calendar', 'units', 'reservations', 'guests',
     'housekeeping', 'maintenance', 'rate_plans', 'leases',
     'services', 'staff', 'resources',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   hotel: [
     'overview', 'calendar', 'units', 'reservations', 'guests',
     'housekeeping', 'maintenance', 'rate_plans', 'leases',
     'services', 'staff',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   guesthouse: [
     'overview', 'calendar', 'units', 'reservations', 'guests',
     'housekeeping', 'maintenance', 'services', 'staff',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Real estate
   real_estate: [
     'overview', 'properties', 'calendar', 'agents', 'deals', 'commissions',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Retail
   retail: [
     'overview', 'products', 'orders', 'pos', 'inventory',
     'suppliers', 'purchase_orders', 'stock_transfers',
     'gift_cards', 'loyalty', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Laundry
   laundry: [
     'overview', 'laundry', 'orders', 'staff',
     'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Medical / Clinic
   clinic: [
     'overview', 'patients', 'encounters', 'lab', 'pharmacy',
     'complaints_qa', 'calendar', 'services', 'staff',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Education / Training
   training_center: [
     'overview', 'programs', 'enrollments', 'calendar', 'services',
-    'staff', 'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'staff', 'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Pet Services
   pet_services: [
     'overview', 'pets', 'calendar', 'services', 'staff',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Car Wash
   car_wash: [
     'overview', 'car_wash', 'services', 'staff',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Wellness / Spa
   wellness: [
     'overview', 'calendar', 'services', 'staff', 'resources',
     'treatment_plans', 'packages', 'memberships',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Photography / Studio
   photography: [
     'overview', 'photo_sessions', 'photo_galleries', 'calendar',
     'services', 'staff', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Venue / Event Space
   venue: [
     'overview', 'venue_list', 'venue_bookings', 'calendar',
     'services', 'staff', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Coworking Space
   coworking: [
     'overview', 'coworking', 'desk_bookings', 'calendar',
     'memberships', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Legal / Law Firm
   legal: [
     'overview', 'legal_cases', 'case_documents', 'time_tracking',
     'case_events', 'legal_expenses', 'retainers', 'calendar',
     'staff', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Construction / Project Management
   construction: [
     'overview', 'project_list', 'project_tasks', 'materials',
     'inspections', 'permits', 'crew', 'daily_logs',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Subscription Business
   subscription: [
     'overview', 'subscription_list', 'products', 'services',
     'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Gym / Sports
   gym: [
     'overview', 'fitness_classes', 'equipment_list', 'calendar',
     'memberships', 'staff', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Repair Shop
   repair_shop: [
     'overview', 'repair_orders', 'customers', 'staff',
-    'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Consulting / Professional Services
   consulting: [
     'overview', 'consultations', 'calendar', 'staff',
-    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Home Services (cleaning, plumbing, electrical, etc.)
   home_services: [
     'overview', 'service_requests', 'service_areas', 'calendar',
-    'staff', 'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'staff', 'customers', 'chat', 'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
   // Logistics / Fleet Management
   logistics: [
     'overview', 'fleet_vehicles', 'trip_logs', 'deliveries',
     'driver_payouts', 'staff', 'customers', 'chat',
-    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'settings',
+    'billing', 'analytics', 'ai_learning', 'broadcast', 'message_usage', 'churn', 'ab_tests', 'subscription', 'settings',
   ],
 }
 

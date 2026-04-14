@@ -777,6 +777,35 @@ function AIQualitySection() {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Sentiment trend */}
+      <SentimentSection />
+    </div>
+  )
+}
+
+function SentimentSection() {
+  const [trend, setTrend] = useState<{ date: string; positive: number; neutral: number; negative: number; score: number }[] | null>(null)
+  useEffect(() => {
+    fetch('/api/analytics/sentiment').then(r => r.ok ? r.json() : null).then(d => setTrend(d?.trend || []))
+  }, [])
+  if (!trend || trend.length === 0) return null
+  return (
+    <div className="mt-8">
+      <h2 className="text-lg font-semibold text-white mb-4">😊 Sentiment Trend (30 хоног)</h2>
+      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={trend.map(d => ({ ...d, date: d.date.slice(5) }))}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />
+            <YAxis stroke="#94a3b8" fontSize={11} />
+            <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} />
+            <Bar dataKey="positive" stackId="s" name="Эерэг" fill="#10b981" />
+            <Bar dataKey="neutral" stackId="s" name="Саармаг" fill="#64748b" />
+            <Bar dataKey="negative" stackId="s" name="Сөрөг" fill="#ef4444" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }
