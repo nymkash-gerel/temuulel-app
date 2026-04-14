@@ -303,17 +303,22 @@ export async function processAIChat(
             // Step: collect delivery address
             const addrPhone = extractPhone(customerMessage)
             const addr = extractAddress(customerMessage, addrPhone)
-            // If message contains phone but no address, accept the phone and skip ahead
-            if (addrPhone && !addr) {
+            // If message contains phone but no address AND we already have address, accept phone and skip to confirming
+            if (addrPhone && !addr && draft.address) {
+              draft.phone = addrPhone
+              draft.step = 'confirming'
+              orderDraft = draft
+              responseText = buildOrderSummary(draft)
+            } else if (addrPhone && !addr && !draft.address) {
+              // Phone only, no address yet — save phone but stay on address step
               draft.phone = addrPhone
               // If there's also name text (e.g. "Gerel 99001122"), save it if name empty
               const nameText = customerMessage.replace(/\d/g, '').trim()
               if (nameText.length >= 2 && !draft.customer_name) {
                 draft.customer_name = nameText
               }
-              draft.step = 'confirming'
               orderDraft = draft
-              responseText = buildOrderSummary(draft)
+              responseText = 'Хүргэлтийн хаягаа бичнэ үү (дүүрэг, хороо, байр):'
             } else if (addr) {
               draft.address = addr
               // If phone was already collected (from name+phone combo), skip to confirming

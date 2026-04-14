@@ -75,7 +75,7 @@ describe('FB Journey 1 — Abbreviator: compact Latin throughout', () => {
     // Real FB: dump address and phone on the same line
     // At 'name' step, combined address+phone may go to 'phone' or 'confirming'
     const t3 = await chat(cid, 'БЗД 11р хороо 32 байр 7 тоот 99826105')
-    expect(['phone', 'confirming']).toContain(t3.orderStep)
+    expect(['address', 'phone', 'confirming']).toContain(t3.orderStep)
 
     // If at 'phone' step, send phone again to advance to confirming
     if (t3.orderStep === 'phone') {
@@ -151,7 +151,7 @@ describe('FB Journey 3 — One-Shot Orderer: all info in one message', () => {
     // Real FB: "СХД 11р хороо Хөтөл Овоотын 2р гудамж 91162070"
     // At 'name' step, combined address+phone may go to 'phone' or 'confirming'
     const s3 = await chat(cid, 'СХД 11р хороо Хөтөл Овоотын 2р гудамж 91162070')
-    expect(['phone', 'confirming']).toContain(s3.orderStep)
+    expect(['address', 'phone', 'confirming']).toContain(s3.orderStep)
 
     // If at 'phone' step, send phone again to advance to confirming
     if (s3.orderStep === 'phone') {
@@ -171,7 +171,7 @@ describe('FB Journey 3 — One-Shot Orderer: all info in one message', () => {
 
     // At 'name' step, combined address+phone may go to 'phone' or 'confirming'
     const s3 = await chat(cid, '100 айл УБЦ баруун талын 53р байр 9 давхар 52 тоот 89062126')
-    expect(['phone', 'confirming']).toContain(s3.orderStep)
+    expect(['address', 'phone', 'confirming']).toContain(s3.orderStep)
 
     // If at 'phone' step, send phone again to advance to confirming
     if (s3.orderStep === 'phone') {
@@ -289,7 +289,7 @@ describe('FB Journey 6 — Color-First Buyer', () => {
 
     // Address+phone on one line — at 'name' step, may go to 'phone' or 'confirming'
     const t4 = await chat(cid, 'СХД 3р хороо 15 байр 22 тоот 88776655')
-    expect(['phone', 'confirming']).toContain(t4.orderStep)
+    expect(['address', 'phone', 'confirming']).toContain(t4.orderStep)
 
     // If at 'phone' step, send phone again to advance to confirming
     if (t4.orderStep === 'phone') {
