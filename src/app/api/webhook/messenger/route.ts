@@ -212,7 +212,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
       let isNewConversation = false
       let { data: conversation } = await supabase
         .from('conversations')
-        .select('id')
+        .select('id, operator_mode, operator_mode_at')
         .eq('store_id', store.id)
         .eq('customer_id', customer.id)
         .neq('status', 'closed')
@@ -230,7 +230,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
             channel,
             status: 'active',
           })
-          .select('id')
+          .select('id, operator_mode, operator_mode_at')
           .single()
 
         conversation = newConv
@@ -290,6 +290,27 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
 
       // Smart escalation check — runs after AI reply, only for complaint/frustration intents
       const chatbotSettings = (store.chatbot_settings || {}) as ChatbotSettings
+
+      // Operator mode check — if human took over, skip AI
+      // Auto-return after 30 min idle
+      const convData = conversation as unknown as { operator_mode?: boolean; operator_mode_at?: string }
+      if (convData.operator_mode) {
+        const modeAt = convData.operator_mode_at ? new Date(convData.operator_mode_at).getTime() : 0
+        const elapsed = Date.now() - modeAt
+        const OPERATOR_TIMEOUT_MS = 30 * 60 * 1000 // 30 minutes
+        if (elapsed < OPERATOR_TIMEOUT_MS) {
+          // Still in operator mode — skip AI, let human handle
+          console.log(`[Messenger] Operator mode active for conversation ${conversation.id}, skipping AI`)
+          continue
+        } else {
+          // Auto-return: 30 min idle, resume AI
+          console.log(`[Messenger] Operator mode expired for ${conversation.id}, resuming AI`)
+          await supabase
+            .from('conversations')
+            .update({ operator_mode: false, operator_mode_at: null, operator_id: null } as Record<string, unknown>)
+            .eq('id', conversation.id)
+        }
+      }
 
       // AI auto-reply
       if (store.ai_auto_reply && pageToken) {
