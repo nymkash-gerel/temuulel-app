@@ -19,40 +19,50 @@ const describeFn = REAL_TESTS ? describe : describe.skip
 
 const FIXTURES = path.join(process.cwd(), 'tests/fixtures/ai-audio')
 
-describeFn('Whisper transcription — REAL API with local fixture', () => {
-  it('transcribes Mongolian audio (cashmere shirt inquiry)', async () => {
-    const filepath = path.join(FIXTURES, 'greeting-mn.mp3')
-    expect(fs.existsSync(filepath), 'Audio fixture should exist').toBe(true)
+describeFn('Whisper transcription — REAL API with local fixtures', () => {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
+  async function transcribe(filename: string) {
+    const filepath = path.join(FIXTURES, filename)
+    expect(fs.existsSync(filepath), `${filename} should exist`).toBe(true)
     const buffer = fs.readFileSync(filepath)
-    const file = new File([buffer], 'greeting-mn.mp3', { type: 'audio/mp3' })
-
-    const result = await openai.audio.transcriptions.create({
+    const file = new File([buffer], filename, { type: 'audio/mp3' })
+    return openai.audio.transcriptions.create({
       model: 'whisper-1',
       file,
-      // No language hint ('mn' not supported). Prompt anchors script to Cyrillic.
-      prompt: 'Энэ Монгол хэл дээрх ярилцлага. Сайн байна уу. Ноолууран цамц авмаар байна.',
+      // Cyrillic prompt anchors output to proper Mongolian script
+      prompt: 'Энэ Монгол хэл дээрх ярилцлага. Сайн байна уу. Ноолууран цамц авмаар байна. Захиалга, хүргэлт.',
     })
+  }
 
-    console.log('[Whisper]', result.text)
+  it('transcribes short Mongolian greeting in Cyrillic (not Armenian)', async () => {
+    const result = await transcribe('greeting-mn.mp3')
+    console.log('[Whisper short]', result.text)
 
     expect(result.text).toBeTruthy()
-    expect(result.text.length).toBeGreaterThan(2)
-
-    // CRITICAL: Output must be in Cyrillic script (not Armenian/Latin).
-    // Whisper without prompt hint transcribes Mongolian in wrong scripts.
     const hasCyrillic = /[\u0400-\u04FF]/.test(result.text)
     expect(hasCyrillic,
-      `Output should be in Cyrillic script, got: "${result.text}"`
+      `CRITICAL: Output must be Cyrillic, not Armenian. Got: "${result.text}"`
     ).toBe(true)
+  }, 60000)
 
-    // Loose keyword check — Whisper may catch partial words in short clips
+  it('transcribes longer Mongolian conversation with main words correct', async () => {
+    const result = await transcribe('longer-mn.mp3')
+    console.log('[Whisper long]', result.text)
+
+    expect(result.text).toBeTruthy()
+    expect(result.text.length).toBeGreaterThan(30)
+
+    // Must be Cyrillic
+    const hasCyrillic = /[\u0400-\u04FF]/.test(result.text)
+    expect(hasCyrillic).toBe(true)
+
+    // Longer audio → should catch at least 3 of 5 core words
     const lower = result.text.toLowerCase()
-    const expectedWords = ['сайн', 'байна', 'ноолуур', 'цамц', 'хэд', 'вэ']
-    const foundAny = expectedWords.some(w => lower.includes(w))
-    if (!foundAny) {
-      console.warn(`[whisper] Partial transcription: "${result.text}"`)
-    }
+    const coreWords = ['сайн', 'ноолуур', 'цамц', 'хүргэлт', 'байна']
+    const matchedCount = coreWords.filter(w => lower.includes(w)).length
+    expect(matchedCount,
+      `Expected at least 3 of ${JSON.stringify(coreWords)}, got ${matchedCount} in: "${result.text}"`
+    ).toBeGreaterThanOrEqual(3)
   }, 60000)
 })
