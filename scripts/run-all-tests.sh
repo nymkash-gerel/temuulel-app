@@ -121,18 +121,35 @@ if [ "$RUN_REAL_AI" = "1" ]; then
     src/lib/ai/transcribe-real.test.ts
 fi
 
-# ── Group 13: FB Real Comment Stress (12,647 real comments) ──
+# ── Group 13a: FB Comments Rule-Match Stress (12,647 real, offline) ──
 if [ -d "$HOME/Downloads/this_profile's_activity_across_facebook" ]; then
-  echo -e "\n${YELLOW}━━━ FB Real Comments Stress (12,647 real) ━━━${RESET}"
+  echo -e "\n${YELLOW}━━━ FB Comments: Rule Matching (offline, 12,647) ━━━${RESET}"
   if npx tsx scripts/stress-test-comment-reply.ts > /tmp/fb-stress.log 2>&1; then
     MATCH_RATE=$(grep "Match rate" /tmp/fb-stress.log | tail -1 | grep -oE '[0-9]+\.[0-9]+%' | head -1)
     PERF=$(grep "comments/sec" /tmp/fb-stress.log | tail -1 | grep -oE '[0-9]+ comments/sec' | head -1)
     echo -e "  ${GREEN}✓ match=${MATCH_RATE}, perf=${PERF}${RESET}"
-    RESULTS+=("${GREEN}✓ FB Real Comments (12,647): ${MATCH_RATE} match, ${PERF}${RESET}")
+    RESULTS+=("${GREEN}✓ FB Rule Matching: ${MATCH_RATE} match, ${PERF}${RESET}")
   else
-    echo -e "  ${RED}✗ FB comment stress FAILED${RESET}"
+    echo -e "  ${RED}✗ FB rule matching FAILED${RESET}"
     tail -10 /tmp/fb-stress.log
-    RESULTS+=("${RED}✗ FB Real Comments: FAILED${RESET}")
+    RESULTS+=("${RED}✗ FB Rule Matching: FAILED${RESET}")
+    TOTAL_FAIL=$((TOTAL_FAIL + 1))
+  fi
+fi
+
+# ── Group 13b: FB Comments → AI Reply End-to-End (real widget API) ──
+if [ -d "$HOME/Downloads/this_profile's_activity_across_facebook" ] \
+   && ( [ -n "$SUPABASE_SECRET_KEY" ] || [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] ); then
+  echo -e "\n${YELLOW}━━━ FB Comments: AI Reply End-to-End (10 real) ━━━${RESET}"
+  if npx tsx scripts/stress-test-comment-ai-reply.ts --limit=10 > /tmp/fb-ai.log 2>&1; then
+    REPLY_RATE=$(grep "Reply rate:" /tmp/fb-ai.log | tail -1 | grep -oE '[0-9]+/[0-9]+ \([0-9]+%\)' | head -1)
+    AVG_MS=$(grep "Avg latency:" /tmp/fb-ai.log | tail -1 | grep -oE '[0-9]+ms' | head -1)
+    echo -e "  ${GREEN}✓ ${REPLY_RATE}, avg=${AVG_MS}${RESET}"
+    RESULTS+=("${GREEN}✓ FB AI Reply E2E: ${REPLY_RATE}, ${AVG_MS}${RESET}")
+  else
+    echo -e "  ${RED}✗ FB AI reply FAILED${RESET}"
+    tail -20 /tmp/fb-ai.log
+    RESULTS+=("${RED}✗ FB AI Reply E2E: FAILED${RESET}")
     TOTAL_FAIL=$((TOTAL_FAIL + 1))
   fi
 fi

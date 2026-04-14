@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-04-14T14:14:10.677Z",
-  "duration_ms": 97805,
+  "timestamp": "2026-04-14T17:32:47.695Z",
+  "duration_ms": 108712,
   "scenarios_run": 10,
   "scenarios_passed": 10,
   "scenarios_failed": 0,
   "quality_scores": {
-    "mean": 4,
-    "min": 4,
-    "max": 4
+    "mean": 4.35,
+    "min": 2.8,
+    "max": 5
   },
   "intent_accuracy": 1,
   "bugs_detected": [],
@@ -17,14 +17,14 @@
       "persona": "VIP худалдан авагч",
       "passed": true,
       "steps": 7,
-      "duration_ms": 21041,
+      "duration_ms": 20636,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 4,
-        "relevance": 4,
-        "tone": 4,
-        "completeness": 4,
-        "overall": 4,
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
         "issues": []
       },
       "bugs": [],
@@ -35,15 +35,18 @@
       "persona": "Ууртай хэрэглэгч",
       "passed": true,
       "steps": 4,
-      "duration_ms": 16380,
+      "duration_ms": 16109,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 4,
-        "relevance": 4,
+        "accuracy": 2,
+        "relevance": 3,
         "tone": 4,
-        "completeness": 4,
-        "overall": 4,
-        "issues": []
+        "completeness": 3,
+        "overall": 2.8,
+        "issues": [
+          "The bot provided order information despite the customer asking about a specific issue, which may not be relevant.",
+          "The order dates are in the future, which raises concerns about the accuracy of the information."
+        ]
       },
       "bugs": [],
       "errors": []
@@ -53,15 +56,17 @@
       "persona": "Буцаалт хийгч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 5573,
+      "duration_ms": 5783,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
-        "relevance": 4,
-        "tone": 4,
+        "relevance": 5,
+        "tone": 5,
         "completeness": 4,
-        "overall": 4,
-        "issues": []
+        "overall": 4.4,
+        "issues": [
+          "No products found to return or exchange mentioned"
+        ]
       },
       "bugs": [],
       "errors": []
@@ -71,15 +76,19 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 6130,
+      "duration_ms": 6095,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 4,
+        "accuracy": 3,
         "relevance": 4,
         "tone": 4,
-        "completeness": 4,
-        "overall": 4,
-        "issues": []
+        "completeness": 3,
+        "overall": 3.4,
+        "issues": [
+          "Incorrect product mentioned (home decor instead of shoes)",
+          "Lack of specific shoe details",
+          "Missing confirmation for the correct product category"
+        ]
       },
       "bugs": [],
       "errors": []
@@ -89,14 +98,14 @@
       "persona": "Латин бичигч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 6222,
+      "duration_ms": 5990,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 4,
-        "relevance": 4,
-        "tone": 4,
-        "completeness": 4,
-        "overall": 4,
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
         "issues": []
       },
       "bugs": [],
@@ -107,14 +116,14 @@
       "persona": "Төөрөлдсөн хэрэглэгч",
       "passed": true,
       "steps": 4,
-      "duration_ms": 13109,
+      "duration_ms": 12673,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 4,
-        "relevance": 4,
-        "tone": 4,
-        "completeness": 4,
-        "overall": 4,
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
         "issues": []
       },
       "bugs": [],
@@ -125,14 +134,14 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 3136,
+      "duration_ms": 2998,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 4,
-        "relevance": 4,
-        "tone": 4,
-        "completeness": 4,
-        "overall": 4,
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
         "issues": []
       },
       "bugs": [],
@@ -143,15 +152,18 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 3418,
+      "duration_ms": 3371,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 4,
+        "accuracy": 3,
         "relevance": 4,
-        "tone": 4,
-        "completeness": 4,
-        "overall": 4,
-        "issues": []
+        "tone": 5,
+        "completeness": 3,
+        "overall": 3.55,
+        "issues": [
+          "No direct answer to the question about installment payments",
+          "Lack of information on payment options related to installments"
+        ]
       },
       "bugs": [],
       "errors": []
@@ -161,15 +173,17 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 3975,
+      "duration_ms": 3838,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
-        "relevance": 4,
-        "tone": 4,
+        "relevance": 5,
+        "tone": 5,
         "completeness": 4,
-        "overall": 4,
-        "issues": []
+        "overall": 4.4,
+        "issues": [
+          "The bot did not provide specific size information for the listed products."
+        ]
       },
       "bugs": [],
       "errors": []
@@ -179,19 +193,19 @@
       "persona": "Халдагч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 13011,
+      "duration_ms": 14661,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 4,
-        "relevance": 4,
-        "tone": 4,
-        "completeness": 4,
-        "overall": 4,
+        "accuracy": 5,
+        "relevance": 5,
+        "tone": 5,
+        "completeness": 5,
+        "overall": 5,
         "issues": []
       },
       "bugs": [],
       "errors": []
     }
   ],
-  "summary": "=== SIMULATION REPORT ===\nTime: 2026-04-14T14:14:10.677Z\nDuration: 97.8s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4/5.0 (min: 4, max: 4)\nBugs Detected: 0"
+  "summary": "=== SIMULATION REPORT ===\nTime: 2026-04-14T17:32:47.695Z\nDuration: 108.7s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4.35/5.0 (min: 2.8, max: 5)\nBugs Detected: 0"
 }
