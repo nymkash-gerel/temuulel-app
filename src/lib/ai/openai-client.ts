@@ -251,10 +251,13 @@ export async function transcribeAudio(audioUrl: string): Promise<TranscriptionRe
 
     const file = new File([audioBuffer], 'voice.mp4', { type: 'audio/mp4' })
 
+    // Whisper does NOT support 'mn' (Mongolian) as a language hint — returns 400.
+    // Without hints, Whisper may transcribe Mongolian audio in wrong script (Armenian/Cyrillic mix).
+    // Use a `prompt` with Cyrillic Mongolian example to anchor the output script.
     const transcription = await withCircuitBreaker(() => openai.audio.transcriptions.create({
       model: 'whisper-1',
       file,
-      language: 'mn',
+      prompt: 'Энэ Монгол хэл дээрх ярилцлага. Сайн байна уу. Ноолууран цамц авмаар байна. Захиалга, хүргэлт.',
     }))
 
     console.log(`[openai-whisper] transcribed ${transcription.text.length} chars`)

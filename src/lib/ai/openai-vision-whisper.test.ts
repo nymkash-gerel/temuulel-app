@@ -104,7 +104,7 @@ describe('transcribeAudio', () => {
     expect(mockTranscribe).toHaveBeenCalled()
   })
 
-  it('passes language: mn hint to Whisper', async () => {
+  it('uses whisper-1 model without language hint (mn not supported, auto-detects)', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new ArrayBuffer(100),
@@ -115,7 +115,8 @@ describe('transcribeAudio', () => {
 
     const call = mockTranscribe.mock.calls[0][0]
     expect(call.model).toBe('whisper-1')
-    expect(call.language).toBe('mn')
+    // language should NOT be 'mn' — Whisper doesn't support it
+    expect(call.language).toBeUndefined()
   })
 
   it('throws when audio download fails', async () => {
