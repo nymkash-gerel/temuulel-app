@@ -402,8 +402,9 @@ describe('FB Journey 9 — Gift Buyer: buying for someone else', () => {
   test.concurrent('"Бэлэг" cold → helpful response, no hallucinated product push', { timeout: 30000 }, async () => {
     const cid = await newConv()
     const r = await chat(cid, 'Бэлэг')
-    // "Бэлэг" (gift) can trigger order_collection ("авах" intent) or product_search
-    expect(['general', 'product_search', 'order_collection']).toContain(r.intent)
+    // "Бэлэг" (gift) — single-word ambiguous input.
+    // Valid intents: greeting (say hi + ask what), general (no-op helpful), product_search, order_collection
+    expect(['greeting', 'general', 'product_search', 'order_collection']).toContain(r.intent)
     ok(r.response)
   })
 

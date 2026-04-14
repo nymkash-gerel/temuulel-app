@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-04-14T17:32:47.695Z",
-  "duration_ms": 108712,
+  "timestamp": "2026-04-14T17:41:08.960Z",
+  "duration_ms": 107319,
   "scenarios_run": 10,
   "scenarios_passed": 10,
   "scenarios_failed": 0,
   "quality_scores": {
-    "mean": 4.35,
+    "mean": 4.42,
     "min": 2.8,
     "max": 5
   },
@@ -17,7 +17,7 @@
       "persona": "VIP худалдан авагч",
       "passed": true,
       "steps": 7,
-      "duration_ms": 20636,
+      "duration_ms": 19305,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -35,7 +35,7 @@
       "persona": "Ууртай хэрэглэгч",
       "passed": true,
       "steps": 4,
-      "duration_ms": 16109,
+      "duration_ms": 15201,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 2,
@@ -44,8 +44,8 @@
         "completeness": 3,
         "overall": 2.8,
         "issues": [
-          "The bot provided order information despite the customer asking about a specific issue, which may not be relevant.",
-          "The order dates are in the future, which raises concerns about the accuracy of the information."
+          "The bot provided order details despite the customer asking about a specific issue, which may not be relevant.",
+          "The order dates are in the future, which is unrealistic and may confuse the customer."
         ]
       },
       "bugs": [],
@@ -56,7 +56,7 @@
       "persona": "Буцаалт хийгч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 5783,
+      "duration_ms": 5478,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -76,18 +76,16 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 6095,
+      "duration_ms": 5851,
       "intentAccuracy": 1,
       "qualityScore": {
-        "accuracy": 3,
-        "relevance": 4,
+        "accuracy": 4,
+        "relevance": 5,
         "tone": 4,
-        "completeness": 3,
-        "overall": 3.4,
+        "completeness": 4,
+        "overall": 4.25,
         "issues": [
-          "Incorrect product mentioned (home decor instead of shoes)",
-          "Lack of specific shoe details",
-          "Missing confirmation for the correct product category"
+          "The product mentioned does not match the customer's request for shoes."
         ]
       },
       "bugs": [],
@@ -98,7 +96,7 @@
       "persona": "Латин бичигч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 5990,
+      "duration_ms": 6072,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -116,7 +114,7 @@
       "persona": "Төөрөлдсөн хэрэглэгч",
       "passed": true,
       "steps": 4,
-      "duration_ms": 12673,
+      "duration_ms": 14315,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -134,15 +132,17 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 2998,
+      "duration_ms": 3591,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
         "relevance": 5,
         "tone": 5,
-        "completeness": 5,
-        "overall": 5,
-        "issues": []
+        "completeness": 4,
+        "overall": 4.75,
+        "issues": [
+          "Could provide more details about the products listed."
+        ]
       },
       "bugs": [],
       "errors": []
@@ -152,7 +152,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 3371,
+      "duration_ms": 3405,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 3,
@@ -161,7 +161,7 @@
         "completeness": 3,
         "overall": 3.55,
         "issues": [
-          "No direct answer to the question about installment payments",
+          "No specific answer to the customer's question about installment payments",
           "Lack of information on payment options related to installments"
         ]
       },
@@ -173,7 +173,7 @@
       "persona": "Эелдэг хэрэглэгч",
       "passed": true,
       "steps": 2,
-      "duration_ms": 3838,
+      "duration_ms": 3858,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 4,
@@ -182,7 +182,7 @@
         "completeness": 4,
         "overall": 4.4,
         "issues": [
-          "The bot did not provide specific size information for the listed products."
+          "The response does not provide specific size information for the listed products."
         ]
       },
       "bugs": [],
@@ -193,7 +193,7 @@
       "persona": "Халдагч",
       "passed": true,
       "steps": 3,
-      "duration_ms": 14661,
+      "duration_ms": 14356,
       "intentAccuracy": 1,
       "qualityScore": {
         "accuracy": 5,
@@ -207,5 +207,5 @@
       "errors": []
     }
   ],
-  "summary": "=== SIMULATION REPORT ===\nTime: 2026-04-14T17:32:47.695Z\nDuration: 108.7s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4.35/5.0 (min: 2.8, max: 5)\nBugs Detected: 0"
+  "summary": "=== SIMULATION REPORT ===\nTime: 2026-04-14T17:41:08.960Z\nDuration: 107.3s\n\nScenarios: 10/10 passed (0 failed)\nIntent Accuracy: 100.0%\nQuality Score: 4.42/5.0 (min: 2.8, max: 5)\nBugs Detected: 0"
 }
