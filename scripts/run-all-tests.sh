@@ -92,7 +92,15 @@ run_group "Widget & Facebook Journeys" \
 run_group "E2E Simulation (full pipeline)" \
   tests/e2e-simulation.test.ts
 
-# ── Group 8: All remaining unit tests ──
+# ── Group 8: Latest AI Features (image, voice, comment reply, quality) ──
+run_group "Latest AI Features" \
+  src/lib/ai/image-recognizer.test.ts \
+  src/lib/ai/quality-scorer.test.ts \
+  src/lib/ai/openai-vision-whisper.test.ts \
+  src/lib/comment-auto-reply.test.ts \
+  src/lib/comment-auto-reply-integration.test.ts
+
+# ── Group 9: All remaining unit tests ──
 run_group "Remaining Unit Tests" \
   src/lib/validations.test.ts \
   src/lib/booking-conflict.test.ts \
