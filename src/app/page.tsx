@@ -9,6 +9,7 @@ import ArchitectureDiagram from '@/components/landing/ArchitectureDiagram'
 import FeatureCards from '@/components/landing/FeatureCards'
 import AnimatedSteps from '@/components/landing/AnimatedSteps'
 import LiveMessageFeed from '@/components/landing/LiveMessageFeed'
+import SocialProof from '@/components/landing/SocialProof'
 import DemoSection from '@/components/landing/DemoSection'
 import AnimatedPricing from '@/components/landing/AnimatedPricing'
 import PremiumCTA from '@/components/landing/PremiumCTA'
@@ -54,6 +55,9 @@ export default function LandingPage() {
 
       {/* Live scrolling message feed */}
       <LiveMessageFeed />
+
+      {/* Social proof — client logos + stats */}
+      <SocialProof />
 
       {/* Before/After comparison slider */}
       <BeforeAfterSlider />
