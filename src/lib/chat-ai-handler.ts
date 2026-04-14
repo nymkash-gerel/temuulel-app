@@ -268,10 +268,20 @@ export async function processAIChat(
           case 'info':
           case 'name': {
             // Step: collect customer name
-            // Any non-empty text that isn't a phone/address is treated as name
+            // Handle combined name+phone input (e.g. "Бат-Эрдэнэ 99112233")
             const namePhone = extractPhone(customerMessage)
             const nameAddr = extractAddress(customerMessage, namePhone)
-            if (!namePhone && !nameAddr && customerMessage.trim().length >= 2) {
+            if (namePhone) {
+              // Name + phone together — extract both
+              const nameOnly = customerMessage.replace(/\d{8}/, '').trim()
+              if (nameOnly.length >= 2) {
+                draft.customer_name = nameOnly
+              }
+              draft.phone = namePhone
+              draft.step = 'address'
+              orderDraft = draft
+              responseText = `${draft.customer_name || 'Баярлалаа'}, хүргэлтийн хаягаа бичнэ үү (дүүрэг, хороо, байр):`
+            } else if (!nameAddr && customerMessage.trim().length >= 2) {
               draft.customer_name = customerMessage.trim()
               draft.step = 'address'
               orderDraft = draft
@@ -295,9 +305,16 @@ export async function processAIChat(
             const addr = extractAddress(customerMessage, addrPhone)
             if (addr) {
               draft.address = addr
-              draft.step = 'phone'
-              orderDraft = draft
-              responseText = 'Утасны дугаараа бичнэ үү:'
+              // If phone was already collected (from name+phone combo), skip to confirming
+              if (draft.phone) {
+                draft.step = 'confirming'
+                orderDraft = draft
+                responseText = buildOrderSummary(draft)
+              } else {
+                draft.step = 'phone'
+                orderDraft = draft
+                responseText = 'Утасны дугаараа бичнэ үү:'
+              }
             } else {
               orderDraft = draft
               responseText = 'Хүргэлтийн хаягаа бичнэ үү (дүүрэг, хороо, байр):'
@@ -1217,7 +1234,7 @@ function hasOrderIntent(msg: string): boolean {
 
 function isAffirmative(msg: string): boolean {
   const n = normalizeText(msg).trim()
-  const words = ['тийм', 'за', 'зүгээр', 'болно', 'тийм ээ', 'зөв', 'ok', 'ок', 'yes', 'tiim', 'tiim ee', 'za', 'bolno']
+  const words = ['тийм', 'тиим', 'за', 'зүгээр', 'болно', 'тийм ээ', 'тиим ее', 'зөв', 'ok', 'ок', 'yes', 'tiim', 'tiim ee', 'za', 'bolno']
   // Normalize each word too — normalizeText() converts Latin→Cyrillic so
   // 'tiim' becomes 'тиим' in both the message AND the word; they must both
   // go through the same transform to be comparable.
@@ -1229,7 +1246,7 @@ function isAffirmative(msg: string): boolean {
 
 function isNegative(msg: string): boolean {
   const n = normalizeText(msg).trim()
-  const words = ['үгүй', 'болихгүй', 'цуцлах', 'цуцал', 'хүсэхгүй', 'нет', 'no', 'ugui', 'bolihgui']
+  const words = ['үгүй', 'угуи', 'болихгүй', 'цуцлах', 'цуцал', 'хүсэхгүй', 'нет', 'no', 'ugui', 'bolihgui']
   return words.some((w) => {
     const nw = normalizeText(w)
     return n === nw || n.startsWith(nw + ' ')

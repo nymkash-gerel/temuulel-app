@@ -41,7 +41,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // English product names (also triggers product_search intent)
     'cashmere', 'shirt', 'hat', 'bag', 'shoes', 'pants', 'jacket',
     'coat', 'watch', 'earphone', 'headphone', 'charger', 'toy', 'lego',
-    'shampoo', 'cream',
+    'shampoo', 'cream', 'phone',
+    // Electronics / devices
+    'гар утас', 'утас', 'телефон', 'ноутбук', 'компьютер', 'таблет',
+    'чихэвч', 'цэнэглэгч', 'тоглоом',
     // Aliases — misspellings, informal, transliterated
     'бутээгдэхүүн', 'бутээгдхүүн', 'бүтээгдхүүн',
     'барааа', 'бараагаа',
