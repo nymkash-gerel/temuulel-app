@@ -369,17 +369,27 @@ export default function ChatConversationPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* AI Toggle */}
+            {/* AI Toggle — calls operator-mode API */}
             <button
-              onClick={() => setAiEnabled(!aiEnabled)}
+              onClick={async () => {
+                const next = !aiEnabled
+                setAiEnabled(next)
+                try {
+                  await fetch(`/api/conversations/${conversationId}/operator-mode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !next }),
+                  })
+                } catch { /* non-critical */ }
+              }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${
                 aiEnabled
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-slate-700/50 text-slate-400 border border-slate-600'
+                  : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
               }`}
             >
-              <span>🤖</span>
-              <span>AI {aiEnabled ? 'Идэвхтэй' : 'Унтраасан'}</span>
+              <span>{aiEnabled ? '🤖' : '👤'}</span>
+              <span>{aiEnabled ? 'AI Идэвхтэй' : 'Оператор горим (30 мин)'}</span>
             </button>
 
             {/* Customer Info Link */}
