@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
     if (!result) continue
 
 
-    await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
       .from('products')
       .update({
         search_aliases: result.search_aliases,

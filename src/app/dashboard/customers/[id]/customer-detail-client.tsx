@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -270,6 +270,63 @@ export default function CustomerDetailClient({ initialCustomer, initialOrders, i
           </div>
         </div>
       </div>
+
+      {/* Customer stats: favorites, LTV */}
+      <CustomerFavorites customerId={customer.id} />
+    </div>
+  )
+}
+
+function CustomerFavorites({ customerId }: { customerId: string }) {
+  const [data, setData] = useState<{
+    stats?: { totalOrders: number; completedOrders: number; totalSpent: number; avgOrderValue: number; conversationCount: number }
+    favoriteProducts?: { id: string; name: string; count: number }[]
+  } | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/customers/${customerId}/stats`).then(r => r.ok ? r.json() : null).then(setData)
+  }, [customerId])
+
+  if (!data) return null
+  const { stats, favoriteProducts = [] } = data
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 pb-8 space-y-6">
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { label: 'Нийт захиалга', value: stats.totalOrders, color: 'text-blue-400' },
+            { label: 'Амжилттай', value: stats.completedOrders, color: 'text-emerald-400' },
+            { label: 'Нийт зарцуулсан', value: formatPrice(stats.totalSpent), color: 'text-purple-400' },
+            { label: 'Дундаж', value: formatPrice(stats.avgOrderValue), color: 'text-yellow-400' },
+            { label: 'Чат мессеж', value: stats.conversationCount, color: 'text-slate-300' },
+          ].map(s => (
+            <div key={s.label} className="bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-center">
+              <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {favoriteProducts.length > 0 && (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+          <h3 className="text-lg font-semibold text-white mb-3">⭐ Хамгийн их захиалсан бүтээгдэхүүн</h3>
+          <div className="space-y-2">
+            {favoriteProducts.map((p, i) => (
+              <div key={p.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${i === 0 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-700 text-slate-400'}`}>
+                    {i + 1}
+                  </span>
+                  <span className="text-white">{p.name}</span>
+                </div>
+                <span className="text-sm text-slate-400">{p.count} ширхэг захиалсан</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

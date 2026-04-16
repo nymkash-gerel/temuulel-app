@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 interface Referral {
   id: string
@@ -54,7 +55,14 @@ export default function ReferralsPage() {
     <div className="min-h-screen bg-slate-900 p-6">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold text-white mb-2">🎁 Найз урих</h1>
-        <p className="text-slate-400 mb-8">Найз бизнес урихад тус бүр 1 сар үнэгүй</p>
+        <p className="text-slate-400 mb-4">Найз бизнес урихад тус бүр 1 сар үнэгүй</p>
+
+        <Link
+          href="/dashboard/affiliate"
+          className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-gradient-to-r from-blue-600/20 to-cyan-500/20 border border-blue-500/30 hover:border-blue-500 rounded-xl text-sm text-blue-300 hover:text-white transition-all"
+        >
+          💼 Илүү их орлого хүсвэл Affiliate партнер болоорой (20% комисс) →
+        </Link>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 text-center">

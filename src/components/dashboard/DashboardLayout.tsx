@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/ui/NotificationBell'
 import ChatWidget from '@/components/ui/ChatWidget'
 import CommandPalette from '@/components/dashboard/CommandPalette'
+import PWAInstallPrompt from '@/components/ui/PWAInstallPrompt'
 import { LanguageProvider, useTranslation } from '@/lib/i18n'
 import { resolveFeatures, getNavItems } from '@/lib/features'
 import { canAccessPath } from '@/lib/permissions'
@@ -302,6 +303,9 @@ function DashboardLayoutInner({
 
       {/* Cmd+K Command Palette */}
       <CommandPalette />
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   )
 }
