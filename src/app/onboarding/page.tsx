@@ -223,7 +223,7 @@ export default function OnboardingPage() {
               <div className="text-6xl mb-4">🎉</div>
               <h2 className="text-xl font-bold text-white mb-2">Бэлэн!</h2>
               <p className="text-slate-400 mb-6">
-                "{storeName}" дэлгүүр үүсгэж, AI чатбот тохируулахад бэлэн боллоо.
+                &quot;{storeName}&quot; дэлгүүр үүсгэж, AI чатбот тохируулахад бэлэн боллоо.
               </p>
               <button
                 onClick={createStore}

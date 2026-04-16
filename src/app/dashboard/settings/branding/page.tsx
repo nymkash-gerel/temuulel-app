@@ -126,7 +126,7 @@ export default function BrandingPage() {
               onChange={e => setBranding({ ...branding, hide_temuulel_brand: e.target.checked })}
               className="w-5 h-5 accent-blue-500 rounded"
             />
-            <span className="text-sm text-slate-300">"Powered by Temuulel" брэнд нуух (Pro)</span>
+            <span className="text-sm text-slate-300">&quot;Powered by Temuulel&quot; брэнд нуух (Pro)</span>
           </label>
 
           <button onClick={save} disabled={saving} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium disabled:opacity-50">

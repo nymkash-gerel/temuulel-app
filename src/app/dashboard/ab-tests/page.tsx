@@ -88,7 +88,7 @@ export default function ABTestsPage() {
                   {(['a', 'b'] as const).map(v => (
                     <div key={v} className={`p-3 rounded-xl ${t.stats.winner === v ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-slate-900/50'}`}>
                       <p className="text-xs text-slate-500 mb-1">Variant {v.toUpperCase()}</p>
-                      <p className="text-sm text-slate-300 mb-2">"{(v === 'a' ? t.variant_a : t.variant_b).text as string}"</p>
+                      <p className="text-sm text-slate-300 mb-2">&quot;{(v === 'a' ? t.variant_a : t.variant_b).text as string}&quot;</p>
                       <div className="text-xs text-slate-400">
                         {t.stats[v].impressions} харсан → {t.stats[v].conversions} конверс
                         <span className="ml-2 text-emerald-400 font-medium">{(t.stats[v].rate * 100).toFixed(1)}%</span>

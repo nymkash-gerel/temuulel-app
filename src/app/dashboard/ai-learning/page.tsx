@@ -229,7 +229,7 @@ export default function AILearningPage() {
                   <div key={q.id} className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium mb-1">"{q.customer_message}"</p>
+                        <p className="text-white font-medium mb-1">&quot;{q.customer_message}&quot;</p>
                         {q.ai_response && (
                           <p className="text-slate-400 text-sm mb-2 line-clamp-2">
                             AI хариулт: {q.ai_response.substring(0, 150)}...
