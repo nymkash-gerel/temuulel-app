@@ -1,4 +1,6 @@
 # TypeScript incremental cache (regenerated on every run)
 .tsc-cache/
+# Vitest hook cache
+.vitest-cache/
 # Per-user local hook overrides
 *.local.*
