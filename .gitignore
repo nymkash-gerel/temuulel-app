@@ -40,8 +40,11 @@ yarn-error.log*
 # vercel
 .vercel
 
-# claude code
-.claude/
+# claude code — ignore personal/cache, but commit shared config
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/hooks/*.local.*
 
 # typescript
 *.tsbuildinfo
