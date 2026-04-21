@@ -21,6 +21,10 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-secrets.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/forbid-as-any.sh"
           }
         ]
       }
@@ -38,6 +42,14 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/vitest-run.sh",
             "timeout": 100
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/migration-requires-rls.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/api-route-guardrails.sh"
           }
         ]
       }
