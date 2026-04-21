@@ -2,5 +2,7 @@
 .tsc-cache/
 # Vitest hook cache
 .vitest-cache/
+# Local deploy log (when SLACK_WEBHOOK_URL isn't set)
+.deploy-log/
 # Per-user local hook overrides
 *.local.*

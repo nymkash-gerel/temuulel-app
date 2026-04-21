@@ -52,6 +52,26 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/api-route-guardrails.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/slack-deploy-notify.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-briefing.sh",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }
