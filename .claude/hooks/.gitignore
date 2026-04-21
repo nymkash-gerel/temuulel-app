@@ -1,0 +1,4 @@
+# TypeScript incremental cache (regenerated on every run)
+.tsc-cache/
+# Per-user local hook overrides
+*.local.*
