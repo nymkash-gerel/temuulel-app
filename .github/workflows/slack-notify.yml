@@ -1,0 +1,52 @@
+name: Slack deploy notification
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.deleted }}
+    steps:
+      - name: Post to Slack
+        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          PUSHER: ${{ github.event.pusher.name }}
+          SHA: ${{ github.sha }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+          COMPARE_URL: ${{ github.event.compare }}
+        run: |
+          SHORT_SHA="${SHA:0:7}"
+          # Use only the first line of the commit message (ignore body)
+          FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -n1)
+
+          jq -n \
+            --arg branch "$BRANCH" \
+            --arg pusher "$PUSHER" \
+            --arg sha "$SHORT_SHA" \
+            --arg msg "$FIRST_LINE" \
+            --arg url "$COMMIT_URL" \
+            --arg repo "$REPO" \
+            --arg compare "$COMPARE_URL" \
+            '{
+              attachments: [{
+                color: "#36a64f",
+                blocks: [
+                  { type: "header", text: { type: "plain_text", text: "🚀 Temuulel push to main" } },
+                  { type: "section", text: { type: "mrkdwn", text: ("*<" + $url + "|" + $sha + ">* — " + $msg) } },
+                  { type: "context", elements: [
+                      { type: "mrkdwn", text: ("👤 " + $pusher + " · 📦 " + $repo + " · <" + $compare + "|compare>") }
+                    ]
+                  }
+                ]
+              }]
+            }' > /tmp/payload.json
+
+          curl -sS -X POST -H 'Content-Type: application/json' \
+            --data @/tmp/payload.json \
+            "$SLACK_WEBHOOK_URL"
