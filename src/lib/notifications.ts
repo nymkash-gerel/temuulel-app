@@ -340,15 +340,15 @@ export async function dispatchNotification(
   // 4. Dispatch outgoing webhook (non-blocking)
   dispatchWebhook(storeId, event as WebhookEvent, data as Record<string, unknown>)
 
-  // 5. Slack notification for high-value events (non-blocking, fire-and-forget)
+  // 5. Slack notification for high-value events.
   //    Only dispatched if SLACK_BUSINESS_WEBHOOK_URL or SLACK_WEBHOOK_URL is set.
-  console.log(`[slack-dispatch] event=${event} store=${storeId} url_set=${!!process.env.SLACK_WEBHOOK_URL}`)
+  //    Must be awaited — Vercel serverless terminates the lambda after
+  //    response is sent, killing fire-and-forget fetches.
   try {
     const storeName = (data.store_name as string) || storeId.slice(0, 8)
     switch (event) {
       case 'new_order': {
         const amount = Number(data.total_amount) || 0
-        console.log(`[slack-dispatch] new_order amount=${amount}`)
         await slackNotify('business', {
           emoji: '🛒',
           color: 'good',
