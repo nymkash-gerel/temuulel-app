@@ -77,6 +77,13 @@ export default function OnboardingPage() {
         role: 'owner',
       })
 
+      // Fire-and-forget Slack notification (never blocks onboarding)
+      void fetch('/api/internal/new-store-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ store_id: store.id }),
+      }).catch(() => {})
+
       // Go to dashboard
       router.push('/dashboard')
     } catch {

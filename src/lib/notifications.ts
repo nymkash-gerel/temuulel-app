@@ -9,6 +9,7 @@ import { sendOrderEmail, sendMessageEmail, sendLowStockEmail } from './email'
 import { dispatchWebhook, type WebhookEvent } from './webhook'
 import { sendPushToUser } from './push'
 import { notifyStaff } from './staff-notify'
+import { notifyAsync as slackNotifyAsync } from './slack'
 
 export type NotificationEvent =
   | 'new_order'
@@ -215,11 +216,16 @@ export async function dispatchNotification(
   // 1. Look up store owner's email + notification_settings
   const { data: store } = await supabase
     .from('stores')
-    .select('owner_id')
+    .select('owner_id, name')
     .eq('id', storeId)
     .single()
 
   if (!store) return
+
+  // Enrich data with store_name for downstream channels (Slack, push, etc.)
+  if (!data.store_name && store.name) {
+    data = { ...data, store_name: store.name }
+  }
 
   const { data: owner } = await supabase
     .from('users')
@@ -333,4 +339,69 @@ export async function dispatchNotification(
 
   // 4. Dispatch outgoing webhook (non-blocking)
   dispatchWebhook(storeId, event as WebhookEvent, data as Record<string, unknown>)
+
+  // 5. Slack notification for high-value events (non-blocking, fire-and-forget)
+  //    Only dispatched if SLACK_BUSINESS_WEBHOOK_URL or SLACK_WEBHOOK_URL is set.
+  try {
+    const storeName = (data.store_name as string) || storeId.slice(0, 8)
+    switch (event) {
+      case 'new_order': {
+        const amount = Number(data.total_amount) || 0
+        slackNotifyAsync('business', {
+          emoji: '🛒',
+          color: 'good',
+          header: 'New order received',
+          text: `Order *${data.order_number}* — *${amount.toLocaleString('en-US')}₮*`,
+          fields: {
+            Store: storeName,
+            'Order #': String(data.order_number ?? '—'),
+            Amount: `${amount.toLocaleString('en-US')}₮`,
+            Payment: (data.payment_method as string) || 'Pending',
+          },
+          context: `Store ID: ${storeId}`,
+        })
+        break
+      }
+      case 'new_customer': {
+        slackNotifyAsync('business', {
+          emoji: '👤',
+          color: 'good',
+          header: 'New customer',
+          text: `*${(data.customer_name as string) || 'New user'}* just started a conversation at *${storeName}*`,
+          fields: {
+            Store: storeName,
+            Customer: (data.customer_name as string) || '—',
+            Channel: (data.channel as string) || 'web',
+          },
+        })
+        break
+      }
+      case 'escalation': {
+        slackNotifyAsync('errors', {
+          emoji: '🚨',
+          color: 'warning',
+          header: 'Conversation escalated to human',
+          text: `AI handed off a conversation at *${storeName}*`,
+          fields: {
+            Store: storeName,
+            Reason: (data.reason as string) || '—',
+            Customer: (data.customer_name as string) || '—',
+          },
+        })
+        break
+      }
+      case 'low_stock': {
+        slackNotifyAsync('business', {
+          emoji: '📉',
+          color: 'warning',
+          header: 'Low stock warning',
+          text: `*${data.product_name}* at *${storeName}* has only *${data.remaining}* left`,
+        })
+        break
+      }
+    }
+  } catch (err) {
+    // Never let Slack issues break core notification flow
+    console.error('Slack notify error:', err)
+  }
 }
