@@ -1,0 +1,96 @@
+name: Slack Vercel deploy status
+
+# GitHub fires deployment_status whenever Vercel's GitHub integration
+# reports a state transition for a deployment. We only notify for the
+# terminal states (success | failure | error) to avoid spam from the
+# intermediate 'pending' / 'in_progress' updates.
+
+on:
+  deployment_status:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    # Only terminal states, and only for production target.
+    if: >-
+      (github.event.deployment_status.state == 'success'
+       || github.event.deployment_status.state == 'failure'
+       || github.event.deployment_status.state == 'error')
+      && github.event.deployment.environment == 'Production'
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          STATE:    ${{ github.event.deployment_status.state }}
+          TARGET:   ${{ github.event.deployment_status.target_url }}
+          ENV:      ${{ github.event.deployment.environment }}
+          SHA:      ${{ github.event.deployment.sha }}
+          REF:      ${{ github.event.deployment.ref }}
+          CREATOR:  ${{ github.event.deployment.creator.login }}
+          DESC:     ${{ github.event.deployment_status.description }}
+          LOG_URL:  ${{ github.event.deployment_status.log_url }}
+        run: |
+          set -u
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "::warning::SLACK_WEBHOOK_URL secret is not configured"
+            exit 0
+          fi
+
+          SHORT_SHA="${SHA:0:7}"
+
+          case "$STATE" in
+            success)
+              EMOJI="✅"; COLOR="#36a64f"; TITLE="Vercel production deploy succeeded" ;;
+            failure)
+              EMOJI="❌"; COLOR="#d72b3f"; TITLE="Vercel production deploy FAILED" ;;
+            error)
+              EMOJI="⚠️";  COLOR="#ffaa00"; TITLE="Vercel production deploy errored" ;;
+            *)
+              echo "::notice::Skipping state: $STATE"; exit 0 ;;
+          esac
+
+          # Build blocks. Include the URL as a primary link when we have one.
+          URL_FIELD=""
+          if [ -n "$TARGET" ]; then
+            URL_FIELD="*<${TARGET}|Open deploy>*"
+          fi
+
+          jq -n \
+            --arg title "$TITLE" \
+            --arg emoji "$EMOJI" \
+            --arg color "$COLOR" \
+            --arg sha "$SHORT_SHA" \
+            --arg ref "$REF" \
+            --arg creator "$CREATOR" \
+            --arg env "$ENV" \
+            --arg desc "$DESC" \
+            --arg urlf "$URL_FIELD" \
+            --arg target "$TARGET" \
+            --arg logurl "$LOG_URL" \
+            '{
+              text: ($emoji + " " + $title),
+              attachments: [{
+                color: $color,
+                blocks: (
+                  [
+                    { type: "header", text: { type: "plain_text", text: ($emoji + " " + $title) } }
+                  ]
+                  + (if $urlf != "" then [{ type: "section", text: { type: "mrkdwn", text: $urlf } }] else [] end)
+                  + [
+                    { type: "section", fields: [
+                        { type: "mrkdwn", text: ("*Env:* " + $env) },
+                        { type: "mrkdwn", text: ("*Ref:* " + $ref) },
+                        { type: "mrkdwn", text: ("*Commit:* `" + $sha + "`") },
+                        { type: "mrkdwn", text: ("*By:* " + $creator) }
+                      ]
+                    }
+                  ]
+                  + (if $desc != "" then [{ type: "context", elements: [ { type: "mrkdwn", text: $desc } ] }] else [] end)
+                  + (if $logurl != "" then [{ type: "context", elements: [ { type: "mrkdwn", text: ("<" + $logurl + "|View deploy logs>") } ] }] else [] end)
+                )
+              }]
+            }' > /tmp/payload.json
+
+          curl -sS -X POST -H 'Content-Type: application/json' \
+            --data @/tmp/payload.json \
+            "$SLACK_WEBHOOK_URL"
