@@ -342,11 +342,13 @@ export async function dispatchNotification(
 
   // 5. Slack notification for high-value events (non-blocking, fire-and-forget)
   //    Only dispatched if SLACK_BUSINESS_WEBHOOK_URL or SLACK_WEBHOOK_URL is set.
+  console.log(`[slack-dispatch] event=${event} store=${storeId} url_set=${!!process.env.SLACK_WEBHOOK_URL}`)
   try {
     const storeName = (data.store_name as string) || storeId.slice(0, 8)
     switch (event) {
       case 'new_order': {
         const amount = Number(data.total_amount) || 0
+        console.log(`[slack-dispatch] new_order amount=${amount}`)
         slackNotifyAsync('business', {
           emoji: '🛒',
           color: 'good',
