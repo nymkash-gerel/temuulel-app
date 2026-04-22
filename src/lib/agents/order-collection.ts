@@ -652,6 +652,7 @@ export class OrderCollectionAgent {
         // to confirming rather than asking for phone again.
         const addrPhone = extractPhone(customerMessage)
         const addr = extractAddress(customerMessage, addrPhone)
+        console.log(`[order-addr] msg="${customerMessage}" phone=${addrPhone} addr=${addr} draftPhone=${draft.phone}`)
         if (addr) {
           draft.address = addr
           // Prefer a phone captured from this same message; fall back to a
