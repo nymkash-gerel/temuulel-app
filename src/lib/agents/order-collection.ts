@@ -646,14 +646,26 @@ export class OrderCollectionAgent {
       }
 
       case 'address': {
-        // Step: collect delivery address
+        // Step: collect delivery address. Customers often send address+phone
+        // in the same message, e.g. "СБД 1-р хороо 99112233". If we already
+        // have a phone (either extracted here or saved earlier), skip straight
+        // to confirming rather than asking for phone again.
         const addrPhone = extractPhone(customerMessage)
         const addr = extractAddress(customerMessage, addrPhone)
         if (addr) {
           draft.address = addr
-          draft.step = 'phone'
-          orderDraft = draft
-          responseText = 'Утасны дугаараа бичнэ үү:'
+          // Prefer a phone captured from this same message; fall back to a
+          // phone captured in an earlier turn.
+          if (addrPhone) draft.phone = addrPhone
+          if (draft.phone) {
+            draft.step = 'confirming'
+            orderDraft = draft
+            responseText = buildOrderSummary(draft)
+          } else {
+            draft.step = 'phone'
+            orderDraft = draft
+            responseText = 'Утасны дугаараа бичнэ үү:'
+          }
         } else {
           orderDraft = draft
           responseText = 'Хүргэлтийн хаягаа бичнэ үү (дүүрэг, хороо, байр):'
