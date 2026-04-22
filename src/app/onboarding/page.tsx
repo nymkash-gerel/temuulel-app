@@ -51,7 +51,9 @@ export default function OnboardingPage() {
       const { data: store, error: storeErr } = await (supabase as any)
         .from('stores')
         .insert({
+          owner_id: user.id,
           name: storeName.trim(),
+          slug: storeName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
           business_type: businessType,
           phone: storePhone.trim() || null,
           address: storeAddress.trim() || null,
