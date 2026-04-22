@@ -10,7 +10,6 @@ jobs:
     if: ${{ !github.event.deleted }}
     steps:
       - name: Post to Slack
-        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           REPO: ${{ github.repository }}
@@ -21,6 +20,11 @@ jobs:
           COMMIT_URL: ${{ github.event.head_commit.url }}
           COMPARE_URL: ${{ github.event.compare }}
         run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "::warning::SLACK_WEBHOOK_URL secret is not configured — skipping notification."
+            echo "Add it at https://github.com/$REPO/settings/secrets/actions"
+            exit 0
+          fi
           SHORT_SHA="${SHA:0:7}"
           # Use only the first line of the commit message (ignore body)
           FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -n1)
