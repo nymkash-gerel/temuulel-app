@@ -9,7 +9,7 @@ import { sendOrderEmail, sendMessageEmail, sendLowStockEmail } from './email'
 import { dispatchWebhook, type WebhookEvent } from './webhook'
 import { sendPushToUser } from './push'
 import { notifyStaff } from './staff-notify'
-import { notifyAsync as slackNotifyAsync } from './slack'
+import { notify as slackNotify } from './slack'
 
 export type NotificationEvent =
   | 'new_order'
@@ -349,7 +349,7 @@ export async function dispatchNotification(
       case 'new_order': {
         const amount = Number(data.total_amount) || 0
         console.log(`[slack-dispatch] new_order amount=${amount}`)
-        slackNotifyAsync('business', {
+        await slackNotify('business', {
           emoji: '🛒',
           color: 'good',
           header: 'New order received',
@@ -365,7 +365,7 @@ export async function dispatchNotification(
         break
       }
       case 'new_customer': {
-        slackNotifyAsync('business', {
+        await slackNotify('business', {
           emoji: '👤',
           color: 'good',
           header: 'New customer',
@@ -379,7 +379,7 @@ export async function dispatchNotification(
         break
       }
       case 'escalation': {
-        slackNotifyAsync('errors', {
+        await slackNotify('errors', {
           emoji: '🚨',
           color: 'warning',
           header: 'Conversation escalated to human',
@@ -393,7 +393,7 @@ export async function dispatchNotification(
         break
       }
       case 'low_stock': {
-        slackNotifyAsync('business', {
+        await slackNotify('business', {
           emoji: '📉',
           color: 'warning',
           header: 'Low stock warning',
