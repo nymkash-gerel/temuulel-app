@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 
+// Force Sentry server-side init in case instrumentation.ts didn't fire
+// (Next.js 16 + Turbopack serverless edge case).
+if (!Sentry.getClient() && process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    enabled: true,
+    tracesSampleRate: 0.1,
+  })
+  console.log('[sentry-test] forced Sentry.init from route module')
+}
+
 /**
  * Test endpoint that captures an error explicitly so we can verify the
  * Sentry → Slack alert pipeline. Protected by a token to prevent abuse.
