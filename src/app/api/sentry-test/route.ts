@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 
-// Force Sentry server-side init in case instrumentation.ts didn't fire
-// (Next.js 16 + Turbopack serverless edge case).
-if (!Sentry.getClient() && process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    enabled: true,
-    tracesSampleRate: 0.1,
-  })
-  console.log('[sentry-test] forced Sentry.init from route module')
-}
 
 /**
  * Test endpoint that captures an error explicitly so we can verify the
@@ -39,10 +29,25 @@ export async function GET(req: NextRequest) {
   // triggers the "new issue created" alert rule.
   const stamp = Date.now()
 
+  // Try to force-init right here in the handler
+  if (!Sentry.getClient() && process.env.SENTRY_DSN) {
+    try {
+      Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        enabled: true,
+        tracesSampleRate: 0,
+      })
+    } catch (e) {
+      console.error('Sentry init error:', e)
+    }
+  }
+
   // Diagnostic: confirm SDK is actually initialized in this lambda
   const client = Sentry.getClient()
   const dsn = client?.getDsn?.()
   const hub = !!client
+  const envDsn = process.env.SENTRY_DSN
+  const envDsnLen = envDsn?.length ?? 0
   console.log(`[sentry-debug] hub=${hub} dsn_host=${dsn?.host ?? 'none'} dsn_proj=${dsn?.projectId ?? 'none'}`)
 
   const err = new Error(`[sentry-test-${stamp}] intentional error`)
@@ -62,6 +67,9 @@ export async function GET(req: NextRequest) {
     hub,
     dsnHost: dsn?.host ?? null,
     dsnProj: dsn?.projectId ?? null,
+    envDsnLen,
+    envDsnPrefix: envDsn?.slice(0, 20) ?? null,
+    runtime: process.env.NEXT_RUNTIME ?? 'unknown',
     stamp,
   })
 }
