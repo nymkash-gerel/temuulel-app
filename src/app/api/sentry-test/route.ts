@@ -27,15 +27,30 @@ export async function GET(req: NextRequest) {
   // fingerprint forces each call to land as a new issue, which is what
   // triggers the "new issue created" alert rule.
   const stamp = Date.now()
-  const err = new Error(`[sentry-test-${stamp}] intentional error`)
-  Sentry.withScope((scope) => {
-    scope.setLevel('error')
-    scope.setFingerprint(['sentry-test', String(stamp)])
-    scope.setTag('test', 'sentry-slack-pipeline')
-    scope.setTag('stamp', String(stamp))
-    Sentry.captureException(err)
-  })
-  await Sentry.flush(5000)
 
-  throw err
+  // Diagnostic: confirm SDK is actually initialized in this lambda
+  const client = Sentry.getClient()
+  const dsn = client?.getDsn?.()
+  const hub = !!client
+  console.log(`[sentry-debug] hub=${hub} dsn_host=${dsn?.host ?? 'none'} dsn_proj=${dsn?.projectId ?? 'none'}`)
+
+  const err = new Error(`[sentry-test-${stamp}] intentional error`)
+  const eventId = Sentry.captureException(err, {
+    level: 'error',
+    fingerprint: ['sentry-test', String(stamp)],
+    tags: { test: 'sentry-slack-pipeline', stamp: String(stamp) },
+  })
+  console.log(`[sentry-debug] captureException returned eventId=${eventId}`)
+
+  const flushed = await Sentry.flush(8000)
+  console.log(`[sentry-debug] flush returned ${flushed}`)
+
+  return NextResponse.json({
+    eventId,
+    flushed,
+    hub,
+    dsnHost: dsn?.host ?? null,
+    dsnProj: dsn?.projectId ?? null,
+    stamp,
+  })
 }
