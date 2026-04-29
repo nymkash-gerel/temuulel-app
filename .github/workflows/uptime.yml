@@ -1,0 +1,99 @@
+name: Uptime monitor
+
+# Pings https://temuulel.com/api/health every 5 minutes from GitHub-hosted
+# runners. If the response is non-2xx OR JSON status != "healthy", posts
+# an alert to Slack via SLACK_WEBHOOK_URL repository secret.
+#
+# Free replacement for UptimeRobot Slack integration (which requires a paid
+# plan). Runs from GitHub's global infrastructure so failures are independent
+# of any single network path.
+#
+# Trigger: every 5 minutes via cron (GitHub Actions minimum granularity).
+
+on:
+  schedule:
+    # GitHub schedules can drift up to 15 min during heavy load — that's OK
+    # for a status-page level signal. Set */5 for nominal 5-min cadence.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:   # manual trigger for testing
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Probe /api/health
+        id: probe
+        env:
+          URL: https://temuulel.com/api/health
+        run: |
+          set +e
+          # Capture HTTP code + body separately, with 20s connect+read timeout
+          RESP=$(curl -s -m 20 -w '\nHTTP_CODE:%{http_code}\nLATENCY:%{time_total}\n' "$URL")
+          BODY=$(echo "$RESP" | sed '/^HTTP_CODE:/,$d')
+          HTTP=$(echo "$RESP" | grep '^HTTP_CODE:' | sed 's/HTTP_CODE://')
+          LATENCY=$(echo "$RESP" | grep '^LATENCY:' | sed 's/LATENCY://')
+
+          # Try to parse JSON status — fall back to "unknown" if not JSON
+          STATUS=$(echo "$BODY" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")
+          DB=$(echo "$BODY" | jq -r '.checks.database.status // "unknown"' 2>/dev/null || echo "unknown")
+
+          echo "http=$HTTP" >> "$GITHUB_OUTPUT"
+          echo "latency=$LATENCY" >> "$GITHUB_OUTPUT"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "db=$DB" >> "$GITHUB_OUTPUT"
+
+          # OK iff HTTP 2xx AND status==healthy
+          if [[ "$HTTP" =~ ^2 ]] && [[ "$STATUS" == "healthy" ]]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "✅ healthy — http=$HTTP status=$STATUS db=$DB latency=${LATENCY}s"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "❌ degraded — http=$HTTP status=$STATUS db=$DB latency=${LATENCY}s"
+            echo "body=$(echo "$BODY" | head -c 500 | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Slack alert on failure
+        if: steps.probe.outputs.ok != 'true'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          HTTP: ${{ steps.probe.outputs.http }}
+          STATUS: ${{ steps.probe.outputs.status }}
+          DB: ${{ steps.probe.outputs.db }}
+          LATENCY: ${{ steps.probe.outputs.latency }}
+          BODY: ${{ steps.probe.outputs.body }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -z "$SLACK_WEBHOOK_URL" ] && { echo "::warning::SLACK_WEBHOOK_URL not set"; exit 0; }
+          jq -n \
+            --arg http "$HTTP" \
+            --arg status "$STATUS" \
+            --arg db "$DB" \
+            --arg lat "$LATENCY" \
+            --arg body "$BODY" \
+            --arg run "$RUN_URL" \
+            '{
+              text: ("🔴 Temuulel /api/health degraded — HTTP " + $http + " status=" + $status),
+              attachments: [{
+                color: "#d72b3f",
+                blocks: [
+                  { type: "header", text: { type: "plain_text", text: "🔴 Production health check failed" } },
+                  { type: "section", fields: [
+                      { type: "mrkdwn", text: ("*HTTP:* " + $http) },
+                      { type: "mrkdwn", text: ("*App status:* " + $status) },
+                      { type: "mrkdwn", text: ("*Database:* " + $db) },
+                      { type: "mrkdwn", text: ("*Latency:* " + $lat + "s") }
+                    ]
+                  },
+                  { type: "section", text: { type: "mrkdwn", text: ("*Body:*\n```" + $body + "```") } },
+                  { type: "context", elements: [
+                      { type: "mrkdwn", text: ("<" + $run + "|View this run>") }
+                    ]
+                  }
+                ]
+              }]
+            }' > /tmp/payload.json
+          curl -sS -X POST -H 'Content-Type: application/json' --data @/tmp/payload.json "$SLACK_WEBHOOK_URL"
