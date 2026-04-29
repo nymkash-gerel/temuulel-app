@@ -19,7 +19,26 @@ function getClient(): OpenAI {
   if (!client) {
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) throw new Error('OPENAI_API_KEY is not configured')
-    client = new OpenAI({ apiKey })
+    const raw = new OpenAI({ apiKey })
+
+    // Optional: Langfuse OpenAI wrapper for AI quality observability.
+    // Activates when both LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY are set.
+    // Falls back gracefully to the plain client if Langfuse env is missing
+    // or the optional dependency is not installed.
+    if (process.env.LANGFUSE_SECRET_KEY && process.env.LANGFUSE_PUBLIC_KEY) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const lf = require('langfuse') as { observeOpenAI?: (c: OpenAI) => OpenAI }
+        if (typeof lf.observeOpenAI === 'function') {
+          client = lf.observeOpenAI(raw)
+          return client
+        }
+      } catch {
+        // langfuse not installed — fall through to raw client
+      }
+    }
+
+    client = raw
   }
   return client
 }

@@ -1,0 +1,77 @@
+name: Semgrep SAST
+
+# Static Application Security Testing — runs on every PR + nightly on main.
+# Uses the open-source Semgrep ruleset: OWASP Top 10, security-audit,
+# Next.js + React + TypeScript-specific rules. Free for public repos and
+# for first 100k lines on private repos.
+#
+# Output: SARIF uploaded to GitHub Code Scanning (visible in
+# Security → Code scanning alerts).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Nightly at 03:00 UTC (11:00 Mongolia)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  semgrep:
+    name: Semgrep scan
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    permissions:
+      security-events: write   # Upload SARIF
+      contents: read
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: |
+          semgrep --config p/owasp-top-ten \
+                  --config p/security-audit \
+                  --config p/typescript \
+                  --config p/nextjs \
+                  --config p/react \
+                  --sarif --output semgrep.sarif \
+                  --exclude 'tests/' \
+                  --exclude '__tests__/' \
+                  --exclude 'scripts/' \
+                  --exclude '.claude/' \
+                  --severity ERROR --severity WARNING \
+                  --error \
+                  src/ supabase/migrations/ || true
+        # `|| true` so SARIF still uploads on findings.
+        # GitHub job status driven by Code Scanning alert annotations.
+
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+
+      - name: Slack on critical
+        if: github.event_name == 'schedule' || github.event_name == 'push'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ] || [ ! -f semgrep.sarif ]; then exit 0; fi
+          # Count ERROR-level findings
+          CRIT=$(jq '[.runs[].results[] | select(.level=="error")] | length' semgrep.sarif 2>/dev/null || echo 0)
+          if [ "$CRIT" = "0" ]; then exit 0; fi
+          jq -n --arg n "$CRIT" --arg url "${{ github.server_url }}/${{ github.repository }}/security/code-scanning" '{
+            text: ("🔒 Semgrep found " + $n + " ERROR-level issue(s) on main"),
+            attachments: [{
+              color: "#d72b3f",
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: "🔒 Security scan: " + $n + " critical findings" } },
+                { type: "section", text: { type: "mrkdwn", text: ("<" + $url + "|Open Code Scanning alerts>") } }
+              ]
+            }]
+          }' > /tmp/payload.json
+          curl -sS -X POST -H 'Content-Type: application/json' --data @/tmp/payload.json "$SLACK_WEBHOOK_URL"

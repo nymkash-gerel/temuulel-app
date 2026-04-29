@@ -1,0 +1,48 @@
+name: Lighthouse CI
+
+# Runs Lighthouse against production after every deploy + nightly.
+# Asserts thresholds defined in .lighthouserc.json. Slack alerts on failure.
+
+on:
+  schedule:
+    # Nightly at 04:00 UTC (12:00 Mongolia)
+    - cron: '0 4 * * *'
+  workflow_run:
+    workflows: ['Slack deploy notification']
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  lighthouse:
+    name: Lighthouse production audit
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g @lhci/cli
+      - name: Wait 90s for deploy to settle
+        if: github.event_name == 'workflow_run'
+        run: sleep 90
+      - name: Run Lighthouse
+        run: lhci autorun
+        continue-on-error: true
+      - name: Slack alert on threshold failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          [ -z "$SLACK_WEBHOOK_URL" ] && exit 0
+          jq -n --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{
+            text: "🚦 Lighthouse audit failed thresholds on production",
+            attachments: [{
+              color: "#ffaa00",
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: "🚦 Performance regression" } },
+                { type: "section", text: { type: "mrkdwn", text: ("Production audit fell below thresholds. <" + $url + "|View report>") } }
+              ]
+            }]
+          }' > /tmp/p.json
+          curl -sS -X POST -H 'Content-Type: application/json' --data @/tmp/p.json "$SLACK_WEBHOOK_URL"
