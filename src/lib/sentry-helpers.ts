@@ -1,3 +1,9 @@
+// Force Sentry init on first import. Next.js 16 + Turbopack does not
+// reliably run instrumentation.ts on Vercel serverless lambdas, so we
+// eagerly init from here — every API route already imports this module
+// (or its transitive callers withSpan / withCircuitBreaker / etc).
+import './sentry-init'
+
 /**
  * Thin Sentry helpers for server-side route instrumentation.
  * All functions are safe to call when Sentry is not configured — they become no-ops.
