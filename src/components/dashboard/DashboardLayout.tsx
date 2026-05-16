@@ -54,7 +54,7 @@ function DashboardLayoutInner({
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [totalUnread, setTotalUnread] = useState(0)
-  const { locale, setLocale } = useTranslation()
+  const { locale, setLocale, t } = useTranslation()
   const prevPathnameRef = useRef(pathname)
 
   const role = memberRole || 'owner'
@@ -189,7 +189,7 @@ function DashboardLayoutInner({
                   type="submit"
                   className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
                 >
-                  Гарах
+                  {t('nav.signOut')}
                 </button>
               </form>
             </div>
@@ -244,7 +244,7 @@ function DashboardLayoutInner({
                 }`}
               >
                 <span>{item.icon}</span>
-                <span className="flex-1">{item.label}</span>
+                <span className="flex-1">{item.labelKey ? t(item.labelKey) : item.label}</span>
                 {item.href === '/dashboard/chat' && totalUnread > 0 && (
                   <span className="min-w-5 h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center">
                     {totalUnread > 99 ? '99+' : totalUnread}
@@ -258,7 +258,7 @@ function DashboardLayoutInner({
           {subscription && (
             <div className="mt-6 p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-400">Таны план</span>
+                <span className="text-sm text-slate-400">{t('nav.plan')}</span>
                 <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full">
                   {subscription.subscription_plans?.name || 'Free'}
                 </span>
@@ -272,13 +272,13 @@ function DashboardLayoutInner({
                 />
               </div>
               <p className="text-xs text-slate-500 mt-2">
-                {subscription.messages_used}/{((subscription.subscription_plans?.limits as Record<string, number> | undefined)?.messages) || 500} мессеж
+                {subscription.messages_used}/{((subscription.subscription_plans?.limits as Record<string, number> | undefined)?.messages) || 500} {t('nav.messages')}
               </p>
               <Link
                 href="/dashboard/settings/billing"
                 className="block w-full mt-3 py-2 text-center text-sm text-blue-400 hover:text-blue-300 border border-blue-500/30 hover:border-blue-500/50 rounded-lg transition-all"
               >
-                Шинэчлэх
+                {t('nav.upgrade')}
               </Link>
             </div>
           )}
