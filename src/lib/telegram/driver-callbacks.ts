@@ -34,6 +34,32 @@ import { isQPayConfigured, createQPayInvoice } from '@/lib/qpay'
 import type { TgCallbackQuery } from './driver-utils'
 import { mergedDeliveryMeta, getStaffMemberChatIds, getDeliveryHeader } from './driver-utils'
 
+/**
+ * Return the delivery id an action operates on, or null for actions that act on a
+ * driver-scoped batch key / wizard metadata rather than a delivery id taken from the
+ * callback data. Used to centrally authorize cross-tenant access before the switch.
+ */
+function resolveTargetDeliveryId(action: string, data: string): string | null {
+  const parts = data.split(':')
+  // 3-part encodings: "action:choice:deliveryId"
+  if (action === 'delay_time' || action === 'deny_reason' || action === 'intercity_type') {
+    return parts[2] || null
+  }
+  // Batch actions carry a batch key (not a delivery id) and already scope their
+  // delivery queries by driver_id. The metadata-driven intercity steps act on a
+  // delivery id that was validated when the wizard was seeded (intercity_start /
+  // intercity_type / intercity_retry all go through this guard).
+  if (
+    action === 'batch_ready' || action === 'batch_confirm' ||
+    action === 'intercity_pay_yes' || action === 'intercity_pay_no' ||
+    action === 'intercity_confirm'
+  ) {
+    return null
+  }
+  // Default 2-part encoding: "action:deliveryId"
+  return parts[1] || null
+}
+
 /** Handle inline button taps from drivers */
 export async function handleCallbackQuery(
   supabase: any, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -48,17 +74,36 @@ export async function handleCallbackQuery(
     return
   }
 
-  // Look up driver by chat_id
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: driver } = await (supabase as any)
+  // Look up driver by chat_id (supabase is typed `any`, so no cast is needed)
+  const { data: driver } = await supabase
     .from('delivery_drivers')
-    .select('id, name')
+    .select('id, name, store_id')
     .eq('telegram_chat_id', chatId)
     .maybeSingle()
 
   if (!driver) {
     await tgAnswerCallback(cb.id, '❌ Жолооч олдсонгүй')
     return
+  }
+
+  // Authorize cross-tenant access at a single choke point: the target delivery
+  // (if the action references one) must belong to this driver's store. The
+  // service-role client bypasses RLS, and every handler below mutates/reads a
+  // delivery by an id taken from attacker-controllable callback data — without
+  // this a driver could tap a crafted callback carrying another store's delivery
+  // id and mutate it or read its customer PII.
+  const targetDeliveryId = resolveTargetDeliveryId(action, data)
+  if (targetDeliveryId) {
+    const { data: targetDelivery } = await supabase
+      .from('deliveries')
+      .select('store_id')
+      .eq('id', targetDeliveryId)
+      .maybeSingle()
+
+    if (targetDelivery && targetDelivery.store_id !== driver.store_id) {
+      await tgAnswerCallback(cb.id, '❌ Энэ хүргэлт танд хамаарахгүй')
+      return
+    }
   }
 
   // Actions that trigger terminal state — remove buttons from the ORIGINAL delivery card

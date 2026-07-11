@@ -74,7 +74,11 @@ export async function POST(request: NextRequest) {
         // Payment confirmed — update order
         const paymentRow = checkResult.rows[0]
 
-        await supabase
+        // Mark paid with an optimistic lock (mirrors /api/payments/callback). This
+        // request and the QPay callback can verify the same payment concurrently;
+        // the `.neq('payment_status','paid')` guard ensures exactly one of them
+        // matches the row, so stock is decremented and new_order dispatched once.
+        const { data: updated, error: updateError } = await supabase
           .from('orders')
           .update({
             payment_status: 'paid',
@@ -87,6 +91,21 @@ export async function POST(request: NextRequest) {
             }),
           })
           .eq('id', order_id)
+          .neq('payment_status', 'paid')
+          .select('id')
+          .single()
+
+        // No row updated → another request already processed this payment. Report
+        // paid without re-decrementing stock or re-dispatching the notification.
+        if (updateError || !updated) {
+          return NextResponse.json({
+            status: 'paid',
+            payment_method: 'qpay',
+            paid_amount: checkResult.paid_amount,
+            payment_id: paymentRow.payment_id,
+            payment_date: paymentRow.payment_date,
+          })
+        }
 
         // Decrement stock and trigger low_stock notifications if needed
         await decrementStockAndNotify(supabase, order_id, order.store_id)

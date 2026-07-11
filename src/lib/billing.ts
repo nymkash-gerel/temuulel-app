@@ -81,9 +81,11 @@ export async function createInvoice(
 
   // Calculate totals
   let subtotal = 0
+  let lineDiscountTotal = 0
   const lineItems = params.items.map((item, index) => {
     const lineTotal = calculateLineTotal(item)
     subtotal += item.quantity * item.unit_price
+    lineDiscountTotal += item.discount || 0
     return {
       description: item.description,
       quantity: item.quantity,
@@ -97,14 +99,20 @@ export async function createInvoice(
     }
   })
 
-  const discountAmount = params.discountAmount || 0
+  // Total discount = per-line-item discounts + any invoice-level discount. The old
+  // code subtracted ONLY the invoice-level discount, so an invoice with per-line
+  // discounts overcharged the customer by the sum of those line discounts (the
+  // per-line `line_total` already accounted for them, but subtotal/total did not).
+  const totalDiscount = lineDiscountTotal + (params.discountAmount || 0)
   const taxAmount = params.taxRate
-    ? Math.round((subtotal - discountAmount) * (params.taxRate / 100) * 100) / 100
-    : lineItems.reduce((sum, item) => {
-        const afterDiscount = item.quantity * item.unit_price - item.discount
-        return sum + afterDiscount * (item.tax_rate / 100)
-      }, 0)
-  const totalAmount = Math.round((subtotal - discountAmount + taxAmount) * 100) / 100
+    ? Math.round((subtotal - totalDiscount) * (params.taxRate / 100) * 100) / 100
+    : Math.round(
+        lineItems.reduce((sum, item) => {
+          const afterDiscount = item.quantity * item.unit_price - item.discount
+          return sum + afterDiscount * (item.tax_rate / 100)
+        }, 0) * 100,
+      ) / 100
+  const totalAmount = Math.round((subtotal - totalDiscount + taxAmount) * 100) / 100
 
   // Insert invoice
   const { data: invoice, error: invoiceError } = await supabase
@@ -118,7 +126,7 @@ export async function createInvoice(
       source_id: params.sourceId || null,
       subtotal,
       tax_amount: taxAmount,
-      discount_amount: discountAmount,
+      discount_amount: totalDiscount,
       total_amount: totalAmount,
       amount_due: totalAmount,
       due_date: params.dueDate || null,

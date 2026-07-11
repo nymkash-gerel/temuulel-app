@@ -33,33 +33,65 @@ export async function POST(req: NextRequest) {
 
   const event = JSON.parse(body) as { type: string; data: { object: Record<string, unknown> } }
 
+  // The Stripe billing tables predate the generated Database types (QPay is the
+  // active billing path), so narrow to one loosely-typed handle here rather than an
+  // untyped cast at each call site — while still surfacing the write error.
+  type StripeDb = {
+    from: (table: string) => {
+      upsert: (values: Record<string, unknown>) => Promise<{ error: { message: string } | null }>
+      update: (values: Record<string, unknown>) => {
+        eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>
+      }
+    }
+  }
+  const db = sb as unknown as StripeDb
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as { metadata: { store_id: string; plan: string }; customer: string; subscription: string }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (sb as any).from('subscriptions').upsert({
+
+    // Validate the plan against the known set instead of silently downgrading an
+    // unexpected value to the 100-message default.
+    const limits: Record<string, number> = { basic: 10000, starter: 15000, pro: 30000 }
+    const plan = session.metadata.plan
+    if (!(plan in limits)) {
+      console.error(`[stripe] Unknown plan "${plan}" for store ${session.metadata.store_id} — not provisioning`)
+      return NextResponse.json({ error: `Unknown plan: ${plan}` }, { status: 400 })
+    }
+
+    const { error: subErr } = await db.from('subscriptions').upsert({
       store_id: session.metadata.store_id,
       stripe_customer_id: session.customer,
       stripe_subscription_id: session.subscription,
-      plan: session.metadata.plan,
+      plan,
       status: 'active',
       updated_at: new Date().toISOString(),
     })
-    // Bump message limit based on plan
-    const limits = { basic: 10000, starter: 15000, pro: 30000 }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (sb as any).from('stores').update({
-      monthly_message_limit: limits[session.metadata.plan as keyof typeof limits] || 100,
+    if (subErr) {
+      // Return 5xx so Stripe retries — otherwise a paid customer silently gets no subscription.
+      console.error(`[stripe] subscriptions upsert failed for store ${session.metadata.store_id}:`, subErr.message)
+      return NextResponse.json({ error: 'Subscription write failed' }, { status: 500 })
+    }
+
+    const { error: storeErr } = await db.from('stores').update({
+      monthly_message_limit: limits[plan],
     }).eq('id', session.metadata.store_id)
+    if (storeErr) {
+      console.error(`[stripe] message-limit update failed for store ${session.metadata.store_id}:`, storeErr.message)
+      return NextResponse.json({ error: 'Store update failed' }, { status: 500 })
+    }
   }
 
   if (event.type === 'customer.subscription.deleted' || event.type === 'customer.subscription.updated') {
     const sub = event.data.object as { id: string; status: string; current_period_end: number }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (sb as any).from('subscriptions').update({
+    const { error: updErr } = await db.from('subscriptions').update({
       status: sub.status,
       current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('stripe_subscription_id', sub.id)
+    if (updErr) {
+      console.error(`[stripe] subscription ${sub.id} update failed:`, updErr.message)
+      return NextResponse.json({ error: 'Subscription update failed' }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ received: true })

@@ -350,7 +350,9 @@ describe('resolveFeatures', () => {
 describe('getNavItems', () => {
   it('returns correct nav items for a list of feature strings', () => {
     const result = getNavItems(['overview', 'products', 'chat'])
-    expect(result).toEqual([
+    // toMatchObject tolerates the optional labelKey (added for i18n) without pinning
+    // its exact value.
+    expect(result).toMatchObject([
       { href: '/dashboard', icon: '📊', label: 'Тойм' },
       { href: '/dashboard/products', icon: '📦', label: 'Бүтээгдэхүүн' },
       { href: '/dashboard/chat', icon: '💬', label: 'Чат' },
@@ -365,8 +367,8 @@ describe('getNavItems', () => {
   it('skips unknown feature strings', () => {
     const result = getNavItems(['overview', 'nonexistent_module', 'chat'])
     expect(result).toHaveLength(2)
-    expect(result[0]).toEqual({ href: '/dashboard', icon: '📊', label: 'Тойм' })
-    expect(result[1]).toEqual({ href: '/dashboard/chat', icon: '💬', label: 'Чат' })
+    expect(result[0]).toMatchObject({ href: '/dashboard', icon: '📊', label: 'Тойм' })
+    expect(result[1]).toMatchObject({ href: '/dashboard/chat', icon: '💬', label: 'Чат' })
   })
 
   it('each returned item has href, icon, and label properties', () => {
@@ -387,13 +389,13 @@ describe('getNavItems', () => {
 describe('getModuleConfig', () => {
   it('returns config for known modules', () => {
     const config = getModuleConfig('overview')
-    expect(config).toEqual({ href: '/dashboard', icon: '📊', label: 'Тойм' })
+    expect(config).toMatchObject({ href: '/dashboard', icon: '📊', label: 'Тойм' })
 
     const chatConfig = getModuleConfig('chat')
-    expect(chatConfig).toEqual({ href: '/dashboard/chat', icon: '💬', label: 'Чат' })
+    expect(chatConfig).toMatchObject({ href: '/dashboard/chat', icon: '💬', label: 'Чат' })
 
     const posConfig = getModuleConfig('pos')
-    expect(posConfig).toEqual({ href: '/dashboard/pos', icon: '💳', label: 'POS' })
+    expect(posConfig).toMatchObject({ href: '/dashboard/pos', icon: '💳', label: 'POS' })
   })
 
   it('returns undefined for unknown modules', () => {

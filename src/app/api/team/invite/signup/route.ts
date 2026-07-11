@@ -33,8 +33,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const admin = createAdminClient()
 
-  // Validate the invite token
-  const { data: invite } = await supabase
+  // Validate the invite token server-side with the service-role client.
+  // pending_invites is not exposed to the anon key (migration 072).
+  const { data: invite } = await admin
     .from('pending_invites')
     .select('id, email, role, store_id, permissions, expires_at')
     .eq('token', token)
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Урилгын хугацаа дууссан' }, { status: 410 })
   }
 
-  // Create user via admin API — email pre-confirmed, no verification email sent
+  // Create user via admin API — email pre-confirmed, no verification email sent.
   const { data: authData, error: createError } = await admin.auth.admin.createUser({
     email: invite.email,
     password,
@@ -64,36 +65,18 @@ export async function POST(request: NextRequest) {
 
   if (createError) {
     if (createError.message.includes('already been registered') || createError.message.includes('already exists')) {
-      // User already exists (e.g. from a previous failed signup attempt)
-      // Look up in public.users table by email to get their auth ID
-      const { data: publicUser } = await admin
-        .from('users')
-        .select('id')
-        .eq('email', invite.email)
-        .single()
-
-      if (!publicUser) {
-        // No public user record — try listUsers from auth
-        const { data: listData } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
-        const found = listData?.users?.find((u: { email?: string }) => u.email === invite.email)
-        if (!found) {
-          return NextResponse.json({ error: 'Хэрэглэгч олдсонгүй' }, { status: 500 })
-        }
-        await admin.auth.admin.updateUserById(found.id, {
-          password,
-          email_confirm: true,
-          user_metadata: { full_name: fullName, phone },
-        })
-        userId = found.id
-      } else {
-        // Update their password and confirm email
-        await admin.auth.admin.updateUserById(publicUser.id, {
-          password,
-          email_confirm: true,
-          user_metadata: { full_name: fullName, phone },
-        })
-        userId = publicUser.id
-      }
+      // The invited email already has an account. Do NOT create/overwrite its
+      // credentials here — resetting the password from a token-only flow would let
+      // an invite-token holder take over an existing account. Instead, direct them
+      // to log in and accept the invite via /api/team/invite/accept, which verifies
+      // the authenticated user's email matches the invite before granting access.
+      return NextResponse.json(
+        {
+          error: 'Энэ имэйл аль хэдийн бүртгэлтэй байна. Нэвтэрч орж урилгаа хүлээн авна уу.',
+          needsLogin: true,
+        },
+        { status: 409 }
+      )
     } else {
       return NextResponse.json({ error: createError.message }, { status: 500 })
     }

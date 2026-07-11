@@ -9386,6 +9386,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      churn_order_aggregates: {
+        Args: { p_store_id: string }
+        Returns: { customer_id: string; last_order_at: string; total_spent: number; order_count: number }[]
+      }
+      customer_order_stats: {
+        Args: { p_customer_id: string; p_store_id: string }
+        Returns: { order_count: number; total_spent: number }[]
+      }
+      decrement_variant_stock: {
+        Args: { p_variant_id: string; p_quantity: number }
+        Returns: { old_quantity: number; new_quantity: number; product_id: string }[]
+      }
       disconnect_facebook_connection: { Args: { payload: Json }; Returns: Json }
       disconnect_instagram_connection: {
         Args: { payload: Json }

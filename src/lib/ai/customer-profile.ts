@@ -87,14 +87,9 @@ export async function buildCustomerProfile(
       .order('created_at', { ascending: false })
       .limit(5),
 
-    // 3. Lifetime stats — full count + total spend for accurate tier calculation
-    // NOTE: We can't use .count() without fetching rows in Supabase JS v2,
-    // so we select only total_amount across all orders (no limit).
-    supabase
-      .from('orders')
-      .select('total_amount')
-      .eq('customer_id', customerId)
-      .eq('store_id', storeId),
+    // 3. Lifetime stats via a single aggregate (migration 074) — avoids scanning the
+    //    customer's entire order history on every chat message.
+    supabase.rpc('customer_order_stats', { p_customer_id: customerId, p_store_id: storeId }),
 
     // 4. Active order (in transit or confirmed)
     supabase
@@ -119,16 +114,18 @@ export async function buildCustomerProfile(
 
   const customer = customerResult.data
   const orders = ordersResult.data ?? []
-  const allOrders = tierStatsResult.data ?? []
+  const tierStats = (tierStatsResult.data as { order_count: number; total_spent: number }[] | null)?.[0]
+    ?? { order_count: 0, total_spent: 0 }
   const activeOrder = activeOrderResult.data ?? null
   const openEscalations = escalationResult.data ?? []
 
   // ── Derived values ──
   const name = customer?.name ?? null
-  // Use full order history for tier calculation — last-5 limit caused VIP customers
-  // to be misclassified (e.g. 20 orders → showed as 5 → never reached VIP tier)
-  const orderCount = allOrders.length
-  const lifetimeSpend = allOrders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0)
+  // Full-history count + spend for tier calculation, computed by an aggregate RPC
+  // (last-5 limit previously misclassified VIP customers, and scanning every order
+  // row on each message was expensive).
+  const orderCount = tierStats.order_count ?? 0
+  const lifetimeSpend = Number(tierStats.total_spent ?? 0)
   const loyaltyTier = deriveTier(orderCount, lifetimeSpend)
   const isNewCustomer = orderCount === 0
   const isReturning = orderCount > 0

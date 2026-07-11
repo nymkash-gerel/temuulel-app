@@ -53,6 +53,47 @@ export function signPayload(payload: string, secret: string): string {
     .digest('hex')
 }
 
+/**
+ * Reject URLs that point to private/internal network ranges (SSRF prevention).
+ * Only https:// and http:// are allowed, and only public IP ranges. Shared by both
+ * the QStash delivery route and the direct-delivery fallback so every outbound
+ * webhook fetch to a tenant-controlled URL is guarded identically.
+ *
+ * Note: this is a hostname/literal-IP check, not DNS resolution, so it does not stop
+ * DNS-rebinding to an internal IP. It blocks the common metadata/loopback/private
+ * literals that a tenant could set as their webhook_url.
+ */
+export function isSafeWebhookUrl(urlStr: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(urlStr)
+  } catch {
+    return false
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
+  // URL.hostname keeps the brackets around IPv6 literals ([::1]); strip them so the
+  // IPv6 loopback/link-local/unique-local checks below actually match.
+  const h = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  // Reject localhost and private/link-local/metadata ranges
+  if (
+    h === 'localhost' ||
+    h === 'metadata.google.internal' ||
+    h === '169.254.169.254' ||
+    h === '0.0.0.0' ||
+    h === '::' ||
+    /^127\./.test(h) ||
+    /^10\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+    /^192\.168\./.test(h) ||
+    /^::1$/.test(h) ||
+    /^fc00:/i.test(h) ||
+    /^fe80:/i.test(h)
+  ) {
+    return false
+  }
+  return true
+}
+
 function getQStashClient(): QStashClient | null {
   const token = process.env.QSTASH_TOKEN
   if (!token) return null
@@ -144,6 +185,15 @@ export async function deliverDirectly(
   webhookSecret: string | null,
   payload: WebhookPayload
 ): Promise<boolean> {
+  // Reject private/internal URLs before fetching (SSRF prevention). The QStash path
+  // already guards this in /api/webhook/deliver; this fallback must too, otherwise a
+  // tenant that sets webhook_url to an internal/metadata address can make the server
+  // issue a request to it when QSTASH_TOKEN is unset.
+  if (!isSafeWebhookUrl(webhookUrl)) {
+    console.error(`Blocked SSRF attempt (direct delivery) for store ${payload.store_id}: ${webhookUrl}`)
+    return false
+  }
+
   const body = JSON.stringify(payload)
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

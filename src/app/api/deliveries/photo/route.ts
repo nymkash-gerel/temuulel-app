@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
 /**
@@ -9,6 +11,11 @@ import { logger } from '@/lib/logger'
  * failed but we still have the Telegram file_id.
  */
 export async function GET(request: NextRequest) {
+  const rl = await rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const { searchParams } = request.nextUrl
   const fileId = searchParams.get('file_id')
   const bot = searchParams.get('bot') || 'driver'
@@ -17,28 +24,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'file_id required' }, { status: 400 })
   }
 
-  // Auth check — must be logged in
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
   if (!url || !key) {
     return NextResponse.json({ error: 'Not configured' }, { status: 500 })
   }
 
-  // Verify user is authenticated via cookie
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_KEY
-  if (!anonKey) {
-    return NextResponse.json({ error: 'Not configured' }, { status: 500 })
-  }
-
-  const cookieHeader = request.headers.get('cookie') || ''
-  // Extract access token from Supabase auth cookie
-  const tokenMatch = cookieHeader.match(/sb-[^-]+-auth-token[^=]*=([^;]+)/)
-  if (!tokenMatch) {
-    // Try getting from authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  // Require a VALID authenticated session. The previous check only tested that a
+  // Supabase auth cookie / Bearer header was *present* — it never verified the
+  // token, so any forged cookie value passed. Validate via getUser().
+  const authClient = await createServerClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const botToken = bot === 'store'

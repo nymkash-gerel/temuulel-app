@@ -11,6 +11,10 @@
   // Derive base URL from script src (works in dev/staging/prod)
   var baseUrl = s.getAttribute('data-base-url') || s.src.replace(/\/widget\.js.*$/, '');
 
+  // Origin of our own iframe — used to reject postMessage events from other frames.
+  var widgetOrigin;
+  try { widgetOrigin = new URL(baseUrl, window.location.href).origin; } catch (_) { widgetOrigin = null; }
+
   // Create iframe
   var iframe = document.createElement('iframe');
   iframe.src = baseUrl + '/embed/' + encodeURIComponent(storeId);
@@ -33,6 +37,8 @@
 
   // Listen for resize messages from ChatWidget
   window.addEventListener('message', function (e) {
+    // Only trust messages coming from our own widget iframe.
+    if (widgetOrigin && e.origin !== widgetOrigin) return;
     if (e.data && e.data.type === 'temuulel-widget') {
       if (e.data.isOpen) {
         if (isMobile()) {

@@ -82,13 +82,18 @@ export async function PATCH(request: NextRequest) {
     )
   }
 
-  // Decrement stock when order transitions to "confirmed"
-  if (status === 'confirmed' && previousStatus !== 'confirmed') {
+  // Statuses in which stock has already been decremented exactly once.
+  const stockDecrementedStatuses = ['confirmed', 'processing', 'shipped']
+
+  // Decrement stock only when the order ENTERS the decremented region from outside
+  // it (e.g. pending/cancelled -> confirmed). Transitions within the region such as
+  // processing -> confirmed must NOT decrement again — the previous check
+  // (previousStatus !== 'confirmed') double-decremented on those.
+  if (status === 'confirmed' && !stockDecrementedStatuses.includes(previousStatus)) {
     await decrementStockAndNotify(supabase, order_id, order.store_id)
   }
 
-  // Restore stock when order is cancelled (only if stock was previously decremented)
-  const stockDecrementedStatuses = ['confirmed', 'processing', 'shipped']
+  // Restore stock when an order leaves the decremented region via cancellation.
   if (status === 'cancelled' && stockDecrementedStatuses.includes(previousStatus)) {
     await restoreStockOnCancellation(supabase, order_id)
   }

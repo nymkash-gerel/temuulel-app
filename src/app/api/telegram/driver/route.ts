@@ -17,18 +17,29 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabase } from '@/lib/supabase/service'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import type { TgUpdate } from '@/lib/telegram/driver-utils'
 import { handleCallbackQuery } from '@/lib/telegram/driver-callbacks'
 import { handleMessage } from '@/lib/telegram/driver-handlers'
 
 export async function POST(request: NextRequest) {
-  // Verify request is from Telegram (optional secret header)
+  const rl = await rateLimit(getClientIp(request), { limit: 100, windowSeconds: 60 })
+  if (!rl.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
+  // Verify the request is from Telegram. Fail closed: without the secret this
+  // endpoint would accept forged driver-bot updates and mutate deliveries/orders.
+  // In production a missing secret is a misconfiguration; only local dev may skip it.
   const secret = process.env.DRIVER_TELEGRAM_WEBHOOK_SECRET
-  if (secret) {
-    const header = request.headers.get('x-telegram-bot-api-secret-token')
-    if (header !== secret) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[DriverBot] DRIVER_TELEGRAM_WEBHOOK_SECRET not configured — rejecting request')
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
     }
+    // In development, allow unauthenticated access for local testing.
+  } else if (request.headers.get('x-telegram-bot-api-secret-token') !== secret) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   let update: TgUpdate

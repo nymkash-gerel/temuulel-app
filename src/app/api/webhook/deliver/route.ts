@@ -11,7 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { Receiver } from '@upstash/qstash'
-import { signPayload, type WebhookPayload } from '@/lib/webhook'
+import { signPayload, isSafeWebhookUrl, type WebhookPayload } from '@/lib/webhook'
 import { getSupabase } from '@/lib/supabase/service'
 
 function getReceiver(): Receiver | null {
@@ -19,37 +19,6 @@ function getReceiver(): Receiver | null {
   const nextSigningKey = process.env.QSTASH_NEXT_SIGNING_KEY
   if (!currentSigningKey || !nextSigningKey) return null
   return new Receiver({ currentSigningKey, nextSigningKey })
-}
-
-/**
- * Reject URLs that point to private/internal network ranges (SSRF prevention).
- * Only https:// and http:// are allowed, and only public IP ranges.
- */
-function isSafeWebhookUrl(urlStr: string): boolean {
-  let parsed: URL
-  try {
-    parsed = new URL(urlStr)
-  } catch {
-    return false
-  }
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
-  const h = parsed.hostname.toLowerCase()
-  // Reject localhost and private/link-local/metadata ranges
-  if (
-    h === 'localhost' ||
-    h === 'metadata.google.internal' ||
-    h === '169.254.169.254' ||
-    /^127\./.test(h) ||
-    /^10\./.test(h) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
-    /^192\.168\./.test(h) ||
-    /^::1$/.test(h) ||
-    /^fc00:/i.test(h) ||
-    /^fe80:/i.test(h)
-  ) {
-    return false
-  }
-  return true
 }
 
 

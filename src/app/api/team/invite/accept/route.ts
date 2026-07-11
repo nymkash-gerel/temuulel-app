@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient()
+  const admin = createAdminClient()
 
   // Exchange auth code if present (email verification redirect)
   if (code) {
@@ -36,8 +38,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=not_authenticated', origin))
   }
 
-  // Find and validate pending invite
-  const { data: invite } = await supabase
+  // Find and validate pending invite. pending_invites is not readable via the anon
+  // key (migration 072), so this lookup uses the service-role client. The invite is
+  // only consumed after we verify the authenticated user's email matches it below.
+  const { data: invite } = await admin
     .from('pending_invites')
     .select('id, store_id, email, role, permissions, token, invited_by, expires_at, created_at')
     .eq('token', token)
@@ -85,8 +89,9 @@ export async function GET(request: NextRequest) {
     }, { onConflict: 'id' })
   }
 
-  // Delete the pending invite
-  await supabase
+  // Delete the pending invite (service-role: the invited member is not the store
+  // owner, so RLS would otherwise block the delete and leave the invite reusable).
+  await admin
     .from('pending_invites')
     .delete()
     .eq('id', invite.id)

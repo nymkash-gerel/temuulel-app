@@ -134,6 +134,51 @@ describe('deliverDirectly', () => {
     const result = await deliverDirectly('https://hooks.example.com/webhook', null, payload)
     expect(result).toBe(false)
   })
+
+  it('refuses to fetch an internal/metadata URL (SSRF guard, HIGH #5)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { deliverDirectly } = await import('@/lib/webhook')
+    const payload = {
+      event: 'new_order' as const,
+      timestamp: '2026-01-28T00:00:00.000Z',
+      store_id: 'store_1',
+      data: {},
+    }
+
+    const result = await deliverDirectly('http://169.254.169.254/latest/meta-data/', null, payload)
+    expect(result).toBe(false)
+    expect(mockFetch).not.toHaveBeenCalled() // never issued the request
+  })
+})
+
+describe('isSafeWebhookUrl (SSRF prevention)', () => {
+  it('rejects internal / private / loopback / metadata hosts', async () => {
+    const { isSafeWebhookUrl } = await import('@/lib/webhook')
+    const blocked = [
+      'http://169.254.169.254/latest/meta-data/',
+      'http://metadata.google.internal/',
+      'http://localhost:3000/hook',
+      'http://127.0.0.1/hook',
+      'http://10.0.0.5/hook',
+      'http://172.16.0.1/hook',
+      'http://192.168.1.10/hook',
+      'http://0.0.0.0/hook',
+      'http://[::1]/hook',
+      'ftp://example.com/hook', // non-http protocol
+      'not-a-url',
+    ]
+    for (const url of blocked) {
+      expect(isSafeWebhookUrl(url), url).toBe(false)
+    }
+  })
+
+  it('accepts public https and http URLs', async () => {
+    const { isSafeWebhookUrl } = await import('@/lib/webhook')
+    expect(isSafeWebhookUrl('https://hooks.example.com/webhook')).toBe(true)
+    expect(isSafeWebhookUrl('http://api.partner.mn/incoming')).toBe(true)
+  })
 })
 
 describe('Webhook event filtering', () => {
