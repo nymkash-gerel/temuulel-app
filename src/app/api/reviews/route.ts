@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabase/service'
 
-const sb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ''
-)
+// The Supabase client is created lazily per request (via getSupabase) rather than at
+// module load. A module-level createClient() throws "supabaseKey is required" during
+// Next.js build page-data collection when the key env var isn't set (e.g. Vercel
+// preview), failing the whole build for a runtime-only concern.
 
 /**
  * GET /api/reviews?store_id=X&product_id=Y
  * Returns reviews (public endpoint for widget)
  */
 export async function GET(req: NextRequest) {
+  const sb = getSupabase()
   const storeId = req.nextUrl.searchParams.get('store_id')
   const productId = req.nextUrl.searchParams.get('product_id')
   if (!storeId) return NextResponse.json({ error: 'store_id required' }, { status: 400 })
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
  * POST /api/reviews — public submission
  */
 export async function POST(req: NextRequest) {
+  const sb = getSupabase()
   const body = await req.json()
   const { store_id, customer_id, order_id, product_id, rating, comment } = body as {
     store_id: string; customer_id?: string; order_id?: string; product_id?: string

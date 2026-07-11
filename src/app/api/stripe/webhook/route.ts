@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabase/service'
 import crypto from 'crypto'
 
-const sb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ''
-)
+// The Supabase client is created lazily per request (getSupabase) rather than at
+// module load — a module-level createClient() throws "supabaseKey is required" during
+// Next.js build page-data collection when the key env var is unset (e.g. Vercel preview).
 
 function verifyStripeSignature(payload: string, signature: string, secret: string): boolean {
   const elements = signature.split(',').reduce((acc, e) => {
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest) {
       }
     }
   }
-  const db = sb as unknown as StripeDb
+  const db = getSupabase() as unknown as StripeDb
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as { metadata: { store_id: string; plan: string }; customer: string; subscription: string }

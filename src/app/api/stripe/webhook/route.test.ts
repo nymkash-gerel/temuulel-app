@@ -9,8 +9,8 @@ const { sbConfig } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
+vi.mock('@/lib/supabase/service', () => ({
+  getSupabase: () => ({
     from: () => ({
       upsert: () => Promise.resolve(sbConfig.upsert),
       update: () => ({ eq: () => Promise.resolve(sbConfig.update) }),
