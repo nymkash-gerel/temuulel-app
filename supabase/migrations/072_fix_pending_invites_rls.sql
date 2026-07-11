@@ -13,3 +13,8 @@
 -- The store owner retains read/manage access through "Owner can manage pending invites".
 
 DROP POLICY IF EXISTS "Anyone can read invite by token" ON pending_invites;
+
+-- ROLLBACK: recreate the policy (this REINTRODUCES the takeover vulnerability, and
+-- the verify/signup/accept routes must be reverted to the anon client too):
+--   CREATE POLICY "Anyone can read invite by token"
+--     ON pending_invites FOR SELECT USING (true);

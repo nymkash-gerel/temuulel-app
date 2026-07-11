@@ -12,3 +12,7 @@
 -- closing the direct-insert abuse.
 
 DROP POLICY IF EXISTS "Anyone can insert driver ratings" ON driver_ratings;
+
+-- ROLLBACK: recreate the policy (this REINTRODUCES the rating-manipulation abuse):
+--   CREATE POLICY "Anyone can insert driver ratings"
+--     ON driver_ratings FOR INSERT WITH CHECK (true);

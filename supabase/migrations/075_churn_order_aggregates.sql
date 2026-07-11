@@ -27,3 +27,6 @@ $$;
 
 COMMENT ON FUNCTION churn_order_aggregates(uuid) IS
   'Per-customer last_order_at, total_spent and order_count for a store (churn analytics).';
+
+-- ROLLBACK (revert src/app/api/analytics/churn/route.ts to the fetch-all + JS aggregation first, then):
+--   DROP FUNCTION IF EXISTS churn_order_aggregates(uuid);

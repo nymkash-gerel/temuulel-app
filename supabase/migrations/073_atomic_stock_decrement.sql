@@ -36,3 +36,6 @@ $$;
 
 COMMENT ON FUNCTION decrement_variant_stock(uuid, int) IS
   'Atomically decrement a product variant stock (clamped at 0). Returns old/new quantity and product_id.';
+
+-- ROLLBACK (revert src/lib/stock.ts to the read-modify-write first, then):
+--   DROP FUNCTION IF EXISTS decrement_variant_stock(uuid, int);

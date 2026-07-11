@@ -20,3 +20,6 @@ $$;
 
 COMMENT ON FUNCTION customer_order_stats(uuid, uuid) IS
   'Returns lifetime order_count and total_spent for a customer within a store.';
+
+-- ROLLBACK (revert src/lib/ai/customer-profile.ts to the full-history select first, then):
+--   DROP FUNCTION IF EXISTS customer_order_stats(uuid, uuid);
