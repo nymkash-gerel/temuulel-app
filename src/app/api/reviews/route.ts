@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabase } from '@/lib/supabase/service'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
-// The Supabase client is created lazily per request (via getSupabase) rather than at
-// module load. A module-level createClient() throws "supabaseKey is required" during
-// Next.js build page-data collection when the key env var isn't set (e.g. Vercel
-// preview), failing the whole build for a runtime-only concern.
+// Supabase client is created lazily per request (getSupabase) — a module-level
+// createClient() throws "supabaseKey is required" during Next.js build page-data
+// collection when the key env var isn't set (e.g. Vercel preview).
 
 /**
  * GET /api/reviews?store_id=X&product_id=Y
@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
  * POST /api/reviews — public submission
  */
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(getClientIp(req), { limit: 10, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const sb = getSupabase()
   const body = await req.json()
   const { store_id, customer_id, order_id, product_id, rating, comment } = body as {

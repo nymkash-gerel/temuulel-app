@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabase } from '@/lib/supabase/service'
 import crypto from 'crypto'
 
-// The Supabase client is created lazily per request (getSupabase) rather than at
-// module load — a module-level createClient() throws "supabaseKey is required" during
-// Next.js build page-data collection when the key env var is unset (e.g. Vercel preview).
+// The Supabase client is created lazily per request (getSupabase) — a module-level
+// createClient() throws "supabaseKey is required" during Next.js build page-data
+// collection when the key env var is unset (e.g. Vercel preview).
 
 function verifyStripeSignature(payload: string, signature: string, secret: string): boolean {
   const elements = signature.split(',').reduce((acc, e) => {

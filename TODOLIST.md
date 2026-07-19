@@ -1704,7 +1704,7 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 |---|------|--------|----------|-------|
 | 8 | ~~Deploy Redis-backed rate limiting on all routes~~ | **DONE** ✓ | P2 | Middleware upgraded to Upstash Redis with in-memory fallback. All 300 routes protected via tiered middleware. 77 routes have additional route-level Redis limits. |
 | 9 | Complete Instagram DM & WhatsApp receivers | PENDING | P2 | Create unified `multi-channel-sender.ts` from messenger.ts patterns |
-| 10 | Implement real-time logistics sync | PENDING | P2 | Resolution Engine queries deliveries + drivers tables for live ETA |
+| 10 | ~~Implement real-time logistics sync~~ | **DONE** ✓ | P2 | Resolution Engine live delivery lookup hardened: history scoped to requesting customer (privacy fix), pending/delayed statuses covered, ETA timestamps formatted to UB local time, delayed-delivery apology prompt. 27 unit tests added (`resolution-engine.test.ts`). |
 
 ### Phase 52 Summary
 
@@ -1712,5 +1712,5 @@ Payments (10 req/60s), Orders (10 req/60s), Chat/widget (20-30 req/60s), Search 
 |----------|-------|------|---------|
 | P0 Revenue-Critical | 2 | 2 | 0 |
 | P1 AI Quality | 5 | 5 | 0 |
-| P2 Platform | 3 | 1 | 2 |
+| P2 Platform | 3 | 2 | 1 |
 | **Total** | **10** | **9** | **1** |
