@@ -363,7 +363,7 @@ describe('createInvoice', () => {
     expect(invoicesInsert).toBeDefined()
     const invoiceData = invoicesInsert!.data as Record<string, unknown>
 
-    // subtotal = (2*1000) + (3*500) = 2000 + 1500 = 3500
+    // subtotal (gross) = (2*1000) + (3*500) = 2000 + 1500 = 3500
     expect(invoiceData.subtotal).toBe(3500)
 
     // No global taxRate or discountAmount, so tax is calculated per line item:
@@ -372,11 +372,32 @@ describe('createInvoice', () => {
     // Total tax = 190
     expect(invoiceData.tax_amount).toBe(190)
 
-    // total_amount = subtotal - discountAmount + taxAmount = 3500 - 0 + 190 = 3690
-    expect(invoiceData.total_amount).toBe(3690)
-    expect(invoiceData.amount_due).toBe(3690)
-    expect(invoiceData.discount_amount).toBe(0)
+    // discount_amount now includes the per-line discount (item A's 100). Previously
+    // this was 0 and the line discount was silently dropped from the total.
+    expect(invoiceData.discount_amount).toBe(100)
+    // total_amount = subtotal - totalDiscount + taxAmount = 3500 - 100 + 190 = 3590
+    expect(invoiceData.total_amount).toBe(3590)
+    expect(invoiceData.amount_due).toBe(3590)
     expect(invoiceData.status).toBe('draft')
+  })
+
+  it('subtracts per-line-item discounts from the invoice total (overcharge regression, #18)', async () => {
+    const mock = createMockSupabase()
+
+    await createInvoice(mock.client, {
+      storeId: 'store_1',
+      partyType: 'customer',
+      items: [
+        // One item, 10000 gross, 2000 line discount, no tax → customer owes 8000.
+        { description: 'Discounted', quantity: 1, unit_price: 10000, discount: 2000 },
+      ],
+    })
+
+    const invoiceData = mock.insertCalls.find(c => c.table === 'invoices')!.data as Record<string, unknown>
+    expect(invoiceData.subtotal).toBe(10000)
+    expect(invoiceData.discount_amount).toBe(2000)
+    expect(invoiceData.total_amount).toBe(8000) // was 10000 before the fix
+    expect(invoiceData.amount_due).toBe(8000)
   })
 
   it('calculates correct totals with global taxRate and discountAmount', async () => {

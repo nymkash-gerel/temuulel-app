@@ -624,6 +624,14 @@ export async function processAIChat(
       let extendedProfile: string | null = null
 
       try {
+        // Start the always-needed extended-profile lookup up front so it runs
+        // concurrently with the conditional latest-purchase lookups below (they are
+        // independent). Previously these executed as sequential round-trips before the
+        // LLM call. `.catch` keeps a failure non-critical (same as the outer try/catch).
+        const extInfoPromise = customerId
+          ? getExtendedCustomerInfo(supabase, customerId, storeId).catch(() => null)
+          : null
+
         // Auto-lookup: if order_status/shipping with no specific order found, fetch customer's recent orders
         if ((intent === 'order_status' || intent === 'shipping') && orders.length === 0 && customerId) {
           const latestPurchase = await getLatestPurchase(supabase, customerId, storeId)
@@ -651,10 +659,10 @@ export async function processAIChat(
           }).catch(err => logger.warn("Silent catch error", err))
         }
 
-        // Build extended profile for AI personalization
-        if (customerId) {
-          const extInfo = await getExtendedCustomerInfo(supabase, customerId, storeId)
-          extendedProfile = formatExtendedProfileForAI(extInfo) || null
+        // Build extended profile for AI personalization (already in flight above)
+        if (customerId && extInfoPromise) {
+          const extInfo = await extInfoPromise
+          extendedProfile = extInfo ? (formatExtendedProfileForAI(extInfo) || null) : null
 
           const inferred = inferPreferencesFromMessage(customerMessage)
           if (inferred.length > 0) {

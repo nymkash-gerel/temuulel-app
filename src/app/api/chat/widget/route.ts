@@ -27,13 +27,37 @@ export async function POST(request: NextRequest) {
   // Get store with chatbot settings
   const { data: store } = await supabase
     .from('stores')
-    .select('name, ai_auto_reply, chatbot_settings')
+    .select('name, ai_auto_reply, chatbot_settings, monthly_message_limit, messages_used, messages_reset_at')
     .eq('id', store_id)
     .single()
 
   const storeName = store?.name || 'Манай дэлгүүр'
   const chatbotSettings = (store?.chatbot_settings || {}) as ChatbotSettings
   const aiAutoReply = store?.ai_auto_reply !== false // default true
+
+  // Per-store monthly AI message quota (mirrors the Messenger webhook). The public
+  // widget is unauthenticated, so without this it could drive unlimited OpenAI calls
+  // past the store's plan. The counter is incremented centrally in openai-client.ts.
+  if (store) {
+    const limit = store.monthly_message_limit ?? 100
+    const used = store.messages_used ?? 0
+    const resetAt = store.messages_reset_at ? new Date(store.messages_reset_at) : new Date(0)
+    const daysSinceReset = (Date.now() - resetAt.getTime()) / (1000 * 60 * 60 * 24)
+    if (daysSinceReset >= 30) {
+      await supabase
+        .from('stores')
+        .update({ messages_used: 0, messages_reset_at: new Date().toISOString() })
+        .eq('id', store_id)
+    } else if (used >= limit) {
+      // Quota exhausted — hand off to a human instead of calling OpenAI.
+      return NextResponse.json({
+        response: null,
+        intent: 'handoff',
+        handoff: true,
+        limit_reached: true,
+      })
+    }
+  }
 
   // 1. Check for handoff keywords
   if (matchesHandoffKeywords(customer_message, chatbotSettings)) {

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
@@ -7,6 +7,10 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
  *
  * Verify a pending invite token and return invite details.
  * Used by the /invite/[token] signup page.
+ *
+ * pending_invites is not readable via the anon key (see migration 072); the token
+ * lookup runs server-side with the service-role client. The bearer token itself is
+ * the secret, so we only echo back non-sensitive display fields (never the token).
  */
 export async function GET(request: NextRequest) {
   const rl = await rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
@@ -17,10 +21,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Token шаардлагатай' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const admin = createAdminClient()
 
   // Simple query without joins — the join on auth.users fails on production
-  const { data: invite } = await supabase
+  const { data: invite } = await admin
     .from('pending_invites')
     .select('email, role, store_id, expires_at, invited_by')
     .eq('token', token)
@@ -36,14 +40,14 @@ export async function GET(request: NextRequest) {
   }
 
   // Fetch store name separately
-  const { data: store } = await supabase
+  const { data: store } = await admin
     .from('stores')
     .select('name')
     .eq('id', invite.store_id)
     .single()
 
   // Fetch inviter email from public.users
-  const { data: inviter } = await supabase
+  const { data: inviter } = await admin
     .from('users')
     .select('email')
     .eq('id', invite.invited_by)

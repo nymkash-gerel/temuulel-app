@@ -797,18 +797,36 @@ async function handlePhoneLink(
   const rawPhone = msg.contact?.phone_number ?? text
   const phone = normalizePhone(rawPhone)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: driver, error: lookupError } = await (supabase as any)
+  // Coarse suffix prefilter, then require EXACT normalized-phone equality in JS.
+  // A trailing-wildcard `ilike '%<phone>'` alone would bind a partial/longer number
+  // to an unintended driver, and — because the driver bot is shared across every
+  // store — could silently link the Telegram account to a driver in the wrong
+  // tenant. We therefore compare normalized phones exactly and refuse to guess when
+  // more than one driver matches. (supabase is typed `any`, so no cast is needed.)
+  const { data: candidates, error: lookupError } = await supabase
     .from('delivery_drivers')
-    .select('id, name, phone')
+    .select('id, name, phone, store_id')
     .ilike('phone', `%${phone}`)
-    .maybeSingle()
 
-  if (lookupError || !driver) {
+  const matches = ((candidates ?? []) as Array<{ id: string; name: string; phone: string | null; store_id: string }>)
+    .filter((d) => d.phone && normalizePhone(d.phone) === phone)
+
+  if (lookupError || matches.length === 0) {
     console.log(`[DriverBot] NOT FOUND — phone "${phone}" not in DB`)
     await tgSend(chatId, DRIVER_BOT_NOT_FOUND)
     return
   }
+
+  if (matches.length > 1) {
+    // Same normalized phone registered under multiple drivers/stores — refuse to
+    // silently bind to an arbitrary tenant. Onboarding must use the per-driver
+    // deep link (handleStartCommand), which is keyed by driver id.
+    console.warn(`[DriverBot] AMBIGUOUS — phone "${phone}" matches ${matches.length} drivers; refusing to bind`)
+    await tgSend(chatId, DRIVER_BOT_NOT_FOUND)
+    return
+  }
+
+  const driver = matches[0]
 
   const linked = await recordTgHistory(supabase, driver.id, chatId, msg.from ?? { id: chatId })
 

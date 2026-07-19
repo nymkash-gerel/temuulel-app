@@ -41,32 +41,26 @@ export async function decrementStockAndNotify(
     ? productSettings.low_stock_threshold
     : DEFAULT_LOW_STOCK_THRESHOLD
 
-  // 3. Decrement each variant and check against threshold
+  // 3. Decrement each variant atomically (see migration 073) and check the threshold.
+  //    The RPC performs the read-modify-write in a single locked statement so
+  //    concurrent order confirmations for the same variant cannot oversell.
   for (const item of items as { variant_id: string; quantity: number }[]) {
-    // Fetch current stock
-    const { data: variant } = await supabase
-      .from('product_variants')
-      .select('id, stock_quantity, product_id')
-      .eq('id', item.variant_id)
-      .single()
+    const { data: rows, error } = await supabase.rpc('decrement_variant_stock', {
+      p_variant_id: item.variant_id,
+      p_quantity: item.quantity,
+    })
 
-    if (!variant) continue
+    const result = rows?.[0]
+    if (error || !result) continue
 
-    const newQuantity = Math.max(0, variant.stock_quantity - item.quantity)
+    const { old_quantity: oldQuantity, new_quantity: newQuantity, product_id: productId } = result
 
-    // Decrement stock
-    await supabase
-      .from('product_variants')
-      .update({ stock_quantity: newQuantity })
-      .eq('id', item.variant_id)
-
-    // 4. Check if stock fell to or below threshold
-    if (newQuantity <= threshold && variant.stock_quantity > threshold) {
-      // Stock just crossed the threshold — notify
+    // 4. Notify only when stock just crossed to/below the threshold.
+    if (newQuantity <= threshold && oldQuantity > threshold) {
       const { data: product } = await supabase
         .from('products')
         .select('name')
-        .eq('id', variant.product_id)
+        .eq('id', productId)
         .single()
 
       const productName = product?.name || 'Бүтээгдэхүүн'
@@ -75,7 +69,7 @@ export async function decrementStockAndNotify(
         product_name: productName,
         remaining: newQuantity,
         variant_id: item.variant_id,
-        product_id: variant.product_id,
+        product_id: productId,
       })
     }
   }

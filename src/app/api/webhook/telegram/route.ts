@@ -31,12 +31,19 @@ export async function POST(request: NextRequest) {
   // Verify Telegram webhook secret token (set via TELEGRAM_WEBHOOK_SECRET env var).
   // Register it with Telegram using: setWebhook?url=...&secret_token=YOUR_SECRET
   // Telegram sends it back in the X-Telegram-Bot-Api-Secret-Token header on every update.
+  //
+  // Fail closed: without the secret this endpoint would accept forged updates from
+  // anyone and mutate arbitrary stores' appointments/deliveries. In production a
+  // missing secret is a misconfiguration and we reject; only local dev may skip it.
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET
-  if (webhookSecret) {
-    const incomingToken = request.headers.get('x-telegram-bot-api-secret-token')
-    if (incomingToken !== webhookSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!webhookSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[telegram] TELEGRAM_WEBHOOK_SECRET not configured — rejecting request')
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
     }
+    // In development, allow unauthenticated access for local testing.
+  } else if (request.headers.get('x-telegram-bot-api-secret-token') !== webhookSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   let body: Record<string, unknown>
@@ -186,6 +193,38 @@ async function handleStartCommand(
 }
 
 /**
+ * Resolve which store(s) a Telegram chat is authorized to act on. A callback button
+ * is only actionable by the store member / staff whose linked telegram_chat_id
+ * received it, so mutations must be scoped to those stores — otherwise any linked
+ * user could tap a button carrying another tenant's appointment/delivery id and
+ * mutate it (the service-role client bypasses RLS).
+ */
+async function getAuthorizedStoreIds(
+  supabase: SupabaseClient,
+  chatId: string
+): Promise<string[]> {
+  const storeIds = new Set<string>()
+
+  const { data: members } = await supabase
+    .from('store_members')
+    .select('store_id')
+    .eq('telegram_chat_id', chatId)
+  for (const m of members || []) {
+    if (m.store_id) storeIds.add(m.store_id as string)
+  }
+
+  const { data: staff } = await supabase
+    .from('staff')
+    .select('store_id')
+    .eq('telegram_chat_id', chatId)
+  for (const s of staff || []) {
+    if (s.store_id) storeIds.add(s.store_id as string)
+  }
+
+  return [...storeIds]
+}
+
+/**
  * Handle callback query from inline keyboard (Confirm/Reject appointment).
  */
 async function handleCallbackQuery(
@@ -204,14 +243,27 @@ async function handleCallbackQuery(
     return
   }
 
+  // Authorize: only act on entities belonging to the store(s) this chat is linked to.
+  const authorizedStoreIds = await getAuthorizedStoreIds(supabase, chatId)
+  if (authorizedStoreIds.length === 0) {
+    await answerCallbackQuery(query.id, 'Эрх байхгүй')
+    return
+  }
+
   if (action === 'confirm_appointment') {
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('appointments')
       .update({ status: 'confirmed' })
       .eq('id', entityId)
+      .in('store_id', authorizedStoreIds)
+      .select('id')
 
     if (error) {
       await answerCallbackQuery(query.id, 'Алдаа: ' + error.message)
+      return
+    }
+    if (!updated || updated.length === 0) {
+      await answerCallbackQuery(query.id, 'Захиалга олдсонгүй эсвэл эрх байхгүй')
       return
     }
 
@@ -222,13 +274,19 @@ async function handleCallbackQuery(
       (query.message?.text || '') + '\n\n✅ Баталгаажуулсан'
     )
   } else if (action === 'reject_appointment') {
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('appointments')
       .update({ status: 'cancelled' })
       .eq('id', entityId)
+      .in('store_id', authorizedStoreIds)
+      .select('id')
 
     if (error) {
       await answerCallbackQuery(query.id, 'Алдаа: ' + error.message)
+      return
+    }
+    if (!updated || updated.length === 0) {
+      await answerCallbackQuery(query.id, 'Захиалга олдсонгүй эсвэл эрх байхгүй')
       return
     }
 
@@ -239,9 +297,9 @@ async function handleCallbackQuery(
       (query.message?.text || '') + '\n\n❌ Цуцлагдсан'
     )
   } else if (action === 'wrong_product_resend') {
-    await handleWrongProductResend(supabase, query, entityId, chatId, messageId)
+    await handleWrongProductResend(supabase, query, entityId, chatId, messageId, authorizedStoreIds)
   } else if (action === 'wrong_product_correct') {
-    await handleWrongProductCorrect(supabase, query, entityId, chatId, messageId)
+    await handleWrongProductCorrect(supabase, query, entityId, chatId, messageId, authorizedStoreIds)
   } else {
     await answerCallbackQuery(query.id, 'Тодорхойгүй үйлдэл')
   }
@@ -255,13 +313,15 @@ async function handleWrongProductResend(
   query: CallbackQuery,
   deliveryId: string,
   chatId: string,
-  messageId: number
+  messageId: number,
+  authorizedStoreIds: string[]
 ) {
-  // Fetch original delivery details
+  // Fetch original delivery details (scoped to the acting user's store(s))
   const { data: origDelivery, error: fetchErr } = await supabase
     .from('deliveries')
     .select('id, store_id, order_id, delivery_number, delivery_address, customer_name, customer_phone, delivery_fee, delivery_type, pickup_address, notes')
     .eq('id', deliveryId)
+    .in('store_id', authorizedStoreIds)
     .single()
 
   if (fetchErr || !origDelivery) {
@@ -379,9 +439,11 @@ async function handleWrongProductCorrect(
   query: CallbackQuery,
   deliveryId: string,
   chatId: string,
-  messageId: number
+  messageId: number,
+  authorizedStoreIds: string[]
 ) {
-  // Update delivery — mark as resolved (product was correct after all)
+  // Update delivery — mark as resolved (product was correct after all).
+  // Scoped to the acting user's store(s) so a foreign delivery can't be mutated.
   const { data: delivery, error } = await supabase
     .from('deliveries')
     .update({
@@ -389,11 +451,16 @@ async function handleWrongProductCorrect(
       metadata: { wrong_product_resolved: true, resolved_action: 'correct' },
     })
     .eq('id', deliveryId)
+    .in('store_id', authorizedStoreIds)
     .select('delivery_number, store_id, order_id')
-    .single()
+    .maybeSingle()
 
   if (error) {
     await answerCallbackQuery(query.id, 'Алдаа: ' + error.message)
+    return
+  }
+  if (!delivery) {
+    await answerCallbackQuery(query.id, 'Хүргэлт олдсонгүй эсвэл эрх байхгүй')
     return
   }
 

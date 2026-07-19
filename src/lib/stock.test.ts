@@ -82,6 +82,20 @@ function createMockSupabase(overrides: Record<string, unknown> = {}) {
       }
       return {}
     }),
+    // Atomic decrement RPC (migration 073). Simulate it against the variants map and
+    // record the resulting write so the existing assertions still hold.
+    rpc: vi.fn((fn: string, args: { p_variant_id: string; p_quantity: number }) => {
+      if (fn !== 'decrement_variant_stock') return Promise.resolve({ data: null, error: null })
+      const v = (variants as Record<string, { stock_quantity: number; product_id: string }>)[args.p_variant_id]
+      if (!v) return Promise.resolve({ data: [], error: null })
+      const oldQ = v.stock_quantity
+      const newQ = Math.max(0, oldQ - args.p_quantity)
+      updateCalls.push({ variantId: args.p_variant_id, newQuantity: newQ })
+      return Promise.resolve({
+        data: [{ old_quantity: oldQ, new_quantity: newQ, product_id: v.product_id }],
+        error: null,
+      })
+    }),
   }
 
   return {

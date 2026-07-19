@@ -37,12 +37,15 @@ export async function GET(request: NextRequest) {
   if (driverId) {
     try {
       const admin = createAdminClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: driver, error } = await (admin as any)
+      // Scope the lookup to the authenticated owner's store. The admin client
+      // bypasses RLS, so without this a store owner could pass any driver_id and
+      // read another store's driver (name, telegram_chat_id) or message them below.
+      const { data: driver, error } = await admin
         .from('delivery_drivers')
         .select('id, name, telegram_chat_id, telegram_linked_at, store_id')
         .eq('id', driverId)
-        .single()
+        .eq('store_id', store.id)
+        .maybeSingle()
 
       if (error) {
         result.driver_lookup = { error: error.message }
@@ -82,7 +85,8 @@ export async function GET(request: NextRequest) {
       }
 
       // 6. Optionally test via sendToDriver (the actual code path used in PATCH /api/deliveries/[id])
-      if (send && driverId) {
+      //    Only for a driver that belongs to this owner's store (driver is null otherwise).
+      if (send && driver) {
         try {
           const sent = await sendToDriver(
             supabase,

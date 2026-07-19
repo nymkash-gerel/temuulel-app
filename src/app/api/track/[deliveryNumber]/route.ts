@@ -24,10 +24,14 @@ export async function GET(
 
   const supabase = createAdminClient()
 
+  // This endpoint is PUBLIC and keyed only by delivery_number, which is often
+  // predictable (e.g. `DEL-<Date.now()>`). We therefore do NOT expose harvestable
+  // PII (customer name, full delivery address) here — only delivery status/timeline.
+  // Store staff see the full details in the authenticated dashboard.
   const { data: delivery } = await supabase
     .from('deliveries')
     .select(`
-      delivery_number, status, delivery_address, customer_name,
+      delivery_number, status,
       estimated_delivery_time, actual_delivery_time, created_at, updated_at,
       delivery_drivers(name, vehicle_type),
       delivery_status_log(status, notes, created_at)
@@ -48,8 +52,6 @@ export async function GET(
   return NextResponse.json({
     delivery_number: delivery.delivery_number,
     status: delivery.status,
-    delivery_address: delivery.delivery_address,
-    customer_name: delivery.customer_name,
     estimated_delivery_time: delivery.estimated_delivery_time,
     actual_delivery_time: delivery.actual_delivery_time,
     created_at: delivery.created_at,

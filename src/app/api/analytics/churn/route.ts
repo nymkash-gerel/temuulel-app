@@ -23,22 +23,18 @@ export async function GET() {
     .select('id, name, phone, email, messenger_id, created_at')
     .eq('store_id', member.store_id)
 
-  const customerIds = (customers || []).map((c: { id: string }) => c.id)
-
-  // Last activity per customer (most recent order or message)
-  const { data: lastOrders } = await supabase
-    .from('orders')
-    .select('customer_id, created_at, total_amount')
-    .in('customer_id', customerIds)
-    .order('created_at', { ascending: false })
+  // Per-customer last-activity + lifetime spend, aggregated in the DB (migration 075)
+  // instead of fetching every order row and summing in JS.
+  const { data: aggregates } = await supabase.rpc('churn_order_aggregates', {
+    p_store_id: member.store_id,
+  })
 
   const lastActivity: Record<string, { date: string; spent: number; orderCount: number }> = {}
-  for (const o of (lastOrders || []) as { customer_id: string; created_at: string; total_amount: number }[]) {
-    if (!lastActivity[o.customer_id]) {
-      lastActivity[o.customer_id] = { date: o.created_at, spent: o.total_amount, orderCount: 1 }
-    } else {
-      lastActivity[o.customer_id].spent += o.total_amount
-      lastActivity[o.customer_id].orderCount++
+  for (const a of (aggregates || []) as { customer_id: string; last_order_at: string; total_spent: number; order_count: number }[]) {
+    lastActivity[a.customer_id] = {
+      date: a.last_order_at,
+      spent: Number(a.total_spent),
+      orderCount: a.order_count,
     }
   }
 

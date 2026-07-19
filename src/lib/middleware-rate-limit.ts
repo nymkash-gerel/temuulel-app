@@ -126,6 +126,8 @@ function memoryEdgeRateLimit(key: string, options: RateLimitOptions): RateLimitR
  * Rate limit a request. Uses Upstash Redis in production (shared across
  * all Vercel Edge instances) or falls back to in-memory for development.
  */
+let warnedNoUpstashInProd = false
+
 export async function edgeRateLimit(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
   const upstash = getUpstashLimiter(options.limit, options.windowSeconds)
 
@@ -142,6 +144,16 @@ export async function edgeRateLimit(key: string, options: RateLimitOptions): Pro
       // Redis unavailable — fall back to in-memory
       return memoryEdgeRateLimit(key, options)
     }
+  }
+
+  // No Upstash configured. On serverless each instance has its own memory, so these
+  // limits are per-instance and bypassable by spreading requests across instances.
+  // Surface this once in production instead of failing silently.
+  if (!warnedNoUpstashInProd && process.env.NODE_ENV === 'production') {
+    warnedNoUpstashInProd = true
+    console.error(
+      '[rate-limit] Upstash not configured in production — using per-instance in-memory limits, which are bypassable across serverless instances. Set UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN.',
+    )
   }
 
   return memoryEdgeRateLimit(key, options)

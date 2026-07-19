@@ -5,8 +5,6 @@ import { useEffect, useState } from 'react'
 interface TrackingData {
   delivery_number: string
   status: string
-  delivery_address: string
-  customer_name: string | null
   estimated_delivery_time: string | null
   actual_delivery_time: string | null
   scheduled_date: string | null
@@ -198,18 +196,9 @@ export default function TrackingClient({ deliveryNumber }: { deliveryNumber: str
 
       {/* Details */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4">
-        <div>
-          <p className="text-slate-400 text-sm">Хүргэх хаяг</p>
-          <p className="text-white mt-0.5">{data.delivery_address}</p>
-        </div>
-
-        {data.customer_name && (
-          <div>
-            <p className="text-slate-400 text-sm">Хүлээн авагч</p>
-            <p className="text-white mt-0.5">{data.customer_name}</p>
-          </div>
-        )}
-
+        {/* Address and recipient name are intentionally not shown here: this page is
+            public and keyed by a guessable delivery number, so exposing them would
+            allow PII harvesting. Full details live in the owner dashboard. */}
         {data.driver && (
           <div>
             <p className="text-slate-400 text-sm">Жолооч</p>
