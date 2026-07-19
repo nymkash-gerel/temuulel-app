@@ -87,6 +87,7 @@ async function checkCustomerHistory(
       .from('orders')
       .select('shipping_address, customer_phone, customer_name')
       .eq('store_id', storeId)
+      .eq('customer_id', customerId)
       .not('shipping_address', 'is', null)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -113,6 +114,37 @@ const AVG_SPEED_KMH = 15
 const ROAD_FACTOR = 1.4
 /** Max age for driver location before we consider it stale (ms). */
 const LOCATION_MAX_AGE_MS = 30 * 60 * 1000 // 30 min
+
+/**
+ * Statuses where the customer still has a delivery in motion and deserves
+ * a live answer. Includes 'pending' (awaiting driver assignment) and
+ * 'delayed' (rescheduled — estimated_delivery_time holds the new time).
+ */
+const ACTIVE_DELIVERY_STATUSES = [
+  'pending', 'assigned', 'at_store', 'picked_up', 'in_transit', 'delayed',
+]
+
+/**
+ * Format a TIMESTAMPTZ into Ulaanbaatar local time for customer-facing text.
+ * Same-day → "14:30", other day → "07/13 14:30". Falls back to the raw
+ * string if unparseable. Exported for unit testing.
+ */
+export function formatEstimatedTime(raw: string, now: Date = new Date()): string {
+  const d = new Date(raw)
+  if (isNaN(d.getTime())) return raw
+
+  const timeFmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ulaanbaatar', hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+  const dayFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ulaanbaatar', month: '2-digit', day: '2-digit',
+  })
+
+  const time = timeFmt.format(d)
+  return dayFmt.format(d) === dayFmt.format(now)
+    ? time
+    : `${dayFmt.format(d).replace('-', '/')} ${time}`
+}
 
 // ---------------------------------------------------------------------------
 // UB District Center Coordinates (GPS)
@@ -148,8 +180,9 @@ const DISTRICT_ALIASES: Record<string, string> = {
 /**
  * Parse district name from a delivery address string.
  * Returns canonical district key or null.
+ * Exported for unit testing.
  */
-function parseDistrictFromAddress(address: string | null): string | null {
+export function parseDistrictFromAddress(address: string | null): string | null {
   if (!address) return null
   const lower = address.toLowerCase().trim()
 
@@ -168,8 +201,9 @@ function parseDistrictFromAddress(address: string | null): string | null {
 
 /**
  * Haversine distance between two lat/lng points in km.
+ * Exported for unit testing.
  */
-function haversineKm(
+export function haversineKm(
   lat1: number, lng1: number,
   lat2: number, lng2: number,
 ): number {
@@ -191,7 +225,7 @@ function haversineKm(
  * 2. Parse district from address → use district center coords + haversine
  * 3. Fallback: UB center (47.92, 106.92) + haversine
  */
-async function estimateETA(
+export async function estimateETA(
   driverLoc: { lat: number; lng: number; updated_at?: string },
   deliveryAddress: string | null,
 ): Promise<string | null> {
@@ -253,7 +287,7 @@ async function checkDeliveryStatus(
       `)
       .eq('store_id', storeId)
       .eq('orders.customer_id', customerId)
-      .in('status', ['assigned', 'picked_up', 'in_transit', 'at_store'])
+      .in('status', ACTIVE_DELIVERY_STATUSES)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
@@ -272,7 +306,7 @@ async function checkDeliveryStatus(
         `)
         .eq('store_id', storeId)
         .eq('customer_phone', customer.phone)
-        .in('status', ['assigned', 'picked_up', 'in_transit', 'at_store'])
+        .in('status', ACTIVE_DELIVERY_STATUSES)
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
@@ -311,7 +345,9 @@ async function checkDeliveryStatus(
       deliveryNumber: (deliveryData.delivery_number as string) || undefined,
       driverName: driver?.name || undefined,
       driverPhone: driver?.phone || undefined,
-      estimatedTime: (deliveryData.estimated_delivery_time as string) || undefined,
+      estimatedTime: deliveryData.estimated_delivery_time
+        ? formatEstimatedTime(deliveryData.estimated_delivery_time as string)
+        : undefined,
       driverLocation,
       liveETA,
     }

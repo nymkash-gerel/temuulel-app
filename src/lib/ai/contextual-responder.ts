@@ -199,16 +199,23 @@ function buildSystemPrompt(input: ContextualInput): string {
     if (resolution.activeDelivery) {
       const d = resolution.activeDelivery
       const statusLabel: Record<string, string> = {
+        pending: 'Жолооч хуваарилагдахыг хүлээж байна',
         assigned: 'Жолоочид хуваарилагдсан',
         at_store: 'Жолооч дэлгүүрт байна',
         picked_up: 'Бараа авсан, хүргэлтэнд гарсан',
         in_transit: 'Замд явж байна',
+        delayed: 'Хойшлогдсон',
       }
       const humanStatus = statusLabel[d.status] || d.status
       let deliveryInfo = `\n\n📦 ХҮРГЭЛТИЙН МЭДЭЭЛЭЛ:\n  Статус: ${humanStatus}`
       if (d.driverName) deliveryInfo += `\n  Жолооч: ${d.driverName}`
       if (d.liveETA) deliveryInfo += `\n  🕐 Live ETA: ${d.liveETA}`
       else if (d.estimatedTime) deliveryInfo += `\n  Хүлээгдэж буй: ${d.estimatedTime}`
+      if (d.status === 'delayed') {
+        deliveryInfo += d.estimatedTime
+          ? `\n  ⚠️ Хүргэлт хойшлогдсон — шинэ хугацаа: ${d.estimatedTime}. Уучлалт гуйж, шинэ хугацааг хэл.`
+          : '\n  ⚠️ Хүргэлт хойшлогдсон — шинэ хугацаа тодорхойгүй. Уучлалт гуйж, удахгүй мэдэгдэнэ гэж хэл.'
+      }
       if (d.driverLocation) deliveryInfo += '\n  📍 Жолоочийн байрлал шинэ (GPS идэвхтэй)'
       else deliveryInfo += '\n  📍 Жолоочийн байрлал тодорхойгүй'
       if (d.deliveryNumber) deliveryInfo += `\n  Хүргэлтийн дугаар: ${d.deliveryNumber}`

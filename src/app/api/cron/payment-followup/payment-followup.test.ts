@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// getSupabase() reads these before the mocked createClient is reached —
+// stub them so the suite doesn't depend on ambient environment
+process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://placeholder.supabase.co'
+process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'placeholder'
+
 // Mock Supabase
 const mockSelect = vi.fn()
 const mockUpdate = vi.fn()

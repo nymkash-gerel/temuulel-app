@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabase/service'
 import crypto from 'crypto'
-
-const sb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ''
-)
 
 function verifyStripeSignature(payload: string, signature: string, secret: string): boolean {
   const elements = signature.split(',').reduce((acc, e) => {
@@ -32,6 +27,7 @@ export async function POST(req: NextRequest) {
   }
 
   const event = JSON.parse(body) as { type: string; data: { object: Record<string, unknown> } }
+  const sb = getSupabase()
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as { metadata: { store_id: string; plan: string }; customer: string; subscription: string }

@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const sb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ''
-)
+import { getSupabase } from '@/lib/supabase/service'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 /**
  * GET /api/reviews?store_id=X&product_id=Y
@@ -16,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (!storeId) return NextResponse.json({ error: 'store_id required' }, { status: 400 })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = sb.from('reviews').select('id, rating, comment, created_at, product_id').eq('store_id', storeId)
+  let query: any = getSupabase().from('reviews').select('id, rating, comment, created_at, product_id').eq('store_id', storeId)
   if (productId) query = query.eq('product_id', productId)
   query = query.order('created_at', { ascending: false }).limit(50)
 
@@ -33,6 +29,9 @@ export async function GET(req: NextRequest) {
  * POST /api/reviews — public submission
  */
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(getClientIp(req), { limit: 10, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const body = await req.json()
   const { store_id, customer_id, order_id, product_id, rating, comment } = body as {
     store_id: string; customer_id?: string; order_id?: string; product_id?: string
@@ -41,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (!store_id || !rating) return NextResponse.json({ error: 'store_id + rating required' }, { status: 400 })
   if (rating < 1 || rating > 5) return NextResponse.json({ error: 'rating 1-5' }, { status: 400 })
 
-  const { data, error } = await sb.from('reviews').insert({
+  const { data, error } = await getSupabase().from('reviews').insert({
     store_id, customer_id, order_id, product_id, rating, comment: comment?.substring(0, 1000) || null,
   }).select().single()
 

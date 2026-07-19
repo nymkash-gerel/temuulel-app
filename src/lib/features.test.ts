@@ -351,9 +351,9 @@ describe('getNavItems', () => {
   it('returns correct nav items for a list of feature strings', () => {
     const result = getNavItems(['overview', 'products', 'chat'])
     expect(result).toEqual([
-      { href: '/dashboard', icon: '📊', label: 'Тойм' },
-      { href: '/dashboard/products', icon: '📦', label: 'Бүтээгдэхүүн' },
-      { href: '/dashboard/chat', icon: '💬', label: 'Чат' },
+      { href: '/dashboard', icon: '📊', label: 'Тойм', labelKey: 'nav.overview' },
+      { href: '/dashboard/products', icon: '📦', label: 'Бүтээгдэхүүн', labelKey: 'nav.products' },
+      { href: '/dashboard/chat', icon: '💬', label: 'Чат', labelKey: 'nav.chat' },
     ])
   })
 
@@ -365,8 +365,8 @@ describe('getNavItems', () => {
   it('skips unknown feature strings', () => {
     const result = getNavItems(['overview', 'nonexistent_module', 'chat'])
     expect(result).toHaveLength(2)
-    expect(result[0]).toEqual({ href: '/dashboard', icon: '📊', label: 'Тойм' })
-    expect(result[1]).toEqual({ href: '/dashboard/chat', icon: '💬', label: 'Чат' })
+    expect(result[0]).toEqual({ href: '/dashboard', icon: '📊', label: 'Тойм', labelKey: 'nav.overview' })
+    expect(result[1]).toEqual({ href: '/dashboard/chat', icon: '💬', label: 'Чат', labelKey: 'nav.chat' })
   })
 
   it('each returned item has href, icon, and label properties', () => {
@@ -387,10 +387,10 @@ describe('getNavItems', () => {
 describe('getModuleConfig', () => {
   it('returns config for known modules', () => {
     const config = getModuleConfig('overview')
-    expect(config).toEqual({ href: '/dashboard', icon: '📊', label: 'Тойм' })
+    expect(config).toEqual({ href: '/dashboard', icon: '📊', label: 'Тойм', labelKey: 'nav.overview' })
 
     const chatConfig = getModuleConfig('chat')
-    expect(chatConfig).toEqual({ href: '/dashboard/chat', icon: '💬', label: 'Чат' })
+    expect(chatConfig).toEqual({ href: '/dashboard/chat', icon: '💬', label: 'Чат', labelKey: 'nav.chat' })
 
     const posConfig = getModuleConfig('pos')
     expect(posConfig).toEqual({ href: '/dashboard/pos', icon: '💳', label: 'POS' })
