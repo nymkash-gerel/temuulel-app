@@ -259,6 +259,42 @@ const ORDINALS: Record<string, number> = {
   'сүүлийнх': -1, 'сүүлийн': -1,
 }
 
+/**
+ * Resolve which product position the customer referenced anywhere in a message
+ * (0-based), or null. Unlike the whole-message ORDINALS lookup, this matches an
+ * ordinal/number embedded in a longer message ("хоёр дахийг нь авъя", "2 дахийг
+ * авъя", "эхнийхийг", "сүүлийнхийг"), so a buy verb after the reference no longer
+ * loses it. Assumes `normalized` came through normalizeText (Cyrillic preserved).
+ */
+export function resolveReferencedIndex(normalized: string, productCount: number): number | null {
+  if (productCount === 0) return null
+
+  // Word ordinals — base + accusative forms, embedded anywhere.
+  const WORD_ORDINALS: Array<[RegExp, number]> = [
+    [/сүүлий?нх/, -1],                          // сүүлийнх(ийг)
+    [/эхний?х/, 0],                             // эхнийх(ийг), эхний
+    [/(^|\s)нэг\s?д(эх|үгээр)/, 0],
+    [/(^|\s)хоёр\s?д(ах|эх|угаар)/, 1],         // хоёр дах(ийг)/дэх/дугаар, хоёрдугаар
+    [/(^|\s)гурав\s?д(ах|эх|угаар)/, 2],
+    [/(^|\s)дөрөв\s?д(эх|үгээр)/, 3],
+    [/(^|\s)тав\s?д(ах|эх|угаар)/, 4],
+  ]
+  for (const [re, idx] of WORD_ORDINALS) {
+    if (re.test(normalized)) {
+      const resolved = idx === -1 ? productCount - 1 : idx
+      if (resolved >= 0 && resolved < productCount) return resolved
+    }
+  }
+
+  // Digit + a selection suffix embedded: "2 дахийг", "3 дугаарыг", "2-ийг", "2 дэх".
+  const m = normalized.match(/(^|\s)(\d+)\s*-?\s*(д(ах|эх|угаар)|ийг|ыг)/)
+  if (m) {
+    const idx = parseInt(m[2], 10) - 1
+    if (idx >= 0 && idx < productCount) return idx
+  }
+  return null
+}
+
 /** Prefix stems + exact words for order/buy intent */
 const ORDER_WORD_STEMS = ['захиал', 'авъ', 'авь']
 const ORDER_EXACT_WORDS = [
@@ -547,6 +583,25 @@ export function resolveFollowUp(
         }
       }
     }
+
+    // Fallback: an ordinal/number embedded in a longer message with accusative
+    // forms ("хоёр дахийг", "эхнийхийг") that the strict checks above miss.
+    // Skip when the message also carries a buy verb — that case is a purchase and is
+    // handled by the order_intent branch (which resolves the same index and starts an
+    // order draft); otherwise number_reference would outrank it and just show the item.
+    const hasBuyVerbEmbedded = normalized.split(/\s+/).some((w) =>
+      ORDER_WORD_STEMS.some((stem) => w.startsWith(normalizeText(stem)))
+      || ORDER_EXACT_WORDS.some((ew) => paddedIncludes(` ${w} `, ew))
+    )
+    if (!hasBuyVerbEmbedded && !candidates.some((c) => c.result.type === 'number_reference')) {
+      const refIdx = resolveReferencedIndex(normalized, products.length)
+      if (refIdx !== null) {
+        candidates.push({
+          score: FOLLOWUP_WEIGHTS.number_reference,
+          result: { type: 'number_reference', product: products[refIdx] }
+        })
+      }
+    }
   }
 
   // 1b. Product name match: user mentions a specific product name from state
@@ -674,9 +729,12 @@ export function resolveFollowUp(
       || ORDER_EXACT_WORDS.some((ew) => paddedIncludes(` ${w} `, ew))
     )
     if (hasOrder) {
+      // Honor an ordinal/number the customer named ("хоёр дахийг авъя" → item 2),
+      // instead of always ordering the first item.
+      const refIdx = resolveReferencedIndex(normalized, products.length)
       candidates.push({
         score: FOLLOWUP_WEIGHTS.order_intent,
-        result: { type: 'order_intent', product: products[0] }
+        result: { type: 'order_intent', product: products[refIdx ?? 0] }
       })
     }
   }

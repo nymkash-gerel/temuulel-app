@@ -67,6 +67,37 @@ describe('resolveFollowUp', () => {
     expect(result).toEqual({ type: 'number_reference', product: PRODUCTS[2] })
   })
 
+  // Ordinal/number + buy verb must order the REFERENCED item, not always the first.
+  it('resolves "хоёр дахийг нь авъя" to order_intent for the 2nd product', () => {
+    const result = resolveFollowUp('хоёр дахийг нь авъя', stateWith())
+    expect(result).toEqual({ type: 'order_intent', product: PRODUCTS[1] })
+  })
+
+  it('resolves "гурав дахийг авъя" to order_intent for the 3rd product', () => {
+    const result = resolveFollowUp('гурав дахийг авъя', stateWith())
+    expect(result).toEqual({ type: 'order_intent', product: PRODUCTS[2] })
+  })
+
+  it('resolves "2 дахийг авъя" (digit form) to order_intent for the 2nd product', () => {
+    const result = resolveFollowUp('2 дахийг авъя', stateWith())
+    expect(result).toEqual({ type: 'order_intent', product: PRODUCTS[1] })
+  })
+
+  it('resolves "эхнийхийг авъя" to order_intent for the 1st product', () => {
+    const result = resolveFollowUp('эхнийхийг авъя', stateWith())
+    expect(result).toEqual({ type: 'order_intent', product: PRODUCTS[0] })
+  })
+
+  it('still defaults to the first product for a bare buy verb with no reference', () => {
+    const result = resolveFollowUp('авъя', stateWith())
+    expect(result).toEqual({ type: 'order_intent', product: PRODUCTS[0] })
+  })
+
+  it('resolves standalone accusative ordinal "хоёр дахийг" to the 2nd product', () => {
+    const result = resolveFollowUp('хоёр дахийг', stateWith())
+    expect(result).toEqual({ type: 'number_reference', product: PRODUCTS[1] })
+  })
+
   // Select single
   it('resolves "энийг авъя" when exactly 1 product', () => {
     const state = stateWith({ last_products: [PRODUCTS[0]] })

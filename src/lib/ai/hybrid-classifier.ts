@@ -123,17 +123,26 @@ export function hybridClassify(message: string): IntentResult {
   const keywordResult = classifyIntentWithConfidence(message)
   const mlResult = mlClassify(message)
 
-  // Strategy implementation
-  if (keywordResult.confidence >= 2.0) {
-    // High keyword confidence - trust the keyword classifier
-    return keywordResult
-  }
-
-  // Morphological analysis — extract features and derive intent signals
+  // Morphological analysis — computed up front so a strong negation/complaint signal
+  // (e.g. "ирээгүй" = didn't arrive) isn't lost when product-noun keywords score high.
   const normalized = normalizeText(message)
   const morphFeatures = extractMorphFeatures(normalized)
   const morphSignals = deriveMorphIntentSignals(morphFeatures)
   const morphResult = applyMorphSignals(keywordResult, morphSignals)
+
+  // Strategy implementation
+  if (keywordResult.confidence >= 2.0) {
+    // A strong morphological complaint (negated delivery/order root, e.g. "бараа
+    // ирээгүй") must override a product-BROWSING keyword hit — the customer is
+    // reporting a problem, not shopping. Does not touch order_status/return intents.
+    const BROWSING_KW = ['product_search', 'menu_availability', 'general', 'order_collection']
+    const complaintSignal = morphSignals.find((s) => s.intent === 'complaint')
+    if (complaintSignal && complaintSignal.weight >= 1.0 && BROWSING_KW.includes(keywordResult.intent)) {
+      return { intent: 'complaint', confidence: complaintSignal.weight + 0.5 }
+    }
+    // High keyword confidence - trust the keyword classifier
+    return keywordResult
+  }
 
   // If morphological signals produce a strong result, use it
   if (morphResult && morphResult.confidence >= 1.5) {

@@ -93,7 +93,9 @@ export interface ContextualInput {
 
 function buildSystemPrompt(input: ContextualInput): string {
   const isResolution = ['complaint', 'escalated'].includes(input.intent)
-  const isCare = ['order_status', 'shipping_info'].includes(input.intent)
+  // Note: the shipping intent string is 'shipping' (not 'shipping_info') — the old
+  // value never matched, so shipping questions skipped the care-mode framing below.
+  const isCare = ['order_status', 'shipping'].includes(input.intent)
   const isAssist = ['order_collection', 'order_created'].includes(input.intent)
   const isSizeQuery = input.intent === 'size_info'
   // product_detail = mid-order product question (color, material, etc.) — product already selected
@@ -101,9 +103,13 @@ function buildSystemPrompt(input: ContextualInput): string {
   const isGiftQuery = /бэлэг|санал болг|юу авбал|зөвлө/.test(normalizeText(input.currentMessage))
 
   // --- Core identity + universal rules (always included) ---
-  // Explicit no-products rule — included in EVERY prompt when catalog is empty.
-  // This prevents GPT from inventing product names/prices even for general queries.
-  const noProductsRule = input.products.length === 0
+  // Explicit no-products rule. Only assert "the store has no products" for intents
+  // where a catalog browse actually ran and returned nothing (the browse-all fallback
+  // in chat-ai-handler runs for these). For complaint/shipping/order_status/etc.,
+  // products=[] just means no product search happened this turn — asserting "no
+  // products" there falsely tells the customer the store sells nothing.
+  const EMPTY_MEANS_EMPTY_CATALOG = ['product_search', 'general', 'low_confidence']
+  const noProductsRule = (input.products.length === 0 && EMPTY_MEANS_EMPTY_CATALOG.includes(input.intent))
     ? '\n- БАРАА БАЙХГҮЙ: Дэлгүүрт одоогоор бараа байхгүй. Бараа нэр, үнэ зохиохгүй. "Уучлаарай, одоогоор бараа байхгүй байна. Удахгүй нэмэх болно." гэж хариулна.'
     : ''
 
@@ -151,7 +157,7 @@ function buildSystemPrompt(input: ContextualInput): string {
   } else if (isCare) {
     prompt += `
 
-ЗАХИАЛГЫН СТАТУС: Тодорхой мэдээлэл өг, тайвшруул. Бараа санал болгохгүй.`
+ЗАХИАЛГА/ХҮРГЭЛТ: Зөвхөн доор өгсөн баталгаатай мэдээллийг хэл, тайвшруул. Бараа санал болгохгүй. Хүргэлтийн үнэ, хугацаа, ажлын цаг доор байхгүй бол ЗОХИОХГҮЙ — "менежерээс тодруулж хэлье" гэж хэл.`
   } else if (isAssist) {
     prompt += `
 
@@ -500,6 +506,11 @@ export async function contextualAIResponse(input: ContextualInput): Promise<Cont
   // Returning null falls through to the deterministic template which correctly
   // says "product not found" without hallucinating.
   if (input.intent === 'product_search' && input.products.length === 0) return null
+
+  // Guard: never invent an order/delivery status when there is no verified order.
+  // Falls through to the deterministic template that asks for the order/phone number
+  // instead of GPT confidently stating a status it never looked up.
+  if (input.intent === 'order_status' && input.orders.length === 0) return null
 
   // Guard: standalone digits (≥5) look like phone numbers or order numbers.
   // GPT hallucinates order confirmations when it sees them — let the deterministic

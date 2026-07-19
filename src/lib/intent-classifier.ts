@@ -206,7 +206,10 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Aliases (stemmer handles: гомдолтой→гомдол, асуудалтай→асуудал, буруутай→буруу, алдаатай→алдаа)
     'гомдоллох', 'гомдоол',
     'асуудал гарсан', 'проблем',
-    'муухай', 'маш муу', 'хэрэггүй',
+    'муухай', 'маш муу',
+    // NOTE: 'хэрэггүй' removed — it is a polite decline ("одоохондоо хэрэггүй",
+    // "no thanks"), not a complaint. Treating it as a complaint wrongly triggered
+    // escalation/compensation. A bare decline should fall to general handling.
     'буруугаар',
     'чанаргүй', 'чанар муу',
     'эвдэрсэн', 'гэмтсэн', 'гэмтэл',

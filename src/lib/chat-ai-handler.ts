@@ -29,6 +29,7 @@ import {
   readState,
   writeState,
   resolveFollowUp,
+  resolveReferencedIndex,
   updateState,
   type StoredProduct,
   type OrderDraft,
@@ -532,8 +533,11 @@ export async function processAIChat(
         // Anchor to selected product for informational follow-ups (size, material, care, etc.)
         // product_search stays as a fresh search — user is explicitly looking for something new.
         const isInfoFollowUp = (intent === 'size_info' || intent === 'general') && state.last_products.length > 0
+        // Anchor to the product the customer referenced (ordinal/number), not always
+        // the first — "хоёр дахийн размер хэд вэ?" must answer about item 2.
+        const anchorIdx = resolveReferencedIndex(normalizeText(customerMessage), state.last_products.length) ?? 0
         const searchTerms = isInfoFollowUp
-          ? state.last_products[0].name
+          ? state.last_products[anchorIdx].name
           : extractSearchTerms(customerMessage)
 
         // Parallel: search + history fetch based on intent
@@ -573,8 +577,11 @@ export async function processAIChat(
       // Anchor to selected product for informational follow-ups (size, material, care, etc.)
       // product_search stays as a fresh search — user is explicitly looking for something new.
       const isInfoFollowUp = (intent === 'size_info' || intent === 'general') && state.last_products.length > 0
+      // Anchor to the product the customer referenced (ordinal/number), not always
+      // the first — "гурав дахийн материал юу вэ?" must answer about item 3.
+      const anchorIdx = resolveReferencedIndex(normalizeText(customerMessage), state.last_products.length) ?? 0
       const searchTerms = isInfoFollowUp
-        ? state.last_products[0].name
+        ? state.last_products[anchorIdx].name
         : extractSearchTerms(customerMessage)
 
       // Parallel: all DB fetches + history in one batch
