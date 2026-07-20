@@ -54,6 +54,7 @@ yarn-error.log*
 !.claude/skills/add-resource/
 !.claude/skills/ship/
 !.claude/skills/audit-vertical/
+!.claude/skills/chat-qa/
 
 # typescript
 *.tsbuildinfo
