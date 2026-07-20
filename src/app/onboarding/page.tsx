@@ -77,6 +77,19 @@ export default function OnboardingPage() {
         role: 'owner',
       })
 
+      // Apply industry template — seeds sample services + chatbot settings so the
+      // new store lands on a live dashboard instead of an empty one (mirrors signup).
+      // The route is idempotent (only seeds when empty) and finds the store by owner_id.
+      try {
+        await fetch('/api/templates/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template_id: businessType }),
+        })
+      } catch {
+        // Non-blocking: dashboard still works without the seed.
+      }
+
       // Fire-and-forget Slack notification (never blocks onboarding)
       void fetch('/api/internal/new-store-notify', {
         method: 'POST',
