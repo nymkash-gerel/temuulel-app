@@ -83,6 +83,11 @@ describe('resolveFollowUp', () => {
     expect(result).toEqual({ type: 'order_intent', product: PRODUCTS[1] })
   })
 
+  it('resolves "2-г авъя" (bare -г accusative) to order_intent for the 2nd product', () => {
+    const result = resolveFollowUp('2-г авъя', stateWith())
+    expect(result).toEqual({ type: 'order_intent', product: PRODUCTS[1] })
+  })
+
   it('resolves "эхнийхийг авъя" to order_intent for the 1st product', () => {
     const result = resolveFollowUp('эхнийхийг авъя', stateWith())
     expect(result).toEqual({ type: 'order_intent', product: PRODUCTS[0] })

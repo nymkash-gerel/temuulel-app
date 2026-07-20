@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateBody, updateCommissionSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validateTransition, commissionTransitions } from '@/lib/status-machine'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -18,7 +19,10 @@ const COMMISSION_SELECT = `
  *
  * Get a single agent commission by id.
  */
-export async function GET(_request: NextRequest, { params }: RouteContext) {
+export async function GET(request: NextRequest, { params }: RouteContext) {
+  const rl = await rateLimit(getClientIp(request), { limit: 60, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const { id } = await params
   const supabase = await createClient()
 
@@ -82,12 +86,27 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (validationError) return validationError
 
   const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
-  if (body.status !== undefined) updateData.status = body.status
   if (body.notes !== undefined) updateData.notes = body.notes
 
-  // Auto-set paid_at when status transitions to paid
-  if (body.status === 'paid') {
-    updateData.paid_at = new Date().toISOString()
+  if (body.status !== undefined) {
+    // Enforce the commission status workflow (approved → paid → …) before persisting.
+    const { data: current } = await supabase
+      .from('agent_commissions')
+      .select('status')
+      .eq('id', id)
+      .eq('store_id', store.id)
+      .single()
+    if (!current) {
+      return NextResponse.json({ error: 'Commission not found' }, { status: 404 })
+    }
+    const transition = validateTransition(commissionTransitions, current.status, body.status)
+    if (!transition.valid) {
+      return NextResponse.json({ error: transition.error }, { status: 400 })
+    }
+    updateData.status = body.status
+    // Set paid_at when moving to paid; clear it when moving away from paid so a
+    // reversed/cancelled commission doesn't keep a stale paid timestamp.
+    updateData.paid_at = body.status === 'paid' ? new Date().toISOString() : null
   }
 
   const { data: commission, error } = await supabase

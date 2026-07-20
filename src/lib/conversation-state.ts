@@ -286,8 +286,10 @@ export function resolveReferencedIndex(normalized: string, productCount: number)
     }
   }
 
-  // Digit + a selection suffix embedded: "2 дахийг", "3 дугаарыг", "2-ийг", "2 дэх".
-  const m = normalized.match(/(^|\s)(\d+)\s*-?\s*(д(ах|эх|угаар)|ийг|ыг)/)
+  // Digit + a selection suffix embedded: "2 дахийг", "3 дугаарыг", "2-ийг", "2 дэх", "2-г".
+  // The bare "г" (from "2-г", normalized to "2 г") uses a lookahead so it only matches at a
+  // word boundary — avoids false positives like "2 гэр" (2 houses).
+  const m = normalized.match(/(^|\s)(\d+)\s*-?\s*(д(ах|эх|угаар)|ийг|ыг|г(?=\s|$))/)
   if (m) {
     const idx = parseInt(m[2], 10) - 1
     if (idx >= 0 && idx < productCount) return idx

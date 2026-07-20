@@ -52,7 +52,7 @@ import {
 } from '@/lib/gift-card-engine'
 import { dispatchNotification } from '@/lib/notifications'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
-import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
+import { calculateDeliveryFee, type StoreShippingSettings } from '@/lib/delivery-fee-calculator'
 import { createQPayInvoice, checkQPayPayment, isQPayConfigured } from '@/lib/qpay'
 
 import { SupervisorAgent } from '@/lib/agents'
@@ -75,14 +75,18 @@ async function resolveChatDeliveryFee(
   productTotal: number,
   address: string | null | undefined,
 ): Promise<{ fee: number; isIntercity: boolean }> {
-  const feeResult = address ? calculateDeliveryFee(address) : null
-  if (feeResult?.type === 'intercity') return { fee: 0, isIntercity: true }
+  // Load the store's shipping settings FIRST so calculateDeliveryFee honors the
+  // store's custom inner-city districts / intercity cities instead of only the
+  // built-in default zones.
   const { data: store } = await supabase
     .from('stores')
     .select('shipping_settings')
     .eq('id', storeId)
     .single()
-  const ss = (store?.shipping_settings ?? {}) as ChatShippingSettings
+  const ss = (store?.shipping_settings ?? {}) as ChatShippingSettings & StoreShippingSettings
+
+  const feeResult = address ? calculateDeliveryFee(address, ss) : null
+  if (feeResult?.type === 'intercity') return { fee: 0, isIntercity: true }
   const threshold = Number(ss.free_delivery_threshold ?? 0)
   if (threshold > 0 && productTotal >= threshold) return { fee: 0, isIntercity: false }
   return { fee: feeResult?.fee ?? DEFAULT_DELIVERY_FEE, isIntercity: false }

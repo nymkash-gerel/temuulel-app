@@ -63,13 +63,17 @@ export default function PhotoGalleriesPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { router.push('/login'); return }
 
-      const res = await fetch('/api/photo-galleries').then(r => r.json())
-      if (res.data) setGalleries(res.data as PhotoGallery[])
-
-      setLoading(false)
+        const res = await fetch('/api/photo-galleries').then(r => r.json())
+        if (res.data) setGalleries(res.data as PhotoGallery[])
+      } catch {
+        // network/parse failure — fall through so the spinner clears
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [supabase, router])

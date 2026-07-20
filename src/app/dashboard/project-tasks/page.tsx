@@ -61,19 +61,27 @@ export default function ProjectTasksPage() {
     }
   }, [statusFilter, priorityFilter])
 
+  // One-time auth/store init. try/finally guarantees the spinner clears even if a
+  // fetch throws; deps exclude loadTasks so a filter change doesn't re-run
+  // getUser()/resolveStoreId (the reload effect below handles filter-driven refetch).
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { router.push('/login'); return }
 
-      const storeId = await resolveStoreId(supabase, user.id)
-      if (storeId) {
-        await loadTasks()
+        const storeId = await resolveStoreId(supabase, user.id)
+        if (storeId) {
+          await loadTasks()
+        }
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     init()
-  }, [supabase, router, loadTasks])
+    // loadTasks intentionally omitted — init runs once, not per filter change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, router])
 
   useEffect(() => {
     if (loading) return

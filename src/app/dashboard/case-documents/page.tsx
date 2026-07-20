@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import KpiCards from '@/components/ui/KpiCards'
 import { resolveStoreId } from '@/lib/resolve-store'
@@ -55,6 +56,7 @@ function formatDate(date: string | null) {
 }
 
 export default function CaseDocumentsPage() {
+  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
@@ -77,19 +79,24 @@ export default function CaseDocumentsPage() {
     }
   }, [documentTypeFilter])
 
+  // One-time auth/store init. Runs once (not on filter change) so a filter change
+  // doesn't re-run getUser()/resolveStoreId — the filter effect below handles reloads.
+  // Every exit path clears loading so an unauthenticated visitor isn't stuck on the spinner.
   useEffect(() => {
-    async function load() {
+    async function init() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { router.push('/login'); setLoading(false); return }
 
       const storeId = await resolveStoreId(supabase, user.id)
-      if (!storeId) return
+      if (!storeId) { setLoading(false); return }
 
       await loadDocuments()
       setLoading(false)
     }
-    load()
-  }, [supabase, loadDocuments])
+    init()
+    // loadDocuments intentionally omitted — init must run once, not per filter change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, router])
 
   useEffect(() => {
     if (!loading) {

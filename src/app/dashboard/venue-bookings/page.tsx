@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/format'
 
@@ -44,7 +45,8 @@ function formatDateTime(dateStr: string): string {
 }
 
 export default function VenueBookingsPage() {
-  const _supabase = createClient()
+  const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
 
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState<VenueBooking[]>([])
@@ -67,9 +69,14 @@ export default function VenueBookingsPage() {
   }
 
   useEffect(() => {
-    loadBookings()
-
-  }, [])
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); setLoading(false); return }
+      await loadBookings()
+    }
+    init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, router])
 
   const filtered = useMemo(() => {
     if (statusFilter === 'all') return bookings

@@ -66,12 +66,16 @@ export default function StockTransfersPage() {
   const [statusFilter, setStatusFilter] = useState('')
 
   const loadTransfers = useCallback(async () => {
-    const res = await fetch('/api/stock-transfers')
+    // Send the status filter + a high limit to the API so filtering/KPIs cover the
+    // whole dataset, not just the default-paginated first page.
+    const params = new URLSearchParams({ limit: '200' })
+    if (statusFilter) params.set('status', statusFilter)
+    const res = await fetch(`/api/stock-transfers?${params.toString()}`)
     if (res.ok) {
       const json: TransfersResponse = await res.json()
       setTransfers(json.data || [])
     }
-  }, [])
+  }, [statusFilter])
 
   useEffect(() => {
     async function init() {
@@ -79,9 +83,7 @@ export default function StockTransfersPage() {
       if (!user) { router.push('/login'); return }
 
       const storeId = await resolveStoreId(supabase, user.id)
-      const store = storeId ? { id: storeId } : null
-
-      if (store) {
+      if (storeId) {
         await loadTransfers()
       }
       setLoading(false)
