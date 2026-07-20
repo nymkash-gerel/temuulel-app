@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BUSINESS_TYPES } from '@/lib/business-types'
 
 type Step = 1 | 2 | 3
 
@@ -456,34 +457,7 @@ export default function SignupPage() {
                   Бизнесийн төрөл *
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[420px] overflow-y-auto pr-1">
-                  {[
-                    { type: 'ecommerce', icon: '🛍️', label: 'Худалдаа', desc: 'Хувцас, бараа, онлайн' },
-                    { type: 'retail', icon: '🏪', label: 'Жижиглэн', desc: 'POS, агуулах, нөөц' },
-                    { type: 'restaurant', icon: '🍽️', label: 'Ресторан', desc: 'Хоол, ундаа, захиалга' },
-                    { type: 'coffee_shop', icon: '☕', label: 'Кофе шоп', desc: 'Кофе, ундаа, амттан' },
-                    { type: 'beauty_salon', icon: '💅', label: 'Гоо сайхан', desc: 'Үсчин, маникюр, спа' },
-                    { type: 'wellness', icon: '🧘', label: 'Wellness', desc: 'Йога, пилатес, массаж' },
-                    { type: 'gym', icon: '💪', label: 'Спорт заал', desc: 'Фитнесс, дасгал' },
-                    { type: 'hospital', icon: '🏥', label: 'Эмнэлэг', desc: 'Үзлэг, оношилгоо, эм' },
-                    { type: 'dental_clinic', icon: '🦷', label: 'Шүдний эмнэлэг', desc: 'Шүдний эмчилгээ' },
-                    { type: 'pet_services', icon: '🐾', label: 'Тэжээвэр амьтан', desc: 'Арчилгаа, эмнэлэг' },
-                    { type: 'education', icon: '📚', label: 'Боловсрол', desc: 'Хичээл, сургалт, курс' },
-                    { type: 'hotel', icon: '🏨', label: 'Зочид буудал', desc: 'Өрөө, захиалга' },
-                    { type: 'camping_guesthouse', icon: '🏕️', label: 'Жуулчны бааз', desc: 'Байр, амралт' },
-                    { type: 'real_estate', icon: '🏠', label: 'Үл хөдлөх', desc: 'Орон сууц, газар' },
-                    { type: 'laundry', icon: '👔', label: 'Хими цэвэрлэгээ', desc: 'Угаалга, индүүдэх' },
-                    { type: 'car_wash', icon: '🚗', label: 'Авто угаалга', desc: 'Угаалга, арчилгаа' },
-                    { type: 'repair_shop', icon: '🔧', label: 'Авто засвар', desc: 'Засвар, оношилгоо' },
-                    { type: 'photography', icon: '📷', label: 'Гэрэл зураг', desc: 'Зураг авалт, студи' },
-                    { type: 'venue', icon: '🎪', label: 'Арга хэмжээ', desc: 'Заал, банкет, тоглолт' },
-                    { type: 'coworking', icon: '💻', label: 'Коворкинг', desc: 'Хамтын оффис, ширээ' },
-                    { type: 'legal', icon: '⚖️', label: 'Хууль зүй', desc: 'Өмгөөлөл, зөвлөгөө' },
-                    { type: 'construction', icon: '🏗️', label: 'Барилга', desc: 'Төсөл, материал, баг' },
-                    { type: 'subscription', icon: '📦', label: 'Захиалга бокс', desc: 'Сарын захиалга' },
-                    { type: 'consulting', icon: '💼', label: 'Зөвлөх', desc: 'Бизнес, санхүү, IT' },
-                    { type: 'home_services', icon: '🏡', label: 'Гэрийн үйлчилгээ', desc: 'Цэвэрлэгээ, засвар' },
-                    { type: 'logistics', icon: '🚚', label: 'Логистик', desc: 'Ачаа тээвэр, хүргэлт' },
-                  ].map(({ type, icon, label, desc }) => (
+                  {BUSINESS_TYPES.map(({ type, icon, label, desc }) => (
                     <button
                       key={type}
                       type="button"

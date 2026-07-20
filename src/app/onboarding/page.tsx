@@ -3,21 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-
-const BUSINESS_TYPES = [
-  { value: 'ecommerce', label: 'Онлайн дэлгүүр', icon: '🛍️' },
-  { value: 'restaurant', label: 'Ресторан', icon: '🍜' },
-  { value: 'beauty_salon', label: 'Гоо сайхан', icon: '💇' },
-  { value: 'coffee_shop', label: 'Кофе шоп', icon: '☕' },
-  { value: 'fitness', label: 'Фитнесс', icon: '💪' },
-  { value: 'education', label: 'Сургалт', icon: '📚' },
-  { value: 'dental_clinic', label: 'Шүдний эмнэлэг', icon: '🦷' },
-  { value: 'hospital', label: 'Эмнэлэг', icon: '🏥' },
-  { value: 'real_estate', label: 'Үл хөдлөх', icon: '🏠' },
-  { value: 'hotel', label: 'Зочид буудал', icon: '🏨' },
-  { value: 'camping_guesthouse', label: 'Кемпинг', icon: '⛺' },
-  { value: 'other', label: 'Бусад', icon: '🏢' },
-]
+import { BUSINESS_TYPES } from '@/lib/business-types'
 
 const STEPS = ['Бизнес төрөл', 'Дэлгүүрийн мэдээлэл', 'Facebook холбох', 'Бэлэн!']
 
@@ -128,13 +114,13 @@ export default function OnboardingPage() {
             <div>
               <h2 className="text-xl font-bold text-white mb-2">Бизнесийн төрлөө сонгоно уу</h2>
               <p className="text-slate-400 text-sm mb-6">Энэ нь таны dashboard-ыг тохируулахад ашиглагдана</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3 max-h-[420px] overflow-y-auto pr-1">
                 {BUSINESS_TYPES.map(bt => (
                   <button
-                    key={bt.value}
-                    onClick={() => setBusinessType(bt.value)}
+                    key={bt.type}
+                    onClick={() => setBusinessType(bt.type)}
                     className={`p-3 rounded-xl border text-center transition-all ${
-                      businessType === bt.value
+                      businessType === bt.type
                         ? 'border-blue-500 bg-blue-500/10 text-white'
                         : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
                     }`}
