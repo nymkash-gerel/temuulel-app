@@ -45,4 +45,10 @@ argument-hint: <business_type (жишээ: beauty_salon, restaurant, fitness)>
 
 <!--
 - [2026-07-20] beauty_salon аудитаас: модулиуд route.ts-гүй, RLS дээр тулгуурладаг нь зориудынх — "API байхгүй"-г эвдрэл гэж бүү тэмдэглэ. Onboarding wizard нь signup-аас ялгаатай (seed зөрүү) байсныг олсон.
+- [2026-07-20] Бүх 32 vertical аудитаас илэрсэн СИСТЕМИЙН хэв маягууд (дараагийн аудитад эдгээрийг тусад нь шалга):
+  * "Хагас модуль" хэв маяг: nav href нь /dashboard/<x> руу заадаг ч зөвхөн [id]/page.tsx (detail) байдаг, list page.tsx байхгүй → nav дарахад 404. Backend+DB бэлэн байсан ч. Жишээ: photography/photo_galleries, venue/venue_bookings, retail/stock_transfers, legal/case_documents, construction/project_tasks. ЗААВАЛ MODULE_REGISTRY href → dashboard/<href>/page.tsx (яг list түвшин) байгааг шалга.
+  * "Orphan vertical" хэв маяг: DEFAULT_MODULES-д байгаа ч signup+onboarding аль алинд байхгүй → шинэ бизнес сонгож ЧАДАХГҮЙ. Жишээ: cafe, services, guesthouse, clinic, training_center. signup (~26 төрөл) ба onboarding (~11 төрөл) жагсаалт ЗӨРҮҮТЭЙ — хоёуланг тулга.
+  * "id зөрүү" хэв маяг: signup дахь business_type товч template id-тай таарахгүй → getTemplate() undefined → seed 0 → хоосон dashboard. Жишээ: gym товч ↔ fitness template id.
+  * Template ердөө 8 (industry-templates.ts): restaurant, hospital, beauty_salon, coffee_shop, fitness, education, dental_clinic, real_estate. Бусад 24 нь сонгож болох ч seed=0 → хоосон эхэлнэ.
+  * Бодит дата алдаа: real_estate/commissions хуудас staff_commissions уншдаг ч generate нь agent_commissions руу бичдэг → комисс хэзээ ч харагдахгүй. Хүснэгт нэрийн зөрүүг заавал ажиглах.
 -->
