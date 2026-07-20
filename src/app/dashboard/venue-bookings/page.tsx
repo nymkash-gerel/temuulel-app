@@ -53,29 +53,27 @@ export default function VenueBookingsPage() {
   const [total, setTotal] = useState(0)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
-  async function loadBookings() {
-    try {
-      const res = await fetch('/api/venue-bookings')
-      if (res.ok) {
-        const json = await res.json()
-        setBookings(json.data || [])
-        setTotal(json.total || 0)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    async function loadBookings() {
+      try {
+        const res = await fetch('/api/venue-bookings')
+        if (res.ok) {
+          const json = await res.json()
+          setBookings(json.data || [])
+          setTotal(json.total || 0)
+        }
+      } catch {
+        // silent
+      } finally {
+        setLoading(false)
+      }
+    }
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); setLoading(false); return }
       await loadBookings()
     }
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, router])
 
   const filtered = useMemo(() => {
@@ -234,7 +232,7 @@ export default function VenueBookingsPage() {
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6 text-right">
                       <span className="text-white font-medium">
-                        {booking.total_amount ? formatPrice(booking.total_amount) : '-'}
+                        {booking.total_amount != null ? formatPrice(booking.total_amount) : '-'}
                       </span>
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6 text-center">

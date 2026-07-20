@@ -135,7 +135,7 @@
 > 1. Receive customer messages sent to connected business Pages
 > 2. Send automated responses for product inquiries and order confirmations
 > 3. Never initiate unsolicited messages
-> Full privacy policy: temuulel-app.vercel.app/privacy"
+> Full privacy policy: https://www.temuulel.com/privacy"
 
 **Дэлгэцэнд харуулах:**
 - Privacy policy хуудас нээ: https://www.temuulel.com/privacy
