@@ -5,6 +5,7 @@
  * sample services/products for a specific business type.
  * Applied during signup or from settings.
  */
+import { EXTRA_TEMPLATES } from './industry-templates-extra'
 
 export type BusinessCategory = 'service' | 'product' | 'hybrid'
 
@@ -364,6 +365,7 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
   education,
   dentalClinic,
   realEstate,
+  ...EXTRA_TEMPLATES,
 ]
 
 export function getTemplate(businessType: string): IndustryTemplate | undefined {
