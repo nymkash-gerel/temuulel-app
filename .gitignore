@@ -52,6 +52,7 @@ yarn-error.log*
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/add-resource/
+!.claude/skills/ship/
 
 # typescript
 *.tsbuildinfo
