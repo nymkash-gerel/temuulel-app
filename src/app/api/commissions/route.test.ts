@@ -1,5 +1,5 @@
 /**
- * Tests for GET/POST /api/commissions (staff commissions)
+ * Tests for GET/POST /api/commissions (real-estate agent commissions)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
@@ -9,8 +9,8 @@ let mockUser: { id: string } | null = null
 let mockStore: { id: string } | null = null
 let mockCommissions: unknown[] = []
 let mockCommissionsCount: number = 0
-let mockStaff: { id: string; name: string } | null = null
-let mockAppointment: { id: string } | null = null
+let mockDeal: { id: string } | null = null
+let mockAgent: { id: string } | null = null
 let mockInsertedCommission: Record<string, unknown> | null = null
 let mockInsertError: { message: string } | null = null
 
@@ -41,18 +41,19 @@ beforeEach(() => {
   mockStore = { id: 'store-001' }
   mockCommissions = []
   mockCommissionsCount = 0
-  mockStaff = { id: 'staff-001', name: 'Staff A' }
-  mockAppointment = { id: 'appt-001' }
+  mockDeal = { id: 'deal-001' }
+  mockAgent = { id: 'staff-001' }
   mockInsertedCommission = {
     id: 'comm-001',
-    staff_id: 'staff-001',
-    sale_type: 'service',
-    sale_amount: 50000,
-    commission_rate: 15,
-    commission_amount: 7500,
+    deal_id: 'deal-001',
+    agent_id: 'staff-001',
+    commission_amount: 1000000,
+    agent_share: 500000,
+    company_share: 500000,
     status: 'pending',
     created_at: '2026-01-30T00:00:00Z',
-    staff: { id: 'staff-001', name: 'Staff A' },
+    deals: { id: 'deal-001', deal_number: 'D-001', final_price: 20000000, deal_type: 'sale', status: 'closed', products: null },
+    staff: { id: 'staff-001', name: 'Agent A', phone: '99001122' },
   }
   mockInsertError = null
 
@@ -66,13 +67,16 @@ beforeEach(() => {
         })),
       }
     }
-    if (table === 'staff_commissions') {
+    if (table === 'agent_commissions') {
+      // Chainable + thenable builder so the route can apply .eq() filters AFTER .range()
+      const listBuilder: any = {}
+      listBuilder.eq = vi.fn(() => listBuilder)
+      listBuilder.order = vi.fn(() => listBuilder)
+      listBuilder.range = vi.fn(() => listBuilder)
+      listBuilder.then = (resolve: any) =>
+        resolve({ data: mockCommissions, count: mockCommissionsCount, error: null })
       return {
-        select: vi.fn(() => ({
-          eq: vi.fn(function (this: any) { return this }),
-          order: vi.fn(function (this: any) { return this }),
-          range: vi.fn().mockResolvedValue({ data: mockCommissions, count: mockCommissionsCount, error: null }),
-        })),
+        select: vi.fn(() => listBuilder),
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
             single: vi.fn().mockResolvedValue({ data: mockInsertedCommission, error: mockInsertError }),
@@ -80,19 +84,19 @@ beforeEach(() => {
         })),
       }
     }
+    if (table === 'deals') {
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(function (this: any) { return this }),
+          single: vi.fn().mockResolvedValue({ data: mockDeal }),
+        })),
+      }
+    }
     if (table === 'staff') {
       return {
         select: vi.fn(() => ({
           eq: vi.fn(function (this: any) { return this }),
-          single: vi.fn().mockResolvedValue({ data: mockStaff }),
-        })),
-      }
-    }
-    if (table === 'appointments') {
-      return {
-        select: vi.fn(() => ({
-          eq: vi.fn(function (this: any) { return this }),
-          single: vi.fn().mockResolvedValue({ data: mockAppointment }),
+          single: vi.fn().mockResolvedValue({ data: mockAgent }),
         })),
       }
     }
@@ -113,8 +117,8 @@ describe('GET /api/commissions', () => {
     expect(res.status).toBe(403)
   })
 
-  it('returns commissions list', async () => {
-    mockCommissions = [{ id: 'comm-1', status: 'pending', commission_amount: 7500 }]
+  it('returns agent commissions list', async () => {
+    mockCommissions = [{ id: 'comm-1', status: 'pending', commission_amount: 1000000, agent_share: 500000 }]
     mockCommissionsCount = 1
     const res = await GET(makeGetRequest())
     const json = await res.json()
@@ -129,14 +133,20 @@ describe('GET /api/commissions', () => {
     expect(res.status).toBe(200)
     expect(json.data).toHaveLength(0)
   })
+
+  it('filters by status and agent_id without error', async () => {
+    const res = await GET(makeGetRequest('http://localhost/api/commissions?status=paid&agent_id=staff-001'))
+    expect(res.status).toBe(200)
+  })
 })
 
 describe('POST /api/commissions', () => {
   const validBody = {
-    staff_id: 'a0000000-0000-4000-8000-000000000001',
-    sale_amount: 50000,
-    commission_rate: 15,
-    commission_amount: 7500,
+    deal_id: 'a0000000-0000-4000-8000-000000000001',
+    agent_id: 'a0000000-0000-4000-8000-000000000002',
+    commission_amount: 1000000,
+    agent_share: 500000,
+    company_share: 500000,
   }
 
   it('returns 401 if not authenticated', async () => {
@@ -151,7 +161,7 @@ describe('POST /api/commissions', () => {
     expect(res.status).toBe(403)
   })
 
-  it('creates a commission', async () => {
+  it('creates an agent commission', async () => {
     const res = await POST(makePostRequest(validBody))
     const json = await res.json()
     expect(res.status).toBe(201)
@@ -159,58 +169,39 @@ describe('POST /api/commissions', () => {
     expect(json.status).toBe('pending')
   })
 
-  it('creates with optional appointment_id', async () => {
-    const res = await POST(makePostRequest({
-      ...validBody,
-      appointment_id: 'a0000000-0000-4000-8000-000000000003',
-    }))
-    expect(res.status).toBe(201)
-  })
-
-  it('creates with optional sale_type', async () => {
-    const res = await POST(makePostRequest({
-      ...validBody,
-      sale_type: 'product',
-    }))
-    expect(res.status).toBe(201)
-  })
-
-  it('returns 400 for missing staff_id', async () => {
-    const { staff_id: _, ...rest } = validBody
+  it('returns 400 for missing deal_id', async () => {
+    const { deal_id: _, ...rest } = validBody
     void _
     const res = await POST(makePostRequest(rest))
     expect(res.status).toBe(400)
   })
 
-  it('returns 400 for missing sale_amount', async () => {
-    const { sale_amount: _, ...rest } = validBody
+  it('returns 400 for missing agent_id', async () => {
+    const { agent_id: _, ...rest } = validBody
     void _
     const res = await POST(makePostRequest(rest))
     expect(res.status).toBe(400)
   })
 
-  it('returns 400 for negative commission_rate', async () => {
-    const res = await POST(makePostRequest({ ...validBody, commission_rate: -5 }))
+  it('returns 400 for negative agent_share', async () => {
+    const res = await POST(makePostRequest({ ...validBody, agent_share: -5 }))
     expect(res.status).toBe(400)
   })
 
-  it('returns 404 if staff not found', async () => {
-    mockStaff = null
+  it('returns 404 if deal not found (cross-tenant guard)', async () => {
+    mockDeal = null
     const res = await POST(makePostRequest(validBody))
     expect(res.status).toBe(404)
     const json = await res.json()
-    expect(json.error).toMatch(/Staff/)
+    expect(json.error).toMatch(/Deal/)
   })
 
-  it('returns 404 if appointment not found', async () => {
-    mockAppointment = null
-    const res = await POST(makePostRequest({
-      ...validBody,
-      appointment_id: 'a0000000-0000-4000-8000-000000000003',
-    }))
+  it('returns 404 if agent not found (cross-tenant guard)', async () => {
+    mockAgent = null
+    const res = await POST(makePostRequest(validBody))
     expect(res.status).toBe(404)
     const json = await res.json()
-    expect(json.error).toMatch(/Appointment/)
+    expect(json.error).toMatch(/Agent/)
   })
 
   it('returns 500 on database error', async () => {
