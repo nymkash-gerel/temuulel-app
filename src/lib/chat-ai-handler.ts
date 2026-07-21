@@ -29,6 +29,7 @@ import {
   readState,
   writeState,
   resolveFollowUp,
+  resolveReferencedIndex,
   updateState,
   type StoredProduct,
   type OrderDraft,
@@ -51,7 +52,7 @@ import {
 } from '@/lib/gift-card-engine'
 import { dispatchNotification } from '@/lib/notifications'
 import { isOpenAIConfigured } from '@/lib/ai/openai-client'
-import { calculateDeliveryFee } from '@/lib/delivery-fee-calculator'
+import { calculateDeliveryFee, type StoreShippingSettings } from '@/lib/delivery-fee-calculator'
 import { createQPayInvoice, checkQPayPayment, isQPayConfigured } from '@/lib/qpay'
 
 import { SupervisorAgent } from '@/lib/agents'
@@ -59,6 +60,37 @@ import type { AgentContext } from '@/lib/agents'
 import { logger } from '@/lib/logger'
 
 const DEFAULT_DELIVERY_FEE = 5000
+
+type ChatShippingSettings = { delivery_fee?: number; free_delivery_threshold?: number }
+
+/**
+ * Resolve the delivery fee for a chat order, honoring the store's
+ * free_delivery_threshold from shipping_settings. Chat checkout previously
+ * ignored it, so product copy like "Хүргэлт үнэгүй" contradicted the charged
+ * fee (QA finding 2026-07-20). Intercity keeps fee 0 (paid on receipt).
+ */
+async function resolveChatDeliveryFee(
+  supabase: SupabaseClient,
+  storeId: string,
+  productTotal: number,
+  address: string | null | undefined,
+): Promise<{ fee: number; isIntercity: boolean }> {
+  // Load the store's shipping settings FIRST so calculateDeliveryFee honors the
+  // store's custom inner-city districts / intercity cities instead of only the
+  // built-in default zones.
+  const { data: store } = await supabase
+    .from('stores')
+    .select('shipping_settings')
+    .eq('id', storeId)
+    .single()
+  const ss = (store?.shipping_settings ?? {}) as ChatShippingSettings & StoreShippingSettings
+
+  const feeResult = address ? calculateDeliveryFee(address, ss) : null
+  if (feeResult?.type === 'intercity') return { fee: 0, isIntercity: true }
+  const threshold = Number(ss.free_delivery_threshold ?? 0)
+  if (threshold > 0 && productTotal >= threshold) return { fee: 0, isIntercity: false }
+  return { fee: feeResult?.fee ?? DEFAULT_DELIVERY_FEE, isIntercity: false }
+}
 
 /**
  * Feature flag: enable Supervisor agent routing.
@@ -285,7 +317,7 @@ export async function processAIChat(
               }
               draft.step = 'confirming'
               orderDraft = draft
-              responseText = buildOrderSummary(draft)
+              responseText = await buildOrderSummary(supabase, storeId, draft)
             } else if (namePhone) {
               // Name + phone together (no address) — extract both
               const nameOnly = customerMessage.replace(/\d{8}/, '').trim()
@@ -323,7 +355,7 @@ export async function processAIChat(
               draft.phone = addrPhone
               draft.step = 'confirming'
               orderDraft = draft
-              responseText = buildOrderSummary(draft)
+              responseText = await buildOrderSummary(supabase, storeId, draft)
             } else if (addrPhone && !addr && !draft.address) {
               // Phone only, no address yet — save phone but stay on address step
               draft.phone = addrPhone
@@ -340,7 +372,7 @@ export async function processAIChat(
               if (draft.phone) {
                 draft.step = 'confirming'
                 orderDraft = draft
-                responseText = buildOrderSummary(draft)
+                responseText = await buildOrderSummary(supabase, storeId, draft)
               } else {
                 draft.step = 'phone'
                 orderDraft = draft
@@ -360,12 +392,12 @@ export async function processAIChat(
               draft.phone = phone
               draft.step = 'confirming'
               orderDraft = draft
-              responseText = buildOrderSummary(draft)
+              responseText = await buildOrderSummary(supabase, storeId, draft)
             } else if (draft.phone && isAffirmative(customerMessage)) {
               // Phone already collected (from name+phone combo) — user confirmed
               draft.step = 'confirming'
               orderDraft = draft
-              responseText = buildOrderSummary(draft)
+              responseText = await buildOrderSummary(supabase, storeId, draft)
             } else {
               orderDraft = draft
               responseText = '8 оронтой утасны дугаараа бичнэ үү:'
@@ -417,7 +449,7 @@ export async function processAIChat(
                 if (isIntercityOrder) {
                   responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n${itemsText}\n💰 Бараа: ${formatPrice(confirmTotal)}\n🚌 Хүргэлт: Автобус / шуудан\n   ⚠️ Тээврийн үнэ хүлээн авахдаа төлнө\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nАсуулт байвал дэлгүүртэй холбогдоно уу. Баярлалаа! 🙏`
                 } else {
-                  responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n${itemsText}\n💰 Бараа: ${formatPrice(confirmTotal)}\n🚚 Хүргэлт: ${formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nЖолооч тантай холбогдоно. Утсаа нээлттэй байлгаарай 📞 Баярлалаа!`
+                  responseText = `✅ Захиалга амжилттай!\n\n📋 Захиалгын дугаар: ${order.order_number}\n${itemsText}\n💰 Бараа: ${formatPrice(confirmTotal)}\n🚚 Хүргэлт: ${order.delivery_fee === 0 ? 'Үнэгүй 🎉' : formatPrice(order.delivery_fee)}\n💰 Нийт: ${formatPrice(order.total_amount)}\n📍 Хаяг: ${draft.address}\n📱 Утас: ${draft.phone}\n\nЖолооч тантай холбогдоно. Утсаа нээлттэй байлгаарай 📞 Баярлалаа!`
                 }
                 intent = 'order_created'
 
@@ -532,8 +564,11 @@ export async function processAIChat(
         // Anchor to selected product for informational follow-ups (size, material, care, etc.)
         // product_search stays as a fresh search — user is explicitly looking for something new.
         const isInfoFollowUp = (intent === 'size_info' || intent === 'general') && state.last_products.length > 0
+        // Anchor to the product the customer referenced (ordinal/number), not always
+        // the first — "хоёр дахийн размер хэд вэ?" must answer about item 2.
+        const anchorIdx = resolveReferencedIndex(normalizeText(customerMessage), state.last_products.length) ?? 0
         const searchTerms = isInfoFollowUp
-          ? state.last_products[0].name
+          ? state.last_products[anchorIdx].name
           : extractSearchTerms(customerMessage)
 
         // Parallel: search + history fetch based on intent
@@ -573,8 +608,11 @@ export async function processAIChat(
       // Anchor to selected product for informational follow-ups (size, material, care, etc.)
       // product_search stays as a fresh search — user is explicitly looking for something new.
       const isInfoFollowUp = (intent === 'size_info' || intent === 'general') && state.last_products.length > 0
+      // Anchor to the product the customer referenced (ordinal/number), not always
+      // the first — "гурав дахийн материал юу вэ?" must answer about item 3.
+      const anchorIdx = resolveReferencedIndex(normalizeText(customerMessage), state.last_products.length) ?? 0
       const searchTerms = isInfoFollowUp
-        ? state.last_products[0].name
+        ? state.last_products[anchorIdx].name
         : extractSearchTerms(customerMessage)
 
       // Parallel: all DB fetches + history in one batch
@@ -838,7 +876,17 @@ export async function processAIChat(
             if (confidence >= 0.85) {
               // High confidence — exact or near-exact match
               if (salesScript) {
-                responseText = salesScript
+                // Always lead with name + price — a bare sales_script answers neither
+                // "юу вэ?" nor "үнэ хэд вэ?" (QA finding 2026-07-20).
+                const pm = p as { name?: string; base_price?: number; variants?: { price: number }[] }
+                const variantPrices = (pm.variants ?? []).map(v => v.price).filter(n => typeof n === 'number' && n > 0)
+                const priceLabel = variantPrices.length > 0
+                  ? (Math.min(...variantPrices) === Math.max(...variantPrices)
+                      ? formatPrice(Math.min(...variantPrices))
+                      : `${formatPrice(Math.min(...variantPrices))} - ${formatPrice(Math.max(...variantPrices))}`)
+                  : (pm.base_price ? formatPrice(pm.base_price) : null)
+                const header = priceLabel ? `📦 ${pm.name} — ${priceLabel}` : `📦 ${pm.name}`
+                responseText = `${header}\n${salesScript}`
               } else if (products.length === 1) {
                 responseText = `Байна! Сонирхвол дугаараа бичнэ үү 😊`
               } else {
@@ -1459,12 +1507,10 @@ function resolveVariantFromMessage(msg: string, variants: VariantRow[]): Variant
  * Build a summary message showing ALL order details before confirmation.
  * Supports multi-item cart.
  */
-function buildOrderSummary(draft: OrderDraft): string {
+async function buildOrderSummary(supabase: SupabaseClient, storeId: string, draft: OrderDraft): Promise<string> {
   const items = getDraftItems(draft)
   const productTotal = getDraftTotal(draft)
-  const feeResult = draft.address ? calculateDeliveryFee(draft.address) : null
-  const isIntercity = feeResult?.type === 'intercity'
-  const deliveryFee = isIntercity ? 0 : (feeResult?.fee ?? DEFAULT_DELIVERY_FEE)
+  const { fee: deliveryFee, isIntercity } = await resolveChatDeliveryFee(supabase, storeId, productTotal, draft.address)
   const grandTotal = productTotal + deliveryFee
 
   const lines = ['📋 Захиалгын мэдээлэл:\n']
@@ -1489,7 +1535,7 @@ function buildOrderSummary(draft: OrderDraft): string {
     lines.push(`   ⚠️ Тээврийн үнэ хүлээн авахдаа төлнө (жин, хэмжээнээс хамаарна)`)
     lines.push(`💰 Нийт (барааны үнэ): ${formatPrice(grandTotal)}`)
   } else {
-    lines.push(`🚚 Хүргэлт: ${formatPrice(deliveryFee)}`)
+    lines.push(`🚚 Хүргэлт: ${deliveryFee === 0 ? 'Үнэгүй 🎉' : formatPrice(deliveryFee)}`)
     lines.push(`💰 Нийт: ${formatPrice(grandTotal)}`)
   }
 
@@ -1808,10 +1854,8 @@ async function createOrderFromChat(
   const items = getDraftItems(draft)
   const productTotal = getDraftTotal(draft)
 
-  // Calculate delivery fee from address
-  const feeResult = draft.address ? calculateDeliveryFee(draft.address) : null
-  const isIntercity = feeResult?.type === 'intercity'
-  const deliveryFee = isIntercity ? 0 : (feeResult?.fee ?? DEFAULT_DELIVERY_FEE)
+  // Delivery fee: zone-based, honoring the store's free_delivery_threshold
+  const { fee: deliveryFee, isIntercity } = await resolveChatDeliveryFee(supabase, storeId, productTotal, draft.address)
   const totalAmount = productTotal + deliveryFee
 
   const { data: newOrder, error: orderError } = await supabase

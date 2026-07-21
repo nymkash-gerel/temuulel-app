@@ -1,5 +1,5 @@
 /**
- * Tests for GET/PATCH /api/commissions/[id] (staff commissions)
+ * Tests for GET/PATCH /api/commissions/[id] (real-estate agent commissions)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createTestRequest, createTestJsonRequest } from '@/lib/test-utils'
@@ -46,13 +46,14 @@ beforeEach(() => {
   mockStore = { id: 'store-001' }
   mockCommission = {
     id: 'comm-001',
-    staff_id: 'staff-001',
-    sale_type: 'service',
-    sale_amount: 50000,
-    commission_rate: 15,
-    commission_amount: 7500,
+    deal_id: 'deal-001',
+    agent_id: 'staff-001',
+    commission_amount: 1000000,
+    agent_share: 500000,
+    company_share: 500000,
     status: 'pending',
-    staff: { id: 'staff-001', name: 'Staff A' },
+    deals: { id: 'deal-001', deal_number: 'D-001', final_price: 20000000, deal_type: 'sale', status: 'closed', products: null },
+    staff: { id: 'staff-001', name: 'Agent A', phone: '99001122' },
   }
   mockUpdatedCommission = { ...mockCommission, status: 'approved', updated_at: '2026-01-30T00:00:00Z' }
   mockUpdateError = null
@@ -67,7 +68,7 @@ beforeEach(() => {
         })),
       }
     }
-    if (table === 'staff_commissions') {
+    if (table === 'agent_commissions') {
       return {
         select: vi.fn(() => ({
           eq: vi.fn(function (this: any) { return this }),
@@ -104,12 +105,14 @@ describe('GET /api/commissions/[id]', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns commission detail', async () => {
+  it('returns commission detail with agent and deal', async () => {
     const res = await GET(makeGetRequest(), { params })
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.id).toBe('comm-001')
-    expect(json.staff).toEqual({ id: 'staff-001', name: 'Staff A' })
+    expect(json.agent_share).toBe(500000)
+    expect(json.staff).toEqual({ id: 'staff-001', name: 'Agent A', phone: '99001122' })
+    expect(json.deals.deal_number).toBe('D-001')
   })
 })
 
@@ -151,9 +154,8 @@ describe('PATCH /api/commissions/[id]', () => {
     expect(res.status).toBe(400)
   })
 
-  it('accepts optional paid_at', async () => {
-    mockUpdatedCommission = { ...mockCommission, status: 'paid', paid_at: '2026-01-30T12:00:00Z' }
-    const res = await PATCH(makePatchRequest({ status: 'paid', paid_at: '2026-01-30T12:00:00Z' }), { params })
+  it('accepts optional notes', async () => {
+    const res = await PATCH(makePatchRequest({ status: 'approved', notes: 'Тэмдэглэл' }), { params })
     expect(res.status).toBe(200)
   })
 

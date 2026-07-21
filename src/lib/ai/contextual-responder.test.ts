@@ -194,6 +194,10 @@ describe('contextualAIResponse (JSON mode)', () => {
     const result = await contextualAIResponse(makeInput({
       intent: 'order_status',
       currentMessage: 'Захиалга маань хаана ирсэнгүй',
+      // A verified order exists — otherwise the guard correctly short-circuits to
+      // the deterministic "please give your order number" template (no hallucinated
+      // status). Empathy detection is exercised on the realistic has-order path.
+      orders: [{ order_number: 'ORD-9', status: 'shipped', total_amount: 50000 }],
     }))
 
     expect(result!.empathy_needed).toBe(true)
