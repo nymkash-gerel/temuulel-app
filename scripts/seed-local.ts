@@ -194,7 +194,7 @@ async function main() {
       name: 'Арьсан цүнх',
       description: '100% жинхэнэ арьсан цүнх. Том хэмжээ: 35×28×12см.',
       base_price: 120000, category: 'bags',
-      sales_script: 'Хэмжээ: 35×28×12см. Өнгө: Хар, Бор, Улаан. Хүргэлт үнэгүй.',
+      sales_script: 'Хэмжээ: 35×28×12см. Өнгө: Хар, Бор, Улаан. 100,000₮-с дээш захиалгад хүргэлт үнэгүй.',
       variants: [
         { color: 'Хар',  price: 120000, stock_quantity: 5 },
         { color: 'Бор',  price: 120000, stock_quantity: 4 },

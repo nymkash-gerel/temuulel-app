@@ -1,14 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { validateBody, createStaffCommissionSchema, parsePagination } from '@/lib/validations'
+import { validateBody, createCommissionSchema, parsePagination } from '@/lib/validations'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+
+// Shared select shape — matches the real-estate commissions dashboard (agent_commissions,
+// joined to the deal + listing + agent). Kept in sync with /api/commissions/[id] and generate.
+const COMMISSION_SELECT = `
+  id, deal_id, agent_id, commission_amount, agent_share, company_share,
+  status, paid_at, notes, created_at, updated_at,
+  deals(id, deal_number, final_price, deal_type, status, products(id, name)),
+  staff(id, name, phone)
+`
 
 /**
  * GET /api/commissions
  *
- * List staff commissions for the store.
- * Supports filtering by staff_id, status, sale_type.
+ * List real-estate agent commissions for the store.
+ * Supports filtering by agent_id and status.
  */
 export async function GET(request: NextRequest) {
+  const rl = await rateLimit(getClientIp(request), { limit: 60, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -28,18 +41,12 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
-  const staffId = searchParams.get('staff_id')
-  const saleType = searchParams.get('sale_type')
+  const agentId = searchParams.get('agent_id')
   const { limit, offset } = parsePagination(searchParams)
 
   let query = supabase
-    .from('staff_commissions')
-    .select(`
-      id, staff_id, appointment_id, sale_type, sale_amount, commission_rate,
-      commission_amount, status, paid_at, notes, created_at, updated_at,
-      staff(id, name),
-      appointments(id, scheduled_at)
-    `, { count: 'exact' })
+    .from('agent_commissions')
+    .select(COMMISSION_SELECT, { count: 'exact' })
     .eq('store_id', store.id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -49,13 +56,8 @@ export async function GET(request: NextRequest) {
     query = query.eq('status', status as typeof validStatuses[number])
   }
 
-  if (staffId) {
-    query = query.eq('staff_id', staffId)
-  }
-
-  const validSaleTypes = ['service', 'product', 'package', 'membership'] as const
-  if (saleType && validSaleTypes.includes(saleType as typeof validSaleTypes[number])) {
-    query = query.eq('sale_type', saleType as typeof validSaleTypes[number])
+  if (agentId) {
+    query = query.eq('agent_id', agentId)
   }
 
   const { data, count, error } = await query
@@ -70,9 +72,12 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/commissions
  *
- * Manually create a staff commission record.
+ * Manually create an agent commission for a deal.
  */
 export async function POST(request: NextRequest) {
+  const rl = await rateLimit(getClientIp(request), { limit: 30, windowSeconds: 60 })
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -90,53 +95,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Store not found' }, { status: 403 })
   }
 
-  const { data: body, error: validationError } = await validateBody(request, createStaffCommissionSchema)
+  const { data: body, error: validationError } = await validateBody(request, createCommissionSchema)
   if (validationError) return validationError
 
-  // Verify staff belongs to store
-  const { data: staffMember } = await supabase
-    .from('staff')
-    .select('id, name')
-    .eq('id', body.staff_id)
+  // Verify the deal belongs to this store
+  const { data: deal } = await supabase
+    .from('deals')
+    .select('id')
+    .eq('id', body.deal_id)
     .eq('store_id', store.id)
     .single()
 
-  if (!staffMember) {
-    return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
+  if (!deal) {
+    return NextResponse.json({ error: 'Deal not found' }, { status: 404 })
   }
 
-  // Verify appointment belongs to store if provided
-  if (body.appointment_id) {
-    const { data: appointment } = await supabase
-      .from('appointments')
-      .select('id')
-      .eq('id', body.appointment_id)
-      .eq('store_id', store.id)
-      .single()
+  // Verify the agent (staff) belongs to this store
+  const { data: agent } = await supabase
+    .from('staff')
+    .select('id')
+    .eq('id', body.agent_id)
+    .eq('store_id', store.id)
+    .single()
 
-    if (!appointment) {
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 })
-    }
+  if (!agent) {
+    return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
   }
 
   const { data: commission, error } = await supabase
-    .from('staff_commissions')
+    .from('agent_commissions')
     .insert({
       store_id: store.id,
-      staff_id: body.staff_id,
-      appointment_id: body.appointment_id || null,
-      sale_type: body.sale_type || 'service',
-      sale_amount: body.sale_amount,
-      commission_rate: body.commission_rate,
+      deal_id: body.deal_id,
+      agent_id: body.agent_id,
       commission_amount: body.commission_amount,
+      agent_share: body.agent_share,
+      company_share: body.company_share,
+      notes: body.notes ?? null,
       status: 'pending',
     })
-    .select(`
-      id, staff_id, appointment_id, sale_type, sale_amount, commission_rate,
-      commission_amount, status, paid_at, notes, created_at, updated_at,
-      staff(id, name),
-      appointments(id, scheduled_at)
-    `)
+    .select(COMMISSION_SELECT)
     .single()
 
   if (error) {

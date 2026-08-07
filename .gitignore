@@ -46,6 +46,15 @@ yarn-error.log*
 !.claude/hooks/
 !.claude/HOOKS.md
 .claude/hooks/*.local.*
+# custom sub-agents (all project-authored)
+!.claude/agents/
+# only project-authored skills, not the 100+ marketplace ones
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/add-resource/
+!.claude/skills/ship/
+!.claude/skills/audit-vertical/
+!.claude/skills/chat-qa/
 
 # typescript
 *.tsbuildinfo

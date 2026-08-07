@@ -199,6 +199,14 @@ export const admissionTransitions: TransitionMap = {
   transferred: [],   // terminal
 }
 
+// ── Agent commissions ───────────────────────────────────────────────
+export const commissionTransitions: TransitionMap = {
+  pending: ['approved', 'paid', 'cancelled'], // initial state → any decision
+  approved: ['paid', 'cancelled'],
+  paid: ['approved', 'cancelled'], // allow reversal/correction of a mispaid commission
+  cancelled: ['approved'],         // re-open a cancelled commission (must re-approve before paying)
+}
+
 // ── Medical complaints ─────────────────────────────────────────────
 export const medicalComplaintTransitions: TransitionMap = {
   open: ['assigned', 'closed'],
