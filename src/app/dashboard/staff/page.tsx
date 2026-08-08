@@ -228,7 +228,12 @@ export default function StaffPage() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => openModal(member)}
+                    // stopPropagation: the whole card is a click target that
+                    // routes to the detail page. Without it, editing opens the
+                    // modal and immediately navigates away from it, and
+                    // deleting navigates on top of the confirm dialog.
+                    onClick={(e) => { e.stopPropagation(); openModal(member) }}
+                    aria-label={`${member.name} — засах`}
                     className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -237,7 +242,8 @@ export default function StaffPage() {
                     </svg>
                   </button>
                   <button
-                    onClick={() => handleDelete(member.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(member.id) }}
+                    aria-label={`${member.name} — устгах`}
                     className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

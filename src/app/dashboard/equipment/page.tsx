@@ -518,7 +518,9 @@ export default function EquipmentPage() {
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6 text-right">
                       <button
-                        onClick={() => startEdit(eq)}
+                        // stopPropagation: the row navigates to the detail
+                        // page, which destroys the edit modal on open.
+                        onClick={(e) => { e.stopPropagation(); startEdit(eq) }}
                         className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-all"
                       >
                         Засах
