@@ -355,3 +355,27 @@ describe('updateState', () => {
     expect(next.last_query).toBe('хувцас')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Abandoning a purchase mid-checkout
+// ---------------------------------------------------------------------------
+
+describe('resolveFollowUp — purchase abandonment during checkout', () => {
+  function draftState() {
+    return stateWith({
+      order_draft: {
+        items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+        step: 'name',
+      },
+    })
+  }
+
+  // "болих" was already covered; these abandonment forms were not, so the
+  // message was stored as the customer's name by the order_step_input path.
+  it.each(['захиалахаа болилоо', 'авахаа болилоо', 'больё', 'болъё'])(
+    'cancels the draft for abandonment form: %s',
+    (msg) => {
+      expect(resolveFollowUp(msg, draftState())).toEqual({ type: 'order_cancel' })
+    }
+  )
+})

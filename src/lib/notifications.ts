@@ -10,6 +10,7 @@ import { dispatchWebhook, type WebhookEvent } from './webhook'
 import { sendPushToUser } from './push'
 import { notifyStaff } from './staff-notify'
 import { notify as slackNotify } from './slack'
+import { orderStatusLabel } from './format'
 
 export type NotificationEvent =
   | 'new_order'
@@ -48,18 +49,9 @@ const ESCALATION_LABELS: Record<string, string> = {
   critical: 'Маш яаралтай',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Хүлээгдэж буй',
-  confirmed: 'Баталгаажсан',
-  processing: 'Бэлтгэж буй',
-  shipped: 'Илгээсэн',
-  delivered: 'Хүргэсэн',
-  cancelled: 'Цуцлагдсан',
-}
-
-function statusLabel(status: string): string {
-  return STATUS_LABELS[status] || status
-}
+// Shared with the AI prompt builder (contextual-responder) so the bot and the
+// notifications speak about a status with the same words.
+const statusLabel = orderStatusLabel
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL

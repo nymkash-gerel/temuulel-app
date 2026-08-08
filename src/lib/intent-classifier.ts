@@ -961,6 +961,13 @@ export function classifyIntentWithConfidence(
     }
   }
 
+  // Tiebreaker: a customer backing out of a purchase ("авахаа болилоо") or
+  // deferring it ("одоо биш, дараа авъя") still uses a purchase verb, so they
+  // score as order_collection and the bot answers as if they were buying now.
+  if (bestIntent === 'order_collection' && isPurchaseDeferralNormalized(normalized)) {
+    bestIntent = 'general'
+  }
+
   // Optional logging
   if (options?.log) {
     const processingTime = Date.now() - startTime
@@ -968,6 +975,37 @@ export function classifyIntentWithConfidence(
   }
 
   return { intent: bestIntent, confidence: bestScore }
+}
+
+/**
+ * True when the customer is stepping AWAY from buying — either abandoning
+ * ("авахаа болилоо" = "I've stopped wanting to buy") or deferring ("одоо биш,
+ * дараа авъя" = "not now, I'll buy later").
+ *
+ * Both phrasings contain a purchase verb (ав-/захиал-), so the order-intent
+ * check reads them as ready-to-buy and the bot starts a checkout the customer
+ * explicitly backed out of. Exported so the classifier and the order-flow
+ * trigger in chat-ai-handler share one definition.
+ */
+export function isPurchaseDeferral(message: string): boolean {
+  return isPurchaseDeferralNormalized(normalizeText(message))
+}
+
+/** Explicit "later / not now" deferrals, pre-normalized at module load. */
+const DEFERRAL_SIGNALS: readonly string[] = [
+  'дараа авъя', 'дараа авья', 'дараа захиалъя', 'дараа захиална',
+  'дараа нь авъя', 'дараа авна', 'одоо биш', 'одоохондоо биш',
+  'сүүлд авъя', 'сүүлд нь авъя',
+  'бодоод үзье', 'бодоод узье',
+].map((s) => normalizeText(s))
+
+/** Abandonment: "…хаа/-хээ болилоо/больё/болъё" — dropping the action itself. */
+const ABANDON_PATTERN = /(?:авах|захиалах|авч|захиалж)\s*[а-яё]*\s*бол(?:и|[ьъ]?[её])/
+
+/** Same check as isPurchaseDeferral for callers that already normalized. */
+function isPurchaseDeferralNormalized(normalized: string): boolean {
+  return ABANDON_PATTERN.test(normalized)
+    || DEFERRAL_SIGNALS.some((sig) => normalized.includes(sig))
 }
 
 /** Confidence threshold below which we ask clarification instead of guessing */

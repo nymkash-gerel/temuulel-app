@@ -4,7 +4,7 @@
  * GPT-4o-mini for low confidence cases where both keyword and ML fail.
  */
 
-import { classifyIntentWithConfidence, IntentResult } from '../intent-classifier'
+import { classifyIntentWithConfidence, isPurchaseDeferral, IntentResult } from '../intent-classifier'
 import { mlClassify } from './ml-classifier'
 import { bertClassify } from './bert-classifier'
 import { normalizeText } from '../text-normalizer'
@@ -110,6 +110,23 @@ function applyMorphSignals(
  * 5. Otherwise, use keyword result (fallback)
  */
 export function hybridClassify(message: string): IntentResult {
+  return demoteDeferredPurchase(message, hybridClassifyInner(message))
+}
+
+/**
+ * A customer backing out ("авахаа болилоо") or deferring ("одоо биш, дараа
+ * авъя") still uses a purchase verb, and the ML tier — which only sees that
+ * verb — reports order_collection with high confidence. Applied to the FINAL
+ * result rather than inside the keyword classifier, because ML overrides the
+ * keyword tier for exactly these messages.
+ */
+function demoteDeferredPurchase(message: string, result: IntentResult): IntentResult {
+  if (result.intent !== 'order_collection') return result
+  if (!isPurchaseDeferral(message)) return result
+  return { intent: 'general', confidence: result.confidence }
+}
+
+function hybridClassifyInner(message: string): IntentResult {
   // Emoji-only messages — handle separately (substring match breaks with emoji bytes)
   const trimmed = message.trim()
   if (/^[\p{Emoji}\s]+$/u.test(trimmed) && trimmed.length <= 12) {

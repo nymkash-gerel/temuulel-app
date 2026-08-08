@@ -36,6 +36,7 @@ export type { IntentResult } from './intent-classifier'
 export {
   classifyIntent,
   classifyIntentWithConfidence,
+  isPurchaseDeferral,
   LOW_CONFIDENCE_THRESHOLD,
 } from './intent-classifier'
 

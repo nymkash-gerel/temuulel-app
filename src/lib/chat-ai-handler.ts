@@ -39,7 +39,7 @@ import {
   getDraftTotal,
   type CustomerPreferences,
 } from '@/lib/conversation-state'
-import { normalizeText } from '@/lib/chat-ai'
+import { normalizeText, isPurchaseDeferral } from '@/lib/chat-ai'
 import {
   purchaseGiftCard,
   lookupGiftCard,
@@ -580,6 +580,14 @@ export async function processAIChat(
       }
 
       case 'order_intent': {
+        // "захиалахаа болилоо" / "дараа авъя" reach here as order_intent because
+        // they contain a buy verb, but the customer is stepping AWAY from the
+        // purchase — opening a checkout would be the opposite of what they asked.
+        if (isPurchaseDeferral(customerMessage)) {
+          intent = 'general'
+          responseText = 'За, ойлголоо! Бэлэн болоод хэзээ ч бичээрэй — тусалъя 😊'
+          break
+        }
         const result = await startOrderDraft(supabase, followUp.product!, customerMessage, storeId, customerId, state.customer_prefs)
         intent = 'order_collection'
         orderDraft = result.draft
@@ -1097,7 +1105,13 @@ export async function processAIChat(
         const isRecommendationQuery = RECOMMENDATION_SIGNALS.some(
           (sig) => normalizeText(customerMessage).includes(normalizeText(sig))
         )
-        if (!unlistedProductDetected && !isRecommendationQuery && intent !== 'order_status' && intent !== 'complaint' && intent !== 'return_exchange' && hasOrderIntent(customerMessage)) {
+        // Backing out ("авахаа болилоо") or deferring ("одоо биш, дараа авъя")
+        // still contains a purchase verb, so hasOrderIntent() says yes and we
+        // would open a checkout the customer just declined. Checked here as
+        // well as in the classifier because this gate reads the raw message,
+        // not the resolved intent.
+        const isDeferredPurchase = isPurchaseDeferral(customerMessage)
+        if (!unlistedProductDetected && !isRecommendationQuery && !isDeferredPurchase && intent !== 'order_status' && intent !== 'complaint' && intent !== 'return_exchange' && hasOrderIntent(customerMessage)) {
           // Check if message has meaningful non-order words that identify a product.
           // If message is ONLY order words (e.g. "zahialu"), products from search are
           // likely coincidental matches (description contains "захиал*") — show catalog.
