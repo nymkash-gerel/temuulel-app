@@ -366,7 +366,9 @@ export default function PackagesPage() {
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6 text-right">
                       <button
-                        onClick={() => handleToggleActive(pkg)}
+                        // stopPropagation: the row navigates to the detail
+                        // page, so toggling would yank the owner off the list.
+                        onClick={(e) => { e.stopPropagation(); handleToggleActive(pkg) }}
                         disabled={toggling === pkg.id}
                         className={`px-3 py-1 text-xs rounded-lg transition-all disabled:opacity-50 ${
                           pkg.is_active

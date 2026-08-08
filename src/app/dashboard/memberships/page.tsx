@@ -387,7 +387,10 @@ export default function MembershipsPage() {
                     </td>
                     <td className="py-3 px-3 md:py-4 md:px-6 text-right">
                       <button
-                        onClick={() => startEdit(plan)}
+                        // stopPropagation: the row navigates to the detail
+                        // page, so without this the edit form opens and is
+                        // immediately abandoned by the navigation.
+                        onClick={(e) => { e.stopPropagation(); startEdit(plan) }}
                         className="px-3 py-1 text-xs bg-slate-600/20 text-slate-300 rounded-lg hover:bg-slate-600/40 transition-all"
                       >
                         Edit
