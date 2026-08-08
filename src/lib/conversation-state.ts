@@ -541,6 +541,10 @@ export function resolveFollowUp(
       'захиалаагүй', 'захиалахгүй', 'захиалсангүй',
       'авахгүй', 'авмааргүй', 'авсангүй',
       'хэрэггүй', 'болих', 'болихоо', 'болсон',
+      // Abandonment forms of болих ("захиалахаа болилоо/больё/болъё"): without
+      // these, a customer dropping out mid-checkout has their message stored as
+      // their name or address by the order_step_input path.
+      'болилоо', 'больё', 'болъё', 'болье', 'болъе',
       'үгүй', 'болохгүй',
     ]
     // Cancel-verb stems are checked separately from the decline phrases above,

@@ -6,6 +6,7 @@ import {
   normalizeText,
   classifyIntent,
   classifyIntentWithConfidence,
+  isPurchaseDeferral,
   extractSearchTerms,
   CATEGORY_MAP,
   matchesHandoffKeywords,
@@ -160,6 +161,40 @@ describe('classifyIntent — order_cancel_request', () => {
 
   it('leaves an angry refund+cancel message as complaint', () => {
     expect(classifyIntent('Захиалгаа цуцлаад мөнгөө буцааж өгөөч')).toBe('complaint')
+  })
+})
+
+describe('isPurchaseDeferral', () => {
+  // These contain a purchase verb (ав-/захиал-), so the order-intent check reads
+  // them as ready-to-buy and the bot would open a checkout the customer declined.
+  it.each([
+    'Авахаа болилоо',
+    'Захиалахаа болилоо',
+    'захиалахаа больё',
+    'захиалахаа болъё',
+    'авахаа больё',
+    'одоо биш дараа авъя',
+    'дараа авъя',
+    'бодоод үзье',
+  ])('detects stepping away from a purchase: %s', (msg) => {
+    expect(isPurchaseDeferral(msg)).toBe(true)
+  })
+
+  it.each([
+    'захиалъя',
+    'авмаар байна',
+    'Энэ цамцыг авъя',
+    '2 дахийг авъя',
+    'Бараа байна уу',
+    // 'бол' followed by н/о is a different verb — "will buy" / "may I buy",
+    // not abandonment. These must keep reaching the order flow.
+    'авах болно',
+    'авч болох уу',
+    'захиалж болно уу',
+    // A future-dated delivery request is a real order, not a deferral.
+    'дараа сарын 5-нд хүргэж өгөөч',
+  ])('does not fire on a real purchase or browse: %s', (msg) => {
+    expect(isPurchaseDeferral(msg)).toBe(false)
   })
 })
 

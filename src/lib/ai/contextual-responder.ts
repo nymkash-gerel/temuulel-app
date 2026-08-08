@@ -12,6 +12,7 @@ import { normalizeText } from '../chat-ai'
 import type { CustomerProfile } from './customer-profile'
 import type { ResolutionContext } from '../resolution-engine'
 import type { ContextualAIResponseJSON } from './types'
+import { formatPrice, orderStatusLabel } from '../format'
 
 export type { ContextualAIResponseJSON }
 
@@ -431,7 +432,10 @@ function buildSystemPrompt(input: ContextualInput): string {
     const recentOrders = input.orders.slice(0, 3)
     prompt += '\n\nЗАХИАЛГА (сүүлийн 3):'
     recentOrders.forEach(o => {
-      prompt += `\n• ${o.order_number} — ${o.status} — ${o.total_amount}₮`
+      // Mongolian status label + formatted amount: feeding GPT the raw enum
+      // ('shipped') and a bare number made it echo English status codes and
+      // unseparated amounts back to Mongolian-speaking customers.
+      prompt += `\n• ${o.order_number} — ${orderStatusLabel(o.status)} — ${formatPrice(o.total_amount)}`
     })
     if (input.orders.length > 3) prompt += `\n(нийт ${input.orders.length} захиалга)`
     prompt += '\nЗАХИАЛГА ДҮРЭМ: Бүх захиалгыг жагсаахгүй — зөвхөн хамгийн сүүлийнхийг товч харуулна.'
