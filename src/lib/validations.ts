@@ -106,6 +106,19 @@ export const updateOrderStatusSchema = z.object({
 // Restaurant feature schemas
 // ---------------------------------------------------------------------------
 
+/**
+ * Partial product update (PATCH /api/products/[id]).
+ * Every field optional — the menu editor sends only what actually changed.
+ * `.nullish()` on the text fields because clearing an input sends null.
+ */
+export const updateProductSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(5000).nullish(),
+  base_price: z.number().min(0).nullish(),
+  status: z.enum(['active', 'draft', 'archived']).optional(),
+  sku: z.string().max(100).nullish(),
+})
+
 export const updateProductAvailabilitySchema = z.object({
   available_today: z.boolean().optional(),
   daily_limit: z.number().int().min(0).nullish(),

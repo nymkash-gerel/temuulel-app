@@ -183,10 +183,13 @@ export default function LaundryOrdersPage() {
     setError('')
 
     try {
-      const res = await fetch('/api/laundry-orders', {
+      // PATCH lives on /api/laundry-orders/[id]; the collection route exports
+      // only GET and POST, so sending the id in the body returned 405 and the
+      // status never changed.
+      const res = await fetch(`/api/laundry-orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: orderId, status: newStatus }),
+        body: JSON.stringify({ status: newStatus }),
       })
 
       if (!res.ok) {

@@ -113,10 +113,13 @@ export default function FloorManagementPage() {
     setSuccess(null)
 
     try {
-      const res = await fetch(`/api/table-sessions`, {
+      // PATCH lives on /api/table-sessions/[id]; the collection route exports
+      // only GET and POST, so sending the id in the body returned 405 and the
+      // session was never closed.
+      const res = await fetch(`/api/table-sessions/${sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: sessionId, status: 'closed' }),
+        body: JSON.stringify({ status: 'closed' }),
       })
 
       if (!res.ok) {
