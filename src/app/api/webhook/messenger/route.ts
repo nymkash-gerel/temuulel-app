@@ -706,7 +706,9 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
             'gift_card_purchase', 'gift_card_redeem',
           ]
           const inCheckout = aiIntent === 'order_collection'
-          if (!SKIP_ESCALATION_INTENTS.includes(aiIntent) && !inCheckout) {
+          // aiResult.escalate = the handler already escalated (order-cancel
+          // request) — conversation marked + store notified, don't re-score.
+          if (!SKIP_ESCALATION_INTENTS.includes(aiIntent) && !inCheckout && !aiResult.escalate) {
             const esc = await processEscalation(
               supabase, conversation.id, messageText, store.id, chatbotSettings
             )

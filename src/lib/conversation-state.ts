@@ -531,14 +531,31 @@ export function resolveFollowUp(
     }
 
     // Check for order cancellation phrases (Mongolian negation: -гүй, -хгүй suffix)
+    // The cancel verb entries are STEMS ('цуцл', 'цуцал', 'болиул', 'сансел' =
+    // normalizeText('cancel')) matched as substrings, so the whole paradigm is
+    // covered — цуцлаач/цуцлаарай/цуцламаар/цуцалъя/цуцалж. These must stay in
+    // sync with the CANCEL_STEM regex in intent-classifier.ts: without them a
+    // mid-checkout "цуцлаач" outscores nothing and gets stored as the customer's
+    // name/address by the order_step_input path.
     const CANCEL_PHRASES = [
       'захиалаагүй', 'захиалахгүй', 'захиалсангүй',
       'авахгүй', 'авмааргүй', 'авсангүй',
       'хэрэггүй', 'болих', 'болихоо', 'болсон',
-      'цуцлах', 'цуцал', 'цуцлана',
       'үгүй', 'болохгүй',
     ]
-    const hasCancelPhrase = CANCEL_PHRASES.some((kw) => normalized.includes(normalizeText(kw)))
+    // Cancel-verb stems are checked separately from the decline phrases above,
+    // because the verb can itself be negated: mid-checkout "цуцлахгүй" means
+    // "do NOT cancel it" and must keep the draft alive, whereas the phrases
+    // above ("хэрэггүй", "авахгүй") are declines whose negation IS the cancel.
+    // Passive "цуцлагдсан уу?" asks whether it was cancelled — also not a request.
+    const CANCEL_VERB_STEMS = ['цуцл', 'цуцал', 'болиул', 'сансел']
+    const neutralNormalized = neutralizeVowels(normalized)
+    const hasNegatedCancelVerb = /(?:цуцл|цуцал|болиул|сансел)[а-яё]*гуи/.test(neutralNormalized)
+    const isPassiveCancel = normalized.includes('цуцлагд')
+    const hasCancelVerb = !hasNegatedCancelVerb && !isPassiveCancel
+      && CANCEL_VERB_STEMS.some((kw) => normalized.includes(normalizeText(kw)))
+    const hasCancelPhrase = hasCancelVerb
+      || CANCEL_PHRASES.some((kw) => normalized.includes(normalizeText(kw)))
     if (hasCancelPhrase) {
       candidates.push({
         score: FOLLOWUP_WEIGHTS.order_step_input + 5, // Must beat order_step_input
@@ -824,6 +841,9 @@ export function updateState(
     'delivery_info', 'order_info', 'payment_info', 'warranty_info', 'stock_info',
     'price_info', 'general', 'complaint', 'shipping',
     'order_collection',
+    // Cancel request escalates to a human — keep product context so the
+    // conversation can resume naturally after staff resolve it.
+    'order_cancel_request',
   ]
 
   // Intents that fetch/narrow products and should save them to state

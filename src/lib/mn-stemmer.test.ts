@@ -29,6 +29,29 @@ describe('mnStemDeep', () => {
     expect(r.suffixes.map(s => s.suffix)).toEqual(['гүй', 'сан'])
   })
 
+  // Latin-typed forms normalize lossily (gui→гуи, ee→ее) — suffix matching
+  // falls back to vowel-neutralized comparison so negation still registers.
+  test('strips Latin-normalized negation "гуи" (from "gui")', () => {
+    // "ireegui" → normalizeText → "иреегуи": strip гуи (≈гүй) → ирее,
+    // strip ее (≈ээ possessive) → ир (known root)
+    const r = mnStemDeep('иреегуи')
+    expect(r.stem).toBe('ир')
+    expect(r.suffixes[0].category).toBe('negative')
+  })
+
+  test('strips Latin-normalized negative infinitive "хгуи" (from "hgui")', () => {
+    // "zahialahgui" → "захиалахгуи": strip хгуи (≈хгүй) → захиала
+    const r = mnStemDeep('захиалахгуи')
+    expect(r.stem).toBe('захиала')
+    expect(r.suffixes[0].category).toBe('negative')
+  })
+
+  test('Cyrillic suffixes still match exactly after neutralized fallback added', () => {
+    const r = mnStemDeep('ирээгүй')
+    expect(r.suffixes[0].category).toBe('negative')
+    expect(r.stem).toBe('ир')
+  })
+
   test('strips negative + past on delivery root', () => {
     // хүргэгдсэнгүй = хүргэ + гдсэн + гүй (passive past + negative)
     // Actually: хүргэгдсэнгүй → strip гүй → хүргэгдсэн → strip гдсэн → хүргэ

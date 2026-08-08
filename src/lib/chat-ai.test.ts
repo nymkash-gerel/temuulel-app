@@ -97,6 +97,72 @@ describe('classifyIntent — core keywords', () => {
 // classifyIntent — alias detection (the new part)
 // ---------------------------------------------------------------------------
 
+describe('classifyIntent — order_cancel_request', () => {
+  it('detects cancel of a placed order (imperative)', () => {
+    expect(classifyIntent('Захиалгаа цуцлаач')).toBe('order_cancel_request')
+  })
+
+  it('detects cancel of a placed order (infinitive)', () => {
+    expect(classifyIntent('Захиалга цуцлах')).toBe('order_cancel_request')
+  })
+
+  it('detects polite cancel question', () => {
+    expect(classifyIntent('Захиалгаа цуцлаж болох уу')).toBe('order_cancel_request')
+  })
+
+  it('detects Latin-typed cancel (ts digraph → цуцл)', () => {
+    expect(classifyIntent('zahialgaa tsutslaach')).toBe('order_cancel_request')
+  })
+
+  it('detects болиулах (causative stop)', () => {
+    expect(classifyIntent('Захиалгаа болиулмаар байна')).toBe('order_cancel_request')
+  })
+
+  it('detects bare цуцлаач with ≥2 confidence (survives ML tier)', () => {
+    const r = classifyIntentWithConfidence('цуцлаач')
+    expect(r.intent).toBe('order_cancel_request')
+    expect(r.confidence).toBeGreaterThanOrEqual(2)
+  })
+
+  it('does NOT hijack passive status question "цуцлагдсан уу"', () => {
+    expect(classifyIntent('Миний захиалга цуцлагдсан уу')).toBe('order_status')
+  })
+
+  it('does NOT affect plain order status queries', () => {
+    expect(classifyIntent('Миний захиалга хаана байна')).toBe('order_status')
+  })
+
+  // Epenthetic-vowel conjugations (цуцал- rather than цуцл-) — half the paradigm
+  it.each([
+    'Захиалгаа цуцалъя',
+    'Захиалгаа цуцалья',
+    'Захиалгаа цуцалмаар байна',
+    'Захиалгаа цуцалж өгнө үү',
+    'tsutsalj ogooch',
+  ])('detects epenthetic cancel form: %s', (msg) => {
+    expect(classifyIntent(msg)).toBe('order_cancel_request')
+  })
+
+  it.each(['cancel', 'cancel my order'])('detects English cancel: %s', (msg) => {
+    expect(classifyIntent(msg)).toBe('order_cancel_request')
+  })
+
+  // Negated cancel = the OPPOSITE request. Escalating here would tell the
+  // customer we are cancelling an order they explicitly said to keep.
+  it.each([
+    'Захиалгаа цуцлахгүй',
+    'Би захиалгаа цуцлаагүй',
+    'цуцлахгүй ээ',
+    'tsutslahgui',
+  ])('does NOT treat negated cancel as a cancel request: %s', (msg) => {
+    expect(classifyIntent(msg)).not.toBe('order_cancel_request')
+  })
+
+  it('leaves an angry refund+cancel message as complaint', () => {
+    expect(classifyIntent('Захиалгаа цуцлаад мөнгөө буцааж өгөөч')).toBe('complaint')
+  })
+})
+
 describe('classifyIntent — aliases', () => {
   it('detects misspelled product search: "бутээгдэхүүн"', () => {
     expect(classifyIntent('Бутээгдэхүүн байна уу')).toBe('product_search')

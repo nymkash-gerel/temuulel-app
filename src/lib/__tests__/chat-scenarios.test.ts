@@ -49,7 +49,9 @@ describe('Mongolian Intent Classification', () => {
   // order_status
   const orderStatusMN = [
     ['Захиалга маань хэзээ ирэх вэ?', 'order_status'],     // Commerce: delivery ETA
-    ['Захиалгаа цуцлаж болох уу?', 'order_status'],         // Commerce: cancel
+    // Cancel of a placed order gets its own intent now — the request must reach
+    // staff (escalation), not order-tracking handling.
+    ['Захиалгаа цуцлаж болох уу?', 'order_cancel_request'],  // Commerce: cancel
     ['Захиалга маань хэзээ бэлэн болох вэ?', 'order_status'], // Laundry: ready
     ['Хайрцаг маань хэзээ явах вэ?', 'order_status'],       // Subscription: shipping
     ['Зураг хэзээ бэлэн болох вэ?', 'order_status'],        // Photography: ready
@@ -199,7 +201,9 @@ describe('English Intent Classification', () => {
     // order_status (EN keywords: order, tracking, when will, my order)
     ['When will my order arrive?', 'order_status'],
     ['When will my order be ready?', 'order_status'],
-    ['Can I cancel my order?', 'order_status'],
+    // Cancelling a placed order has its own intent now — the request must reach
+    // staff (escalation), not order-tracking handling.
+    ['Can I cancel my order?', 'order_cancel_request'],
     ['When will photos be ready?', 'order_status'],
     ['When will my box ship?', 'order_status'],
     ['When are my lab results ready?', 'general'],       // Medical EN — no Mongolian order keywords, correctly general

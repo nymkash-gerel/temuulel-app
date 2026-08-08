@@ -17,7 +17,7 @@ import { extractMorphFeatures, deriveMorphIntentSignals, type MorphIntentSignal 
 const VALID_INTENTS = [
   'product_search', 'order_collection', 'order_status', 'shipping',
   'complaint', 'return_exchange', 'size_info', 'greeting', 'general',
-  'escalation', 'store_info',
+  'escalation', 'store_info', 'order_cancel_request',
 ]
 
 /**
@@ -44,7 +44,8 @@ export async function gptClassifyIntent(message: string): Promise<IntentResult> 
 ДҮРЭМ:
 - "[бараа нэр] + бну/бнум/бга/байна уу/үзи/хэдүү" = product_search (бараа хайж байна)
 - "сн бну", "сайн байна уу", "hello" (бараа нэр БАЙХГҮЙ) = greeting
-- Жишээ: "Skims bnum" = product_search (Skims бараа хайж байна), "sn bnu" = greeting`,
+- Жишээ: "Skims bnum" = product_search (Skims бараа хайж байна), "sn bnu" = greeting
+- "захиалгаа цуцлаач", "zahialgaa tsutslah" (өгсөн захиалгаа цуцлах хүсэлт) = order_cancel_request`,
           },
           { role: 'user', content: message },
         ],
