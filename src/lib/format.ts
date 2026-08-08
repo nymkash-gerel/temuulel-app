@@ -23,5 +23,11 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
  * statuses this map doesn't cover (delivery/appointment enums reuse it).
  */
 export function orderStatusLabel(status: string): string {
-  return ORDER_STATUS_LABELS[status] || status
+  // hasOwnProperty, not a bare lookup: a status of 'toString' or 'constructor'
+  // would otherwise resolve to an inherited Object.prototype member and return
+  // a function where the signature promises a string. This helper is shared
+  // with delivery/appointment statuses, which don't come from the order enum.
+  return Object.prototype.hasOwnProperty.call(ORDER_STATUS_LABELS, status)
+    ? ORDER_STATUS_LABELS[status]
+    : status
 }
