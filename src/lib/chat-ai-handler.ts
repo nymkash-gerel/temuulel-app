@@ -163,45 +163,48 @@ export async function handleOrderCancelRequest(
   const { conversationId, customerMessage, storeId, customerId } = args
 
   let orderLabel: string | null = null
-  let alreadyEscalated = false
-  const [latestResult, convResult] = await Promise.allSettled([
-    customerId ? getLatestPurchase(supabase, customerId, storeId) : Promise.resolve(null),
-    supabase.from('conversations').select('status').eq('id', conversationId).single(),
-  ])
+  let latest: Awaited<ReturnType<typeof getLatestPurchase>> = null
+  try {
+    latest = customerId ? await getLatestPurchase(supabase, customerId, storeId) : null
+  } catch { /* non-critical — acknowledge without an order number */ }
+
   // If the customer named an order reference, never answer about a different
   // one — echoing the wrong order number would look like we cancelled the
   // wrong thing. Only name an order when the message is silent about which.
   const referencedOrder = customerMessage.match(/\b(?:ORD[-\s]?)?\d{3,}[-\d]*\b/i)?.[0] ?? null
-  if (latestResult.status === 'fulfilled' && latestResult.value
-      && !['cancelled', 'delivered'].includes(latestResult.value.status)) {
-    const latestNumber = latestResult.value.order_number
+  if (latest && !['cancelled', 'delivered'].includes(latest.status)) {
     const digits = (s: string) => s.replace(/\D/g, '')
-    if (!referencedOrder || digits(referencedOrder) === digits(latestNumber)) {
-      orderLabel = latestNumber
+    if (!referencedOrder || digits(referencedOrder) === digits(latest.order_number)) {
+      orderLabel = latest.order_number
     }
   }
-  if (convResult.status === 'fulfilled') {
-    alreadyEscalated = (convResult.value.data as { status?: string } | null)?.status === 'escalated'
-  }
 
-  // Repeated "цуцлаач" messages must not re-notify the owner each time —
-  // escalate + notify only on the first one.
-  if (!alreadyEscalated) {
-    await supabase
-      .from('conversations')
-      .update({
-        status: 'escalated',
-        escalated_at: new Date().toISOString(),
-        escalation_level: 'high' satisfies EscalationLevel,
-        // Must also raise the SCORE, not just the status: processEscalation
-        // fires on `wasBelow && isAbove`, so leaving the score at 0 would let
-        // the next ordinary frustrated message re-escalate and re-notify the
-        // owner about a conversation staff are already handling.
-        escalation_score: 100,
-      })
-      .eq('id', conversationId)
+  // Claim the escalation with a single conditional update rather than
+  // read-then-write: two cancel messages arriving together would both pass a
+  // separate status check and notify the owner twice. `neq` means only one
+  // request gets a row back, and only that one notifies.
+  const { data: claimed, error: claimError } = await supabase
+    .from('conversations')
+    .update({
+      status: 'escalated',
+      escalated_at: new Date().toISOString(),
+      escalation_level: 'high' satisfies EscalationLevel,
+      // Must also raise the SCORE, not just the status: processEscalation
+      // fires on `wasBelow && isAbove`, so leaving the score at 0 would let
+      // the next ordinary frustrated message re-escalate and re-notify the
+      // owner about a conversation staff are already handling.
+      escalation_score: 100,
+    })
+    .eq('id', conversationId)
+    .neq('status', 'escalated')
+    .select('id')
+    .maybeSingle()
 
-    void dispatchNotification(storeId, 'escalation', {
+  if (!claimError && claimed) {
+    // Awaited, unlike the fire-and-forget notifications elsewhere in this file:
+    // this is the ONLY signal staff get that a customer wants to cancel, and a
+    // serverless instance may freeze as soon as the route responds.
+    await dispatchNotification(storeId, 'escalation', {
       conversation_id: conversationId,
       reason: `Захиалга цуцлах хүсэлт${orderLabel ? ` (${orderLabel})` : ''}: "${customerMessage.slice(0, 120)}"`,
       level: 'high',

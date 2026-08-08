@@ -244,6 +244,40 @@ describe('resolveFollowUp', () => {
     expect(resolveFollowUp('Батбаяр', state)).toEqual({ type: 'order_step_input' })
   })
 
+  // Negated cancel mid-checkout means "do NOT cancel it" — clearing the draft
+  // would do the opposite of what the customer asked. Passive "цуцлагдсан уу?"
+  // asks whether it was cancelled and is likewise not a request.
+  it.each([
+    'цуцлахгүй',
+    'Захиалгаа цуцлахгүй',
+    'цуцлаагүй',
+    'цуцлагдсан уу',
+    'tsutslahgui',
+  ])('negated/passive cancel does NOT clear the draft: %s', (msg) => {
+    const state = stateWith({
+      order_draft: {
+        items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+        step: 'name',
+      },
+    })
+    expect(resolveFollowUp(msg, state)).not.toEqual({ type: 'order_cancel' })
+  })
+
+  // The pre-existing decline phrases are negations whose negation IS the cancel
+  // ("I don't need it") — they must keep working alongside the new verb guard.
+  it.each(['хэрэггүй', 'авахгүй', 'болих'])(
+    'decline phrase still cancels the draft: %s',
+    (msg) => {
+      const state = stateWith({
+        order_draft: {
+          items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+          step: 'name',
+        },
+      })
+      expect(resolveFollowUp(msg, state)).toEqual({ type: 'order_cancel' })
+    }
+  )
+
   it('greeting resets order draft context (does not return order_step_input)', () => {
     const state = stateWith({
       order_draft: {

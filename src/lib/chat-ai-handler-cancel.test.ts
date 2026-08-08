@@ -23,13 +23,20 @@ vi.mock('@/lib/notifications', () => ({
 import { handleOrderCancelRequest } from './chat-ai-handler'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-function mockSupabase(conversationStatus: string = 'active') {
-  const updateEq = vi.fn().mockResolvedValue({ error: null })
+/**
+ * The escalation is claimed with a single conditional update:
+ *   .update(...).eq('id', …).neq('status','escalated').select('id').maybeSingle()
+ * `claimed` is the row that update returns — null when another request (or an
+ * earlier message) already escalated the conversation.
+ */
+function mockSupabase(claimed: { id: string } | null = { id: 'conv-row' }) {
+  const maybeSingle = vi.fn().mockResolvedValue({ data: claimed, error: null })
+  const select = vi.fn().mockReturnValue({ maybeSingle })
+  const neq = vi.fn().mockReturnValue({ select })
+  const updateEq = vi.fn().mockReturnValue({ neq })
   const update = vi.fn().mockReturnValue({ eq: updateEq })
-  const single = vi.fn().mockResolvedValue({ data: { status: conversationStatus }, error: null })
-  const select = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single }) })
-  const from = vi.fn().mockReturnValue({ update, select })
-  return { client: { from } as unknown as SupabaseClient, from, update, updateEq }
+  const from = vi.fn().mockReturnValue({ update })
+  return { client: { from } as unknown as SupabaseClient, from, update, updateEq, neq }
 }
 
 const ARGS = {
@@ -145,12 +152,38 @@ describe('handleOrderCancelRequest', () => {
     expect(sb.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'escalated' }))
   })
 
-  it('does not re-escalate or re-notify an already-escalated conversation', async () => {
+  it('does not re-notify when the conversation was already escalated', async () => {
     mocks.getLatestPurchase.mockResolvedValue(null)
-    const sb = mockSupabase('escalated')
+    // Conditional update claims no row → another request/message got there first.
+    const sb = mockSupabase(null)
     const reply = await handleOrderCancelRequest(sb.client, ARGS)
     expect(reply).toContain('хүлээн авлаа')
-    expect(sb.update).not.toHaveBeenCalled()
     expect(mocks.dispatchNotification).not.toHaveBeenCalled()
+  })
+
+  it('claims the escalation atomically so concurrent requests notify once', async () => {
+    mocks.getLatestPurchase.mockResolvedValue(null)
+    // Both requests issue the update; only the one whose `neq('status','escalated')`
+    // still matched gets a row back, and only that one notifies.
+    const winner = mockSupabase({ id: 'conv-row' })
+    const loser = mockSupabase(null)
+    await Promise.all([
+      handleOrderCancelRequest(winner.client, ARGS),
+      handleOrderCancelRequest(loser.client, ARGS),
+    ])
+    expect(winner.neq).toHaveBeenCalledWith('status', 'escalated')
+    expect(loser.neq).toHaveBeenCalledWith('status', 'escalated')
+    expect(mocks.dispatchNotification).toHaveBeenCalledTimes(1)
+  })
+
+  it('awaits the notification so a serverless freeze cannot drop it', async () => {
+    mocks.getLatestPurchase.mockResolvedValue(null)
+    let delivered = false
+    mocks.dispatchNotification.mockImplementationOnce(async () => {
+      await new Promise(r => setTimeout(r, 10))
+      delivered = true
+    })
+    await handleOrderCancelRequest(mockSupabase().client, ARGS)
+    expect(delivered).toBe(true)
   })
 })
