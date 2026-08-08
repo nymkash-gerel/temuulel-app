@@ -70,6 +70,25 @@ describe('extractMorphFeatures', () => {
     expect(f.hasDesiderative).toBe(false)
     expect(f.hasPastQuestion).toBe(false)
   })
+
+  // Latin-typed negation: normalizeText maps "gui"→"гуи" (not "гүй") and
+  // "ee"→"ее" (not "ээ"), so suffix matching must work vowel-neutralized.
+  test('detects Latin-typed negation "ireegui" (ирээгүй)', () => {
+    const f = features('baraa ireegui')
+    expect(f.hasNegative).toBe(true)
+    expect(f.negatedRoot).toBe('ир')
+  })
+
+  test('detects Latin-typed negative infinitive "zahialahgui" (захиалахгүй)', () => {
+    const f = features('zahialahgui')
+    expect(f.hasNegative).toBe(true)
+    expect(f.negatedRoot).toBe('захиала')
+  })
+
+  test('detects Latin-typed "avahgui" (авахгүй)', () => {
+    const f = features('avahgui')
+    expect(f.hasNegative).toBe(true)
+  })
 })
 
 describe('deriveMorphIntentSignals', () => {
@@ -122,6 +141,23 @@ describe('deriveMorphIntentSignals', () => {
   test('no signals for simple greeting', () => {
     const s = signals('сайн байна уу')
     expect(s).toHaveLength(0)
+  })
+
+  test('Latin negative + delivery root → complaint 1.5 ("baraa ireegui")', () => {
+    const s = signals('baraa ireegui')
+    const complaint = s.find(x => x.intent === 'complaint')
+    expect(complaint).toBeDefined()
+    expect(complaint!.weight).toBe(1.5)
+  })
+
+  test('Latin negative + delivery root → complaint ("hurgeegui")', () => {
+    const s = signals('hurgeegui baina')
+    expect(s).toContainEqual(expect.objectContaining({ intent: 'complaint', weight: 1.5 }))
+  })
+
+  test('Latin negative + order root → complaint ("zahialahgui")', () => {
+    const s = signals('zahialahgui')
+    expect(s).toContainEqual(expect.objectContaining({ intent: 'complaint', weight: 1.0 }))
   })
 
   test('desiderative + product root → order_collection', () => {

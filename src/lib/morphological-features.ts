@@ -14,6 +14,7 @@
  */
 
 import { mnStemDeep, type DeepStemResult } from './mn-stemmer'
+import { neutralizeVowels } from './text-normalizer'
 
 /** Morphological features extracted from a message. */
 export interface MorphFeatures {
@@ -67,9 +68,23 @@ const ROOT_DOMAINS: ReadonlyMap<string, RootDomain> = new Map([
   ['хай', 'product'], ['ол', 'product'], ['үз', 'product'], ['хар', 'product'],
 ])
 
+/**
+ * Vowel-neutralized root index. Latin-typed messages normalize with у/е/и in
+ * place of ү/э/й ("hurgee"→"хургее"), so stems extracted from them never hit
+ * ROOT_DOMAINS' canonical Cyrillic spellings — match under neutralizeVowels too.
+ */
+const NEUTRAL_ROOT_DOMAINS: ReadonlyMap<string, RootDomain> = (() => {
+  const m = new Map<string, RootDomain>()
+  for (const [root, domain] of ROOT_DOMAINS) {
+    const neutral = neutralizeVowels(root)
+    if (!m.has(neutral)) m.set(neutral, domain)
+  }
+  return m
+})()
+
 /** Resolve a stem to its semantic domain. */
 function getRootDomain(stem: string): RootDomain {
-  return ROOT_DOMAINS.get(stem) ?? 'other'
+  return ROOT_DOMAINS.get(stem) ?? NEUTRAL_ROOT_DOMAINS.get(neutralizeVowels(stem)) ?? 'other'
 }
 
 /** Intent signal produced by morphological analysis. */

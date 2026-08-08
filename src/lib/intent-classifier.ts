@@ -522,6 +522,23 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
     // Latin / English (full phrases only)
     'gift card', 'gift kart', 'belgiin kart',
   ],
+  order_cancel_request: [
+    // Cancel verb forms — 'цуцл' stem is cancel-specific, no other Mongolian word contains it
+    'цуцлах', 'цуцлаач', 'цуцлана', 'цуцлая', 'цуцалья', 'цуцалж',
+    'цуцлуулах', 'цуцламаар', 'цуцлаарай', 'цуцлаад өг',
+    // Epenthetic-vowel forms (цуцал- rather than цуцл-)
+    'цуцалъя', 'цуцалмаар', 'цуцалж өг', 'цуцалсан',
+    'захиалга цуцлах', 'захиалгаа цуцлах', 'захиалгаа цуцлаач',
+    // болиулах (causative "have it stopped") — compound forms for bare болих
+    // ('болих' alone stays out: "бодоод үзье, болих байх" is a polite decline)
+    'болиулах', 'болиулаач', 'болиулмаар', 'болиулж',
+    'захиалгаа болих', 'захиалахаа болих', 'авахаа болих',
+    // English
+    'cancel', 'cancel order', 'cancel my order',
+    // Latin (normalizeText maps ts→ц so these mostly self-normalize; kept for raw matching)
+    'tsutslah', 'tsutslaach', 'tsutsalya', 'boliulah', 'boliulaach',
+    'zahialgaa tsutslah',
+  ],
 }
 
 // ---------------------------------------------------------------------------
@@ -906,6 +923,42 @@ export function classifyIntentWithConfidence(
     const ADDRESS_WORDS = ['хороо', 'байр', 'тоот', 'давхар', 'орц', 'horoo', 'bair', 'toot']
     const hasAddressWord = ADDRESS_WORDS.some(kw => normalized.includes(kw))
     if (hasPhone && hasAddressWord) bestIntent = 'order_collection'
+  }
+
+  // Tiebreaker: cancel verb overrides order/browse intents → order_cancel_request
+  // "захиалгаа цуцлаач" scores order_status ≥2.0 via захиалга keywords while the
+  // cancel verb itself scores ~1.0 — without this override a customer canceling
+  // a placed order gets order-tracking handling.
+  // NOT overridden: complaint (angry cancellations keep the richer complaint
+  // path — escalation scoring + compensation).
+  {
+    // order_cancel_request itself is included so a bare "цуцлаач" (kw score ~1)
+    // still gets the ≥2 confidence floor — else the ML tier (which has no
+    // cancel class) could override it in the hybrid classifier.
+    const CANCELABLE_FROM = ['order_status', 'order_collection', 'general', 'shipping', 'payment', 'product_search', 'return_exchange', 'order_cancel_request']
+    // 'цуцал' as well as 'цуцл': Mongolian inserts an epenthetic vowel in much of
+    // the paradigm (цуцалъя, цуцалж, цуцалмаар) — matching only 'цуцл' left half
+    // the verb forms falling back to order_status. 'сансел' is normalizeText('cancel')
+    // (c→с, e→е); Latin "tsutsl…" already normalizes to 'цуцл' via the ts digraph.
+    const CANCEL_STEM = /цуцл|цуцал|болиул|сансел/
+    const neutral = neutralizeVowels(normalized)
+    // Negated cancel is the OPPOSITE request: "цуцлахгүй" / "цуцлаагүй" = "I am NOT
+    // cancelling". Checked on the vowel-neutralized text so Latin "tsutslahgui"
+    // (→ 'цуцлахгуи') is caught alongside Cyrillic 'гүй'. [а-яё]* stays inside the
+    // word, so a separate later word like "хэрэггүй" does not suppress a real cancel.
+    const hasNegatedCancel = /(?:цуцл|цуцал|болиул|сансел)[а-яё]*гуи/.test(neutral)
+    // Passive "цуцлагдсан уу?" asks whether it WAS cancelled = status query.
+    const isPassiveCancel = normalized.includes('цуцлагд')
+    const hasCancelVerb = CANCEL_STEM.test(normalized) && !hasNegatedCancel && !isPassiveCancel
+    if (hasCancelVerb && CANCELABLE_FROM.includes(bestIntent)) {
+      bestIntent = 'order_cancel_request'
+      bestScore = Math.max(bestScore, 2)
+    } else if ((hasNegatedCancel || isPassiveCancel) && bestIntent === 'order_cancel_request') {
+      // The cancel keywords still prefix-matched the negated/passive form
+      // ("цуцлахгүй ээ" prefix-matches the 'цуцлах' keyword). Escalating a
+      // customer who said they are NOT cancelling is worse than under-reacting.
+      bestIntent = isPassiveCancel ? 'order_status' : 'general'
+    }
   }
 
   // Optional logging

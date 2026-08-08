@@ -58,6 +58,7 @@ import { createQPayInvoice, checkQPayPayment, isQPayConfigured } from '@/lib/qpa
 import { SupervisorAgent } from '@/lib/agents'
 import type { AgentContext } from '@/lib/agents'
 import { logger } from '@/lib/logger'
+import type { EscalationLevel } from '@/lib/escalation'
 
 const DEFAULT_DELIVERY_FEE = 5000
 
@@ -135,6 +136,84 @@ export interface AIProcessingResult {
   }
   /** Active order draft step — used by webhook to send Quick Replies */
   orderStep?: 'variant' | 'info' | 'name' | 'address' | 'phone' | 'confirming' | null
+  /**
+   * The handler already escalated this conversation itself (e.g. an
+   * order-cancel request was handed to staff). Routes must NOT run
+   * processEscalation again and should surface handoff to the client.
+   */
+  escalate?: boolean
+}
+
+/**
+ * Handle a request to cancel an ALREADY-PLACED order (intent order_cancel_request).
+ *
+ * The bot never cancels the order itself — payment/refund state (QPay, cash on
+ * delivery) is a staff decision. Instead it acknowledges the request with the
+ * order number when one is identifiable, marks the conversation escalated, and
+ * notifies the store. The escalation write happens HERE (not in the routes) so
+ * the promise "staff will contact you" holds for every caller of processAIChat.
+ *
+ * Draft cancellations are unaffected: resolveFollowUp's order_cancel intercept
+ * runs before classification whenever a draft is active.
+ */
+export async function handleOrderCancelRequest(
+  supabase: SupabaseClient,
+  args: { conversationId: string; customerMessage: string; storeId: string; customerId: string | null }
+): Promise<string> {
+  const { conversationId, customerMessage, storeId, customerId } = args
+
+  let orderLabel: string | null = null
+  let alreadyEscalated = false
+  const [latestResult, convResult] = await Promise.allSettled([
+    customerId ? getLatestPurchase(supabase, customerId, storeId) : Promise.resolve(null),
+    supabase.from('conversations').select('status').eq('id', conversationId).single(),
+  ])
+  // If the customer named an order reference, never answer about a different
+  // one — echoing the wrong order number would look like we cancelled the
+  // wrong thing. Only name an order when the message is silent about which.
+  const referencedOrder = customerMessage.match(/\b(?:ORD[-\s]?)?\d{3,}[-\d]*\b/i)?.[0] ?? null
+  if (latestResult.status === 'fulfilled' && latestResult.value
+      && !['cancelled', 'delivered'].includes(latestResult.value.status)) {
+    const latestNumber = latestResult.value.order_number
+    const digits = (s: string) => s.replace(/\D/g, '')
+    if (!referencedOrder || digits(referencedOrder) === digits(latestNumber)) {
+      orderLabel = latestNumber
+    }
+  }
+  if (convResult.status === 'fulfilled') {
+    alreadyEscalated = (convResult.value.data as { status?: string } | null)?.status === 'escalated'
+  }
+
+  // Repeated "цуцлаач" messages must not re-notify the owner each time —
+  // escalate + notify only on the first one.
+  if (!alreadyEscalated) {
+    await supabase
+      .from('conversations')
+      .update({
+        status: 'escalated',
+        escalated_at: new Date().toISOString(),
+        escalation_level: 'high' satisfies EscalationLevel,
+        // Must also raise the SCORE, not just the status: processEscalation
+        // fires on `wasBelow && isAbove`, so leaving the score at 0 would let
+        // the next ordinary frustrated message re-escalate and re-notify the
+        // owner about a conversation staff are already handling.
+        escalation_score: 100,
+      })
+      .eq('id', conversationId)
+
+    void dispatchNotification(storeId, 'escalation', {
+      conversation_id: conversationId,
+      reason: `Захиалга цуцлах хүсэлт${orderLabel ? ` (${orderLabel})` : ''}: "${customerMessage.slice(0, 120)}"`,
+      level: 'high',
+    }).catch(err => logger.warn('Cancel escalation notify failed', err))
+  }
+
+  // Wording is deliberately non-committal: staff decide whether the order can
+  // still be cancelled (it may already be packed or paid), so the bot promises
+  // only that a human will get in touch — never that it is cancelled.
+  return orderLabel
+    ? `Таны ${orderLabel} дугаартай захиалгыг цуцлах хүсэлтийг хүлээн авлаа. Манай ажилтан шалгаад тантай холбогдоно. Түр хүлээнэ үү 🙏`
+    : 'Захиалга цуцлах хүсэлтийг тань хүлээн авлаа. Манай ажилтан захиалгыг тань шалгаад тантай холбогдоно. Түр хүлээнэ үү 🙏'
 }
 
 /**
@@ -245,6 +324,9 @@ export async function processAIChat(
   // Draft will only be cleared explicitly (cancel, or new order started).
   let orderDraft: OrderDraft | null = state.order_draft ?? null
   let orderDraftPaused = false
+  // Set when handleOrderCancelRequest escalated the conversation itself —
+  // surfaced as result.escalate so routes skip their own processEscalation.
+  let cancelEscalated = false
   if (!followUp && state.order_draft) {
     // Off-topic message during order flow — keep draft but flag as paused
     orderDraftPaused = true
@@ -561,6 +643,15 @@ export async function processAIChat(
         intent = followUp.type === 'size_question' ? 'size_info'
           : followUp.type === 'contextual_question' ? 'general'
           : (await hybridClassifyAsync(customerMessage)).intent
+        if (intent === 'order_cancel_request') {
+          // Same deterministic handling as the classified path — reaching here
+          // via prefer_llm must not fall through to a GPT-generated reply.
+          responseText = await handleOrderCancelRequest(supabase, {
+            conversationId, customerMessage, storeId, customerId,
+          })
+          cancelEscalated = true
+          break
+        }
         // Anchor to selected product for informational follow-ups (size, material, care, etc.)
         // product_search stays as a fresh search — user is explicitly looking for something new.
         const isInfoFollowUp = (intent === 'size_info' || intent === 'general') && state.last_products.length > 0
@@ -597,7 +688,13 @@ export async function processAIChat(
     // Normal classification path — async with GPT fallback for low confidence
     intent = (await hybridClassifyAsync(customerMessage)).intent
 
-    if (busyMode.busy_mode && ['product_search', 'table_reservation', 'menu_availability'].includes(intent)) {
+    if (intent === 'order_cancel_request') {
+      // Deterministic — no GPT (an invented "цуцаллаа" would be a false promise).
+      responseText = await handleOrderCancelRequest(supabase, {
+        conversationId, customerMessage, storeId, customerId,
+      })
+      cancelEscalated = true
+    } else if (busyMode.busy_mode && ['product_search', 'table_reservation', 'menu_availability'].includes(intent)) {
       const waitMsg = busyMode.estimated_wait_minutes
         ? ` Хүлээлтийн хугацаа: ${busyMode.estimated_wait_minutes} минут.`
         : ''
@@ -1129,6 +1226,7 @@ export async function processAIChat(
       orders_found: orders.length,
     },
     orderStep: orderDraft?.step ?? null,
+    ...(cancelEscalated ? { escalate: true } : {}),
   }
 
   // ── Production monitoring log ──

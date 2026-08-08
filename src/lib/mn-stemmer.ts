@@ -30,6 +30,7 @@
  */
 
 import { KNOWN_ROOTS } from './mn-roots'
+import { neutralizeVowels } from './text-normalizer'
 
 /** Minimum characters the stem must retain after stripping. */
 const MIN_STEM_LEN = 4
@@ -202,12 +203,25 @@ function isValidStem(stem: string): boolean {
 }
 
 /**
+ * Vowel-neutralized suffix forms, precomputed once. Latin-typed Mongolian
+ * normalizes lossily (gui→гуи not гүй, ee→ее not ээ, tei→теи not тэй), so
+ * suffixes must also match under neutralizeVowels. Neutralization is 1:1 per
+ * character, so the neutral form has the same length as the original suffix
+ * and the strip length stays correct.
+ */
+const NEUTRAL_SUFFIX_FORMS: readonly string[] = SUFFIX_ENTRIES.map(e => neutralizeVowels(e.suffix))
+
+/**
  * Strip one suffix and return the entry, or null if no suffix applies.
  * Uses isValidStem() which allows known short roots.
+ * Matches either the exact suffix or its vowel-neutralized form (so Latin-typed
+ * negation like "…хгуи" from "…hgui" still registers as negative).
  */
 function stripOneSuffix(word: string): { stem: string; entry: SuffixEntry } | null {
-  for (const entry of SUFFIX_ENTRIES) {
-    if (word.endsWith(entry.suffix)) {
+  const neutralWord = neutralizeVowels(word)
+  for (let i = 0; i < SUFFIX_ENTRIES.length; i++) {
+    const entry = SUFFIX_ENTRIES[i]
+    if (word.endsWith(entry.suffix) || neutralWord.endsWith(NEUTRAL_SUFFIX_FORMS[i])) {
       const stem = word.slice(0, word.length - entry.suffix.length)
       if (stem.length > 0 && isValidStem(stem)) {
         return { stem, entry }

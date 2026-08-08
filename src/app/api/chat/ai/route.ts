@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
       intent: result.intent,
       message_id: result.messageId,
       metadata: result.metadata,
+      ...(result.escalate ? { handoff: true } : {}),
     })
   } catch (err) {
     log.error('AI processing failed', { error: err instanceof Error ? err.message : String(err) })

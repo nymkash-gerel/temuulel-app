@@ -192,7 +192,19 @@ export async function POST(request: NextRequest) {
     //      address → confirm) accumulate ai_fail_to_resolve + long_unresolved
     //      signals and can push score over 60 even with zero complaint keywords.
     const inCheckout = aiResult.intent === 'order_collection'
-    const shouldCheckEscalation = !SKIP_ESCALATION_INTENTS.includes(aiResult.intent) && !inCheckout
+    // aiResult.escalate = the handler already escalated (order-cancel request):
+    // conversation is marked + store notified, so re-running processEscalation
+    // would double-count; just surface the handoff to the client.
+    const shouldCheckEscalation = !SKIP_ESCALATION_INTENTS.includes(aiResult.intent) && !inCheckout && !aiResult.escalate
+
+    if (aiResult.escalate) {
+      return NextResponse.json({
+        response: aiResult.response,
+        intent: aiResult.intent,
+        handoff: true,
+        products_found: aiResult.metadata.products_found,
+      })
+    }
 
     if (shouldCheckEscalation) {
       const escalationResult = await processEscalation(

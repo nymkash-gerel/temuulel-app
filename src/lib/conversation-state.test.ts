@@ -211,6 +211,39 @@ describe('resolveFollowUp', () => {
     expect(result).toEqual({ type: 'order_cancel' })
   })
 
+  // Every form the order_cancel_request classifier recognizes must also be
+  // intercepted here — otherwise mid-checkout "цуцлаач" is stored as the
+  // customer's name by the order_step_input path.
+  it.each([
+    'Захиалгаа цуцлаач',
+    'цуцлаач',
+    'Захиалгаа цуцлаарай',
+    'цуцламаар байна',
+    'Захиалгаа цуцалъя',
+    'Захиалгаа болиулмаар байна',
+    'болиулаач',
+    'cancel',
+    'zahialgaa tsutslaach',
+  ])('order_cancel intercepts mid-checkout cancel form: %s', (msg) => {
+    const state = stateWith({
+      order_draft: {
+        items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+        step: 'name',
+      },
+    })
+    expect(resolveFollowUp(msg, state)).toEqual({ type: 'order_cancel' })
+  })
+
+  it('a real customer name is still order_step_input at the name step', () => {
+    const state = stateWith({
+      order_draft: {
+        items: [{ product_id: '1', product_name: 'Test', unit_price: 5000, quantity: 1 }],
+        step: 'name',
+      },
+    })
+    expect(resolveFollowUp('Батбаяр', state)).toEqual({ type: 'order_step_input' })
+  })
+
   it('greeting resets order draft context (does not return order_step_input)', () => {
     const state = stateWith({
       order_draft: {
