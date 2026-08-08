@@ -121,6 +121,89 @@ export type Database = {
           },
         ]
       }
+      ab_test_events: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          event_type: string
+          id: string
+          test_id: string
+          variant: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          event_type: string
+          id?: string
+          test_id: string
+          variant: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          event_type?: string
+          id?: string
+          test_id?: string
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_test_events_customer_id_fkey"
+            columns: ["customer_id"]
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_test_events_test_id_fkey"
+            columns: ["test_id"]
+            referencedRelation: "ab_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_tests: {
+        Row: {
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          name: string
+          status: string
+          store_id: string
+          variant_a: Json
+          variant_b: Json
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          name: string
+          status?: string
+          store_id: string
+          variant_a: Json
+          variant_b: Json
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          name?: string
+          status?: string
+          store_id?: string
+          variant_a?: Json
+          variant_b?: Json
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_tests_store_id_fkey"
+            columns: ["store_id"]
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_commissions: {
         Row: {
           agent_id: string
@@ -7265,6 +7348,52 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          created_at: string | null
+          id: string
+          referee_store_id: string | null
+          referral_code: string
+          referrer_store_id: string
+          reward_granted_at: string | null
+          reward_months: number | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          referee_store_id?: string | null
+          referral_code: string
+          referrer_store_id: string
+          reward_granted_at?: string | null
+          reward_months?: number | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          referee_store_id?: string | null
+          referral_code?: string
+          referrer_store_id?: string
+          reward_granted_at?: string | null
+          reward_months?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referee_store_id_fkey"
+            columns: ["referee_store_id"]
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_store_id_fkey"
+            columns: ["referrer_store_id"]
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_requests: {
         Row: {
           admin_notes: string | null
@@ -9089,6 +9218,63 @@ export type Database = {
           phone?: string | null
           role?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_2fa: {
+        Row: {
+          backup_codes: string[] | null
+          created_at: string | null
+          enabled: boolean | null
+          last_used_at: string | null
+          secret: string
+          user_id: string
+        }
+        Insert: {
+          backup_codes?: string[] | null
+          created_at?: string | null
+          enabled?: boolean | null
+          last_used_at?: string | null
+          secret: string
+          user_id: string
+        }
+        Update: {
+          backup_codes?: string[] | null
+          created_at?: string | null
+          enabled?: boolean | null
+          last_used_at?: string | null
+          secret?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          last_active_at: string | null
+          rotated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          last_active_at?: string | null
+          rotated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          last_active_at?: string | null
+          rotated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
