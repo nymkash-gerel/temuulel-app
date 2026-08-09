@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTypedSupabase } from '@/lib/supabase/service'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import type { Json } from '@/lib/database.types'
 import crypto from 'crypto'
+
+/**
+ * The HMAC signature is this endpoint's authentication — there is no user
+ * session on a webhook. The limiter is a separate concern: the route is
+ * publicly reachable, so an unauthenticated caller can otherwise force an HMAC
+ * computation and a JSON parse on every request.
+ *
+ * Set well above Stripe's real delivery rate. Stripe retries a 429 with backoff
+ * for up to three days, so a burst that trips this is not lost.
+ */
+const RATE_LIMIT = { limit: 100, windowSeconds: 60 }
 
 // The Supabase client is created lazily per request (getTypedSupabase) — a
 // module-level createClient() throws "supabaseKey is required" during Next.js build
@@ -78,6 +90,9 @@ function verifyStripeSignature(payload: string, signature: string, secret: strin
 }
 
 export async function POST(req: NextRequest) {
+  const rl = await rateLimit(getClientIp(req), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const sig = req.headers.get('stripe-signature') || ''
   const secret = process.env.STRIPE_WEBHOOK_SECRET
   const body = await req.text()
@@ -141,6 +156,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Plan is missing a message limit' }, { status: 500 })
     }
 
+    // Stripe delivers at least once and does not guarantee order, so this event
+    // can arrive twice, or after a customer.subscription.updated that already
+    // moved the row to past_due/cancelled. Writing status:'active' and a fresh
+    // period unconditionally would resurrect a lapsed subscription and shift the
+    // stored period away from the invoice period.
+    //
+    // The subscription.* events own status and period. This handler only owns
+    // "which plan did they buy" and the Stripe ids. So when the row already
+    // tracks this same subscription, leave the lifecycle fields alone.
+    const { data: existing, error: readErr } = await db
+      .from('store_subscriptions')
+      .select('stripe_subscription_id')
+      .eq('store_id', storeId)
+      .maybeSingle()
+    if (readErr) {
+      console.error(`[stripe] store_subscriptions read failed for store ${storeId}:`, readErr.message)
+      return NextResponse.json({ error: 'Subscription read failed' }, { status: 500 })
+    }
+
+    const isReplay = existing?.stripe_subscription_id === session.subscription
+
     // onConflict: 'store_id' needs the unique index added in 079. Without it
     // PostgREST would fall back to a plain INSERT and append a duplicate row,
     // which breaks the four screens that do .eq('store_id', …).single().
@@ -154,10 +190,13 @@ export async function POST(req: NextRequest) {
       .upsert({
         store_id: storeId,
         plan_id: planRow.id,
-        status: 'active',
         stripe_customer_id: session.customer,
         stripe_subscription_id: session.subscription,
-        current_period_start: new Date().toISOString(),
+        // Only stamp the lifecycle on the first event for this subscription.
+        ...(isReplay ? {} : {
+          status: 'active',
+          current_period_start: new Date().toISOString(),
+        }),
       }, { onConflict: 'store_id' })
     if (subErr) {
       // Return 5xx so Stripe retries — otherwise a paid customer silently gets no subscription.

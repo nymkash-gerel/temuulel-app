@@ -42,7 +42,17 @@ const { calls, cfg } = vi.hoisted(() => ({
     updateError: null as { message: string } | null,
     storeUpdateError: null as { message: string } | null,
     updatedRows: [{ store_id: 'store-1' }] as Array<{ store_id: string }>,
+    /** Row already in store_subscriptions for this store, or null if none. */
+    existingSubscription: null as { stripe_subscription_id: string | null } | null,
+    subscriptionReadError: null as { message: string } | null,
   },
+}))
+
+// The signature is this route's authentication; the limiter is separate and
+// always allows in tests.
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn(async () => ({ success: true, limit: 100, remaining: 99, resetAt: 0 })),
+  getClientIp: vi.fn(() => '127.0.0.1'),
 }))
 
 /**
@@ -59,6 +69,10 @@ vi.mock('@/lib/supabase/service', () => ({
           eq: (col: string, val: unknown) => { filters.push([col, val]); return builder },
           maybeSingle: async () => {
             calls.push({ table, op: 'select', filters: [...filters] })
+            if (table === 'store_subscriptions') {
+              if (cfg.subscriptionReadError) return { data: null, error: cfg.subscriptionReadError }
+              return { data: cfg.existingSubscription, error: null }
+            }
             if (cfg.planError) return { data: null, error: cfg.planError }
             const slug = filters.find(([c]) => c === 'slug')?.[1]
             return { data: slug === 'free' ? cfg.freePlanRow : cfg.planRow, error: null }
@@ -137,6 +151,8 @@ async function post(body: string) {
 
 const writes = () => calls.filter((c) => c.op !== 'select')
 const on = (table: string) => calls.filter((c) => c.table === table)
+/** The write to a table, skipping the ownership/replay reads that precede it. */
+const wrote = (table: string) => calls.filter((c) => c.table === table && c.op !== 'select')
 
 describe('POST /api/stripe/webhook', () => {
   beforeEach(() => {
@@ -150,6 +166,8 @@ describe('POST /api/stripe/webhook', () => {
     cfg.updateError = null
     cfg.storeUpdateError = null
     cfg.updatedRows = [{ store_id: 'store-1' }]
+    cfg.existingSubscription = null
+    cfg.subscriptionReadError = null
   })
 
   describe('signature and metadata guards', () => {
@@ -192,21 +210,22 @@ describe('POST /api/stripe/webhook', () => {
       // `subscriptions` (036) is the per-customer subscription-BOX table for the
       // vertical; a store's SaaS plan belongs in store_subscriptions (001).
       expect(on('subscriptions')).toHaveLength(0)
-      expect(on('store_subscriptions')).toHaveLength(1)
-      expect(on('store_subscriptions')[0].op).toBe('upsert')
+      // One replay-check read, then exactly one write.
+      expect(wrote('store_subscriptions')).toHaveLength(1)
+      expect(wrote('store_subscriptions')[0].op).toBe('upsert')
     })
 
     it('upserts exactly the columns that exist on store_subscriptions', async () => {
       await post(checkoutBody('pro'))
 
-      const payload = on('store_subscriptions')[0].payload!
+      const payload = wrote('store_subscriptions')[0].payload!
       expect(Object.keys(payload).sort()).toEqual([...UPSERT_COLUMNS].sort())
     })
 
     it('upserts the values Stripe supplied, resolving the plan slug to a plan_id', async () => {
       await post(checkoutBody('pro'))
 
-      const payload = on('store_subscriptions')[0].payload!
+      const payload = wrote('store_subscriptions')[0].payload!
       expect(payload).toMatchObject({
         store_id: 'store-1',
         plan_id: 'plan-pro-uuid', // resolved via subscription_plans, not the slug
@@ -220,7 +239,7 @@ describe('POST /api/stripe/webhook', () => {
     it('conflicts on store_id so a repeat event updates rather than duplicating', async () => {
       // Four screens do .eq('store_id', …).single(); a second row breaks them.
       await post(checkoutBody('pro'))
-      expect(on('store_subscriptions')[0].onConflict).toBe('store_id')
+      expect(wrote('store_subscriptions')[0].onConflict).toBe('store_id')
     })
 
     it('takes the message limit from the plan row, not a hardcoded table', async () => {
@@ -269,7 +288,7 @@ describe('POST /api/stripe/webhook', () => {
       const res = await post(subscriptionBody('customer.subscription.updated', 'active', periodEnd))
       expect(res.status).toBe(200)
 
-      const update = on('store_subscriptions')[0]
+      const update = wrote('store_subscriptions')[0]
       expect(update.filters).toEqual([['stripe_subscription_id', 'sub_1']])
       expect(update.payload).toEqual({
         status: 'active',
@@ -280,17 +299,17 @@ describe('POST /api/stripe/webhook', () => {
     it('stores past_due verbatim rather than flattening it to active or expired', async () => {
       // 079 widened the CHECK to Stripe's vocabulary so dunning state survives.
       await post(subscriptionBody('customer.subscription.updated', 'past_due', 1735689600))
-      expect(on('store_subscriptions')[0].payload?.status).toBe('past_due')
+      expect(wrote('store_subscriptions')[0].payload?.status).toBe('past_due')
     })
 
     it('stores trialing verbatim', async () => {
       await post(subscriptionBody('customer.subscription.updated', 'trialing', 1735689600))
-      expect(on('store_subscriptions')[0].payload?.status).toBe('trialing')
+      expect(wrote('store_subscriptions')[0].payload?.status).toBe('trialing')
     })
 
     it('omits current_period_end when Stripe does not send one', async () => {
       await post(subscriptionBody('customer.subscription.updated', 'active'))
-      expect(on('store_subscriptions')[0].payload).toEqual({ status: 'active' })
+      expect(wrote('store_subscriptions')[0].payload).toEqual({ status: 'active' })
     })
 
     it('rejects a status the CHECK constraint would refuse, without writing', async () => {
@@ -316,7 +335,7 @@ describe('POST /api/stripe/webhook', () => {
   describe('customer.subscription.deleted', () => {
     it("normalises Stripe's 'canceled' to the schema's 'cancelled'", async () => {
       await post(subscriptionBody('customer.subscription.deleted', 'canceled'))
-      expect(on('store_subscriptions')[0].payload?.status).toBe('cancelled')
+      expect(wrote('store_subscriptions')[0].payload?.status).toBe('cancelled')
     })
 
     it('downgrades the store to the free plan and its message limit', async () => {
@@ -324,7 +343,7 @@ describe('POST /api/stripe/webhook', () => {
       const res = await post(subscriptionBody('customer.subscription.deleted', 'canceled'))
       expect(res.status).toBe(200)
 
-      expect(on('store_subscriptions')[0].payload).toMatchObject({
+      expect(wrote('store_subscriptions')[0].payload).toMatchObject({
         status: 'cancelled',
         plan_id: 'plan-free-uuid',
       })
@@ -335,12 +354,12 @@ describe('POST /api/stripe/webhook', () => {
 
     it('downgrades on an updated event that reports the subscription as canceled', async () => {
       await post(subscriptionBody('customer.subscription.updated', 'canceled'))
-      expect(on('store_subscriptions')[0].payload).toMatchObject({ plan_id: 'plan-free-uuid' })
+      expect(wrote('store_subscriptions')[0].payload).toMatchObject({ plan_id: 'plan-free-uuid' })
     })
 
     it('does not downgrade a subscription that is merely past_due', async () => {
       await post(subscriptionBody('customer.subscription.updated', 'past_due'))
-      expect(on('store_subscriptions')[0].payload).not.toHaveProperty('plan_id')
+      expect(wrote('store_subscriptions')[0].payload).not.toHaveProperty('plan_id')
       expect(on('stores')).toHaveLength(0)
     })
 
@@ -359,5 +378,75 @@ describe('POST /api/stripe/webhook', () => {
       expect(res.status).toBe(500)
       expect(writes()).toHaveLength(0)
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Replay / out-of-order delivery
+//
+// Stripe delivers at least once and does not guarantee order. The
+// subscription.* events own status and period; checkout.session.completed only
+// owns which plan was bought and the Stripe ids.
+// ---------------------------------------------------------------------------
+
+describe('POST /api/stripe/webhook — replayed checkout.session.completed', () => {
+  beforeEach(() => {
+    calls.length = 0
+    process.env.STRIPE_WEBHOOK_SECRET = SECRET
+    cfg.planRow = { id: 'plan-pro-uuid', limits: { messages: 30000 } }
+    cfg.freePlanRow = { id: 'plan-free-uuid', limits: { messages: 100 } }
+    cfg.planError = null
+    cfg.upsertError = null
+    cfg.updateError = null
+    cfg.storeUpdateError = null
+    cfg.existingSubscription = null
+    cfg.subscriptionReadError = null
+  })
+
+  it('does not reset status or period when the row already tracks this subscription', async () => {
+    // A past_due row that a later subscription.updated already wrote.
+    cfg.existingSubscription = { stripe_subscription_id: 'sub_1' }
+
+    const res = await post(checkoutBody('pro'))
+    expect(res.status).toBe(200)
+
+    const payload = wrote('store_subscriptions')[0].payload!
+    expect(payload).not.toHaveProperty('status')
+    expect(payload).not.toHaveProperty('current_period_start')
+    // Plan and ids are still reconciled.
+    expect(payload).toMatchObject({
+      store_id: 'store-1',
+      plan_id: 'plan-pro-uuid',
+      stripe_subscription_id: 'sub_1',
+    })
+  })
+
+  it('still stamps the lifecycle for a store with no subscription yet', async () => {
+    cfg.existingSubscription = null
+
+    await post(checkoutBody('pro'))
+
+    const payload = wrote('store_subscriptions')[0].payload!
+    expect(payload).toMatchObject({ status: 'active' })
+    expect(payload).toHaveProperty('current_period_start')
+  })
+
+  it('stamps the lifecycle when the store switches to a different subscription', async () => {
+    // Re-subscribed after cancelling: a new Stripe subscription id.
+    cfg.existingSubscription = { stripe_subscription_id: 'sub_OLD' }
+
+    await post(checkoutBody('pro'))
+
+    const payload = wrote('store_subscriptions')[0].payload!
+    expect(payload).toMatchObject({ status: 'active', stripe_subscription_id: 'sub_1' })
+    expect(payload).toHaveProperty('current_period_start')
+  })
+
+  it('fails loudly rather than guessing when the replay check cannot be read', async () => {
+    cfg.subscriptionReadError = { message: 'connection reset' }
+
+    const res = await post(checkoutBody('pro'))
+    expect(res.status).toBe(500)
+    expect(wrote('store_subscriptions')).toHaveLength(0)
   })
 })
