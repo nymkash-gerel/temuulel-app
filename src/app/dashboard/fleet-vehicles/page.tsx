@@ -94,7 +94,11 @@ export default function FleetVehiclesPage() {
             .from('staff')
             .select('id, name')
             .eq('store_id', store.id)
-            .eq('is_active', true)
+            // `staff` has no is_active column — it is status TEXT CHECK IN
+            // ('active','inactive') (migration 013). PostgREST answered the old
+            // filter with 400 "column staff.is_active does not exist", so this
+            // dropdown was always empty.
+            .eq('status', 'active')
             .order('name'),
         ])
 
