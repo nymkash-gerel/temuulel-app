@@ -132,10 +132,13 @@ export default function KitchenDisplayPage() {
     setError(null)
 
     try {
-      const res = await fetch('/api/kds-tickets', {
+      // PATCH lives on /api/kds-tickets/[id] — the collection route only
+      // exports GET and POST, so sending the id in the body returned 405 and
+      // no ticket ever changed status from this screen.
+      const res = await fetch(`/api/kds-tickets/${ticketId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: ticketId, status: newStatus }),
+        body: JSON.stringify({ status: newStatus }),
       })
 
       if (!res.ok) {
