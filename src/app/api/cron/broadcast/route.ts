@@ -8,8 +8,20 @@ import { sendTextMessage } from '@/lib/messenger'
  * Protected by CRON_SECRET header.
  */
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (secret !== process.env.CRON_SECRET) {
+  // Fail CLOSED when the secret is unconfigured, matching the other three cron
+  // routes. The previous guard compared the header to process.env.CRON_SECRET
+  // directly: with the variable unset and no Authorization header, both sides
+  // were `undefined`, the comparison was false, and the request sailed through —
+  // so anyone could trigger a broadcast send using the service-role client.
+  const authHeader = req.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[cron] CRON_SECRET not configured — rejecting broadcast run')
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+    }
+    // Development only: allow unauthenticated runs for local testing.
+  } else if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
