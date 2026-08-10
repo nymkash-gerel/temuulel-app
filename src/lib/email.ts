@@ -12,10 +12,24 @@ function getResend(): Resend | null {
   return new Resend(apiKey)
 }
 
-const fromEmail = () => {
-  const email = (process.env.NOTIFICATION_FROM_EMAIL || 'noreply@temuulel.com').trim()
-  return `Temuulel <${email}>`
+/**
+ * Canonical sender address for every outgoing email.
+ *
+ * NOTIFICATION_FROM_EMAIL is the documented name. RESEND_FROM_EMAIL is a
+ * deprecated alias kept for deployments that only set that one — /api/email-campaign
+ * read it exclusively, which let campaign mail ship from a different address than
+ * transactional mail. Both paths resolve through here now.
+ */
+export function getFromEmailAddress(): string {
+  const email = (
+    process.env.NOTIFICATION_FROM_EMAIL ||
+    process.env.RESEND_FROM_EMAIL ||
+    'noreply@temuulel.com'
+  ).trim()
+  return email
 }
+
+const fromEmail = () => `Temuulel <${getFromEmailAddress()}>`
 
 export async function sendEmail(
   to: string,

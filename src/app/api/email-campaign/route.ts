@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getFromEmailAddress } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Resend API key not configured' }, { status: 500 })
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@temuulel.app'
+  const fromEmail = getFromEmailAddress()
   let sentCount = 0
   let failedCount = 0
 
