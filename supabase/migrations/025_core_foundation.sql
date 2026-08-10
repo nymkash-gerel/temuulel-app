@@ -135,5 +135,19 @@ CREATE TRIGGER booking_items_updated_at
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS enabled_modules JSONB DEFAULT NULL;
 
 -- 6. Enable realtime for new tables
-ALTER PUBLICATION supabase_realtime ADD TABLE blocks;
-ALTER PUBLICATION supabase_realtime ADD TABLE booking_items;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE blocks;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'blocks';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE booking_items;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'booking_items';
+END $$;

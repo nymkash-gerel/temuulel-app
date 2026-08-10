@@ -154,4 +154,11 @@ CREATE TRIGGER medical_notes_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 6. Enable realtime for encounters
-ALTER PUBLICATION supabase_realtime ADD TABLE encounters;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE encounters;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'encounters';
+END $$;

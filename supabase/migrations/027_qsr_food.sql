@@ -199,5 +199,19 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS menu_category_id UUID REFERENCES m
 CREATE INDEX IF NOT EXISTS idx_products_menu_category ON products(menu_category_id);
 
 -- 9. Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE kds_stations;
-ALTER PUBLICATION supabase_realtime ADD TABLE promotions;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE kds_stations;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'kds_stations';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE promotions;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'promotions';
+END $$;

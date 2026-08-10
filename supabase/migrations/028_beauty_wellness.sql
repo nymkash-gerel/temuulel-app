@@ -172,5 +172,19 @@ CREATE TRIGGER staff_commissions_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 7. Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE customer_memberships;
-ALTER PUBLICATION supabase_realtime ADD TABLE staff_commissions;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE customer_memberships;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'customer_memberships';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE staff_commissions;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'staff_commissions';
+END $$;

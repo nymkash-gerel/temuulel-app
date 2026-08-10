@@ -192,5 +192,19 @@ CREATE TRIGGER production_batches_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 7. Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE table_sessions;
-ALTER PUBLICATION supabase_realtime ADD TABLE kds_tickets;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE table_sessions;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'table_sessions';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE kds_tickets;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'kds_tickets';
+END $$;

@@ -528,8 +528,22 @@ CREATE POLICY "chat_messages_access" ON chat_messages
 -- 6. REALTIME
 -- ============================================================
 
-ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'conversations';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'messages';
+END $$;
 
 -- ============================================================
 -- 7. SEED DATA - Subscription Plans
@@ -580,42 +594,57 @@ INSERT INTO subscription_plans (slug, name, price, limits) VALUES
 -- ================================================
 -- Storage: Products bucket & RLS policies
 -- ================================================
-INSERT INTO storage.buckets (id, name, public) VALUES ('products', 'products', true)
-ON CONFLICT (id) DO NOTHING;
+-- Wrapped so a hosted `supabase db push` cannot abort here. storage.objects and
+-- storage.buckets are owned by supabase_storage_admin, not the `postgres` role
+-- the CLI connects as, so these statements can raise insufficient_privilege on
+-- Supabase Cloud even though they succeed locally, where postgres is superuser.
+-- A NOTICE is emitted instead and the policies can be created from the
+-- dashboard. duplicate_object is swallowed so the block is also re-runnable.
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public) VALUES ('products', 'products', true)
+  ON CONFLICT (id) DO NOTHING;
 
--- Anyone can read product images (public bucket)
-CREATE POLICY "Public read access for product images"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'products');
+  -- Anyone can read product images (public bucket)
+  CREATE POLICY "Public read access for product images"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'products');
 
--- Authenticated users can upload to their store folder
-CREATE POLICY "Store owners can upload product images"
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    bucket_id = 'products'
-    AND (storage.foldername(name))[1] IN (
-      SELECT s.id::text FROM stores s
-      JOIN store_members sm ON sm.store_id = s.id
-      WHERE sm.user_id = auth.uid()
-      UNION
-      SELECT s.id::text FROM stores s
-      WHERE s.owner_id = auth.uid()
-    )
-  );
+  -- Authenticated users can upload to their store folder
+  CREATE POLICY "Store owners can upload product images"
+    ON storage.objects FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'products'
+      AND (storage.foldername(name))[1] IN (
+        SELECT s.id::text FROM stores s
+        JOIN store_members sm ON sm.store_id = s.id
+        WHERE sm.user_id = auth.uid()
+        UNION
+        SELECT s.id::text FROM stores s
+        WHERE s.owner_id = auth.uid()
+      )
+    );
 
--- Store owners/members can delete their own images
-CREATE POLICY "Store owners can delete product images"
-  ON storage.objects FOR DELETE
-  TO authenticated
-  USING (
-    bucket_id = 'products'
-    AND (storage.foldername(name))[1] IN (
-      SELECT s.id::text FROM stores s
-      JOIN store_members sm ON sm.store_id = s.id
-      WHERE sm.user_id = auth.uid()
-      UNION
-      SELECT s.id::text FROM stores s
-      WHERE s.owner_id = auth.uid()
-    )
-  );
+  -- Store owners/members can delete their own images
+  CREATE POLICY "Store owners can delete product images"
+    ON storage.objects FOR DELETE
+    TO authenticated
+    USING (
+      bucket_id = 'products'
+      AND (storage.foldername(name))[1] IN (
+        SELECT s.id::text FROM stores s
+        JOIN store_members sm ON sm.store_id = s.id
+        WHERE sm.user_id = auth.uid()
+        UNION
+        SELECT s.id::text FROM stores s
+        WHERE s.owner_id = auth.uid()
+      )
+    );
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE '001: skipped storage bucket/policies — the connecting role does not own storage.objects. Create them from the Supabase dashboard.';
+  WHEN duplicate_object THEN
+    NULL;
+END $$;
+

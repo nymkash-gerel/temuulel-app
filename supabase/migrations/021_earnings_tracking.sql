@@ -44,4 +44,11 @@ CREATE POLICY "Drivers can view own payouts"
   );
 
 -- Enable Realtime for delivery_drivers (for live map tracking)
-ALTER PUBLICATION supabase_realtime ADD TABLE delivery_drivers;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE delivery_drivers;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'delivery_drivers';
+END $$;

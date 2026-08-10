@@ -171,5 +171,19 @@ CREATE POLICY "grades_store_access" ON grades
   );
 
 -- 7. Enable realtime for enrollments and attendance
-ALTER PUBLICATION supabase_realtime ADD TABLE enrollments;
-ALTER PUBLICATION supabase_realtime ADD TABLE attendance;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE enrollments;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'enrollments';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE attendance;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'attendance';
+END $$;
