@@ -27,6 +27,12 @@ vi.mock('@/lib/messenger', () => ({
   sendTextMessage: vi.fn(async () => ({ success: true })),
 }))
 
+const { limiter } = vi.hoisted(() => ({ limiter: { success: true } }))
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn(async () => ({ ...limiter, limit: 30, remaining: 29, resetAt: 0 })),
+  getClientIp: vi.fn(() => '127.0.0.1'),
+}))
+
 import { GET } from './route'
 
 /** No campaigns due, so a request that passes the guard returns processed: 0. */
@@ -50,6 +56,7 @@ function req(authHeader?: string) {
 beforeEach(() => {
   vi.clearAllMocks()
   mockFrom.mockReturnValue(noCampaigns())
+  limiter.success = true
 })
 
 afterEach(() => {
@@ -103,5 +110,13 @@ describe('GET /api/cron/broadcast — auth guard', () => {
     setEnv('development', undefined)
     const res = await GET(req())
     expect(res.status).toBe(200)
+  })
+
+  it('rate-limits before the auth check, so tokens cannot be ground through', async () => {
+    limiter.success = false
+    setEnv('production', 'right-secret')
+    const res = await GET(req('Bearer right-secret'))
+    expect(res.status).toBe(429)
+    expect(mockFrom).not.toHaveBeenCalled()
   })
 })

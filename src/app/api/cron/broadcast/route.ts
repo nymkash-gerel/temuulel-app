@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendTextMessage } from '@/lib/messenger'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+
+/**
+ * Ahead of the auth check, so an unauthenticated caller cannot grind through
+ * bearer tokens. Vercel Cron calls this at most once per scheduled run, so the
+ * ceiling is far above any legitimate traffic.
+ */
+const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
 
 /**
  * Cron endpoint: sends scheduled broadcast campaigns.
@@ -8,6 +16,9 @@ import { sendTextMessage } from '@/lib/messenger'
  * Protected by CRON_SECRET header.
  */
 export async function GET(req: NextRequest) {
+  const rl = await rateLimit(getClientIp(req), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   // Fail CLOSED when the secret is unconfigured, matching the other three cron
   // routes. The previous guard compared the header to process.env.CRON_SECRET
   // directly: with the variable unset and no Authorization header, both sides
