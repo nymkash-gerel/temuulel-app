@@ -202,5 +202,19 @@ CREATE TRIGGER damage_reports_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 7. Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE reservations;
-ALTER PUBLICATION supabase_realtime ADD TABLE housekeeping_tasks;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE reservations;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'reservations';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE housekeeping_tasks;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'housekeeping_tasks';
+END $$;

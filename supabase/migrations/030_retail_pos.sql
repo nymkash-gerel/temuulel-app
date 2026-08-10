@@ -175,5 +175,19 @@ CREATE TRIGGER pos_sessions_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 7. Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE purchase_orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE pos_sessions;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE purchase_orders;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'purchase_orders';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE pos_sessions;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'pos_sessions';
+END $$;

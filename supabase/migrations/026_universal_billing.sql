@@ -140,5 +140,19 @@ CREATE POLICY "payment_allocations_access" ON payment_allocations
   );
 
 -- 5. Enable realtime for new tables
-ALTER PUBLICATION supabase_realtime ADD TABLE invoices;
-ALTER PUBLICATION supabase_realtime ADD TABLE billing_payments;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE invoices;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'invoices';
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE billing_payments;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;          -- already published
+  WHEN undefined_object THEN NULL;          -- publication absent (non-Supabase target)
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'realtime: could not add % — enable it from the Supabase dashboard.', 'billing_payments';
+END $$;
