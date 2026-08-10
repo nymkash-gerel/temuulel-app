@@ -170,7 +170,7 @@ export default function DataDeletionPage() {
                 Facebook App Review-д шаардагдах Data Deletion Callback URL:
               </p>
               <div className="bg-slate-900 rounded-lg p-3 font-mono text-xs md:text-sm break-all text-emerald-400">
-                https://temuulel.com/api/data-deletion
+                {`${(process.env.NEXT_PUBLIC_APP_URL || 'https://temuulel.com').replace(/\/$/, '')}/api/data-deletion`}
               </div>
               <p className="text-slate-400 mt-3">
                 Хэрэглэгч Facebook-ийн App Settings-ээс манай app-ыг устгахад энэ endpoint-руу

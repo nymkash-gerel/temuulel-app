@@ -44,6 +44,16 @@ function parseSignedRequest(
   }
 }
 
+/**
+ * Base URL for the links Facebook surfaces to the user after a deletion
+ * request. Reads the env var like robots.ts / sitemap.ts / email.ts do — this
+ * file used to hardcode temuulel.com, so on any other domain the "check status"
+ * link Facebook showed the user 404'd.
+ */
+function appUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL || 'https://temuulel.com').replace(/\/$/, '')
+}
+
 export async function POST(req: NextRequest) {
   const appSecret = process.env.FACEBOOK_APP_SECRET
   if (!appSecret) {
@@ -105,7 +115,7 @@ export async function POST(req: NextRequest) {
   })()
 
   return NextResponse.json({
-    url: `https://temuulel.com/data-deletion/status?code=${confirmationCode}`,
+    url: `${appUrl()}/data-deletion/status?code=${confirmationCode}`,
     confirmation_code: confirmationCode,
   })
 }
@@ -115,6 +125,6 @@ export async function GET() {
   return NextResponse.json({
     status: 'ok',
     info: 'Facebook Data Deletion Callback. POST signed_request to delete user data.',
-    docs: 'https://temuulel.com/data-deletion',
+    docs: `${appUrl()}/data-deletion`,
   })
 }
