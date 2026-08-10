@@ -602,49 +602,60 @@ INSERT INTO subscription_plans (slug, name, price, limits) VALUES
 -- dashboard. duplicate_object is swallowed so the block is also re-runnable.
 DO $$
 BEGIN
-  INSERT INTO storage.buckets (id, name, public) VALUES ('products', 'products', true)
-  ON CONFLICT (id) DO NOTHING;
+  BEGIN
+    INSERT INTO storage.buckets (id, name, public) VALUES ('products', 'products', true)
+    ON CONFLICT (id) DO NOTHING;
+  EXCEPTION WHEN duplicate_object THEN NULL;  -- already present
+  END;
 
-  -- Anyone can read product images (public bucket)
-  CREATE POLICY "Public read access for product images"
-    ON storage.objects FOR SELECT
-    USING (bucket_id = 'products');
+  BEGIN
+    -- Anyone can read product images (public bucket)
+    CREATE POLICY "Public read access for product images"
+      ON storage.objects FOR SELECT
+      USING (bucket_id = 'products');
+  EXCEPTION WHEN duplicate_object THEN NULL;  -- already present
+  END;
 
-  -- Authenticated users can upload to their store folder
-  CREATE POLICY "Store owners can upload product images"
-    ON storage.objects FOR INSERT
-    TO authenticated
-    WITH CHECK (
-      bucket_id = 'products'
-      AND (storage.foldername(name))[1] IN (
-        SELECT s.id::text FROM stores s
-        JOIN store_members sm ON sm.store_id = s.id
-        WHERE sm.user_id = auth.uid()
-        UNION
-        SELECT s.id::text FROM stores s
-        WHERE s.owner_id = auth.uid()
-      )
-    );
+  BEGIN
+    -- Authenticated users can upload to their store folder
+    CREATE POLICY "Store owners can upload product images"
+      ON storage.objects FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        bucket_id = 'products'
+        AND (storage.foldername(name))[1] IN (
+          SELECT s.id::text FROM stores s
+          JOIN store_members sm ON sm.store_id = s.id
+          WHERE sm.user_id = auth.uid()
+          UNION
+          SELECT s.id::text FROM stores s
+          WHERE s.owner_id = auth.uid()
+        )
+      );
+  EXCEPTION WHEN duplicate_object THEN NULL;  -- already present
+  END;
 
-  -- Store owners/members can delete their own images
-  CREATE POLICY "Store owners can delete product images"
-    ON storage.objects FOR DELETE
-    TO authenticated
-    USING (
-      bucket_id = 'products'
-      AND (storage.foldername(name))[1] IN (
-        SELECT s.id::text FROM stores s
-        JOIN store_members sm ON sm.store_id = s.id
-        WHERE sm.user_id = auth.uid()
-        UNION
-        SELECT s.id::text FROM stores s
-        WHERE s.owner_id = auth.uid()
-      )
-    );
+  BEGIN
+    -- Store owners/members can delete their own images
+    CREATE POLICY "Store owners can delete product images"
+      ON storage.objects FOR DELETE
+      TO authenticated
+      USING (
+        bucket_id = 'products'
+        AND (storage.foldername(name))[1] IN (
+          SELECT s.id::text FROM stores s
+          JOIN store_members sm ON sm.store_id = s.id
+          WHERE sm.user_id = auth.uid()
+          UNION
+          SELECT s.id::text FROM stores s
+          WHERE s.owner_id = auth.uid()
+        )
+      );
+  EXCEPTION WHEN duplicate_object THEN NULL;  -- already present
+  END;
+
 EXCEPTION
   WHEN insufficient_privilege THEN
     RAISE NOTICE '001: skipped storage bucket/policies — the connecting role does not own storage.objects. Create them from the Supabase dashboard.';
-  WHEN duplicate_object THEN
-    NULL;
 END $$;
 

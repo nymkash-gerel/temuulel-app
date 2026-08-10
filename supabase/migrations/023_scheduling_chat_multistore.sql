@@ -181,37 +181,48 @@ ON CONFLICT (driver_id, store_id) DO NOTHING;
 -- dashboard. duplicate_object is swallowed so the block is also re-runnable.
 DO $$
 BEGIN
-  INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-  VALUES (
-    'delivery-proofs',
-    'delivery-proofs',
-    true,
-    10485760,  -- 10MB
-    ARRAY['image/jpeg', 'image/png', 'image/webp']
-  )
-  ON CONFLICT (id) DO NOTHING;
+  BEGIN
+    INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    VALUES (
+      'delivery-proofs',
+      'delivery-proofs',
+      true,
+      10485760,  -- 10MB
+      ARRAY['image/jpeg', 'image/png', 'image/webp']
+    )
+    ON CONFLICT (id) DO NOTHING;
+  EXCEPTION WHEN duplicate_object THEN NULL;  -- already present
+  END;
 
-  -- Authenticated users can upload to delivery-proofs
-  CREATE POLICY "delivery_proofs_upload"
-    ON storage.objects FOR INSERT
-    TO authenticated
-    WITH CHECK (bucket_id = 'delivery-proofs');
+  BEGIN
+    -- Authenticated users can upload to delivery-proofs
+    CREATE POLICY "delivery_proofs_upload"
+      ON storage.objects FOR INSERT
+      TO authenticated
+      WITH CHECK (bucket_id = 'delivery-proofs');
+  EXCEPTION WHEN duplicate_object THEN NULL;  -- already present
+  END;
 
-  -- Public read access for delivery proof photos
-  CREATE POLICY "delivery_proofs_public_read"
-    ON storage.objects FOR SELECT
-    TO public
-    USING (bucket_id = 'delivery-proofs');
+  BEGIN
+    -- Public read access for delivery proof photos
+    CREATE POLICY "delivery_proofs_public_read"
+      ON storage.objects FOR SELECT
+      TO public
+      USING (bucket_id = 'delivery-proofs');
+  EXCEPTION WHEN duplicate_object THEN NULL;  -- already present
+  END;
 
-  -- Authenticated users can delete their uploads
-  CREATE POLICY "delivery_proofs_delete"
-    ON storage.objects FOR DELETE
-    TO authenticated
-    USING (bucket_id = 'delivery-proofs');
+  BEGIN
+    -- Authenticated users can delete their uploads
+    CREATE POLICY "delivery_proofs_delete"
+      ON storage.objects FOR DELETE
+      TO authenticated
+      USING (bucket_id = 'delivery-proofs');
+  EXCEPTION WHEN duplicate_object THEN NULL;  -- already present
+  END;
+
 EXCEPTION
   WHEN insufficient_privilege THEN
     RAISE NOTICE '023: skipped storage bucket/policies — the connecting role does not own storage.objects. Create them from the Supabase dashboard.';
-  WHEN duplicate_object THEN
-    NULL;
 END $$;
 
