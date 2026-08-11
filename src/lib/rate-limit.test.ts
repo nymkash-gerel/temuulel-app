@@ -140,3 +140,53 @@ describe('getClientIp', () => {
     expect(getClientIp(req)).toBe('10.0.0.1')
   })
 })
+
+// ---------------------------------------------------------------------------
+// E2E bypass must never apply in production
+//
+// The bypass had no NODE_ENV guard: the comment said "in development" but
+// nothing enforced it, so setting E2E_RATE_LIMIT_BYPASS in a Vercel production
+// environment would silently disable rate limiting on every endpoint.
+// ---------------------------------------------------------------------------
+
+describe('rateLimit — E2E bypass guard', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('bypasses in development when the flag is set', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('E2E_RATE_LIMIT_BYPASS', 'true')
+    const opts = { limit: 1, windowSeconds: 60 }
+    const key = `bypass-dev-${Date.now()}`
+
+    // Second call would normally be blocked at limit 1.
+    await rateLimit(key, opts)
+    const second = await rateLimit(key, opts)
+    expect(second.success).toBe(true)
+    expect(second.remaining).toBe(1)
+  })
+
+  it('bypasses in test too, so the E2E suite keeps working', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('E2E_RATE_LIMIT_BYPASS', 'true')
+    const opts = { limit: 1, windowSeconds: 60 }
+    const key = `bypass-test-${Date.now()}`
+
+    await rateLimit(key, opts)
+    expect((await rateLimit(key, opts)).success).toBe(true)
+  })
+
+  it('does NOT bypass in production even when the flag is set', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('E2E_RATE_LIMIT_BYPASS', 'true')
+    const opts = { limit: 1, windowSeconds: 60 }
+    const key = `bypass-prod-${Date.now()}`
+
+    const first = await rateLimit(key, opts)
+    expect(first.success).toBe(true)
+
+    const second = await rateLimit(key, opts)
+    expect(second.success).toBe(false)   // real limiting still applies
+  })
+})

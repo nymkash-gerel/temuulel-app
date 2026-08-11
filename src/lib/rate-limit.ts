@@ -126,8 +126,13 @@ export async function rateLimit(
   key: string,
   options: RateLimitOptions,
 ): Promise<RateLimitResult> {
-  // Allow E2E tests to bypass rate limiting in development
-  if (process.env.E2E_RATE_LIMIT_BYPASS === 'true') {
+  // Allow E2E tests to bypass rate limiting — never in production.
+  //
+  // The NODE_ENV guard is the point: the comment here used to say "in
+  // development" but nothing enforced it, so setting this variable in a Vercel
+  // production environment would silently disable rate limiting on every
+  // endpoint in the app — including the public chat widget and the auth routes.
+  if (process.env.E2E_RATE_LIMIT_BYPASS === 'true' && process.env.NODE_ENV !== 'production') {
     return { success: true, limit: options.limit, remaining: options.limit, resetAt: Date.now() + 60000 }
   }
 
