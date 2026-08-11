@@ -840,30 +840,51 @@ export function updateState(
   products: StoredProduct[],
   query: string
 ): ConversationState {
-  const preserveIntents = [
-    'greeting', 'thanks', 'size_info',
-    'delivery_info', 'order_info', 'payment_info', 'warranty_info', 'stock_info',
-    'price_info', 'general', 'complaint', 'shipping',
-    'order_collection',
+  /**
+   * Side questions: the customer asks something without changing what they are
+   * looking at. Products, the query behind them, and last_intent all survive.
+   *
+   * Keeping last_intent is deliberate, not a side effect. Every reader of it
+   * asks the same thing — "what listing is on screen?" — not "what did they
+   * literally say last turn":
+   *   §4b order intent   (product_detail / product_search / product_suggestions)
+   *   §6 query refinement (product_search)
+   *   §8 repeated low_confidence
+   *   chat-ai-handler's 8-digit phone interception (product_search)
+   * A payment question in the middle of browsing must not blank any of those.
+   *
+   * These must be intent names a classifier actually emits. The list previously
+   * carried 'payment_info', 'delivery_info', 'order_info', 'warranty_info' and
+   * 'stock_info', which nothing emits — so the real intents fell through to the
+   * clear branch and "QPay-аар төлж болох уу?" mid-browse wiped last_products,
+   * leaving the next "2 дахийг авъя" with nothing to resolve against.
+   */
+  const sideQuestionIntents = [
+    'greeting', 'thanks', 'size_info', 'price_info', 'general', 'complaint',
+    'shipping', 'payment', 'order_status', 'return_exchange',
+    'allergen_info', 'table_reservation', 'gift_card_purchase',
+    'order_collection', 'busy_mode',
     // Cancel request escalates to a human — keep product context so the
     // conversation can resume naturally after staff resolve it.
     'order_cancel_request',
   ]
 
-  // Intents that fetch/narrow products and should save them to state
+  // Intents that fetch/narrow products and should save them to state.
+  // low_confidence stays OUT of the side-question list on purpose: §8 detects a
+  // REPEATED low_confidence, which needs last_intent to actually become it.
   const saveProductIntents = ['product_search', 'low_confidence', 'product_suggestions', 'product_detail']
 
   // search intent with results → save; preserve intents → keep previous; else → clear
   const nextProducts = saveProductIntents.includes(intent) && products.length > 0
     ? products.slice(0, 10)
-    : preserveIntents.includes(intent) ? current.last_products : []
+    : sideQuestionIntents.includes(intent) ? current.last_products : []
 
   const nextQuery = saveProductIntents.includes(intent) && query
     ? query
-    : preserveIntents.includes(intent) ? current.last_query : ''
+    : sideQuestionIntents.includes(intent) ? current.last_query : ''
 
   return {
-    last_intent: preserveIntents.includes(intent) ? current.last_intent : intent,
+    last_intent: sideQuestionIntents.includes(intent) ? current.last_intent : intent,
     last_products: nextProducts,
     last_query: nextQuery,
     turn_count: current.turn_count + 1,
