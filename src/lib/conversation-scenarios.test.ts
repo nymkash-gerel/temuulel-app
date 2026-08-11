@@ -193,9 +193,19 @@ describe('Scenario: Multi-turn product context', () => {
     expect(state2.last_products).toEqual([CASHMERE_SWEATER])
   })
 
-  it('delivery_info preserves product context', () => {
+  // Uses 'shipping', the intent a classifier actually emits for delivery
+  // questions. This asserted 'delivery_info', a name nothing emits, so it only
+  // ever exercised a dead entry in the preserve list — and passed for the wrong
+  // reason while the real intent was clearing the products.
+  it('shipping preserves product context', () => {
     const state1 = updateState(emptyState(), 'product_detail', [PREGNANCY_DRESS], '')
-    const state2 = updateState(state1, 'delivery_info', [], '')
+    const state2 = updateState(state1, 'shipping', [], '')
+    expect(state2.last_products).toEqual([PREGNANCY_DRESS])
+  })
+
+  it('payment preserves product context', () => {
+    const state1 = updateState(emptyState(), 'product_detail', [PREGNANCY_DRESS], '')
+    const state2 = updateState(state1, 'payment', [], '')
     expect(state2.last_products).toEqual([PREGNANCY_DRESS])
   })
 

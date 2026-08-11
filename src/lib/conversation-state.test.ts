@@ -379,3 +379,67 @@ describe('resolveFollowUp — purchase abandonment during checkout', () => {
     }
   )
 })
+
+// ---------------------------------------------------------------------------
+// Side questions must not blank the listing the customer is looking at
+//
+// The preserve list used to carry intent names nothing emits ('payment_info',
+// 'delivery_info', 'order_info', 'warranty_info', 'stock_info'), so the real
+// intents fell through to the clear branch: a payment question mid-browse wiped
+// last_products and the next "2 дахийг авъя" had nothing to resolve against.
+// ---------------------------------------------------------------------------
+
+describe('updateState — side questions preserve the listing', () => {
+  function browsing() {
+    return updateState(emptyState(), 'product_search', PRODUCTS, 'хувцас')
+  }
+
+  it.each([
+    'payment',
+    'order_status',
+    'return_exchange',
+    'shipping',
+    'size_info',
+    'allergen_info',
+    'table_reservation',
+    'gift_card_purchase',
+    'complaint',
+    'greeting',
+    'thanks',
+  ])('%s keeps products, query and last_intent', (intent) => {
+    const next = updateState(browsing(), intent, [], '')
+    expect(next.last_products).toEqual(PRODUCTS)
+    expect(next.last_query).toBe('хувцас')
+    expect(next.last_intent).toBe('product_search')
+  })
+
+  it('an ordinal reference still resolves after a side question', () => {
+    const afterPayment = updateState(browsing(), 'payment', [], '')
+    expect(resolveFollowUp('2 дахийг авъя', afterPayment)).toEqual({
+      type: 'order_intent',
+      product: PRODUCTS[1],
+    })
+  })
+
+  // §8 detects a REPEATED low_confidence, which needs last_intent to become it.
+  it('low_confidence still takes over last_intent', () => {
+    const next = updateState(browsing(), 'low_confidence', [], '')
+    expect(next.last_intent).toBe('low_confidence')
+  })
+
+  it('an intent in neither list still clears — unknown intents fail safe', () => {
+    const next = updateState(browsing(), 'order_created', [], '')
+    expect(next.last_products).toEqual([])
+    expect(next.last_intent).toBe('order_created')
+  })
+
+  // Regression guard: a search that returns nothing must keep the query and the
+  // catalog cursor, so "next page" and refinements still work.
+  it('a zero-result product_search keeps last_query and catalog pagination', () => {
+    const state = { ...browsing(), catalog_page: 2, catalog_query: 'хувцас', catalog_total: 40 }
+    const next = updateState(state, 'product_search', [], 'улаан цамц')
+    expect(next.last_query).toBe('улаан цамц')
+    expect(next.catalog_page).toBe(2)
+    expect(next.catalog_total).toBe(40)
+  })
+})
