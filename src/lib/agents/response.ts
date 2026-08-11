@@ -42,8 +42,11 @@ export class ResponseAgent {
     const orders = searchResult?.orders ?? []
 
     try {
-      // Fetch conversation history for AI context
-      const history = await fetchRecentMessages(ctx.supabase, ctx.conversationId, 10)
+      // Fetch conversation history for AI context. ctx.message is already the
+      // newest row (routes persist it before processing), so exclude it —
+      // otherwise contextual-responder appends it again and GPT reads the
+      // question twice, at the cost of one slot of real history.
+      const history = await fetchRecentMessages(ctx.supabase, ctx.conversationId, 10, ctx.message)
 
       // Build resolution context (ResolveInput does not accept 'orders')
       const resolution = await resolve(ctx.supabase, {

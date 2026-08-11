@@ -67,6 +67,13 @@ export interface BusyModeContext {
 
 export interface ContextualInput {
   history: MessageHistoryEntry[]
+  /**
+   * Whether this conversation has earlier turns. Supplied by callers that hold
+   * conversation state; when absent, history.length is used as before. Needed
+   * because the caller now removes the echoed copy of currentMessage from
+   * history, so an empty history no longer means "first message".
+   */
+  hasPriorTurns?: boolean
   currentMessage: string
   intent: string
   products: ProductContext[]
@@ -503,7 +510,22 @@ export async function contextualAIResponse(input: ContextualInput): Promise<Cont
   // Allow GPT on turn 1 for 'general' and 'complaint' — ambiguous and upset first
   // messages need GPT most. All other intents without history fall to templates.
   const TURN1_GPT_INTENTS = ['general', 'complaint']
-  if (input.history.length === 0 && !TURN1_GPT_INTENTS.includes(input.intent)) return null
+
+  // Defensive dedup. fetchRecentMessages already strips the echoed copy, but any
+  // caller that persists the message before asking for a reply could hand us a
+  // history whose last turn IS currentMessage — and GPT must never see the
+  // question twice. Done before the turn-1 guard so both read the same history:
+  // a history containing only the echo is not evidence of a prior turn.
+  const history = input.history.length > 0
+    && input.history[input.history.length - 1].role === 'user'
+    && input.history[input.history.length - 1].content === input.currentMessage
+    ? input.history.slice(0, -1)
+    : input.history
+
+  // Either signal is sufficient: a non-empty history is direct evidence of a
+  // prior turn, and the flag covers callers whose history window has aged out.
+  const hasPriorTurns = input.hasPriorTurns === true || history.length > 0
+  if (!hasPriorTurns && !TURN1_GPT_INTENTS.includes(input.intent)) return null
 
   // Guard: never let GPT generate responses for product queries when the store
   // has no matching products. Without this, GPT invents product names and prices.
@@ -530,7 +552,7 @@ export async function contextualAIResponse(input: ContextualInput): Promise<Cont
 
     const messages: ChatMessage[] = [
       { role: 'system', content: buildSystemPrompt(input) },
-      ...input.history.map((h) => ({
+      ...history.map((h) => ({
         role: h.role as 'user' | 'assistant',
         content: h.role === 'user' ? normalizeMsgContent(h.content) : h.content,
       })),
