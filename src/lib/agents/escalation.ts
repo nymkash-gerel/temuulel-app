@@ -25,6 +25,12 @@ export class EscalationAgent {
   /** Evaluate escalation score. Non-blocking — safe to fire-and-forget. */
   async evaluate(ctx: AgentContext): Promise<EscalationResult> {
     try {
+      // Deliberately NOT excluding ctx.message here, unlike the response agent.
+      // evaluateEscalation already compensates for the echo: its repeated-message
+      // check drops the last customer entry precisely because the current message
+      // is expected to be in this list. Excluding it here would make that slice
+      // discard a genuine earlier message, silently breaking the signal — and its
+      // message-count thresholds are calibrated the same way.
       const history = await fetchRecentMessages(ctx.supabase, ctx.conversationId, 20)
 
       const config = {

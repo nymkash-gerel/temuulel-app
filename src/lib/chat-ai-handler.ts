@@ -639,7 +639,7 @@ export async function processAIChat(
             maxProducts: chatbotSettings.max_products,
             originalQuery: followUp.refinedQuery!,
           }),
-          isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId) : Promise.resolve(undefined),
+          isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId, 6, customerMessage) : Promise.resolve(undefined),
         ])
         products = refProducts
         responseText = await generateAIResponse(
@@ -681,7 +681,7 @@ export async function processAIChat(
           (intent === 'order_status')
             ? searchOrders(supabase, searchTerms, storeId, customerId ?? undefined)
             : Promise.resolve([]),
-          isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId) : Promise.resolve(undefined),
+          isOpenAIConfigured() ? fetchRecentMessages(supabase, conversationId, 6, customerMessage) : Promise.resolve(undefined),
         ])
         products = llmProducts.length > 0 ? llmProducts : products
         orders = llmOrders
@@ -739,7 +739,7 @@ export async function processAIChat(
           ? searchAvailableTables(supabase, storeId)
           : Promise.resolve([] as TableMatch[]),
         isOpenAIConfigured()
-          ? fetchRecentMessages(supabase, conversationId)
+          ? fetchRecentMessages(supabase, conversationId, 6, customerMessage)
           : Promise.resolve(undefined),
       ])
 
@@ -1050,6 +1050,9 @@ export async function processAIChat(
           state.customer_prefs,
           qualityMeta,
           knowledgeEntries,
+          // Answers "has this conversation started?" directly — history alone
+          // can no longer say, now that the echoed message is deduped out.
+          state.turn_count,
         )
 
         // Fire-and-forget: log AI quality + unanswered questions

@@ -279,22 +279,42 @@ export function generateResponse(
 
 /**
  * Fetch the last N messages from a conversation for LLM context.
+ *
+ * `excludeLatestFromCustomer` drops a trailing customer message with that exact
+ * text. Both the widget and the Messenger webhook persist the incoming message
+ * BEFORE calling processAIChat, so without this the message being answered is
+ * already the newest row here — and contextual-responder appends it again as
+ * the final `user` turn. GPT would see the question twice and one slot of real
+ * history would be spent on a copy of it.
+ *
+ * Only the newest row is considered, so a customer who genuinely repeats
+ * themselves keeps their earlier identical message in the history.
  */
 export async function fetchRecentMessages(
   supabase: SupabaseClient<Database>,
   conversationId: string,
-  limit = 6
+  limit = 6,
+  excludeLatestFromCustomer?: string
 ): Promise<MessageHistoryEntry[]> {
+  // Over-fetch by one so dropping the echo still leaves a full window.
   const { data } = await supabase
     .from('messages')
     .select('content, is_from_customer')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .limit(excludeLatestFromCustomer ? limit + 1 : limit)
 
   if (!data || data.length === 0) return []
 
-  return data.reverse().map((m: { content: string; is_from_customer: boolean }) => ({
+  const rows = data as { content: string; is_from_customer: boolean }[]
+  // Newest-first, so the echo — if present — is at index 0.
+  const deduped = excludeLatestFromCustomer
+    && rows[0]?.is_from_customer
+    && rows[0].content === excludeLatestFromCustomer
+    ? rows.slice(1)
+    : rows.slice(0, limit)
+
+  return deduped.reverse().map((m) => ({
     role: m.is_from_customer ? 'user' as const : 'assistant' as const,
     content: m.content,
   }))
@@ -329,18 +349,34 @@ export async function generateAIResponse(
   customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string } | null,
   qualityMetaOut?: { confidence: number; detectedIssues: string[]; requiresHumanReview: boolean },
   knowledgeEntries?: { question: string; answer: string }[],
+  /**
+   * Completed turns before this message. Pass it whenever the caller has
+   * conversation state — it answers "has this conversation started?" directly,
+   * instead of inferring it from history.length, which stops being a valid
+   * proxy once the echoed message is deduped out. Omit it and the old
+   * length-based inference is used, so other callers are unaffected.
+   */
+  turnCount?: number,
 ): Promise<string> {
   // Tier 1: Contextual AI with conversation history.
   // Also allow GPT on turn 1 for 'general' and 'complaint' intents — ambiguous and
   // upset first messages need GPT the most. Other intents (product_search, order_status,
   // etc.) have deterministic templates that work well without history context.
   const historyForGPT = history ?? []
-  const callGPT = historyForGPT.length > 0 || intent === 'general' || intent === 'complaint'
+  // "Is there a conversation behind this message?" — either signal alone is
+  // enough. Post-dedup history.length is finally a truthful answer (the echoed
+  // copy no longer props it up), and turnCount covers a history window that has
+  // aged out. Deliberately fail open: a conversation whose state row is missing
+  // or was reset still reads as mid-conversation, because dropping back to a
+  // template mid-chat is far more visible to a customer than one extra GPT call.
+  const hasPriorTurns = historyForGPT.length > 0 || (turnCount ?? 0) > 0
+  const callGPT = hasPriorTurns || intent === 'general' || intent === 'complaint'
   if (callGPT) {
     try {
       const { contextualAIResponse } = await import('./ai/contextual-responder')
       const contextResult = await contextualAIResponse({
         history: historyForGPT,
+        hasPriorTurns,
         currentMessage: customerQuery,
         intent,
         products: products.map((p) => ({
