@@ -95,6 +95,20 @@ describe('what must NOT change', () => {
     expect(hybridClassify('танд юу байна гэж асууя').intent).toBe('product_search')
   })
 
+  it('negated announcements are not announcements (CodeRabbit)', () => {
+    // "асуултгүй байна" = "I have NO questions" — inviting one would be absurd.
+    expect(hybridClassify('асуултгүй байна').intent).not.toBe('question_prompt')
+    expect(hybridClassify('асуумааргүй байна').intent).not.toBe('question_prompt')
+  })
+
+  it('a topical announcement keeps its keyword intent whatever ML says (CodeRabbit)', () => {
+    // The preservation rule must not depend on ML happening to say greeting —
+    // an ML product_search would discard the topic just the same.
+    const r = hybridClassify('хүргэлтийн талаар асуулт байна')
+    expect(r.intent).toBe('shipping')
+    expect(r.confidence).toBeGreaterThanOrEqual(1.5)
+  })
+
   it('past/habitual асуу- forms are not announcements', () => {
     expect(hybridClassify('би асуултаа асуусан шүү дээ').intent).not.toBe('question_prompt')
     expect(hybridClassify('би их асуудаг').intent).not.toBe('question_prompt')

@@ -16,9 +16,11 @@
  *  - асуудал / асуудлууд (= PROBLEM, vowel-elided plural) are complaints;
  *  - асуусан / асуудаг ("I already asked" / "I usually ask") are not
  *    announcements — inviting the question again would loop;
- *  - асуугаарай ("YOU ask") and асуулга (survey) are neither.
+ *  - асуугаарай ("YOU ask") and асуулга (survey) are neither;
+ *  - асуултгүй / асуумааргүй (neutralized -гуи) NEGATE the announcement —
+ *    "асуултгүй байна" means "no questions".
  */
-const ANNOUNCEMENT_TOKEN = /^асуулт|^асуух$|^асууя$|^асууъя$|^асууья$|^асуулаа$|^асууж$|^асуумаар/
+const ANNOUNCEMENT_TOKEN = /^асуулт(?!гуи)|^асуух$|^асууя$|^асууъя$|^асууья$|^асуулаа$|^асууж$|^асуумаар(?!гуи)/
 
 export function isAnnouncementToken(token: string): boolean {
   return ANNOUNCEMENT_TOKEN.test(token)

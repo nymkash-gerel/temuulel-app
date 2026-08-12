@@ -319,6 +319,10 @@ export async function processAIChat(
       turn_count: state.turn_count + 1,
       gift_card_draft: gcResult.giftCardDraft,
       pending_gift_card_code: gcResult.pendingGiftCardCode,
+      // One-turn flag: updateState clears it on the normal path, but this
+      // write spreads the old state — without this a paused order entering
+      // the gift-card flow would stay paused for every gift-card turn.
+      order_draft_paused: undefined,
     })
     // Save message to DB
     await supabase.from('messages').insert({

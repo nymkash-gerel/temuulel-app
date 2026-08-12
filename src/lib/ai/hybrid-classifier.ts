@@ -204,24 +204,32 @@ function hybridClassifyInner(message: string): IntentResult {
     return keywordResult
   }
 
+  // Announcement steal guard, half 1 — ML-intent-agnostic: when the message
+  // announces a question AND the keyword tier found a real topic at >= 1.0
+  // ("хүргэлтийн талаар асуулт байна" → shipping 1.25), no ML intent may
+  // replace it — not just greeting: an ML product_search would discard the
+  // topic the same way. Returning >= 1.5 also blocks the async BERT tier.
+  const hasAnnouncement = neutralized.split(/\s+/).some(isAnnouncementToken)
+  if (hasAnnouncement
+    && keywordResult.intent !== 'greeting' && keywordResult.intent !== 'general'
+    && keywordResult.confidence >= 1.0) {
+    return { intent: keywordResult.intent, confidence: Math.max(keywordResult.confidence, 1.5) }
+  }
+
   if (mlResult.confidence >= 0.7) {
     // Guard: ML says "greeting" but message contains a noun + availability question
     // e.g. "Skims бну?" → "скимс бну" → ML thinks greeting because "бну" ≈ "сн бну"
     // Override to product_search when a non-greeting word precedes the suffix.
     if (mlResult.intent === 'greeting') {
-      // Announcement steal guard — checked FIRST: "хүргэлтийн талаар асуулт
-      // байна" is a question about DELIVERY (the keyword tier already said
-      // shipping 1.25) and ML's greeting must not override it. It also runs
-      // before the availability guard below, which would otherwise read the
-      // word АСУУЛТ itself as a product noun ("sn bnu asuult bna" →
-      // product_search). Returning ≥1.5 keeps hybridClassifyAsync's BERT tier
-      // from re-stealing the result.
-      if (neutralized.split(/\s+/).some(isAnnouncementToken)) {
-        if (keywordResult.intent !== 'greeting' && keywordResult.intent !== 'general'
-          && keywordResult.confidence >= 1.0) {
-          return { intent: keywordResult.intent, confidence: Math.max(keywordResult.confidence, 1.5) }
-        }
-        // Announces a question about something no tier could parse — invite it.
+      // Announcement steal guard, half 2 — greeting-only: an announcement the
+      // keyword tier could NOT anchor (see the >= 1.0 preservation above) that
+      // ML reads as greeting gets the invitation instead. Checked before the
+      // availability guard below, which would otherwise read the word АСУУЛТ
+      // itself as a product noun ("sn bnu asuult bna" → product_search).
+      // Deliberately NOT extended to other ML intents: for "би асуултаа
+      // асуусан шүү дээ" ML's order_collection is wrong but the invite would
+      // loop — only the measured greeting confusion earns the override.
+      if (hasAnnouncement) {
         return { intent: 'question_prompt', confidence: 1.5 }
       }
 
