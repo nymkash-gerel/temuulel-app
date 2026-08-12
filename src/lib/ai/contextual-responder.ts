@@ -13,6 +13,7 @@ import type { CustomerProfile } from './customer-profile'
 import type { ResolutionContext } from '../resolution-engine'
 import type { ContextualAIResponseJSON } from './types'
 import { formatPrice, orderStatusLabel } from '../format'
+import { COLOR_MAP } from '../color-prefs'
 
 export type { ContextualAIResponseJSON }
 
@@ -90,7 +91,7 @@ export interface ContextualInput {
   // Resolution Engine context
   resolution?: ResolutionContext | null
   // Customer body/size preferences (from conversation state)
-  customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string } | null
+  customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string; preferred_colors?: string[] } | null
   // Store knowledge base entries for context injection
   knowledgeEntries?: { question: string; answer: string }[]
 }
@@ -109,6 +110,8 @@ function buildSystemPrompt(input: ContextualInput): string {
   // product_detail = mid-order product question (color, material, etc.) — product already selected
   const isProductDetail = input.intent === 'product_detail'
   const isGiftQuery = /бэлэг|санал болг|юу авбал|зөвлө/.test(normalizeText(input.currentMessage))
+  // Customer announced a question without asking it ("асуулт байна")
+  const isQuestionPrompt = input.intent === 'question_prompt'
 
   // --- Core identity + universal rules (always included) ---
   // Explicit no-products rule. Only assert "the store has no products" for intents
@@ -200,6 +203,9 @@ function buildSystemPrompt(input: ContextualInput): string {
     if (cp.preferred_size) parts.push(`сүүлд сонгосон размер: ${cp.preferred_size}`)
     if (parts.length > 0) {
       prompt += `\n\nХЭРЭГЛЭГЧИЙН ХЭМЖЭЭ: ${parts.join(', ')}. Размер асуувал энэ мэдээлэлд тулгуурлан зөвлө — дахин жин/өндөр бүү асуу.`
+    }
+    if (cp.preferred_colors && cp.preferred_colors.length > 0) {
+      prompt += `\n\nХЭРЭГЛЭГЧИЙН ДУРТАЙ ӨНГӨ: ${cp.preferred_colors.join(', ')}. Бараа санал болгохдоо энэ өнгийг эхэнд тавь. Гэхдээ хэрэглэгч энэ удаад ӨӨР өнгө нэрлэвэл түүнийг нь дага — маргалдахгүй.`
     }
   }
 
@@ -293,6 +299,11 @@ function buildSystemPrompt(input: ContextualInput): string {
     prompt += `\n- ЧУХАЛ: Хэрэглэгч бараа аль хэдийн сонгосон. "Бараа дугаараа бичнэ үү" эсвэл "Аль нэгийг авмаар байна уу?" гэж ХЭЗЭЭ Ч бүү хэл.`
   }
 
+  // --- Question announcement ("асуулт байна") — invite, don't guess ---
+  if (isQuestionPrompt) {
+    prompt += `\n- Хэрэглэгч асуулт байгаагаа хэлж байна, гэхдээ асуултаа хараахан асуугаагүй. Товч, найрсгаар асуултыг нь урь ("Тийм ээ, сонсож байна! Асуугаарай 😊"). Сэдвийг нь бүү таа, бараа бүү жагсаа.`
+  }
+
   // --- Gift advice (only when gift-related) ---
   if (isGiftQuery) {
     prompt += `
@@ -315,20 +326,7 @@ function buildSystemPrompt(input: ContextualInput): string {
   // --- Color availability guard (prevent hallucination) ---
   // If customer asked for a specific color, check if it exists in variants
   if (input.products.length > 0) {
-    const COLOR_MAP: Record<string, string> = {
-      'улаан': 'улаан', 'улан': 'улаан', 'ulaan': 'улаан', 'red': 'улаан',
-      'бор': 'бор', 'brown': 'бор',
-      'шар': 'шар', 'yellow': 'шар',
-      'хөх': 'хөх', 'хох': 'хөх', 'blue': 'хөх',
-      'нил': 'нил ягаан', 'purple': 'нил ягаан',
-      'ягаан': 'ягаан', 'pink': 'ягаан',
-      'цагаан': 'цагаан', 'white': 'цагаан',
-      'хар': 'хар', 'black': 'хар',
-      'саарал': 'саарал', 'gray': 'саарал', 'grey': 'саарал',
-      'ногоон': 'ногоон', 'green': 'ногоон',
-      'цэнхэр': 'цэнхэр', 'цайвар цэнхэр': 'цайвар цэнхэр',
-      'улбар': 'улбар ягаан', 'orange': 'улбар ягаан',
-    }
+    // Shared with the colour-preference extractor — one vocabulary, no drift.
     const msgLower = input.currentMessage.toLowerCase()
     const allColors = new Set(
       input.products.flatMap(p => (p.variants || []).map(v => v.color?.toLowerCase()).filter(Boolean))

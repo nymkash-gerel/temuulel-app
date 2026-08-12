@@ -7,8 +7,9 @@
 import { classifyIntentWithConfidence, isPurchaseDeferral, IntentResult } from '../intent-classifier'
 import { mlClassify } from './ml-classifier'
 import { bertClassify } from './bert-classifier'
-import { normalizeText } from '../text-normalizer'
+import { normalizeText, neutralizeVowels } from '../text-normalizer'
 import { extractMorphFeatures, deriveMorphIntentSignals, type MorphIntentSignal } from '../morphological-features'
+import { isAnnouncementToken, isBareQuestionAnnouncement } from '../question-announcement'
 
 // ---------------------------------------------------------------------------
 // GPT Fallback Intent Classification
@@ -126,6 +127,14 @@ function demoteDeferredPurchase(message: string, result: IntentResult): IntentRe
   return { intent: 'general', confidence: result.confidence }
 }
 
+// "Асуулт байна" is a customer ANNOUNCING a question, not greeting — but the
+// ML tier learned it as greeting (the trailing "байна" resembles "сайн байна").
+// Measured damage before this guard: "асуулт байна" → greeting 2.00, and worse,
+// "хүргэлтийн талаар асуулт байна" → greeting 2.00 even though the keyword tier
+// had correctly said shipping 1.25 — ML was STEALING real intents whenever the
+// phrase appeared. Detection lives in question-announcement.ts (shared with
+// resolveFollowUp, which must not store "асуулт байна" as a customer name).
+
 function hybridClassifyInner(message: string): IntentResult {
   // Emoji-only messages — handle separately (substring match breaks with emoji bytes)
   const trimmed = message.trim()
@@ -140,6 +149,24 @@ function hybridClassifyInner(message: string): IntentResult {
   // Get both classifications
   const keywordResult = classifyIntentWithConfidence(message)
   const mlResult = mlClassify(message)
+
+  // A bare question announcement ("асуулт байна") short-circuits the rest:
+  // the question hasn't been asked yet, so no tier can know the topic — and the
+  // ML tier would confidently mislabel it as greeting. Confidence 2.0 also
+  // stops hybridClassifyAsync's BERT/GPT tiers from re-promoting it.
+  // A confident keyword hit wins ONLY over verb-form announcements: "танд юу
+  // байна гэж асууя" is built of filler + асууя, but the customer already
+  // ASKED their question (a catalog browse — keyword product_search 2.0).
+  // When the noun АСУУЛТ itself is the subject ("asuult bgaa"), the keyword
+  // tier's 2.0 comes from reading АСУУЛТ as a product noun before an
+  // availability suffix — the announcement wins there.
+  const neutralized = neutralizeVowels(normalizeText(trimmed))
+  if (isBareQuestionAnnouncement(neutralized)) {
+    const hasNounAnnouncement = /(?:^|\s)асуулт/.test(neutralized)
+    if (hasNounAnnouncement || keywordResult.confidence < 2.0) {
+      return { intent: 'question_prompt', confidence: 2.0 }
+    }
+  }
 
   // Morphological analysis — computed up front so a strong negation/complaint signal
   // (e.g. "ирээгүй" = didn't arrive) isn't lost when product-noun keywords score high.
@@ -182,6 +209,22 @@ function hybridClassifyInner(message: string): IntentResult {
     // e.g. "Skims бну?" → "скимс бну" → ML thinks greeting because "бну" ≈ "сн бну"
     // Override to product_search when a non-greeting word precedes the suffix.
     if (mlResult.intent === 'greeting') {
+      // Announcement steal guard — checked FIRST: "хүргэлтийн талаар асуулт
+      // байна" is a question about DELIVERY (the keyword tier already said
+      // shipping 1.25) and ML's greeting must not override it. It also runs
+      // before the availability guard below, which would otherwise read the
+      // word АСУУЛТ itself as a product noun ("sn bnu asuult bna" →
+      // product_search). Returning ≥1.5 keeps hybridClassifyAsync's BERT tier
+      // from re-stealing the result.
+      if (neutralized.split(/\s+/).some(isAnnouncementToken)) {
+        if (keywordResult.intent !== 'greeting' && keywordResult.intent !== 'general'
+          && keywordResult.confidence >= 1.0) {
+          return { intent: keywordResult.intent, confidence: Math.max(keywordResult.confidence, 1.5) }
+        }
+        // Announces a question about something no tier could parse — invite it.
+        return { intent: 'question_prompt', confidence: 1.5 }
+      }
+
       const words = normalized.split(/\s+/)
       const hasAvailabilitySuffix = AVAILABILITY_SUFFIXES.test(normalized)
       // Check that words before the suffix are NOT greeting words (сн, сайн, мэнд, etc.)

@@ -55,6 +55,8 @@ import { isOpenAIConfigured } from '@/lib/ai/openai-client'
 import { calculateDeliveryFee, type StoreShippingSettings } from '@/lib/delivery-fee-calculator'
 import { createQPayInvoice, checkQPayPayment, isQPayConfigured } from '@/lib/qpay'
 
+import { applyColorPreferences, COLOR_PREF_VERTICALS } from '@/lib/color-prefs'
+import { resolveBusinessType } from '@/lib/features'
 import { SupervisorAgent } from '@/lib/agents'
 import type { AgentContext } from '@/lib/agents'
 import { logger } from '@/lib/logger'
@@ -116,6 +118,12 @@ export interface AIProcessingContext {
   storeName: string
   customerId: string | null
   chatbotSettings: ChatbotSettings
+  /**
+   * store.business_type — gates vertical-specific extraction (colour
+   * preferences only run where products have colour variants). Optional so
+   * existing callers keep working; absent means those features stay off.
+   */
+  businessType?: string | null
 }
 
 export interface AIProductCard {
@@ -243,6 +251,7 @@ export async function processAIChat(
     storeName,
     customerId,
     chatbotSettings,
+    businessType,
   } = ctx
 
   // ── SUPERVISOR_MODE=shadow → run both, compare, return old ──
@@ -279,6 +288,17 @@ export async function processAIChat(
       ...(weightMatch ? { weight_kg: parseInt(weightMatch[1]) } : {}),
       ...(heightMatch ? { height_cm: parseInt(heightMatch[1]) } : {}),
       ...(sizeMatch ? { preferred_size: sizeMatch[1].toUpperCase() } : {}),
+    }
+  }
+
+  // ── Extract colour preferences → customer_prefs.preferred_colors ──
+  // Gated to verticals whose products carry colour variants: in a restaurant
+  // "шар айраг" (beer) and "улаан лооль" (tomato) are menu items, not colours.
+  // Rejections ("хар хэрэггүй") remove the colour instead of storing it.
+  if (businessType && COLOR_PREF_VERTICALS.has(resolveBusinessType(businessType))) {
+    const nextColors = applyColorPreferences(customerMessage, state.customer_prefs?.preferred_colors)
+    if (nextColors) {
+      state.customer_prefs = { ...state.customer_prefs, preferred_colors: nextColors }
     }
   }
 
@@ -1210,6 +1230,12 @@ export async function processAIChat(
 
   const nextState = updateState(state, intent, storedProducts, customerMessage)
   nextState.order_draft = orderDraft
+  // "Асуулт байна" mid-checkout: the reply invites the question, so the NEXT
+  // message is that question — pause draft interception for exactly one turn
+  // (updateState never carries the flag forward, so it self-clears).
+  if (intent === 'question_prompt' && orderDraft) {
+    nextState.order_draft_paused = true
+  }
 
   const [savedMessageResult] = await Promise.all([
     supabase

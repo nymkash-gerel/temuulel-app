@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   // Get store with chatbot settings
   const { data: store } = await supabase
     .from('stores')
-    .select('name, ai_auto_reply, chatbot_settings, monthly_message_limit, messages_used, messages_reset_at')
+    .select('name, business_type, ai_auto_reply, chatbot_settings, monthly_message_limit, messages_used, messages_reset_at')
     .eq('id', store_id)
     .single()
 
@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
         storeName,
         customerId,
         chatbotSettings,
+        businessType: store?.business_type,
       })
     } catch (aiErr) {
       console.error('[Widget] processAIChat threw:', aiErr instanceof Error ? aiErr.message : String(aiErr))

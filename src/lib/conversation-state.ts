@@ -10,6 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Json } from '@/lib/database.types'
 import { toJson } from '@/lib/supabase/json'
 import { normalizeText, neutralizeVowels } from './chat-ai'
+import { isBareQuestionAnnouncement } from './question-announcement'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,6 +117,13 @@ export interface ConversationState {
   pending_gift_card_code?: string | null
   /** Customer preferences — persists across conversation turns */
   customer_prefs?: CustomerPreferences | null
+  /**
+   * Set for ONE turn after a mid-checkout "асуулт байна": the customer was
+   * invited to ask, so the NEXT message is their question — resolveFollowUp
+   * must not intercept it as a step answer (it was being stored as the
+   * customer's name). updateState omits the field, clearing it automatically.
+   */
+  order_draft_paused?: boolean
   /** Catalog pagination — current page and query for browse flow */
   catalog_page?: number
   catalog_query?: string
@@ -208,6 +216,7 @@ export async function readState(
     customer_prefs: (state.customer_prefs && typeof state.customer_prefs === 'object' && !Array.isArray(state.customer_prefs))
       ? state.customer_prefs as unknown as CustomerPreferences
       : null,
+    order_draft_paused: state.order_draft_paused === true ? true : undefined,
     catalog_page: typeof state.catalog_page === 'number' ? state.catalog_page : undefined,
     catalog_query: typeof state.catalog_query === 'string' ? state.catalog_query : undefined,
     catalog_total: typeof state.catalog_total === 'number' ? state.catalog_total : undefined,
@@ -514,6 +523,14 @@ export function resolveFollowUp(
   // UNLESS the user sends a greeting/reset signal (allows starting fresh conversation)
   // OR the user sends a high-priority complaint/escalation signal (broken item, refund, operator request)
   if (state.order_draft && !isConversationReset) {
+    // The previous turn was "асуулт байна" and the bot invited the question —
+    // THIS message is that question. Let the classifier route it instead of
+    // storing it as a name/address; the flag clears with this turn's
+    // updateState, so checkout interception resumes on the turn after.
+    if (state.order_draft_paused) {
+      return null
+    }
+
     // Check for complaint/escalation signals that should BREAK OUT of order flow
     const ESCALATION_SIGNALS = [
       'эвдэрсэн', 'эвдэрсан', 'гэмтсэн', 'гэмтсан', 'буруу бараа', 'муу',
@@ -527,6 +544,15 @@ export function resolveFollowUp(
     if (hasEscalation || hasTripleExclamation) {
       // Break out of order flow — let complaint/escalation handler take over
       // Return null so the main handler classifies the intent normally
+      return null
+    }
+
+    // "Асуулт байна" mid-checkout is the customer INTERRUPTING to ask
+    // something — without this exemption the order_step_input path stores the
+    // literal phrase as their name or address. Return null so the classifier
+    // routes it (→ question_prompt, invite the question); the handler keeps
+    // the draft and marks it paused, so checkout resumes afterwards.
+    if (isBareQuestionAnnouncement(neutralizeVowels(normalized))) {
       return null
     }
 
@@ -867,6 +893,9 @@ export function updateState(
     // Cancel request escalates to a human — keep product context so the
     // conversation can resume naturally after staff resolve it.
     'order_cancel_request',
+    // "Асуулт байна" while browsing — the question is ABOUT the products on
+    // screen more often than not; wiping them here would orphan the follow-up.
+    'question_prompt',
   ]
 
   // Intents that fetch/narrow products and should save them to state.
