@@ -140,6 +140,17 @@ export default function ChatPage() {
   }, [storeId, supabase, loadConversations])
 
   // Filter and search conversations
+  // Counted once here rather than inline in the tab array: the tab is hidden
+  // when this is 0, so the value is needed before the array is built.
+  const positiveCount = useMemo(
+    () => conversations.filter((c) => {
+      const msgs = c.messages || []
+      const last = [...msgs].reverse().find(m => m.is_from_customer)
+      return last?.metadata?.sentiment === 'positive'
+    }).length,
+    [conversations]
+  )
+
   const filteredConversations = useMemo(() => {
     let result = conversations
 
@@ -305,6 +316,14 @@ export default function ChatPage() {
                 return last?.metadata?.sentiment === 'negative'
               }).length,
             },
+            // The filter branch for 'positive' already existed below but no tab
+            // ever set it, so it was unreachable. Hidden at zero so stores whose
+            // messages carry no sentiment don't get an always-empty tab.
+            ...(positiveCount > 0 ? [{
+              key: 'positive' as FilterType,
+              label: 'Эерэг',
+              count: positiveCount,
+            }] : []),
           ]).map((f) => (
             <button
               key={f.key}

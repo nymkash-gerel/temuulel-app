@@ -239,6 +239,12 @@ export default function DeliveriesPage() {
     d.status === 'failed' || (d.status === 'delayed' && (!d.estimated_delivery_time || new Date(d.estimated_delivery_time) > nowForCount))
   ).length
   const deniedCount = deliveries.filter(d => d.denial_info !== null && d.status === 'pending').length
+  // Fees from COMPLETED deliveries only — an unfinished delivery has not earned
+  // its fee. Computed over all deliveries, not the filtered view, so the KPI row
+  // stays a store-level figure regardless of the table's filters.
+  const totalDeliveryFee = deliveries
+    .filter(d => d.status === 'delivered' && d.delivery_fee)
+    .reduce((sum, d) => sum + (d.delivery_fee || 0), 0)
 
   // Group at_store deliveries by driver — for bulk confirm buttons
   const atStoreByDriver = useMemo(() => {
@@ -516,7 +522,7 @@ export default function DeliveriesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
           <p className="text-yellow-400 text-sm">Хүлээгдэж буй</p>
           <p className="text-2xl font-bold text-white mt-1">{pendingCount}</p>
@@ -532,6 +538,13 @@ export default function DeliveriesPage() {
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
           <p className="text-red-400 text-sm">Амжилтгүй / Хоцорсон</p>
           <p className="text-2xl font-bold text-white mt-1">{failedCount}</p>
+        </div>
+        {/* Delivery fees earned. The page shows a fee per row and exports the
+            column, but never totalled it — so the page could not answer what
+            delivery actually brought in. */}
+        <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
+          <p className="text-indigo-400 text-sm">Орлого</p>
+          <p className="text-2xl font-bold text-white mt-1">{formatPrice(totalDeliveryFee)}</p>
         </div>
       </div>
 

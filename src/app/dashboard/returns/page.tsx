@@ -66,6 +66,16 @@ export default function ReturnsPage() {
     load()
   }, [supabase, router])
 
+  // Sum of money actually returned to customers. Deliberately over ALL returns,
+  // not `filtered` — the KPI row reports the store's true refund exposure and
+  // must not move when someone types in the search box.
+  const totalRefunded = useMemo(
+    () => returns
+      .filter(r => r.status === 'completed' && r.refund_amount)
+      .reduce((sum, r) => sum + (r.refund_amount || 0), 0),
+    [returns]
+  )
+
   const filtered = useMemo(() => {
     let result = returns
 
@@ -139,7 +149,7 @@ export default function ReturnsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
           <p className="text-yellow-400 text-sm">Хүлээгдэж буй</p>
           <p className="text-2xl font-bold text-white mt-1">
@@ -162,6 +172,14 @@ export default function ReturnsPage() {
           <p className="text-red-400 text-sm">Татгалзсан</p>
           <p className="text-2xl font-bold text-white mt-1">
             {returns.filter(r => r.status === 'rejected').length}
+          </p>
+        </div>
+        {/* Money actually refunded — the four cards above are counts only, so
+            without this the page never answers "how much did returns cost us?" */}
+        <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
+          <p className="text-purple-400 text-sm">Буцаасан дүн</p>
+          <p className="text-2xl font-bold text-white mt-1">
+            {formatPrice(totalRefunded)}
           </p>
         </div>
       </div>

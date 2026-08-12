@@ -30,7 +30,18 @@ export default function DriverChatPage() {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [driverQuery, setDriverQuery] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Stores with a large fleet had no way to reach a driver except scrolling.
+  // Name AND phone, because dispatchers often know only the number.
+  const filteredConversations = useMemo(() => {
+    const q = driverQuery.trim().toLowerCase()
+    if (!q) return conversations
+    return conversations.filter(c =>
+      c.driver_name?.toLowerCase().includes(q) || c.driver_phone?.toLowerCase().includes(q)
+    )
+  }, [conversations, driverQuery])
 
   const refreshConversations = useCallback(async () => {
     const res = await fetch('/api/driver-chat')
@@ -139,14 +150,23 @@ export default function DriverChatPage() {
       <div className="flex gap-4 h-[calc(100vh-200px)] min-h-[500px]">
         {/* Driver List */}
         <div className="w-80 bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-slate-700">
+          <div className="p-4 border-b border-slate-700 space-y-3">
             <h2 className="text-white font-semibold text-sm">Жолоочид</h2>
+            <input
+              type="text"
+              value={driverQuery}
+              onChange={(e) => setDriverQuery(e.target.value)}
+              placeholder="Жолооч хайх..."
+              className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-slate-500"
+            />
           </div>
           <div className="flex-1 overflow-y-auto">
-            {conversations.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-8">Жолооч байхгүй</p>
+            {filteredConversations.length === 0 ? (
+              <p className="text-slate-400 text-sm text-center py-8">
+                {conversations.length > 0 ? 'Хайлтад тохирох жолооч олдсонгүй' : 'Жолооч байхгүй'}
+              </p>
             ) : (
-              conversations.map(conv => (
+              filteredConversations.map(conv => (
                 <button
                   key={conv.driver_id}
                   onClick={() => setSelectedDriver(conv.driver_id)}
@@ -212,8 +232,17 @@ export default function DriverChatPage() {
                         }`}
                       >
                         <p>{msg.message}</p>
-                        <p className={`text-xs mt-1 ${msg.sender_type === 'store' ? 'text-blue-200' : 'text-slate-400'}`}>
+                        <p className={`text-xs mt-1 flex items-center gap-1 ${msg.sender_type === 'store' ? 'text-blue-200' : 'text-slate-400'}`}>
                           {new Date(msg.created_at).toLocaleTimeString('mn-MN', { hour: '2-digit', minute: '2-digit' })}
+                          {/* Only our own messages carry a receipt — read_at on a
+                              driver's message means WE read it, which the store
+                              user already knows. The API always returned this
+                              field; the page just never showed it. */}
+                          {msg.sender_type === 'store' && (
+                            <span title={msg.read_at ? 'Уншсан' : 'Хүргэгдсэн'}>
+                              {msg.read_at ? '✓✓' : '✓'}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>

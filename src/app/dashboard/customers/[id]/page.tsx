@@ -60,6 +60,7 @@ export default function CustomerDetailPage() {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [favoriteProducts, setFavoriteProducts] = useState<{ id: string; name: string; count: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState('')
   const [editing, setEditing] = useState(false)
@@ -97,6 +98,17 @@ export default function CustomerDetailPage() {
         .order('created_at', { ascending: false })
 
       setOrders(ords || [])
+
+      // Most-ordered products. /api/customers/[id]/stats already computed this
+      // (aggregating order_items by product); the page just never asked for it.
+      // Non-critical: a failure here leaves the rest of the page intact.
+      try {
+        const statsRes = await fetch(`/api/customers/${customerId}/stats`)
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          setFavoriteProducts(statsData.favoriteProducts || [])
+        }
+      } catch { /* non-critical */ }
 
       // Load conversations
       const { data: convs } = await supabase
@@ -229,6 +241,25 @@ export default function CustomerDetailPage() {
           <p className="text-2xl font-bold text-white mt-1">{totalMessages}</p>
         </div>
       </div>
+
+      {favoriteProducts.length > 0 && (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">⭐ Хамгийн их захиалсан бүтээгдэхүүн</h3>
+          <div className="space-y-2">
+            {favoriteProducts.map((p, i) => (
+              <div key={p.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${i === 0 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-700 text-slate-400'}`}>
+                    {i + 1}
+                  </span>
+                  <span className="text-white">{p.name}</span>
+                </div>
+                <span className="text-sm text-slate-400">{p.count} ширхэг захиалсан</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
