@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { sendDailyReportEmail, type DailyReportData } from '@/lib/email'
 import { getSupabase } from '@/lib/supabase/service'
 
@@ -11,7 +12,17 @@ import { getSupabase } from '@/lib/supabase/service'
  *
  * Protected by CRON_SECRET to prevent unauthorized invocations.
  */
+/**
+ * Ahead of the auth check, so an unauthenticated caller cannot grind through
+ * bearer tokens. Vercel Cron calls this at most once per scheduled run, so the
+ * ceiling is far above any legitimate traffic.
+ */
+const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
+
 export async function GET(request: NextRequest) {
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   // Verify cron secret (Vercel sets this automatically for cron jobs)
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
