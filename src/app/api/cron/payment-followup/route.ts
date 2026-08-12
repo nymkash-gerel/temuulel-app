@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { createQPayInvoice, isQPayConfigured } from '@/lib/qpay'
 import { getSupabase } from '@/lib/supabase/service'
 
@@ -30,7 +31,17 @@ const REMINDER_MESSAGES: Record<number, string> = {
  *
  * Protected by CRON_SECRET.
  */
+/**
+ * Ahead of the auth check, so an unauthenticated caller cannot grind through
+ * bearer tokens. Vercel Cron calls this at most once per scheduled run, so the
+ * ceiling is far above any legitimate traffic.
+ */
+const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
+
 export async function GET(request: NextRequest) {
+  const rl = await rateLimit(getClientIp(request), RATE_LIMIT)
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
   if (!cronSecret) {
