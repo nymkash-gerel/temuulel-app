@@ -600,6 +600,7 @@ async function handleWebhookEvents(body: Record<string, unknown>): Promise<void>
             storeName: store.name || 'Манай дэлгүүр',
             customerId: customer.id,
             chatbotSettings,
+            businessType: store.business_type,
           })
           console.log('[Messenger] AI completed. Intent:', aiResult.intent, 'Response length:', aiResult.response?.length)
 

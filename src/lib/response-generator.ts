@@ -55,6 +55,11 @@ export function generateResponse(
     case 'thanks':
       return `Баярлалаа! 🙏 Бусад асуулт байвал чөлөөтэй бичээрэй. Бид үргэлж тусалхад бэлэн!`
 
+    // Customer announced a question without asking it ("асуулт байна") —
+    // invite the question instead of greeting or guessing a topic.
+    case 'question_prompt':
+      return `Тийм ээ, сонсож байна! 😊 Асуултаа шууд бичээрэй.`
+
     case 'product_search': {
       if (products.length === 0) {
         let noProductResponse = `😔 **Уучлаарай, таны хайсан бүтээгдэхүүн олдсонгүй.**\n\n`
@@ -346,7 +351,7 @@ export async function generateAIResponse(
   extendedProfile?: string | null,
   latestPurchaseSummary?: string | null,
   resolution?: import('./resolution-engine').ResolutionContext | null,
-  customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string } | null,
+  customerPrefs?: { weight_kg?: number; height_cm?: number; preferred_size?: string; preferred_colors?: string[] } | null,
   qualityMetaOut?: { confidence: number; detectedIssues: string[]; requiresHumanReview: boolean },
   knowledgeEntries?: { question: string; answer: string }[],
   /**
