@@ -14,9 +14,15 @@ on:
         description: 'Type "migrate" to confirm'
         required: true
 
+# The dry-run and the real push are SEPARATE JOBS on purpose: the push jobs
+# run in a GitHub environment with a required reviewer, so the workflow pauses
+# after the dry-run — read its "pending migrations" output in the job log,
+# THEN approve the deployment. Previously both steps ran back-to-back in one
+# job and the dry-run output was never seen before the push happened.
+
 jobs:
-  migrate-staging:
-    name: Push Migrations to Staging
+  dry-run-staging:
+    name: Dry run (staging)
     runs-on: ubuntu-latest
     if: github.event.inputs.confirm == 'migrate' && github.event.inputs.target == 'staging'
 
@@ -32,8 +38,26 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Dry run (show pending migrations)
+      - name: Show pending migrations (review this before approving the push)
         run: supabase db push --dry-run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  push-staging:
+    name: Push migrations to staging (needs approval)
+    runs-on: ubuntu-latest
+    needs: dry-run-staging
+    environment: staging-migrations
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase staging project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
@@ -42,8 +66,8 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-  migrate-production:
-    name: Push Migrations to Production
+  dry-run-production:
+    name: Dry run (production)
     runs-on: ubuntu-latest
     if: github.event.inputs.confirm == 'migrate' && github.event.inputs.target == 'production'
 
@@ -59,8 +83,26 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Dry run (show pending migrations)
+      - name: Show pending migrations (review this before approving the push)
         run: supabase db push --dry-run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  push-production:
+    name: Push migrations to production (needs approval)
+    runs-on: ubuntu-latest
+    needs: dry-run-production
+    environment: production-migrations
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase production project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

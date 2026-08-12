@@ -7,6 +7,27 @@ on:
       - 'supabase/migrations/**'
 
 jobs:
+  # Three parallel sessions once claimed the same migration number in separate
+  # worktrees; nothing caught it until a local replay failed. The pull_request
+  # checkout is the merge ref, so files from main AND the branch are both
+  # present — a branch reusing a number main already merged fails right here.
+  duplicate-numbers:
+    name: No duplicate migration numbers
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail on colliding numeric prefixes
+        run: |
+          DUPES=$(ls supabase/migrations/*.sql | xargs -n1 basename | grep -oE '^[0-9]+' | sort | uniq -d)
+          if [ -n "$DUPES" ]; then
+            echo "::error::Duplicate migration number(s): $(echo $DUPES | tr '\n' ' ')"
+            for n in $DUPES; do ls supabase/migrations/ | grep -E "^${n}_"; done
+            exit 1
+          fi
+          echo "OK: no duplicate migration numbers."
+
   migration-diff:
     name: Post Migration Diff
     runs-on: ubuntu-latest
