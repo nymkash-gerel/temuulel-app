@@ -41,6 +41,15 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({ from: mockFrom }),
 }))
 
+// The real limiter calls Upstash, and CI sets UPSTASH_REDIS_REST_URL to a
+// placeholder host — so each request spent ~4.3s failing DNS/retries before
+// falling back to in-memory, pushing tests against vitest's 5s timeout. These
+// tests exercise auth and business logic, not the limiter, so stub it.
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn(async () => ({ success: true, limit: 100, remaining: 99, resetAt: 0 })),
+  getClientIp: vi.fn(() => '127.0.0.1'),
+}))
+
 vi.mock('@/lib/qpay', () => ({
   isQPayConfigured: () => false,
   createQPayInvoice: vi.fn(),
