@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { exportToFile } from '@/lib/export-utils'
 import { resolveStoreId } from '@/lib/resolve-store'
@@ -45,6 +45,7 @@ export default function DriverPayoutsPage() {
   const [creating, setCreating] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState('')
 
   // Generate form state
   const [genStart, setGenStart] = useState('')
@@ -182,8 +183,17 @@ export default function DriverPayoutsPage() {
     }
   }
 
+  // Declared above the `if (loading)` early return — a useMemo after a
+  // conditional return would break the rules of hooks.
+  const filteredPayouts = useMemo(
+    () => (statusFilter ? payouts.filter(p => p.status === statusFilter) : payouts),
+    [payouts, statusFilter]
+  )
+
   const handleExport = (format: 'xlsx' | 'csv') => {
-    const data = payouts.map(p => ({
+    // Export what the user is looking at — a filtered table that exports
+    // everything is a silent surprise.
+    const data = filteredPayouts.map(p => ({
       'Жолооч': p.delivery_drivers?.name || '',
       'Эхлэх огноо': new Date(p.period_start).toLocaleDateString('mn-MN'),
       'Дуусах огноо': new Date(p.period_end).toLocaleDateString('mn-MN'),
@@ -204,6 +214,10 @@ export default function DriverPayoutsPage() {
 
   const pendingTotal = payouts.filter(p => p.status === 'pending').reduce((s, p) => s + Number(p.total_amount), 0)
   const paidTotal = payouts.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.total_amount), 0)
+  // Approved-but-unpaid is the store's committed liability — distinct from
+  // pending (not yet reviewed) and paid (settled), and previously invisible.
+  const approvedTotal = payouts.filter(p => p.status === 'approved').reduce((s, p) => s + Number(p.total_amount), 0)
+  const totalDeliveries = payouts.reduce((s, p) => s + p.delivery_count, 0)
 
   return (
     <div>
@@ -236,7 +250,7 @@ export default function DriverPayoutsPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
           <p className="text-yellow-400 text-sm">Хүлээгдэж буй</p>
           <p className="text-2xl font-bold text-white mt-1">{formatPrice(pendingTotal)}</p>
@@ -245,6 +259,38 @@ export default function DriverPayoutsPage() {
           <p className="text-green-400 text-sm">Төлсөн (нийт)</p>
           <p className="text-2xl font-bold text-white mt-1">{formatPrice(paidTotal)}</p>
         </div>
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+          <p className="text-blue-400 text-sm">Зөвшөөрсөн</p>
+          <p className="text-2xl font-bold text-white mt-1">{formatPrice(approvedTotal)}</p>
+        </div>
+        <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
+          <p className="text-purple-400 text-sm">Нийт хүргэлт</p>
+          <p className="text-2xl font-bold text-white mt-1">{totalDeliveries}</p>
+        </div>
+      </div>
+
+      {/* Status filter — the page previously had no way to narrow the table. */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-6">
+        <select
+          aria-label="Төлбөрийн төлөвөөр шүүх"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 text-sm focus:outline-none focus:border-slate-500"
+        >
+          <option value="">Бүх төлөв</option>
+          <option value="pending">Хүлээгдэж буй</option>
+          <option value="approved">Зөвшөөрсөн</option>
+          <option value="paid">Төлсөн</option>
+          <option value="cancelled">Цуцлагдсан</option>
+        </select>
+        {statusFilter && (
+          <button
+            onClick={() => setStatusFilter('')}
+            className="px-3 py-2.5 text-slate-400 hover:text-slate-200 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-xl text-sm transition-all"
+          >
+            Шүүлтүүр цэвэрлэх
+          </button>
+        )}
       </div>
 
       {/* Create Form Modal */}
@@ -390,7 +436,7 @@ export default function DriverPayoutsPage() {
       )}
 
       {/* Payouts Table */}
-      {payouts.length > 0 ? (
+      {filteredPayouts.length > 0 ? (
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-x-auto">
           <table className="w-full min-w-[800px]">
             <thead>
@@ -404,7 +450,7 @@ export default function DriverPayoutsPage() {
               </tr>
             </thead>
             <tbody>
-              {payouts.map(p => {
+              {filteredPayouts.map(p => {
                 const sc = STATUS_CONFIG[p.status] || STATUS_CONFIG.pending
                 return (
                   <tr key={p.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-all">
@@ -472,6 +518,16 @@ export default function DriverPayoutsPage() {
               })}
             </tbody>
           </table>
+        </div>
+      ) : payouts.length > 0 ? (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-12 text-center">
+          <p className="text-slate-400">Шүүлтүүрт тохирох төлбөр олдсонгүй</p>
+          <button
+            onClick={() => setStatusFilter('')}
+            className="mt-4 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 text-slate-300 rounded-xl text-sm transition-all"
+          >
+            Шүүлтүүр цэвэрлэх
+          </button>
         </div>
       ) : (
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-12 text-center">

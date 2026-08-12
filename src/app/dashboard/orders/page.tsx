@@ -341,6 +341,14 @@ export default function OrdersPage() {
 
   const getStatusLabel = (s: string) => STATUS_CONFIG[s]?.label ?? s
 
+  // Revenue across all non-cancelled orders. Not derived from filteredOrders —
+  // the KPI row is a store-level figure and must not shift when the table is
+  // filtered or searched.
+  const totalRevenue = useMemo(
+    () => orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + o.total_amount, 0),
+    [orders]
+  )
+
   const filteredOrders = useMemo(() => {
     let r = orders
     if (search.trim()) {
@@ -416,12 +424,15 @@ export default function OrdersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         {[
           { label: 'Хүлээгдэж буй', count: orders.filter(o => o.status === 'pending').length,                            bg: 'bg-yellow-500/10 border-yellow-500/20', text: 'text-yellow-400' },
           { label: 'Боловсруулж буй', count: orders.filter(o => ['confirmed','processing'].includes(o.status)).length,   bg: 'bg-blue-500/10 border-blue-500/20',   text: 'text-blue-400' },
           { label: 'Илгээсэн',       count: orders.filter(o => o.status === 'shipped').length,                           bg: 'bg-cyan-500/10 border-cyan-500/20',   text: 'text-cyan-400' },
           { label: 'Хүргэсэн',       count: orders.filter(o => o.status === 'delivered').length,                         bg: 'bg-green-500/10 border-green-500/20', text: 'text-green-400' },
+          // Only money figure on the page — the header shows order COUNT, and
+          // per-card totals are single orders. Cancelled orders are excluded.
+          { label: 'Нийт орлого',    count: formatPrice(totalRevenue),                                                   bg: 'bg-purple-500/10 border-purple-500/20', text: 'text-purple-400' },
         ].map(s => (
           <div key={s.label} className={`border rounded-xl p-3 ${s.bg}`}>
             <p className={`text-sm ${s.text}`}>{s.label}</p>
