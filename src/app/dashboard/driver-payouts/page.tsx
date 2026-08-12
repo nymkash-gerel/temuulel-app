@@ -272,6 +272,7 @@ export default function DriverPayoutsPage() {
       {/* Status filter — the page previously had no way to narrow the table. */}
       <div className="flex flex-col sm:flex-row gap-2 mb-6">
         <select
+          aria-label="Төлбөрийн төлөвөөр шүүх"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="px-3 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 text-sm focus:outline-none focus:border-slate-500"

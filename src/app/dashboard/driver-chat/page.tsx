@@ -102,6 +102,22 @@ export default function DriverChatPage() {
           refreshConversations()
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          // The driver marking a message read is an UPDATE, not an INSERT.
+          // Without this the ✓ → ✓✓ receipt would never change until the page
+          // was reloaded or the conversation reselected.
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'driver_messages',
+          filter: `driver_id=eq.${selectedDriver}`,
+        },
+        (payload) => {
+          const updated = payload.new as Message
+          setMessages(prev => prev.map(m => (m.id === updated.id ? { ...m, ...updated } : m)))
+        }
+      )
       .subscribe()
 
     return () => {

@@ -70,6 +70,12 @@ export default function CustomerDetailPage() {
   const [editAddress, setEditAddress] = useState('')
 
   useEffect(() => {
+    // Guards against showing one customer's data on another's page: clear the
+    // previous customer's products immediately, and drop any response that
+    // lands after the id changed (a slow request for A must not overwrite B).
+    let cancelled = false
+    setFavoriteProducts([])
+
     async function load() {
       // Load customer
       const { data: cust } = await supabase
@@ -106,7 +112,7 @@ export default function CustomerDetailPage() {
         const statsRes = await fetch(`/api/customers/${customerId}/stats`)
         if (statsRes.ok) {
           const statsData = await statsRes.json()
-          setFavoriteProducts(statsData.favoriteProducts || [])
+          if (!cancelled) setFavoriteProducts(statsData.favoriteProducts || [])
         }
       } catch { /* non-critical */ }
 
@@ -123,6 +129,7 @@ export default function CustomerDetailPage() {
       setLoading(false)
     }
     load()
+    return () => { cancelled = true }
   }, [customerId, supabase, router])
 
   async function saveNotes() {

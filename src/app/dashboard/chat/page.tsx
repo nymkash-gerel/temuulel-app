@@ -32,6 +32,30 @@ interface Conversation {
 
 type FilterType = 'all' | 'unanswered' | 'ai' | 'escalated' | 'positive' | 'negative'
 
+type ConversationMessage = Conversation['messages'][number]
+
+/**
+ * Newest customer message by created_at.
+ *
+ * The `.order()` on the conversations query applies to the OUTER rows, not to
+ * the embedded `messages(...)` selection, so the nested array has no guaranteed
+ * order — taking the last array element could pick an older message. All
+ * sentiment reads go through here so the three call sites cannot drift.
+ */
+function latestCustomerMessage(msgs: ConversationMessage[]): ConversationMessage | undefined {
+  let latest: ConversationMessage | undefined
+  for (const m of msgs) {
+    if (!m.is_from_customer) continue
+    if (!latest || m.created_at > latest.created_at) latest = m
+  }
+  return latest
+}
+
+/** Sentiment of the customer's most recent message, if it carries one. */
+function latestSentiment(msgs: ConversationMessage[] | null | undefined): unknown {
+  return latestCustomerMessage(msgs || [])?.metadata?.sentiment
+}
+
 const LEVEL_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   critical: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Маш яаралтай' },
   high: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Яаралтай' },
@@ -143,13 +167,16 @@ export default function ChatPage() {
   // Counted once here rather than inline in the tab array: the tab is hidden
   // when this is 0, so the value is needed before the array is built.
   const positiveCount = useMemo(
-    () => conversations.filter((c) => {
-      const msgs = c.messages || []
-      const last = [...msgs].reverse().find(m => m.is_from_customer)
-      return last?.metadata?.sentiment === 'positive'
-    }).length,
+    () => conversations.filter((c) => latestSentiment(c.messages) === 'positive').length,
     [conversations]
   )
+
+  // The Эерэг tab hides at zero. If a realtime refresh drops the last positive
+  // conversation while that filter is active, the user would be left staring at
+  // an empty list with no visible control to clear — so fall back to Бүгд.
+  useEffect(() => {
+    if (filter === 'positive' && positiveCount === 0) setFilter('all')
+  }, [filter, positiveCount])
 
   const filteredConversations = useMemo(() => {
     let result = conversations
@@ -182,11 +209,7 @@ export default function ChatPage() {
         conv.escalation_level === 'high' || conv.escalation_level === 'critical'
       )
     } else if (filter === 'positive' || filter === 'negative') {
-      result = result.filter((conv) => {
-        const msgs = conv.messages || []
-        const lastCustomer = [...msgs].reverse().find(m => m.is_from_customer)
-        return lastCustomer?.metadata?.sentiment === filter
-      })
+      result = result.filter((conv) => latestSentiment(conv.messages) === filter)
     }
 
     // Sort escalated conversations to top
@@ -310,11 +333,7 @@ export default function ChatPage() {
             {
               key: 'negative' as FilterType,
               label: 'Сөрөг',
-              count: conversations.filter((c) => {
-                const msgs = c.messages || []
-                const last = [...msgs].reverse().find(m => m.is_from_customer)
-                return last?.metadata?.sentiment === 'negative'
-              }).length,
+              count: conversations.filter((c) => latestSentiment(c.messages) === 'negative').length,
             },
             // The filter branch for 'positive' already existed below but no tab
             // ever set it, so it was unreachable. Hidden at zero so stores whose
