@@ -116,7 +116,10 @@ async function checkCronFailClosed() {
     try {
       const res = await get(`/api/cron/${r}`)
       if (res.status === 401) pass(`/api/cron/${r}`, '401 unauthenticated')
-      else if (res.status === 429) warn(`/api/cron/${r}`, '429 rate limited — rerun in a minute to confirm auth')
+      // 429 means the limiter answered before the auth check, so this run
+      // proved nothing about whether the route rejects an unauthenticated
+      // caller. Inconclusive is not the same as safe — fail and rerun.
+      else if (res.status === 429) note(`/api/cron/${r}`, '429 rate limited — INCONCLUSIVE, rerun in a minute')
       else if (res.status === 500) note(`/api/cron/${r}`, '500 — CRON_SECRET is not set in this environment')
       else note(`/api/cron/${r}`, `expected 401, got ${res.status} — the route may be UNPROTECTED`)
     } catch (e) {
@@ -185,15 +188,22 @@ async function checkSecurityHeaders() {
     'x-content-type-options': 'nosniff',
     'x-frame-options': 'DENY',
     'referrer-policy': 'strict-origin-when-cross-origin',
-    'strict-transport-security': null, // presence is enough; max-age varies
+    'strict-transport-security': null, // checked separately — max-age must be > 0
     'content-security-policy': null,
     'permissions-policy': null,
   }
   for (const [header, want] of Object.entries(expected)) {
     const got = res.headers.get(header)
-    if (!got) fail(header, 'missing')
-    else if (want && got !== want) fail(header, `expected "${want}", got "${got}"`)
-    else pass(header, got.length > 48 ? got.slice(0, 48) + '…' : got)
+    if (!got) { fail(header, 'missing'); continue }
+    if (want && got !== want) { fail(header, `expected "${want}", got "${got}"`); continue }
+    // A present HSTS header still disables HSTS when max-age is 0, so presence
+    // alone is not the assertion worth making.
+    if (header === 'strict-transport-security') {
+      const maxAge = Number(/max-age=(\d+)/i.exec(got)?.[1])
+      if (!Number.isFinite(maxAge)) { fail(header, `no max-age directive: "${got}"`); continue }
+      if (maxAge === 0) { fail(header, 'max-age=0 — HSTS is DISABLED'); continue }
+    }
+    pass(header, got.length > 48 ? got.slice(0, 48) + '…' : got)
   }
 }
 
@@ -213,13 +223,28 @@ async function checkTenantIsolation() {
       const res = await fetch(`${url.replace(/\/$/, '')}/rest/v1/${t}?select=id&limit=1`, {
         headers: { apikey: key, Authorization: `Bearer ${key}` },
       })
-      const body = await res.json()
-      if (Array.isArray(body) && body.length === 0) {
-        pass(`anon read ${t}`, 'empty — RLS holding')
-      } else if (Array.isArray(body) && body.length > 0) {
-        fail(`anon read ${t}`, `RETURNED ${body.length} ROW(S) — tenant data is publicly readable`)
+      const body = await res.json().catch(() => null)
+
+      if (res.ok && Array.isArray(body)) {
+        if (body.length === 0) pass(`anon read ${t}`, 'empty — RLS holding')
+        else fail(`anon read ${t}`, `RETURNED ${body.length} ROW(S) — tenant data is publicly readable`)
+        continue
+      }
+
+      // A rejection only counts if RLS/permissions did the rejecting. A bad key
+      // or a missing table means the request never reached the policy, so this
+      // check proved nothing about isolation — that is a failure, not a pass.
+      const code = body?.code || ''
+      const msg = String(body?.message || body?.msg || '')
+      const inconclusive =
+        res.status === 401 || res.status === 403 ||
+        /api ?key|jwt|token/i.test(msg) ||
+        code === '42P01' // undefined_table — wrong project or wrong name
+      if (inconclusive) {
+        fail(`anon read ${t}`, `INCONCLUSIVE (${res.status}${code ? ' ' + code : ''}) ${msg} — the key never reached RLS`)
       } else {
-        pass(`anon read ${t}`, `rejected (${body.code || res.status})`)
+        // e.g. 42501 insufficient_privilege: the policy itself refused.
+        pass(`anon read ${t}`, `rejected by the database (${code || res.status})`)
       }
     } catch (e) {
       fail(`anon read ${t}`, String(e.message || e))
