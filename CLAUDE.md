@@ -105,12 +105,12 @@ Every table has a `store_id` column. Supabase RLS policies enforce that each sto
 - API: http://127.0.0.1:54321
 - DB: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 
-**Migrations:** `supabase/migrations/001_initial_schema.sql` through `045_*.sql`
+**Migrations:** `supabase/migrations/001_initial_schema.sql` through `080_*.sql`
 
-**Next migration number to use:** `046_*.sql`
+**Next migration number to use:** `081_*.sql`
 
 **Pattern for new migrations:**
-1. Create `supabase/migrations/046_description.sql`
+1. Create `supabase/migrations/081_description.sql`
 2. Add types to `src/lib/database.types.ts`
 3. Add Zod schemas to `src/lib/validations.ts`
 4. Create API routes: `src/app/api/{resource}/route.ts` + `[id]/route.ts`
@@ -188,7 +188,10 @@ Progress tracker: `TODOLIST.md`
 ## What Needs Production Setup (External Credentials Required)
 
 - Vercel production deployment (env vars + domain)
-- Production Supabase project (apply migrations 025-045)
+- Production Supabase project — a FRESH one, then apply migrations 001-080 via the
+  gated `Deploy Migrations` workflow. See `docs/CUTOVER-RUNBOOK.md`; never push at the
+  old paused cloud project (it has the schema but no migration history, so the CLI
+  restarts at 001 and 46 of 79 fail).
 - Facebook/Instagram OAuth live app approval
 - Telegram bot live testing
 - Database backup verification
