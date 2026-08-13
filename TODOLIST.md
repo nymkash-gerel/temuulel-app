@@ -1,7 +1,16 @@
 # Temuulel Platform - Master Progress Tracker (0-100%)
 
-**Last Updated:** 2026-03-24
-**Build:** Passing | **Tests:** 3446/3446 passing (102 files) | **Migrations:** 47 files (001-047) | **API Routes:** 275 | **Dashboard Pages:** 216 | **Detail Pages:** 80
+**Last Updated:** 2026-08-12
+**Build:** Passing | **Tests:** 3,889 passing (128 files) | **Migrations:** 80 files (001-080) | **API Routes:** 331 | **Dashboard Pages:** 232 | **Detail Pages:** 78
+
+> **Status:** code-side work has no known blockers left. The remaining work is the
+> production cutover, which is gated on external accounts and credentials.
+> Follow **[docs/CUTOVER-RUNBOOK.md](docs/CUTOVER-RUNBOOK.md)** for the ordered
+> sequence, and `docs/LAUNCH_SETUP.md` for the account signups.
+>
+> The per-phase checklists below are a historical build record; the counts in
+> them predate the 2026-08 cleanup (206 unreachable client components deleted,
+> −78,135 lines) and are not maintained line by line.
 
 ---
 

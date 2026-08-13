@@ -105,9 +105,9 @@ Every table has a `store_id` column. Supabase RLS policies enforce that each sto
 - API: http://127.0.0.1:54321
 - DB: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 
-**Migrations:** `supabase/migrations/001_initial_schema.sql` through `045_*.sql`
+**Migrations:** `supabase/migrations/001_initial_schema.sql` through `080_*.sql`
 
-**Next migration number to use:** `046_*.sql`
+**Next migration number to use:** `081_*.sql`
 
 **Pattern for new migrations:**
 1. Create `supabase/migrations/046_description.sql`
