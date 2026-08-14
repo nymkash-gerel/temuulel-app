@@ -11,20 +11,34 @@ sequence for the day itself. `docs/LAUNCH_SETUP.md` lists the account signups.
 
 ---
 
-## Phase 1 — Fresh Supabase project
+## Phase 1 — Point at the right project
 
-> **Do not push migrations at the old cloud project.** It has the schema but no
-> `supabase_migrations.schema_migrations` history, so the CLI starts at `001`
-> and fails immediately with `relation "users" already exists`. Measured: 46 of
-> 79 migrations fail that way. Create a new project.
+There is already a production project with a **tracked migration history**:
 
-1. Create a new Supabase project. Region: closest to Mongolia.
-2. **Turn on PITR immediately.** It only protects from the moment it is enabled,
-   and Phase 5 is the last point where a restore is still cheap.
-3. Copy the project ref into the GitHub secret `SUPABASE_PROJECT_REF`, and
-   `SUPABASE_ACCESS_TOKEN` if it is not already set.
+| ref | name | status | region |
+|---|---|---|---|
+| `nplzzjqainveqcuohsjo` | **temuulel-prod** | ACTIVE_HEALTHY | ap-southeast-1 (Singapore) |
+| `yglemwhbvhupoqniyxog` | nymkash@gmail.com's Project | INACTIVE (paused) | ap-south-1 |
 
-**Gate:** project exists, PITR on, both secrets set.
+`temuulel-prod` reports **001–071 applied, 072–080 pending**, and Vercel prod
+already points at it. So there is nothing to create and no secret to rotate —
+`supabase db push` will apply exactly the 9 outstanding migrations.
+
+> **The old project is not a fallback.** It has a schema but no
+> `supabase_migrations.schema_migrations` history, so a push there restarts at
+> `001` and fails immediately (measured: 46 of 79). It is also paused, which is
+> why its hostname returns NXDOMAIN rather than an error page.
+
+1. **Check `SUPABASE_PROJECT_REF`.** It was last set 2026-02-02, *before*
+   temuulel-prod existed (2026-03-28), so it almost certainly still points at
+   the old project. Set it to `nplzzjqainveqcuohsjo` before running anything.
+   GitHub does not let you read a secret back — overwrite it rather than
+   guessing.
+2. **Turn on PITR** on temuulel-prod. It only protects from the moment it is
+   enabled, and this is the last point where a restore is still cheap.
+3. Confirm `SUPABASE_ACCESS_TOKEN` is still valid (also set 2026-02-03).
+
+**Gate:** `SUPABASE_PROJECT_REF` = `nplzzjqainveqcuohsjo`, PITR on.
 
 ---
 
@@ -33,39 +47,52 @@ sequence for the day itself. `docs/LAUNCH_SETUP.md` lists the account signups.
 Run **Actions → Deploy Migrations** → target `production` → confirm `migrate`.
 
 The workflow runs a dry-run and then **pauses** on the `production-migrations`
-environment. Open the dry-run job log and read what is about to be applied
-*before* approving the deployment.
+environment. Open the dry-run job log and confirm it lists exactly these nine
+before approving:
 
-```bash
-# after the push completes, verify against the new project:
-#   79 migrations applied, 167 tables, RLS on all of them
-select count(*) from supabase_migrations.schema_migrations;          -- 80
-select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
-  where n.nspname='public' and c.relkind='r';                        -- 167
-select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
-  where n.nspname='public' and c.relkind='r' and not c.relrowsecurity; -- 0
+```
+072_fix_pending_invites_rls          076_restrict_driver_ratings_insert
+073_atomic_stock_decrement           077_reviews_table
+074_customer_order_stats             078_backfill_untracked_tables
+075_churn_order_aggregates           079_stripe_store_subscriptions
+                                     080_referrals_user_sessions_write_policies
 ```
 
-**If it fails on a storage policy** — that is the one failure this was never able
-to be rehearsed locally, because local `postgres` is a superuser and the
-ownership check never fires. `storage.objects` is owned by
-`supabase_storage_admin`. The 6 policies are wrapped in
-`EXCEPTION WHEN insufficient_privilege` blocks (migrations `001` and `023`) so
-the push should skip them with a NOTICE rather than abort. If it aborts anyway,
-create those 6 policies by hand in **Dashboard → Storage → Policies** and re-run.
+If it lists more than nine — especially if it starts at `001` — **stop**: the
+ref is still pointing at the old project.
 
-**Gate:** 80 rows in `schema_migrations`, 167 tables, 0 tables without RLS.
+Only `077` and `078` create tables (1 + 5). Verified against the live project
+over PostgREST: 161 of the 167 migration-defined tables already exist, and the
+6 missing are exactly what those two create.
 
-**Rollback:** delete the project and start Phase 1 again. There is no data yet,
-so this is cheaper and safer than repairing a half-applied schema.
+```sql
+-- after the push
+select count(*) from supabase_migrations.schema_migrations;            -- 80
+select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+  where n.nspname='public' and c.relkind='r';                          -- 167
+select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+  where n.nspname='public' and c.relkind='r' and not c.relrowsecurity;  -- 0
+```
+
+**The storage-policy risk does not apply to this push.** Migrations `001` and
+`023` — the only ones that touch `storage.*` — are already applied, and none of
+072–080 go near it. That was the one thing a local rehearsal could not prove,
+and it is now out of the path.
+
+**Gate:** 80 rows in `schema_migrations`, 167 tables, 0 without RLS.
+
+**Rollback:** PITR restore to just before the push. Deleting and recreating the
+project is *not* an option here — unlike a fresh project, this one may already
+hold data.
 
 ---
 
 ## Phase 3 — Vercel environment
 
-Set the variables, then deploy. The app validates on boot
-(`instrumentation.ts` → `checkEnvOnBoot`) and **exits fatally in production** if
-any of these five are missing:
+Most of this is already done — Vercel prod points at `temuulel-prod` and the
+Supabase trio is set. What follows is the checklist to confirm, not a blank
+slate. The app validates on boot (`instrumentation.ts` → `checkEnvOnBoot`) and
+**exits fatally in production** if any of these five are missing:
 
 | Variable | Missing means |
 |---|---|
@@ -86,6 +113,12 @@ These are optional, but each silently disables a feature — decide deliberately
 
 > `NEXT_PUBLIC_*` values are inlined into the bundle at **build** time. After
 > adding one you must **redeploy** — restarting the deployment does not pick it up.
+
+Known outstanding as of the last audit (`docs/LAUNCH_SETUP.md`, 2026-04-23):
+`RESEND_API_KEY` is set but **invalid** (Resend returns `400 "API key is
+invalid"`), and `UPSTASH_REDIS_REST_URL` / `_TOKEN` and the QPay pair are not
+set at all. `CRON_SECRET` and `NEXT_PUBLIC_APP_URL` do not appear in that
+audit's verified list either — both are required, so check them explicitly.
 
 **Gate:** deployment succeeds and the runtime log contains no `[env] FATAL`.
 
