@@ -9,6 +9,25 @@ sequence for the day itself. `docs/LAUNCH_SETUP.md` lists the account signups.
 
 **Prerequisite:** `main` is green — `npm test`, `npm run build`, and CI all pass.
 
+> ## Status — phases 1-4 done, phase 5 partially, 2026-08-14
+>
+> `temuulel.com` is live against `temuulel-prod` and phase 5's **automated**
+> half passes: `scripts/smoke-production.mjs` exits 0 with no warnings.
+> Phase 5's gate also requires one end-to-end order, and **that manual pass has
+> not been done** — so phase 5 is not complete. Verified so far:
+> **80/80 migrations applied**, **167 public tables**, all four cron routes
+> return 401 unauthenticated, the Messenger verify handshake rejects a wrong
+> token, every security header survives the CDN, and the anon key reads back
+> **empty** from `orders`, `customers`, `messages`, `conversations` and
+> `stores`.
+>
+> What remains: **the phase 5 manual pass** (register a store → Messenger
+> message → AI reply → order → payment), Meta app review, and QPay live
+> credentials.
+>
+> Keep the phases below — they are the procedure for the next environment
+> (staging, or a rebuild), and the gates are what made each step checkable.
+
 ---
 
 ## Phase 1 — Point at the right project
@@ -36,9 +55,24 @@ already points at it. So there is nothing to create and no secret to rotate —
    guessing.
 2. **Turn on PITR** on temuulel-prod. It only protects from the moment it is
    enabled, and this is the last point where a restore is still cheap.
-3. Confirm `SUPABASE_ACCESS_TOKEN` is still valid (also set 2026-02-03).
+3. **Validate `SUPABASE_ACCESS_TOKEN`**, don't just eyeball it. It is an
+   account-level PAT from <https://supabase.com/dashboard/account/tokens>, and
+   the workflow uses it for both `link` and the dry run. Check it before
+   starting Phase 2 rather than discovering it there:
 
-**Gate:** `SUPABASE_PROJECT_REF` = `nplzzjqainveqcuohsjo`, PITR on.
+   ```bash
+   read -rs SUPABASE_ACCESS_TOKEN && export SUPABASE_ACCESS_TOKEN
+   supabase projects list
+   unset SUPABASE_ACCESS_TOKEN
+   ```
+
+   Run the first line, paste the token, press Enter — `-s` keeps it out of the
+   terminal and out of shell history. `temuulel-prod` should appear in the
+   output; an invalid token errors here rather than mid-Phase-2.
+
+**Gate:** `SUPABASE_PROJECT_REF` = `nplzzjqainveqcuohsjo` (the bare 20-char
+ref — a full `https://…supabase.co` URL fails linking with "Invalid project ref
+format"), `SUPABASE_ACCESS_TOKEN` validated, PITR on.
 
 ---
 
@@ -50,7 +84,7 @@ The workflow runs a dry-run and then **pauses** on the `production-migrations`
 environment. Open the dry-run job log and confirm it lists exactly these nine
 before approving:
 
-```
+```text
 072_fix_pending_invites_rls          076_restrict_driver_ratings_insert
 073_atomic_stock_decrement           077_reviews_table
 074_customer_order_stats             078_backfill_untracked_tables
@@ -120,7 +154,16 @@ invalid"`), and `UPSTASH_REDIS_REST_URL` / `_TOKEN` and the QPay pair are not
 set at all. `CRON_SECRET` and `NEXT_PUBLIC_APP_URL` do not appear in that
 audit's verified list either — both are required, so check them explicitly.
 
-**Gate:** deployment succeeds and the runtime log contains no `[env] FATAL`.
+`NEXT_PUBLIC_APP_URL` deserves particular care: boot fails when it is missing
+**or not an absolute `http(s)` URL** (`src/lib/env.ts` validates the form, not
+just presence). If the final domain is not attached yet, set it to the current
+production origin so the deploy boots, then update it to the real domain and
+**redeploy** in Phase 4 — before registering any callback, since every webhook
+URL is derived from it.
+
+**Gate:** deployment succeeds, the runtime log contains no `[env] FATAL`, and
+`NEXT_PUBLIC_APP_URL` is an absolute URL pointing at the origin you are about
+to register webhooks against.
 
 **Rollback:** promote the previous Vercel deployment. The database is untouched.
 
