@@ -25,36 +25,30 @@ everything a reviewer needs to reach is reachable.
 
 ## Blockers — do these first
 
-### 1. Resolve the permission-list discrepancy
+> Two of the three are now cleared. What is left is the test assets and the
+> videos — both hands-on, neither blocked by anyone else.
 
-The code requests **seven** scopes; the write-ups cover six, and one is
-described as conditional when it is not. From
-`src/app/api/auth/facebook/route.ts:62-71`:
+### ~~1. Permission-list discrepancy~~ — RESOLVED 2026-08-14
 
-```text
-pages_show_list          <- requested ALWAYS, no use-case write-up exists
-pages_messaging          <- documented
-pages_read_engagement    <- requested ALWAYS, but documented as "only if requested"
-pages_manage_metadata    <- documented
-business_management      <- documented
-instagram_manage_messages <- documented (added only when channel=instagram)
-instagram_basic          <- documented (added only when channel=instagram)
-```
+The code requests **seven** scopes
+(`src/app/api/auth/facebook/route.ts:62-71`); the write-ups covered six, and
+one was marked conditional when it is not. Both fixed:
 
-Meta wants a use case for every permission the app requests. Before submitting:
+- `pages_show_list` now has a use case (§7). It backs the Page picker —
+  `GET /me/accounts` at `callback/route.ts:179` — and is requested on every
+  connect.
+- `pages_read_engagement` is no longer headed "only if requested". The code
+  requests it unconditionally, so it will always be reviewed and needs its own
+  **Video 6**.
 
-- [ ] Write a `pages_show_list` use case, or drop it from the scope list if the
-      page picker can work without it. The code comment says it is needed "to
-      list ALL pages the user manages".
-- [ ] Change the `pages_read_engagement` heading in `PERMISSION_USE_CASES.md`
-      from "only if requested" — it is always requested, so it will always be
-      reviewed.
+All seven now have a use case: `pages_messaging`, `pages_manage_metadata`,
+`business_management`, `instagram_basic`, `instagram_manage_messages`,
+`pages_read_engagement`, `pages_show_list`.
 
-### 2. Business Verification
+### ~~2. Business Verification~~ — APPROVED 2026-08-14
 
-- [ ] Confirm Business Verification is **complete** in Meta Business Manager,
-      not just submitted. Advanced access to page/messaging permissions depends
-      on it, and it is the slowest step — start it first if it is not done.
+Confirmed approved in Meta Business Manager. This was the slowest dependency;
+advanced access to the page/messaging permissions is no longer blocked on it.
 
 ### 3. Test assets the reviewer will use
 
@@ -71,7 +65,7 @@ The reviewer must be able to reproduce every claim without you.
 
 ---
 
-## Screencasts — 5 videos
+## Screencasts — 6 videos
 
 Scripts are in `SCREENCASTS.md`. 1080p, screen + narration in English, uploaded
 unlisted (Loom / YouTube), URLs pasted into the submission.
@@ -86,6 +80,10 @@ unlisted (Loom / YouTube), URLs pasted into the submission.
       `instagram_*` scopes
 - [ ] **5. Data deletion** (1:00) — removing the app from Facebook settings,
       then showing the data is gone
+- [ ] **6. Comment auto-reply** — `pages_read_engagement`. Not in
+      `SCREENCASTS.md` yet; the testing steps in `PERMISSION_USE_CASES.md` §6
+      are the script (create a comment rule → post a matching comment → the
+      commenter receives a DM)
 
 Two things worth doing in every video: show the **URL bar** so the reviewer can
 see it is the live domain, and narrate what permission each step exercises.
@@ -125,4 +123,4 @@ Meta's rejections usually name a permission and say the use case or video did
 not demonstrate it. The common causes here would be: the OAuth consent screen
 not visible in video 2, the reviewer's test user unable to reach a working
 store, or a permission requested in code but not justified in the submission —
-which is exactly what the discrepancy in blocker 1 would cause.
+the class of problem blocker 1 was.

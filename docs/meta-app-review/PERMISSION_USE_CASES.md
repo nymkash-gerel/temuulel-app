@@ -152,7 +152,7 @@ Video 4 — Instagram DM Handling (0:30–1:30)
 
 ---
 
-## 6. `pages_read_engagement` (only if requested)
+## 6. `pages_read_engagement`
 
 ### Use case description
 
@@ -172,7 +172,11 @@ Video 4 — Instagram DM Handling (0:30–1:30)
    them to a chat.
 
 ### Screencast
-Not in the 5 main videos. Record as Video 6 if this permission is requested.
+Not in the 5 main videos — record as **Video 6**.
+
+> This permission is requested on **every** connect
+> (`src/app/api/auth/facebook/route.ts:62-68`), not conditionally, so it will
+> always be reviewed and always needs a video.
 
 ---
 
@@ -235,3 +239,40 @@ Test customer account (for demonstrating message flow):
 - **Submit permissions one-by-one if unsure.** You can request `pages_messaging` first, get approved, then add Instagram in a second submission. Reduces risk of a single permission issue blocking everything.
 - **Keep videos under 2 min each.** Reviewers often skim. Front-load the most important action in the first 30 seconds.
 - **Don't obscure audio with music.** Clear narration is critical.
+
+---
+
+## 7. `pages_show_list`
+
+### Use case description
+
+> We use `pages_show_list` to show the business owner which Facebook Pages they
+> administer, so they can choose the one to connect to their Temuulel store.
+> During onboarding we call `GET /me/accounts` once and render the returned
+> Pages as a picker. The owner selects exactly one; we store only that Page's
+> id, name and access token. We do not read Page content, and we do not act on
+> any Page the owner did not select.
+
+### Testing instructions
+
+1. Log into Temuulel with the demo account.
+2. Go to **Settings → Integrations → Facebook** and click "Connect Facebook".
+3. Grant the requested permissions on the Facebook consent screen.
+4. Observe that Temuulel now lists the Pages the test user administers. That
+   list is the only thing this permission produces.
+5. Pick one Page. Only the selected Page is stored and subscribed — the others
+   are discarded.
+
+### Screencast
+Video 2 — Facebook Page Connection (the page-picker step, immediately after the
+consent screen)
+
+---
+
+## Note on the Business Manager path
+
+`business_management` and `pages_show_list` cover two different sources for the
+same picker. `GET /me/accounts` returns Pages the person administers directly;
+`/{business-id}/owned_pages` and `/{business-id}/client_pages` return Pages held
+in a Business Manager, which is how most established Mongolian businesses hold
+theirs. Both feed one list, and the owner still selects a single Page.
