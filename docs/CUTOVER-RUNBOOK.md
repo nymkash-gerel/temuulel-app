@@ -9,17 +9,19 @@ sequence for the day itself. `docs/LAUNCH_SETUP.md` lists the account signups.
 
 **Prerequisite:** `main` is green — `npm test`, `npm run build`, and CI all pass.
 
-> ## Status — phases 1-5 completed 2026-08-14
+> ## Status — phases 1-4 done, phase 5 partially, 2026-08-14
 >
-> `temuulel.com` is live against `temuulel-prod` and
-> `scripts/smoke-production.mjs` passes with no warnings. Verified at the time:
+> `temuulel.com` is live against `temuulel-prod` and phase 5's **automated**
+> half passes: `scripts/smoke-production.mjs` exits 0 with no warnings.
+> Phase 5's gate also requires one end-to-end order, and **that manual pass has
+> not been done** — so phase 5 is not complete. Verified so far:
 > **80/80 migrations applied**, **167 public tables**, all four cron routes
 > return 401 unauthenticated, the Messenger verify handshake rejects a wrong
 > token, every security header survives the CDN, and the anon key reads back
 > **empty** from `orders`, `customers`, `messages`, `conversations` and
 > `stores`.
 >
-> What remains: one manual end-to-end pass (register a store → Messenger
+> What remains: **the phase 5 manual pass** (register a store → Messenger
 > message → AI reply → order → payment), Meta app review, and QPay live
 > credentials.
 >
@@ -59,10 +61,14 @@ already points at it. So there is nothing to create and no secret to rotate —
    starting Phase 2 rather than discovering it there:
 
    ```bash
-   SUPABASE_ACCESS_TOKEN=<token> supabase projects list
+   read -rs SUPABASE_ACCESS_TOKEN && export SUPABASE_ACCESS_TOKEN
+   supabase projects list
+   unset SUPABASE_ACCESS_TOKEN
    ```
 
-   The project should appear in the output. An invalid token errors here.
+   Run the first line, paste the token, press Enter — `-s` keeps it out of the
+   terminal and out of shell history. `temuulel-prod` should appear in the
+   output; an invalid token errors here rather than mid-Phase-2.
 
 **Gate:** `SUPABASE_PROJECT_REF` = `nplzzjqainveqcuohsjo` (the bare 20-char
 ref — a full `https://…supabase.co` URL fails linking with "Invalid project ref
